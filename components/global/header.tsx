@@ -4,6 +4,7 @@ import { ArrowDownToLine, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { CustomButton } from '@/components/ui/custom-button';
 import Image from 'next/image';
 
 const navLinks = [
@@ -19,7 +20,7 @@ export default function Header() {
   const [active, setActive] = useState('Home');
 
   return (
-    <header className="relative w-full bg-white flex items-center justify-between rounded-lg p-2 lg:p-4">
+    <header className="relative w-full bg-white flex items-center justify-between rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-2 lg:p-4">
       {/* Left Side - Mobile Menu + Logo */}
       <div className="flex items-center gap-2">
         {/* Mobile Menu Button */}
@@ -44,7 +45,7 @@ export default function Header() {
       </div>
 
       {/* Desktop Navigation */}
-      <nav className="hidden lg:flex bg-gray-100 rounded-full py-2 px-4 items-center gap-1">
+      <nav className="hidden lg:flex bg-gray-100 rounded-full p-2 items-center gap-1">
         {navLinks.map((link) => (
           <Button
             key={link.label}
@@ -63,17 +64,12 @@ export default function Header() {
       </nav>
 
       {/* Download Button - Desktop Only */}
-      <Button className="hidden md:flex pl-6 pr-0 py-5 items-center gap-3 relative overflow-hidden">
-        Download App
-        <div className="bg-white rounded-full p-2 border border-[#F4781B]">
-          <ArrowDownToLine className="w-4 h-4 text-black" />
-        </div>
-      </Button>
+      <CustomButton className="hidden md:flex" rightIcon={ArrowDownToLine}>Download App</CustomButton>
 
 
       {/* Mobile Navigation Drawer */}
       {mobileOpen && (
-        <div className="absolute top-[calc(100%+10px)] left-0 w-full max-w-sm h-[calc(100vh-100%-30px)] z-50 flex flex-col items-center bg-white border-b rounded-lg shadow-lg lg:hidden">
+        <div className="absolute top-[calc(100%+10px)] left-0 w-full max-w-sm min-h-[calc(100vh-100%-30px)] z-50 flex flex-col items-center bg-white border-b rounded-lg shadow-lg lg:hidden justify-between">
           <div className="w-full max-w-sm py-4 px-4">
             {navLinks.map((link) => (
               <Button
@@ -92,15 +88,10 @@ export default function Header() {
               >
                 <Link href={link.href}>{link.label}</Link>
               </Button>
-            ))}
-            
-            {/* Download Button in Mobile Sidebar */}
-            <Button className="pl-6 pr-0 py-5 flex items-center gap-3 relative overflow-hidden w-full my-2">
-              Download App
-              <div className="bg-white rounded-full p-2 border border-[#F4781B]">
-                <ArrowDownToLine className="w-4 h-4 text-black" />
-              </div>
-            </Button>
+            ))}         
+          </div>
+          <div className='w-full max-w-sm py-4 px-4'>
+          <CustomButton className='w-full justify-center my-1' rightIcon={ArrowDownToLine}>Download App</CustomButton>
           </div>
         </div>
       )}
