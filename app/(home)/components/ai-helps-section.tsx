@@ -7,6 +7,10 @@ import {
   MessageSquare, 
   ShieldCheck 
 } from "lucide-react";
+import { Section } from "@/components/ui/section";
+import { FeatureCard } from "@/components/ui/feature-card";
+import { Heading } from "@/components/ui/heading";
+import { Paragraph } from "@/components/ui/paragraph";
 
 export default function AIHelpsSection() {
   const features = [
@@ -38,43 +42,33 @@ export default function AIHelpsSection() {
   ];
 
   return (
-    <section className="w-full bg-white rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-4 md:p-8 lg:p-16">
+    <Section>
       {/* Header */}
       <div className=" mb-12">
-        <h2 className="text-5xl font-medium text-[#252B37] mb-4">
+        <Heading as="h2" size="md" className="text-[#252B37] mb-4">
           How{" "}
           <span className="text-[#F4781B]">AI Helps You</span>{" "}
           Get the Right Job Faster
-        </h2>
-        <p className="text-base font-normal text-[#717680] max-w-3xl">
+        </Heading>
+        <Paragraph className="text-[#717680] max-w-3xl">
           Our intelligent platform works behind the scenes to help you get the right job, faster. Here's how:
-        </p>
+        </Paragraph>
       </div>
 
       {/* Feature Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         {features.map((feature, index) => (
-          <div 
-            key={index} 
-            className="flex flex-col items-start text-left p-6 border-b border-[#E9EAEB] pb-6"
-          >
-            {/* Icon */}
-       
-              <feature.icon className="w-12 h-12 text-[#F4781B] mb-4" />
-         
-
-            {/* Title */}
-            <h3 className="text-xl font-medium text-[#252B37] mb-3">
-              {feature.title}
-            </h3>
-
-            {/* Description */}
-            <p className="text-base font-normal text-[#717680] leading-relaxed">
-              {feature.description}
-            </p>
-          </div>
+          <FeatureCard
+            key={index}
+            title={feature.title}
+            description={feature.description}
+            visual={{
+              type: "icon",
+              content: feature.icon
+            }}
+          />
         ))}
       </div>
-    </section>
+    </Section>
   );
 }

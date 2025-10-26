@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Section } from "@/components/ui/section";
 
 export default function CompanyLogos() {
   const logos = [
@@ -12,15 +13,15 @@ export default function CompanyLogos() {
 
   // Create seamless circular loop by duplicating logos
   // This ensures the animation appears continuous without any visible restart
-  const duplicatedLogos = [...logos, ...logos];
+  const duplicatedLogos = [...logos, ...logos, ...logos];
 
   return (
-    <div className="w-full bg-white rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-4 md:p-8 lg:p-16 overflow-hidden">
-      <div className="flex items-center gap-8 animate-scroll">
+    <Section padding={false} className="overflow-hidden">
+      <div className="flex items-center animate-scroll ">
         {duplicatedLogos.map((logo, index) => (
           <div
             key={index}
-            className="flex items-center justify-center p-4 flex-shrink-0"
+            className="flex items-center justify-center p-4 md:p-8 lg:p-16 flex-shrink-0"
           >
             <Image
               src={logo.src}
@@ -51,6 +52,6 @@ export default function CompanyLogos() {
           animation-play-state: paused;
         }
       `}</style>
-    </div>
+    </Section>
   );
 }

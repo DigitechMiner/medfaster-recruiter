@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { CustomButton } from "@/components/ui/custom-button";
 import { ArrowRight, Wand2, ShieldCheck, Briefcase } from "lucide-react";
+import { Section } from "@/components/ui/section";
+import { Heading } from "@/components/ui/heading";
+import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
 
 export default function GetHiredSection() {
   const steps = [
@@ -27,8 +30,9 @@ export default function GetHiredSection() {
   ];
 
   return (
-    <section 
-      className="w-full relative rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl bg-[#F4781B] overflow-hidden p-4 md:p-8 lg:p-16"
+    <Section 
+      backgroundColor="bg-[#F4781B]"
+      className="relative overflow-hidden"
       style={{
         backgroundImage: "url(/img/background.png)",
         backgroundSize: "cover",
@@ -40,12 +44,12 @@ export default function GetHiredSection() {
       <div className="relative">
         {/* Top Text Section */}
         <div className=" mb-8">
-            <h1 className="text-5xl font-medium text-white mb-4">
+            <Heading className="text-white mb-4">
               Get Hired in 3 Simple Steps
-            </h1>
-          <p className="text-lg font-normal text-white max-w-2xl ">
+            </Heading>
+          <ResponsiveParagraph size="base" className="text-white max-w-2xl">
             Our AI-powered process makes finding your next role faster and more direct than ever before.
-          </p>
+          </ResponsiveParagraph>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-left">
@@ -70,10 +74,10 @@ export default function GetHiredSection() {
                     <step.icon className="w-10 h-10 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-medium mb-2">{step.title}</h3>
-                    <p className="text-base font-normal text-white text-opacity-90 leading-relaxed">
+                    <Heading as="h3" size="xs" weight="medium" className="text-white mb-2">{step.title}</Heading>
+                    <ResponsiveParagraph size="sm" className="text-white text-opacity-90 leading-relaxed">
                       {step.description}
-                    </p>
+                    </ResponsiveParagraph>
                   </div>
                 </div>
               ))}
@@ -90,6 +94,6 @@ export default function GetHiredSection() {
           </div>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }

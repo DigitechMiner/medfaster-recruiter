@@ -20,7 +20,7 @@ export default function Header() {
   const [active, setActive] = useState('Home');
 
   return (
-    <header className="relative w-full bg-white flex items-center justify-between rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-2 lg:p-4">
+    <header className="relative w-full bg-white flex items-center justify-between rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-2 md:px-4 lg:px-6 xl:px-8">
       {/* Left Side - Mobile Menu + Logo */}
       <div className="flex items-center gap-2">
         {/* Mobile Menu Button */}
@@ -64,7 +64,7 @@ export default function Header() {
       </nav>
 
       {/* Download Button - Desktop Only */}
-      <CustomButton className="hidden md:flex" rightIcon={ArrowDownToLine}>Download App</CustomButton>
+      <CustomButton className="hidden md:flex my-0" rightIcon={ArrowDownToLine}>Download App</CustomButton>
 
 
       {/* Mobile Navigation Drawer */}

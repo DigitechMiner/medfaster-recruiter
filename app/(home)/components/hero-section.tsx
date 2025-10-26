@@ -5,23 +5,26 @@ import { CustomButton } from "@/components/ui/custom-button";
 import InputIcon from "@/components/ui/input-icon";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import { Section } from "@/components/ui/section";
+import { Heading } from "@/components/ui/heading";
+import { Paragraph } from "@/components/ui/paragraph";
 
 export default function HeroSection() {
   return (
-    <section className="w-full bg-white rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-4 md:p-8 lg:p-16">
+    <Section>
       {/* Two Grid Layout - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start ">
         {/* First Grid Section - Left 50% */}
         <div className="flex flex-col justify-between h-full space-y-8">
           {/* Main Heading */}
           <div className="text-left">
-            <h1 className="text-4xl lg:text-5xl font-normal text-[#252B37] mb-6">
+            <Heading as="h1" size="md" weight="normal" className="text-[#252B37] mb-6">
               Find Healthcare Jobs Near You
-              <span className="text-[#F4781B] text-4xl lg:text-5xl font-medium">
+              <span className="text-[#F4781B] font-medium">
                 {" "}
                 Instantly
               </span>
-            </h1>
+            </Heading>
           </div>
 
           {/* Search Bar */}
@@ -54,13 +57,13 @@ export default function HeroSection() {
 
           {/* Call to Action */}
           <div>
-            <p className="text-lg font-normal text-[#252B37] mb-6">
+            <Paragraph size="lg" className="text-[#252B37] mb-6">
               The AI-powered platform connecting you directly with verified
               Health care service providers, such as hospitals, nursing home
               facilities, medical clinics, dental Clinics, physiotherapy clines
               and many more Canada. Discover full-time, part-time, and on-demand
               roles all on your terms.
-            </p>
+            </Paragraph>
             <div className="flex items-center gap-4">
               <CustomButton rightIcon={ArrowRight}>
                 Browse Nearby Jobs
@@ -110,14 +113,14 @@ export default function HeroSection() {
 
             {/* Total Flexibility & Control Box */}
             <div className="md:flex-[1] bg-[#F4781B] rounded-lg p-4 text-white flex flex-col justify-center">
-              <h3 className="text-lg font-bold mb-2">
+              <Heading as="h3" size="xs" weight="bold" className="text-white mb-2">
                 Total Flexibility & Control
-              </h3>
-              <p className="text-base font-normal leading-relaxed">
+              </Heading>
+              <Paragraph className="text-white leading-relaxed">
                 Take charge of your career. Filter for full-time, part-time, or
                 single on-demand shifts that fit your schedule. Get instant alerts
                 for jobs you actually want.
-              </p>
+              </Paragraph>
             </div>
           </div>
 
@@ -136,18 +139,18 @@ export default function HeroSection() {
 
             {/* Direct & Verified Opportunities Box - Second on mobile, First on desktop */}
             <div className="order-2 md:order-1 md:flex-[1] bg-[#F4781B] rounded-lg p-4 text-white flex flex-col justify-center">
-              <h3 className="text-lg font-bold mb-2">
+              <Heading as="h3" size="xs" weight="bold" className="text-white mb-2">
                 Direct & Verified Opportunities
-              </h3>
-              <p className="text-base font-normal leading-relaxed">
+              </Heading>
+              <Paragraph className="text-white leading-relaxed">
                 Connect directly with top-tier hospitals and clinics. Our
                 AI-powered system verifies every listing, so you can apply with
                 confidence. No recruiters, no hassle.
-              </p>
+              </Paragraph>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
