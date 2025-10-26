@@ -4,6 +4,11 @@ import CompanyLogos from "./components/company-logos"
 import GetHiredSection from "./components/get-hired-section"
 import AIHelpsSection from "./components/ai-helps-section"
 import { Footer } from "@/components/global/footer"
+import AllInOneSection from "./components/all-in-one-app"
+import NextCareer from "./components/next-career"
+import Verified from "./components/verified"
+import CareerOnTheGo from "./components/career-on-the-go"
+import TestimonialsSection from "./components/testimonial"
 
 export default function Home() {
   return (
@@ -13,6 +18,11 @@ export default function Home() {
       <CompanyLogos />
       <GetHiredSection />
       <AIHelpsSection />
+      <AllInOneSection />
+      <Verified />
+      <TestimonialsSection />
+      <NextCareer />
+      <CareerOnTheGo />
       <Footer />
     </div>
   );
