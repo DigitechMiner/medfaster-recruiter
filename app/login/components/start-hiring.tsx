@@ -6,7 +6,7 @@ import { Section } from "@/components/ui/section";
 import { Heading } from "@/components/ui/heading";
 import { ResponsiveParagraph } from "@/components/ui/paragraph";
 
-const NextCareer = () => {
+const StartHiring = () => {
   return (
     <Section 
       backgroundColor="bg-[#F4781B]"
@@ -24,13 +24,11 @@ const NextCareer = () => {
         <div className="p-4 md:p-8 lg:p-16 flex flex-col justify-center">
           <div className="space-y-2 md:space-y-4 lg:space-y-6 xl:space-y-8">
             <Heading as="h1" size="md" className="text-white tracking-widest">
-              Your Next Career Move Starts Here.
+             Start Smart Hiring Today
             </Heading>
 
             <ResponsiveParagraph size="base" className="text-white/90 max-w-xl leading-relaxed">
-              Join now to get access to verified listings, instant matches, and
-              a network that's invested in your success.
-            </ResponsiveParagraph>
+              Find trusted healthcare professionals in minutes — powered by AI.StartHiring   </ResponsiveParagraph>
 
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row sm:gap-4">
@@ -40,7 +38,7 @@ const NextCareer = () => {
                 iconClassName="text-white"
                 iconContainerClassName="bg-[#F4781B]"
               >
-                Get Started
+                Post a Job
               </CustomButton>
 
               <CustomButton
@@ -49,7 +47,7 @@ const NextCareer = () => {
                 iconClassName="text-white"
                 iconContainerClassName="bg-[#F4781B]"
               >
-                Download app
+                Schedule Demo
               </CustomButton>
             </div>
           </div>
@@ -59,7 +57,7 @@ const NextCareer = () => {
         <div className="relative flex items-end justify-center lg:justify-end overflow-hidden md:block">
           <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] xl:h-full">
             <Image
-              src="/img/nurse01.png"
+              src="/img/nurse02.png"
               alt="Healthcare professional"
               fill
               className="object-contain object-bottom lg:object-right-bottom"
@@ -73,4 +71,4 @@ const NextCareer = () => {
   );
 };
 
-export default NextCareer;
+export default StartHiring;
