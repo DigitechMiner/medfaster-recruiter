@@ -12,10 +12,11 @@ const NextCareer = () => {
       backgroundColor="bg-[#F4781B]"
       padding={false}
       style={{
-        backgroundImage: "url(/img/background.png)",
+        backgroundImage: "url(/img/pattern/02.png)",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
+        backgroundBlendMode: 'overlay',
+        backgroundRepeat: 'no-repeat'
       }}
     >
       {" "}

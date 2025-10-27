@@ -9,10 +9,10 @@ import Image from 'next/image';
 
 const navLinks = [
   { label: 'Home', href: '/' },
-  { label: 'About Us', href: '/' },
-  { label: 'Find Jobs', href: '/' },
-  { label: 'Blog', href: '/' },
-  { label: 'Contact Us', href: '/' },
+  { label: 'About Us', href: '/login' },
+  { label: 'Find Jobs', href: '/login' },
+  { label: 'Blog', href: '/login' },
+  { label: 'Contact Us', href: '/login' },
 ];
 
 export default function Header() {

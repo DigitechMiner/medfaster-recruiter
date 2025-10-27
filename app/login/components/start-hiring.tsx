@@ -9,20 +9,20 @@ import { ResponsiveParagraph } from "@/components/ui/paragraph";
 const StartHiring = () => {
   return (
     <Section 
-      backgroundColor="bg-[#F4781B]"
+      backgroundColor="bg-transparent"
       padding={false}
       style={{
-        backgroundImage: "url(/img/background.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
+        background: 'linear-gradient(225deg, #EB001B 0%, #F79E1B 100%), url("/img/pattern/02.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay',
+        backgroundRepeat: 'no-repeat'
       }}
     >
       {" "}
       <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] ">
         {/* Left Side - Content */}
-        <div className="p-4 md:p-8 lg:p-16 flex flex-col justify-center">
-          <div className="space-y-2 md:space-y-4 lg:space-y-6 xl:space-y-8">
+        <div className="p-4 md:p-8 lg:p-16 flex flex-col gap-6 justify-center">
             <Heading as="h1" size="md" className="text-white tracking-widest">
              Start Smart Hiring Today
             </Heading>
@@ -49,13 +49,13 @@ const StartHiring = () => {
               >
                 Schedule Demo
               </CustomButton>
-            </div>
+           
           </div>
         </div>
 
         {/* Right Side - Nurse Image */}
         <div className="relative flex items-end justify-center lg:justify-end overflow-hidden md:block">
-          <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] xl:h-full">
+          <div className="relative w-full h-[250px] md:h-[300px] lg:h-[400px]">
             <Image
               src="/img/nurse02.png"
               alt="Healthcare professional"

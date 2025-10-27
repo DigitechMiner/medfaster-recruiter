@@ -42,13 +42,14 @@ export default function HiredSection() {
 
   return (
     <Section 
-      backgroundColor="bg-[#F4781B]"
+      backgroundColor="bg-transparent"
       className="relative overflow-hidden"
       style={{
-        backgroundImage: "url(/img/background.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
+        background: 'linear-gradient(225deg, #EB001B 0%, #F79E1B 100%), url("/img/pattern/01.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay',
+        backgroundRepeat: 'no-repeat'
       }}
     >
       {/* Content */}
@@ -66,7 +67,7 @@ export default function HiredSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-left">
           {/* Left Side - Image */}
           <div className="order-2 lg:order-1">
-            <div className="relative h-[400px] lg:h-[700px]">
+            <div className="relative h-[300px] lg:h-[700px]">
               <Image
                 src="/img/doc-with-ipad.png"
                 alt="Healthcare professional assisting patient"

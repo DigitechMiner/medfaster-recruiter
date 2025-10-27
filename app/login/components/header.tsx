@@ -9,15 +9,15 @@ import Image from 'next/image';
 
 const navLinks = [
   { label: 'Home', href: '/' },
-  { label: 'About Us', href: '/' },
-  { label: 'Post Job', href: '/' },
-  { label: 'Hiring Blog', href: '/' },
-  { label: 'Contact Us', href: '/' },
+  { label: 'About Us', href: '/login' },
+  { label: 'Find Jobs', href: '/login' },
+  { label: 'Blog', href: '/login' },
+  { label: 'Contact Us', href: '/login' },
 ];
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [active, setActive] = useState('Home');
+  const [active, setActive] = useState('About Us');
 
   return (
     <header className="relative w-full bg-white flex items-center justify-between rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-2 md:px-4 lg:px-6 xl:px-8">
@@ -64,7 +64,7 @@ export default function Header() {
       </nav>
 
       {/* Download Button - Desktop Only */}
-      <CustomButton className="hidden md:flex my-0" rightIcon={ArrowDownToLine}>Download App</CustomButton>
+      <CustomButton className="hidden md:flex my-0">Login</CustomButton>
 
 
       {/* Mobile Navigation Drawer */}
@@ -91,7 +91,7 @@ export default function Header() {
             ))}         
           </div>
           <div className='w-full max-w-sm py-4 px-4'>
-          <CustomButton className='w-full justify-center my-1' rightIcon={ArrowDownToLine}>Download App</CustomButton>
+          <CustomButton className='w-full justify-center my-1'>Login</CustomButton>
           </div>
         </div>
       )}

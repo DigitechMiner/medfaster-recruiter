@@ -1,65 +1,134 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
+import Image from "next/image";
+import { Section } from "@/components/ui/section";
+import { Heading } from "@/components/ui/heading";
+import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
+import { CustomButton } from "@/components/ui/custom-button";
+import { Calendar } from "lucide-react";
 
 export default function PaymentBanner() {
   return (
-    <section className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-r from-[#F4A261] via-[#E76F51] to-[#E63946] px-8 py-16 lg:px-16 lg:py-20">
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center max-w-7xl mx-auto">
-        
+    <Section
+      backgroundColor="bg-transparent"
+      padding={false}
+      style={{
+        background: 'linear-gradient(225deg, #EB001B 0%, #F79E1B 100%), url("/img/pattern/02.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundBlendMode: 'overlay',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         {/* Left Content */}
-        <div className="space-y-8">
+        <div className="p-4 md:p-8 lg:p-16 space-y-2 md:space-y-4 lg:space-y-6 xl:space-y-8">
           {/* Logo */}
-          <div className="mb-6">
+          <div className="flex-shrink-0 w-56 md:w-64 lg:w-80 flex items-center">
             <Image
               src="/img/logo.png"
-              alt="MedFaster"
-              width={200}
-              height={60}
-              className="h-12 w-auto"
+              height={50}
+              width={300}
+              alt="MeDFaster"
+              objectFit="contain"
+              priority
             />
           </div>
 
           {/* Heading */}
-          <h2 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
-            Manage <span className="font-light">Payments</span> Seamlessly
-          </h2>
+          <Heading as="h2" size="md" className="text-white ">
+            Manage <span className="font-bold">Payments</span> Seamlessly
+          </Heading>
 
           {/* CTA Button */}
-          <button className="group flex items-center gap-3 bg-white text-gray-800 px-8 py-4 rounded-full font-medium text-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+          <CustomButton
+            size="lg"
+            rightIcon={Calendar}
+            className="!bg-white !text-gray-800 hover:shadow-xl transition-all duration-300"
+            iconContainerClassName="!bg-[#F4781B]"
+            iconClassName="!text-white"
+          >
             Book a Demo
-            <span className="bg-[#F4781B] text-white p-2 rounded-full group-hover:rotate-12 transition-transform duration-300">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-5 w-5" 
-                viewBox="0 0 20 20" 
-                fill="currentColor"
-              >
-                <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L11 4.323V3a1 1 0 011-1zm-5 8.274l-.818 2.552c-.25.78.162 1.628.947 1.847l1.819.464a1 1 0 01.754 1.165 2.5 2.5 0 01-4.843-.06l.817-2.551A1 1 0 005.91 13H3.75A1.75 1.75 0 012 11.25v-1.5A1.75 1.75 0 013.75 8h2.16a1 1 0 011.734.718z" />
-              </svg>
-            </span>
-          </button>
+          </CustomButton>
         </div>
 
-        {/* Right Content - Doctor Collage */}
+        {/* Right Content - Payment Card with Doctors */}
         <div className="relative flex justify-center lg:justify-end">
-          <div className="relative w-full max-w-md lg:max-w-lg">
-            <Image
-              src="/img/doctor-group.png"
-              alt="Healthcare Professionals"
-              width={600}
-              height={500}
-              className="w-full h-auto"
-            />
+          <div className="relative w-full max-w-lg aspect-square overflow-visible flex items-center justify-center">
+            {/* Central White Circle */}
+            <div className="relative w-[250px] h-[250px] md:w-[280px] md:h-[280px] lg:w-[300px] lg:h-[300px] bg-white rounded-full shadow-xl flex flex-col items-center justify-center ">
+              {/* Logo */}
+              <div className="mb-3 flex flex-col items-center">
+                <Image
+                  src="/img/company/logo1.png"
+                  alt="Company Logo"
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto mb-2 object-contain"
+                />
+              </div>
+
+              {/* Price */}
+              <ResponsiveParagraph
+                size="lg"
+                weight="bold"
+                className=" text-[#F4781B] mb-2"
+              >
+                $12,500
+              </ResponsiveParagraph>
+
+              {/* Role */}
+              <Paragraph
+                size="sm"
+                className="md:text-base text-[#252B37] mb-1 text-center"
+              >
+                Assistant of audiology
+              </Paragraph>
+
+              {/* Status */}
+              <Paragraph size="xs" className="md:text-sm text-[#717680]">
+                Paid
+              </Paragraph>
+
+              {/* Top Right Doctor */}
+              <div className="absolute -right-10 md:-right-14 lg:-right-16 -top-10 md:-top-14 lg:-top-16 w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-white overflow-hidden shadow-xl">
+                <div className="absolute inset-0">
+                  <Image
+                    src="/img/doctor.png"
+                    alt="Doctor"
+                    fill
+                    className="object-cover p-2"
+                  />
+                </div>
+              </div>
+
+              {/* Bottom Right Doctor */}
+              <div className="absolute -right-10 md:-right-14 lg:-right-16 -bottom-10 md:-bottom-14 lg:-bottom-16 w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-white overflow-hidden shadow-xl">
+                <div className="absolute inset-0">
+                  <Image
+                    src="/img/nurse.png"
+                    alt="Doctor"
+                    fill
+                    className="object-cover p-2"
+                  />
+                </div>
+              </div>
+
+              {/* Bottom Left Doctor */}
+              <div className="absolute -left-10 md:-left-14 lg:-left-16 -bottom-10 md:-bottom-14 lg:-bottom-16 w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-full bg-white overflow-hidden shadow-xl">
+                <div className="absolute inset-0">
+                  <Image
+                    src="/img/nurse01.png"
+                    alt="Doctor"
+                    fill
+                    className="object-cover p-2"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Background Pattern/Decorative Elements */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-white rounded-full blur-3xl"></div>
-      </div>
-    </section>
-  )
+    </Section>
+  );
 }
