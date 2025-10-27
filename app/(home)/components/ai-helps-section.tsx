@@ -51,7 +51,7 @@ export default function AIHelpsSection() {
           Get the Right Job Faster
         </Heading>
         <Paragraph className="text-[#717680] max-w-3xl">
-          Our intelligent platform works behind the scenes to help you get the right job, faster. Here's how:
+          Our intelligent platform works behind the scenes to help you get the right job, faster. Here&apos;s how:
         </Paragraph>
       </div>
 

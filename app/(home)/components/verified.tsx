@@ -20,7 +20,7 @@ export default function VerifiedScoreSection() {
             </Heading>
             
             <ResponsiveParagraph size="base" className="text-[#717680] leading-relaxed">
-              Once you complete onboarding and pre-screening, you'll receive an 
+              Once you complete onboarding and pre-screening, you&apos;ll receive an 
               AI-generated scorecard. Recruiters see only verified candidates — so 
               you stand out instantly.
             </ResponsiveParagraph>

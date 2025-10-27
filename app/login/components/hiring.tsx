@@ -5,7 +5,7 @@ import { CustomButton } from "@/components/ui/custom-button";
 import { ArrowRight, Wand2, ShieldCheck, Briefcase } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Heading } from "@/components/ui/heading";
-import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
+import { ResponsiveParagraph } from "@/components/ui/paragraph";
 
 export default function HiredSection() {
   const steps = [

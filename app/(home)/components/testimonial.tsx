@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { FaStar } from "react-icons/fa";
-import { HiChevronLeft, HiChevronRight } from "react-icons/hi";
-import { ArrowBigLeft, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Heading } from "@/components/ui/heading";
 import { ResponsiveParagraph, Paragraph } from "@/components/ui/paragraph";
@@ -81,7 +80,7 @@ export default function TestimonialsSection() {
           </Heading>
           <ResponsiveParagraph size="base" className="text-[#717680] max-w-3xl">
             Real experiences from nurses, specialists, and therapists who found
-            success on our platform. See how we've helped thousands find their
+            success on our platform. See how we&apos;ve helped thousands find their
             ideal roles.
           </ResponsiveParagraph>
         </div>
@@ -111,7 +110,7 @@ export default function TestimonialsSection() {
 
                 {/* Review Text - flex-1 pushes user info to bottom */}
                 <ResponsiveParagraph size="base" className="text-[#252B37] mb-6 leading-relaxed flex-1">
-                  "{testimonial.review}"
+                  &ldquo;{testimonial.review}&rdquo;
                 </ResponsiveParagraph>
 
                 {/* User Info - stays at bottom */}

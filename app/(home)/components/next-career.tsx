@@ -30,7 +30,7 @@ const NextCareer = () => {
 
             <ResponsiveParagraph size="base" className="text-white/90 max-w-xl leading-relaxed">
               Join now to get access to verified listings, instant matches, and
-              a network that's invested in your success.
+              a network that&apos;s invested in your success.
             </ResponsiveParagraph>
 
             {/* Buttons */}

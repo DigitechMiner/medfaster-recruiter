@@ -41,8 +41,8 @@ export default function OneDashboard() {
           <span className="text-[#F4781B]">One Dashboard</span>{" "}
         </Heading>
         <Paragraph className="text-[#717680] max-w-3xl">
-          "Discover the intelligent technology that works behind the scenes to
-          connect you with your next role, faster".
+          &ldquo;Discover the intelligent technology that works behind the scenes to
+          connect you with your next role, faster&rdquo;.
         </Paragraph>
       </div>
 

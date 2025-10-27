@@ -14,7 +14,7 @@ export default function HireWithConfidence() {
           Hire with <span className="text-[#F4781B] font-semibold">Confidence</span>
         </Heading>
         <Paragraph className="text-[#717680] leading-relaxed max-w-3xl">
-          You'll only see candidates who are pre-screened, verified, and AI-rated — saving time and ensuring compliance.
+          You&apos;ll only see candidates who are pre-screened, verified, and AI-rated — saving time and ensuring compliance.
         </Paragraph>
       </div>
 
