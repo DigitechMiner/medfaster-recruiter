@@ -10,16 +10,16 @@ export default function VerifiedScoreSection() {
         
         {/* Left Box */}
         <Section className="flex items-start w-full">
-          <div className="space-y-4">
+          <div className="space-y-4 font-[500]">
             <Heading as="h2" size="md" className="text-[#252B37] leading-tight">
               Earn a{" "}
-              <span className="text-[#F4781B]">Verified</span>{" "}
+              <span className="text-[#F4781B] font-bold">Verified</span>{" "}
               Score.
               <br />
               Get Hired Faster.
             </Heading>
             
-            <ResponsiveParagraph size="base" className="text-[#717680] leading-relaxed">
+            <ResponsiveParagraph size="base" className="text-[#717680] leading-relaxed font-[400]">
               Once you complete onboarding and pre-screening, you&apos;ll receive an 
               AI-generated scorecard. Recruiters see only verified candidates — so 
               you stand out instantly.

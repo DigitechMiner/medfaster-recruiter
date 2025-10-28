@@ -54,6 +54,8 @@ return (
             key={index}
             title={feature.title}
             description={feature.description}
+            imageFullWidth={true}
+            imageCenter={true}
             visual={{
               type: "image",
               content: feature.screen,

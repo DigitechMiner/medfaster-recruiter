@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React from "react";
 import { CustomButton } from "@/components/ui/custom-button";
-import { ArrowRight, Download } from "lucide-react";
+import { ArrowRight, Download, DownloadIcon } from "lucide-react";
 import { Section } from "@/components/ui/section";
 import { Heading } from "@/components/ui/heading";
 import { ResponsiveParagraph } from "@/components/ui/paragraph";
@@ -31,9 +31,9 @@ const StartHiring = () => {
               Find trusted healthcare professionals in minutes — powered by AI.StartHiring   </ResponsiveParagraph>
 
             {/* Buttons */}
-            <div className="flex flex-col sm:flex-row sm:gap-4">
+            <div className="flex flex-wrap md:flex-row ">
               <CustomButton
-                className="bg-white text-black hover:bg-gray-100"
+                className="bg-white text-black hover:bg-gray-100 mr-2 md:mr-4"
                 rightIcon={ArrowRight}
                 iconClassName="text-white"
                 iconContainerClassName="bg-[#F4781B]"
@@ -43,7 +43,7 @@ const StartHiring = () => {
 
               <CustomButton
                 className="bg-white text-black hover:bg-gray-100"
-                rightIcon={Download}
+                rightIcon={DownloadIcon}
                 iconClassName="text-white"
                 iconContainerClassName="bg-[#F4781B]"
               >

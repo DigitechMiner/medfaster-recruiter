@@ -22,7 +22,7 @@ export default function PaymentBanner() {
     >
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         {/* Left Content */}
-        <div className="p-4 md:p-8 lg:p-16 space-y-2 md:space-y-4 lg:space-y-6 xl:space-y-8">
+        <div className="p-4 md:p-8 lg:p-16 py-8 space-y-8">
           {/* Logo */}
           <div className="flex-shrink-0 w-56 md:w-64 lg:w-80 flex items-center">
             <Image

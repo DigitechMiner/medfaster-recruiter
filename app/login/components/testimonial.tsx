@@ -53,7 +53,7 @@ export default function TestimonialsSlider() {
   return (
     <Section>
       {/* Header */}
-      <div className="mb-12 lg:mb-16">
+      <div className="mb-8 md:mb-12 lg:mb-16">
         <Heading className="text-[#252B37] mb-4">
           Why Leading Hospitals Trust{" "}
           <span className="text-[#F4781B] font-semibold">MedFaster</span>
@@ -67,7 +67,7 @@ export default function TestimonialsSlider() {
 
       {/* Testimonial Card */}
       <div className="relative p-4 md:p-8 lg:p-16 ">
-        <div className="flex items-start gap-6">
+        <div className="flex flex-col md:flex-row items-start gap-6">
           {/* Left Side - Quote Icon */}
           <div className="flex-shrink-0 w-9 h-9 md:w-12 md:h-12 lg:w-16 lg:h-16">
             <img

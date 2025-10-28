@@ -7,7 +7,7 @@ import { Search, MapPin, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { Section } from "@/components/ui/section";
 import { Heading } from "@/components/ui/heading";
-import { Paragraph } from "@/components/ui/paragraph";
+import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
 
 export default function HeroSection() {
   return (
@@ -50,20 +50,20 @@ export default function HeroSection() {
                 />
               </div>
               <Button className="bg-[#F4781B] hover:bg-[#E06A0A] text-white w-12 h-12 rounded-lg md:rounded-full p-0 flex-shrink-0">
-                <Search className="w-5 h-5" />
+                <Search className="w-5 h-5 " />
               </Button>
             </div>
           </div>
 
           {/* Call to Action */}
           <div>
-            <Paragraph size="lg" className="text-[#252B37] mb-6">
+            <ResponsiveParagraph size="base" className="text-[#252B37] mb-6">
               The AI-powered platform connecting you directly with verified
               Health care service providers, such as hospitals, nursing home
               facilities, medical clinics, dental Clinics, physiotherapy clines
               and many more Canada. Discover full-time, part-time, and on-demand
               roles all on your terms.
-            </Paragraph>
+            </ResponsiveParagraph>
             <div className="flex items-center gap-4">
               <CustomButton rightIcon={ArrowRight}>
                 Browse Nearby Jobs
@@ -103,7 +103,7 @@ export default function HeroSection() {
             {/* Address Image */}
             <div className="md:flex-[3] relative bg-[#f5f5f5] rounded-lg flex items-center justify-center">
               <Image
-                src="/img/address.png"
+                src="/img/ADDRESS.png"
                 alt="MedFasterrr app interface"
                 width={280}
                 height={450}
@@ -142,7 +142,7 @@ export default function HeroSection() {
               <Heading as="h3" size="xs" weight="bold" className="text-white mb-2">
                 Direct & Verified Opportunities
               </Heading>
-              <Paragraph className="text-white leading-relaxed">
+              <Paragraph className="text-white leading-relaxed font-light">
                 Connect directly with top-tier hospitals and clinics. Our
                 AI-powered system verifies every listing, so you can apply with
                 confidence. No recruiters, no hassle.

@@ -13,9 +13,10 @@ interface FeatureCardProps {
     alt?: string;
   };
   imageFullWidth?: boolean;
+  imageCenter?: boolean;
 }
 
-export function FeatureCard({ title, description, visual, imageFullWidth = false }: FeatureCardProps) {
+export function FeatureCard({ title, description, visual, imageFullWidth = false, imageCenter = false }: FeatureCardProps) {
   return (
     <div className="flex flex-col items-start text-left border-b border-[#E9EAEB] pb-6">
       {/* Visual element (image or icon) */}
@@ -27,7 +28,7 @@ export function FeatureCard({ title, description, visual, imageFullWidth = false
                 src={visual.content as string}
                 alt={visual.alt || title}
                 fill
-                className="object-contain rounded-xl"
+                className={`object-contain rounded-xl ${imageCenter ? "object-center md:object-left" : "object-left"}`}
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>

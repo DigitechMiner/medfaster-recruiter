@@ -24,13 +24,14 @@ const NextCareer = () => {
         {/* Left Side - Content */}
         <div className="p-4 md:p-8 lg:p-16 flex flex-col justify-center">
           <div className="space-y-2 md:space-y-4 lg:space-y-6 xl:space-y-8">
-            <Heading as="h1" size="md" className="text-white tracking-widest">
+            <Heading as="h1" size="md" className="text-white tracking-widest text-nowrap">
               Your Next Career Move Starts Here.
             </Heading>
 
-            <ResponsiveParagraph size="base" className="text-white/90 max-w-xl leading-relaxed">
+            <ResponsiveParagraph size="base" className="text-white/90 max-w-xl leading-relaxed text-nowrap">
               Join now to get access to verified listings, instant matches, and
-              a network that&apos;s invested in your success.
+              a network that&apos;s invested in your <br />
+              success
             </ResponsiveParagraph>
 
             {/* Buttons */}
