@@ -75,8 +75,8 @@ export default function TestimonialsSection() {
         {/* Header */}
         <div>
           <Heading as="h2" size="md" className="text-[#252B37] mb-4">
-            What Our Professionals Are Saying About{" "}
-            <span className="text-[#F4781B]">MeDFasterrrrr</span>
+            What Our Professionals Are Saying About{" "} <br />
+            <span className="text-[#F4781B] font-bold">MeDFasterrrrr</span>
           </Heading>
           <ResponsiveParagraph size="base" className="text-[#717680] max-w-3xl">
             Real experiences from nurses, specialists, and therapists who found

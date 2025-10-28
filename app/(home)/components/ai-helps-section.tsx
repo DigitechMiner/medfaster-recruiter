@@ -47,7 +47,7 @@ export default function AIHelpsSection() {
       <div className=" mb-12">
         <Heading as="h2" size="md" className="text-[#252B37] mb-4">
           How{" "}
-          <span className="text-[#F4781B]">AI Helps You</span>{" "}
+          <span className="text-[#F4781B] font-extrabold">AI Helps You</span>{" "}
           Get the Right Job Faster
         </Heading>
         <Paragraph className="text-[#717680] max-w-3xl">
