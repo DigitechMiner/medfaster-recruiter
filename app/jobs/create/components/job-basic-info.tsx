@@ -37,7 +37,6 @@ const departments = [
 export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
   return (
     <div className="space-y-4 sm:space-y-6 mb-4 sm:mb-6">
-      {/* Job Title and Department - Responsive Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <div className="space-y-2">
           <Label htmlFor="job-title" className="text-sm">
@@ -85,7 +84,6 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
         </div>
       </div>
 
-      {/* Job Type and Location - Responsive Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <div className="space-y-2">
           <Label className="text-sm">
@@ -146,3 +144,5 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
     </div>
   );
 }
+
+

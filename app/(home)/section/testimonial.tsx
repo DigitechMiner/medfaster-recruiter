@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { Section } from "@/components/ui/section";
-import { Heading } from "@/components/ui/heading";
-import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
+import { Section } from "@/components/custom/section";
+import { Heading } from "@/components/custom/heading";
+import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
 import { FaStar } from "react-icons/fa";
 import { testimonials as landingTestimonials } from "@/constants/landingPage";
 

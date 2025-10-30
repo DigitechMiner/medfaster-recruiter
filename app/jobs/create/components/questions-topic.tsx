@@ -30,7 +30,6 @@ export function QuestionsTopic({
 }: QuestionsTopicProps) {
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* Topic Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm sm:text-base font-semibold text-gray-900">
           {topic.title}
@@ -47,7 +46,6 @@ export function QuestionsTopic({
         </Button>
       </div>
 
-      {/* Questions List */}
       <div className="space-y-3 sm:space-y-4">
         {topic.questions.map((question, index) => (
           <div key={question.id} className="space-y-1.5 sm:space-y-2">
@@ -77,3 +75,5 @@ export function QuestionsTopic({
     </div>
   );
 }
+
+

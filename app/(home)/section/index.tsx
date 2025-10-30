@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { CustomButton } from "@/components/ui/custom-button";
+import { CustomButton } from "@/components/custom/custom-button";
 import { ArrowRight, Wand2, ShieldCheck, Briefcase, DownloadIcon, ChevronRight, CalendarRange } from "lucide-react";
-import { Section } from "@/components/ui/section";
-import { Heading } from "@/components/ui/heading";
-import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
-import { FeatureCard } from "@/components/ui/feature-card";
+import { Section } from "@/components/custom/section";
+import { Heading } from "@/components/custom/heading";
+import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
+import { FeatureCard } from "@/components/custom/feature-card";
 import { companyLogos, hiringSteps, dashboardFeatures } from "@/constants/landingPage";
 
 // Hero Section

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 interface SuccessModalProps {
@@ -25,6 +25,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   return (
     <Dialog open={visible} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md w-[90vw] max-w-[400px] [&>button]:hidden rounded-xl">
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         <div className="flex flex-col items-center py-4 sm:py-6 px-2 sm:px-4">
           {/* Success Icon - Responsive Size */}
           <div className="flex items-center justify-center mb-4 sm:mb-6">

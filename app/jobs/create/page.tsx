@@ -1,29 +1,34 @@
 'use client'
-import { useState } from "react";
-import { CreateJobForm } from "../components/jobs/create-job-form";
-import { Footer } from "../components/jobs/footer";
-import { Navbar } from "../components/jobs/navbar";
-import { Button } from "@/components/ui/button";
-import SuccessModal from "../components/job-success-modal";
-
+import { useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AppLayout } from "@/components/global/app-layout";
+import { CreateJobForm } from "./form/create-job-form";
+import { GenerateAIForm } from "./form/generative-ai-form";
 
 export default function CreateJobPage() {
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-    return (
-    <div className="min-h-screen flex flex-col bg-[#F9FAFB]">
-      <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
-          {/* Page Header with Actions */}
-          <div className="mb-6">
-            <h1 className="text-xl font-semibold text-gray-900">
-              Create Job post
-            </h1>
-          </div>
-          <CreateJobForm />
-        </div>
-      </main>
-      <Footer />
-    </div>
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const step = useMemo(() => {
+    const value = Number(searchParams.get("step") ?? "1");
+    return value === 2 ? 2 : 1;
+  }, [searchParams]);
+
+  const goToStep = (nextStep: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("step", String(nextStep));
+    router.replace(`/jobs/create?${params.toString()}`);
+  };
+
+  return (
+    <AppLayout>
+      <div className="py-2 md:py-4 lg:py-6">
+        {step === 1 ? (
+          <CreateJobForm onNext={() => goToStep(2)} />
+        ) : (
+          <GenerateAIForm onBack={() => goToStep(1)} />
+        )}
+      </div>
+    </AppLayout>
   );
 }

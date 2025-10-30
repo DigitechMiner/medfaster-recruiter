@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Section } from "@/components/ui/section";
-import { Heading } from "@/components/ui/heading";
-import { Paragraph, ResponsiveParagraph } from "@/components/ui/paragraph";
-import { CustomButton } from "@/components/ui/custom-button";
+import { Section } from "@/components/custom/section";
+import { Heading } from "@/components/custom/heading";
+import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
+import { CustomButton } from "@/components/custom/custom-button";
 import { Calendar } from "lucide-react";
 
 export default function BookADemo() {

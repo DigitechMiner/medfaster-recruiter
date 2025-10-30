@@ -51,18 +51,15 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
     const sizeConfig = sizeClasses[size];
     const iconConfig = iconSizeClasses[size];
     
-    // Use buttonWithIcon class when icon is present, otherwise use button class
     const buttonPaddingClass = RightIcon ? sizeConfig.buttonWithIcon : sizeConfig.button;
 
     return (
       <button
         ref={ref}
         className={cn(
-          // Base styles
           "flex items-center relative overflow-hidden w-fit my-2 rounded-full",
           "bg-[#F4781B] text-white font-normal shadow hover:opacity-90 transition-colors",
           "focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
-          // Size-based styles
           buttonPaddingClass,
           sizeConfig.text,
           sizeConfig.gap,
@@ -85,3 +82,5 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
 CustomButton.displayName = "CustomButton";
 
 export { CustomButton };
+
+

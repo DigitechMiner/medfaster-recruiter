@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { CustomButton } from "@/components/ui/custom-button";
+import { CustomButton } from "@/components/custom/custom-button";
 import Image from "next/image";
 import { landingNavLinks } from "@/constants/landingPage";
 

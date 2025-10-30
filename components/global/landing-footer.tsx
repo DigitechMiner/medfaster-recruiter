@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { FaFacebook, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { Heading } from "@/components/ui/heading";
-import { Section } from "@/components/ui/section";
-import { CustomButton } from "@/components/ui/custom-button";
-import { ResponsiveParagraph } from "@/components/ui/paragraph";
+import { Heading } from "@/components/custom/heading";
+import { Section } from "@/components/custom/section";
+import { CustomButton } from "@/components/custom/custom-button";
+import { ResponsiveParagraph } from "@/components/custom/paragraph";
 import { landingFooterColumns } from "@/constants/landingPage";
 
 export function LandingFooter() {

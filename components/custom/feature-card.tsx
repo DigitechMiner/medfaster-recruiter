@@ -1,8 +1,8 @@
 import React from "react";
 import Image from "next/image";
 import { LucideIcon } from "lucide-react";
-import { Heading } from "@/components/ui/heading";
-import { Paragraph } from "@/components/ui/paragraph";
+import { Heading } from "@/components/custom/heading";
+import { Paragraph } from "@/components/custom/paragraph";
 
 interface FeatureCardProps {
   title: string;
@@ -19,7 +19,6 @@ interface FeatureCardProps {
 export function FeatureCard({ title, description, visual, imageFullWidth = false, imageCenter = false }: FeatureCardProps) {
   return (
     <div className="flex flex-col items-start text-left border-b border-[#E9EAEB] pb-6">
-      {/* Visual element (image or icon) */}
       {visual && (
         <div className={imageFullWidth ? "w-full mb-6" : ""}>
           {visual.type === "image" && (
@@ -39,12 +38,10 @@ export function FeatureCard({ title, description, visual, imageFullWidth = false
         </div>
       )}
 
-      {/* Title */}
       <Heading as="h3" size="xs" weight="medium" className="text-[#252B37] mb-3">
         {title}
       </Heading>
 
-      {/* Description */}
       {description && (
         <Paragraph className="text-[#717680] leading-relaxed">
           {description}
@@ -53,4 +50,5 @@ export function FeatureCard({ title, description, visual, imageFullWidth = false
     </div>
   );
 }
+
 

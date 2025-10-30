@@ -20,7 +20,6 @@ export function JobInterviewSettings({
 }: JobInterviewSettingsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
-      {/* Urgency */}
       <div className="space-y-2 sm:space-y-3">
         <Label className="text-sm font-medium text-gray-700">
           Urgency <span className="text-red-500">*</span>
@@ -63,7 +62,6 @@ export function JobInterviewSettings({
         </RadioGroup>
       </div>
 
-      {/* In Person Interview */}
       <div className="space-y-2 sm:space-y-3">
         <Label className="text-sm font-medium text-gray-700">
           In Person Interview <span className="text-red-500">*</span>
@@ -98,7 +96,6 @@ export function JobInterviewSettings({
         </RadioGroup>
       </div>
 
-      {/* Physical Interview */}
       <div className="space-y-2 sm:space-y-3">
         <Label className="text-sm font-medium text-gray-700">
           Physical Interview <span className="text-red-500">*</span>
@@ -135,3 +132,5 @@ export function JobInterviewSettings({
     </div>
   );
 }
+
+

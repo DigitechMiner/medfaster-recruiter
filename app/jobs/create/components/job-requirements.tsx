@@ -75,7 +75,6 @@ export function JobRequirements({
 
   return (
     <div className="space-y-6 sm:space-y-8 mb-6 sm:mb-8">
-      {/* Pay Range and Experience - Responsive Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
         <div className="space-y-2 sm:space-y-3">
           <Label className="text-sm font-medium text-gray-700">Pay Range</Label>
@@ -117,7 +116,6 @@ export function JobRequirements({
         </div>
       </div>
 
-      {/* Qualification and Specialization - Responsive Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
         <div className="space-y-2 sm:space-y-3">
           <Label htmlFor="qualification" className="text-sm font-medium text-gray-700">
@@ -202,3 +200,5 @@ export function JobRequirements({
     </div>
   );
 }
+
+
