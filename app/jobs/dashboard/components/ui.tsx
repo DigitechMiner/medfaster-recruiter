@@ -51,11 +51,27 @@ export const ScoreBox: React.FC<ScoreBoxProps> = ({ score }) => (
 );
 
 // ============ JOB LISTING CARD ============
+// In ui.tsx - Update the JobListingCard component
+
 export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => (
   <div className="bg-white border-2 border-orange-200 rounded-lg p-4 hover:shadow-md transition relative cursor-pointer hover:border-orange-400">
-    <div className="absolute top-3 right-3 border-2 border-orange-500 rounded-full p-1">
-      <input type="radio" className="w-4 h-4 accent-orange-500" id={`job-${job.id}`} />
+    {/* Radio Button with Bottom-Left Border Only */}
+    <div className="absolute top-0 right-0 border-b-2 border-l-2 border-gray-300 rounded-bl p-1">
+      <label htmlFor={`job-${job.id}`} className="cursor-pointer block">
+        <input 
+          type="radio" 
+          className="peer hidden" 
+          id={`job-${job.id}`}
+          name="job-selection"
+        />
+        {/* Orange Circle Inside */}
+        <div className="w-4 h-4 rounded-full border-2 border-orange-500 flex items-center justify-center peer-checked:bg-orange-500">
+          {/* Inner white dot when checked */}
+          <div className="w-1.5 h-1.5 rounded-full bg-white opacity-0 peer-checked:opacity-100"></div>
+        </div>
+      </label>
     </div>
+    
     <h3 className="font-semibold text-gray-800 text-xl mb-3">{job.title}</h3>
     <div className="flex items-center gap-1 text-xs text-gray-600 mb-3">
       <Image src="/svg/Briefcase.svg" alt="briefcase" width={16} height={16} />
@@ -75,6 +91,7 @@ export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => (
     </div>
   </div>
 );
+
 
 // ============ JOB ACTION MODAL ============
 interface JobActionModalProps {
