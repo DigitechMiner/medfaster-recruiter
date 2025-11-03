@@ -8,6 +8,7 @@ import CandidateDetailPage from './CandidateDetailPage';
 import JobDetailPage from './JobDetailPage';
 import { Search, ArrowLeft } from 'lucide-react';
 import { Job, TopJob, JobsData, StatusType } from '../types/job.types';
+import { Footer } from '@/components/global/footer';
 
 type LayoutMode = 'kanban' | 'table';
 
@@ -88,23 +89,23 @@ const JobsPage: React.FC = () => {
 
   // Main Dashboard/All Jobs View
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-100">
       <Navbar />
       
       {/* Header */}
-      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-white border-b border-gray-200">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-3 bg-neutral-100">
         <div className="flex items-center justify-between">
           {showAllJobs && (
             <div className="flex items-center gap-4">
               <button onClick={() => setShowAllJobs(false)} className="p-2 hover:bg-gray-100 rounded transition-colors">
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
-              <h1 className="text-xl sm:text-3xl font-bold text-gray-800">Jobs <span className="text-orange-500">› All Jobs</span></h1>
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-800">Jobs <span className="text-orange-500 text-xl">› All Jobs</span></h1>
             </div>
           )}
           {!showAllJobs && (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 w-full">
-              <h1 className="text-xl sm:text-3xl font-bold text-gray-800">Jobs</h1>
+              <h1 className="text-2xl sm:text-2xl font-bold text-gray-800">Jobs</h1>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-3">
                 <button onClick={() => setShowAllJobs(true)} className="text-black underline font-semibold text-sm hover:text-gray-600 transition-colors">See All</button>
                 <button className="bg-orange-500 text-white px-7 py-2 rounded-lg hover:bg-orange-600 font-medium text-sm">+ Post Job</button>
@@ -135,11 +136,12 @@ const JobsPage: React.FC = () => {
         {/* Search and Filters - Only show on dashboard */}
         {!showAllJobs && (
           <>
+          <div className="bg-white px-3 rounded-2xl">
             <div className="mb-6">
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 pt-3 ">
                 <div className="flex-1 relative">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-                  <input type="text" placeholder="Search here..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500" />
+                  <input type="text" placeholder="Search here..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-1/4 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500" />
                 </div>
                 <div className="flex gap-2 items-center">
                   <button className="px-3 py-2 hover:bg-gray-100 rounded text-sm font-medium whitespace-nowrap border border-gray-300 inline-flex items-center gap-2">
@@ -180,6 +182,7 @@ const JobsPage: React.FC = () => {
                 ))}
               </div>
             )}
+            </div>
           </>
         )}
 
@@ -197,7 +200,9 @@ const JobsPage: React.FC = () => {
             </div>
           </div>
         )}
+        
       </div>
+      <Footer />
     </div>
   );
 };

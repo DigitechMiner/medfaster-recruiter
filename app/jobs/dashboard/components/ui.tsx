@@ -50,8 +50,6 @@ export const ScoreBox: React.FC<ScoreBoxProps> = ({ score }) => (
   </div>
 );
 
-// ============ JOB LISTING CARD ============
-// In ui.tsx - Update the JobListingCard component
 
 export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => (
   <div className="bg-white border-2 border-orange-200 rounded-lg p-4 hover:shadow-md transition relative cursor-pointer hover:border-orange-400">
@@ -228,7 +226,7 @@ export const StatusTable: React.FC<StatusTableProps> = ({ title, count, jobs, ba
                 <div className="col-span-2 text-gray-700">{j.currentCompany ?? '—'}</div>
                 <div className="col-span-2 text-gray-700">{j.position}</div>
                 <div className="col-span-1 text-right text-gray-800">{j.score}/100</div>
-                <div className="col-span-1"><div className="flex justify-end"><button className="text-orange-600 hover:text-orange-700 text-sm">Hire</button></div></div>
+                <div className="col-span-1"><div className="flex justify-end"><button className="text-orange-600 hover:text-orange-700 underline text-sm">Hire</button></div></div>
               </div>
             ))}
             <div className={`h-2 ${c.rowTint}`}></div>

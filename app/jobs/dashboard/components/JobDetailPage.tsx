@@ -225,8 +225,8 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
       <div className="px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 border-b border-gray-300">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="p-1 hover:bg-gray-200 rounded transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
+            <button onClick={onBack} className="p-1 hover:bg-gray-200 rounded transition-colors bg-white  border-2">
+              <ArrowLeft className="w-6 h-7 text-gray-700" strokeWidth={1.5} />
             </button>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Jobs</span>
@@ -235,12 +235,12 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleCloseJobClick} className="px-3 py-1.5 border-2 border-red-500 text-red-500 rounded font-medium text-xs sm:text-sm hover:bg-red-50 transition-colors whitespace-nowrap">Close This Job</button>
-            <button onClick={handleEditClick} className="px-4 py-1.5 bg-green-500 text-white rounded hover:bg-green-600 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">Edit Job</button>
+            <button onClick={handleCloseJobClick} className="px-4 py-2 border-2 border-red-500 text-red-500 underline rounded-lg font-medium text-xs sm:text-sm hover:bg-red-50 transition-colors whitespace-nowrap">Close This Job</button>
+            <button onClick={handleEditClick} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">Edit Job</button>
           </div>
         </div>
       </div>
-      <div className="px-4 sm:px-6 lg:px-8 py-2 text-right border-b border-gray-200">
+      <div className="px-4 sm:px-6 lg:px-8 py-2 text-right ">
         <p className="text-xs text-gray-600">{job.applicantCount} applied</p>
       </div>
       <div className="px-4 sm:px-6 lg:px-8 py-6">
@@ -255,13 +255,13 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
             <p className="text-xs sm:text-sm text-gray-600">Narayana Hospital</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 mb-6 pb-6 border-b border-gray-200">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 mb-6 pb-2 border-b border-gray-200">
           <div className="pr-4 border-r border-gray-200 sm:border-r">
             <div className="flex flex-col items-start gap-2">
               <Image src="/svg/Location.svg" alt="location" width={20} height={20} />
               <div>
                 <p className="text-xs text-gray-500">Location</p>
-                <p className="text-sm font-semibold text-gray-900">Toronto, ON</p>
+                <p className="text-xl font-semibold text-gray-900">Toronto, ON</p>
               </div>
             </div>
           </div>
@@ -270,21 +270,21 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
               <Image src="/svg/briefcasee.svg" alt="experience" width={20} height={20} />
             </div>
             <p className="text-xs text-gray-500 mb-1">Experience Required</p>
-            <p className="text-sm font-semibold text-gray-900">2-3+ Years</p>
+            <p className="text-xl font-semibold text-gray-900">2-3+ Years</p>
           </div>
           <div className="px-4 border-r border-gray-200 sm:border-r">
             <div className="flex flex-col items-start gap-2 mb-2">
               <Image src="/svg/stopwatch.svg" alt="job-type" width={20} height={20} />
             </div>
             <p className="text-xs text-gray-500 mb-1">Job Type</p>
-            <p className="text-sm font-semibold text-gray-900">Full Time</p>
+            <p className="text-xl font-semibold text-gray-900">Full Time</p>
           </div>
           <div className="pl-4">
             <div className="flex flex-col items-start gap-2 mb-2">
               <Image src="/svg/money.svg" alt="salary" width={20} height={20} />
             </div>
             <p className="text-xs text-gray-500 mb-1">Salaries</p>
-            <p className="text-sm font-semibold text-gray-900">$12k - $15k</p>
+            <p className="text-xl font-semibold text-gray-900">$12k - $15k</p>
           </div>
         </div>
         <div className="mb-5 pb-5 border-b border-gray-200 space-y-2">
@@ -303,7 +303,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
         </div>
         <div className="mb-5 pb-5 border-b border-gray-200">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Description :</h3>
-          <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#717680] leading-relaxed">
             Lorem ipsum dolor sit amet consectetur. Fusce volutpat nec placerat faucibus in tellus et mattis. Dooer elementum quis aliquam neque. Elementum maecenas vitae locus laoreet eu. Aliquam egestas vel diam etiam purus. Imperdiet commodo pellentesque neque nontius placerat fringilla sapien ac nulla. Quis scelerisque metus etiam tortor. Feugiat arcu vitae ultaricomplor mincius vesibuium interdum. Neque felis ultricies ut dolor faucibus.
           </p>
         </div>
@@ -311,7 +311,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
           <h3 className="text-sm font-semibold text-orange-600 mb-3">Specialization :</h3>
           <div className="flex flex-wrap gap-2">
             {['Cardiology', 'Cardiology', 'Orthopaedics', 'Cardiology', 'Orthopaedics', 'Neurology'].map((spec, idx) => (
-              <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">{spec}</span>
+              <span key={idx} className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium">{spec}</span>
             ))}
           </div>
         </div>
@@ -319,7 +319,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
           <h3 className="text-sm font-semibold text-orange-600 mb-3">Qualification :</h3>
           <div className="flex flex-wrap gap-2">
             {['Cardiology', 'Cardiology', 'Orthopaedics', 'Cardiology', 'Orthopaedics', 'Neurology'].map((qual, idx) => (
-              <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">{qual}</span>
+              <span key={idx} className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium">{qual}</span>
             ))}
           </div>
         </div>
@@ -331,7 +331,7 @@ const JobDetailPage: React.FC<JobDetailPageProps> = ({ job, onBack }) => {
                 <p className="text-sm font-semibold text-gray-900 mb-2">{topic}</p>
                 <ol className="space-y-1 ml-4">
                   {[1, 2, 3, 4].map((qIdx) => (
-                    <li key={qIdx} className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                    <li key={qIdx} className="text-xs sm:text-sm text-[#717680] leading-relaxed">
                       <span className="font-semibold">{qIdx}.</span> Lorem ipsum dolor sit amet consectetur Non commodo tellus non enim sit?
                     </li>
                   ))}
