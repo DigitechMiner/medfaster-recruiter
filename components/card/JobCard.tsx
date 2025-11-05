@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { JobListingCardProps } from '../../app/jobs/types/job.types';
+import { JobListingCardProps } from '@/Interface/job.types';
 
 export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => (
   <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer hover:border-orange-400 hover:border-2 active:border-orange-400 active:border-2">

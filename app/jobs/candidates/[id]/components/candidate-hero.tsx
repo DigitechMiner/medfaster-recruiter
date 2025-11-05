@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Job } from "../../../types/job.types";
+import { Job } from "@/Interface/job.types";
 
 interface CandidateHeroProps {
   candidate: Job;

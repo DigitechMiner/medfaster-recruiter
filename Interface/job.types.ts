@@ -37,10 +37,6 @@ export interface DetailedJobCardProps {
   onClose: () => void;
 }
 
-export interface ScoreBoxProps {
-  score: number;
-}
-
 export interface JobListingCardProps {
   job: TopJob;
 }

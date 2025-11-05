@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
@@ -8,23 +8,44 @@ import {
   StatusSection,
   StatusTable,
 } from "./ui";
-import { Job, StatusType } from "../types/job.types";
+import { Job, StatusType } from "@/Interface/job.types";
 import {
-  ALL_TOP_JOB_LISTINGS,
-  JOBS_DATA,
   STATUS_SECTIONS,
 } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { BUTTON_LABELS } from "../constants/messages";
+import { useJobs, useAllCandidates } from "../hooks/useJobData";
 
 const JobsPage: React.FC = () => {
   const router = useRouter();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("kanban");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const { jobs, isLoading: isLoadingJobs } = useJobs();
+  const { candidatesData, isLoading: isLoadingCandidates } = useAllCandidates();
 
   const handleCandidateClick = (job: Job, status: StatusType) => {
     router.push(`jobs/candidates/${job.id}`);
   };
+
+  // Filter jobs based on search query
+  const filteredJobs = useMemo(() => {
+    if (!searchQuery) return jobs.slice(0, 4);
+    return jobs
+      .filter(
+        (job) =>
+          job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          job.position.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .slice(0, 4);
+  }, [jobs, searchQuery]);
+
+  if (isLoadingJobs || isLoadingCandidates) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
   // Main Dashboard View
   return (
@@ -58,7 +79,7 @@ const JobsPage: React.FC = () => {
         {/* Job Listing Cards */}
         <div className="mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            {ALL_TOP_JOB_LISTINGS.slice(0, 4).map((job) => (
+            {filteredJobs.map((job) => (
               <div
                 key={job.id}
                 onClick={() => {
@@ -140,30 +161,30 @@ const JobsPage: React.FC = () => {
           </div>
 
           {/* Kanban/Table Views */}
-          {layoutMode === "kanban" && (
+          {layoutMode === "kanban" && candidatesData && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
                 <StatusSection
                   key={status}
                   status={status}
                   title={title}
-                  count={JOBS_DATA[status].length}
-                  jobs={JOBS_DATA[status]}
+                  count={candidatesData[status]?.length || 0}
+                  jobs={candidatesData[status] || []}
                   badgeColor={badgeColor}
                   onCandidateClick={handleCandidateClick}
                 />
               ))}
             </div>
           )}
-          {layoutMode === "table" && (
+          {layoutMode === "table" && candidatesData && (
             <div className="space-y-4">
               {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
                 <StatusTable
                   key={status}
                   status={status}
                   title={title}
-                  count={JOBS_DATA[status].length}
-                  jobs={JOBS_DATA[status]}
+                  count={candidatesData[status]?.length || 0}
+                  jobs={candidatesData[status] || []}
                   badgeColor={badgeColor}
                 />
               ))}

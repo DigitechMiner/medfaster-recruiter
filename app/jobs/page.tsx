@@ -1,28 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { EmptyJobState } from "./components/empty";
 import { AppLayout } from "@/components/global/app-layout";
 import JobsPage from "./components/JobsPage";
-import { STORAGE_KEYS } from "./constants/messages";
+import { useJobsStore } from "@/lib/store/jobs-store";
+import { useJobs } from "./hooks/useJobData";
 
 export default function JobsPageWrapper() {
-  const [hasJobs, setHasJobs] = useState(false);
+  const hasJobs = useJobsStore((state) => state.hasJobs);
+  const { jobs, isLoading } = useJobs();
 
-  // Check if jobs exist
-  // Update this logic based on your actual data source (API call, context, etc.)
+  // Update store when jobs are loaded
   useEffect(() => {
-    // Option 1: Check localStorage (set when job is created)
-    const jobsExist = localStorage.getItem(STORAGE_KEYS.HAS_JOBS) === "true";
-    
-    // Option 2: For now, you can manually set this to true to see dashboard
-    // In production, replace this with actual API call to check if jobs exist
-    // const response = await fetch('/api/jobs');
-    // const jobs = await response.json();
-    // setHasJobs(jobs.length > 0);
-    
-    setHasJobs(jobsExist);
-  }, []);
+    if (jobs.length > 0) {
+      useJobsStore.getState().setHasJobs(true);
+    }
+  }, [jobs]);
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-gray-600">Loading jobs...</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

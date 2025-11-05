@@ -1,123 +1,62 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AppLayout } from "@/components/global/app-layout";
 import { JobForm, JobFormData } from "../../components/JobForm";
 import {
   DEFAULT_JOB_FORM_DATA,
   DEFAULT_TOPICS,
-  Topic,
 } from "../../constants/form";
-import { ALL_TOP_JOB_LISTINGS } from "../../constants/jobs";
-import { TopJob } from "../../types/job.types";
 import SuccessModal from "@/components/modal";
+import { useJobId, useJob } from "../../hooks/useJobData";
+import { useQuestions } from "../../hooks/useQuestions";
 
 export default function EditJobPage() {
-  const params = useParams();
   const router = useRouter();
-  const [job, setJob] = useState<TopJob | null>(null);
+  const jobId = useJobId();
+  const { job, isLoading, error } = useJob(jobId);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
-  const [topics, setTopics] = useState<Topic[]>(DEFAULT_TOPICS);
-
-  useEffect(() => {
-    const jobId = params?.id;
-    if (jobId) {
-      const jobIdNumber =
-        typeof jobId === "string" ? parseInt(jobId, 10) : Number(jobId);
-      const foundJob = ALL_TOP_JOB_LISTINGS.find(
-        (j: TopJob) => j.id === jobIdNumber
-      );
-
-      if (foundJob) {
-        setJob(foundJob);
-        // TODO: Load existing job data into formData here
-        // For now, using default data
-      } else {
-        router.push("/jobs");
-      }
-    }
-  }, [params, router]);
+  const { topics, addQuestion, removeQuestion, updateQuestion } = useQuestions(DEFAULT_TOPICS);
 
   const updateFormData = (updates: Partial<JobFormData>) => {
     setFormData((prev: JobFormData) => ({ ...prev, ...updates }));
   };
 
-  const addQuestion = (topicId: string) => {
-    setTopics((prevTopics) =>
-      prevTopics.map((topic) =>
-        topic.id === topicId
-          ? {
-              ...topic,
-              questions: [
-                ...topic.questions,
-                {
-                  id: `${topicId}-${topic.questions.length + 1}`,
-                  text: "",
-                },
-              ],
-            }
-          : topic
-      )
-    );
-  };
-
-  const removeQuestion = (topicId: string, questionId: string) => {
-    setTopics((prevTopics) =>
-      prevTopics.map((topic) =>
-        topic.id === topicId
-          ? {
-              ...topic,
-              questions: topic.questions.filter(
-                (q: { id: string }) => q.id !== questionId
-              ),
-            }
-          : topic
-      )
-    );
-  };
-
-  const updateQuestion = (
-    topicId: string,
-    questionId: string,
-    text: string
-  ) => {
-    setTopics((prevTopics) =>
-      prevTopics.map((topic) =>
-        topic.id === topicId
-          ? {
-              ...topic,
-              questions: topic.questions.map(
-                (q: { id: string; text: string }) =>
-                  q.id === questionId ? { ...q, text } : q
-              ),
-            }
-          : topic
-      )
-    );
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Save all:", formData, topics);
+    // TODO: Replace with actual API call when backend is ready
+    // await JobService.updateJob(jobId, { formData, topics });
     setShowSuccessModal(true);
   };
 
   const handleCancel = () => {
-    router.push(`/jobs/${params?.id}`);
+    router.push(`/jobs/${jobId}`);
   };
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
-    router.push(`/jobs/${params?.id}`);
+    router.push(`/jobs/${jobId}`);
   };
 
-  if (!job) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
-      </div>
+      <AppLayout>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <p className="text-red-600">{error || "Job not found"}</p>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -162,7 +101,7 @@ export default function EditJobPage() {
         visible={showSuccessModal}
         onClose={handleSuccessClose}
         title="Job updated successfully"
-        message={`${job.title} - Job ID: ${params?.id} is now live and ready for applicants.`}
+        message={`${job.title} - Job ID: ${jobId} is now live and ready for applicants.`}
         buttonText="Done"
       />
     </AppLayout>

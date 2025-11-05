@@ -8,7 +8,8 @@ import { QuestionsTopic } from "../components/questions-topic";
 import { TopActionBar } from "@/components/custom/top-action-bar";
 import SuccessModal from "@/components/modal";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
-import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES, STORAGE_KEYS } from "../../constants/messages";
+import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
+import { useJobsStore } from "@/lib/store/jobs-store";
 
 interface Props {
   onBack?: () => void;
@@ -17,6 +18,7 @@ interface Props {
 
 export function GenerateAIForm({ onBack, onCreate }: Props) {
   const router = useRouter();
+  const setHasJobs = useJobsStore((state) => state.setHasJobs);
   const [topics, setTopics] = useState<Topic[]>(DEFAULT_TOPICS);
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -86,7 +88,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
   const handleSuccessDone = () => {
     setShowSuccess(false);
     // Set flag to show dashboard instead of empty state
-    localStorage.setItem(STORAGE_KEYS.HAS_JOBS, "true");
+    setHasJobs(true);
     router.push("/jobs");
   };
 

@@ -1,4 +1,4 @@
-import { BadgeColor, StatusType } from '../types/job.types';
+import { BadgeColor, StatusType } from '@/Interface/job.types';
 
 // ============ STATUS COLORS ============
 export const STATUS_COLORS: Record<string, string> = {

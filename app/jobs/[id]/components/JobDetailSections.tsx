@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { TopJob } from "../../types/job.types";
+import { TopJob } from "@/Interface/job.types";
 import {
   Clock,
   MapPin,

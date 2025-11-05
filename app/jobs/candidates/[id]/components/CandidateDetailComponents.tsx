@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 
 // MetricRow Component
 export const MetricRow: React.FC<{ label: string; value: number }> = ({ label, value }) => (

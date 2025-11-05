@@ -6,13 +6,34 @@ import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ALL_TOP_JOB_LISTINGS } from "../constants/jobs";
 import { BUTTON_LABELS } from "../constants/messages";
 import { AppLayout } from "@/components/global/app-layout";
+import { useJobs } from "../hooks/useJobData";
 
 const AllJobsPage: React.FC = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const { jobs, isLoading, error } = useJobs();
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-gray-600">Loading jobs...</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-red-600">Error: {error}</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -48,7 +69,7 @@ const AllJobsPage: React.FC = () => {
       {/* Job Listing Cards */}
       <div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          {ALL_TOP_JOB_LISTINGS.map((job) => (
+          {jobs.map((job) => (
             <div
               key={job.id}
               onClick={() => {

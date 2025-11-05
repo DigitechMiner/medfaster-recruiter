@@ -3,15 +3,16 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Navbar } from "@/components/global/navbar";
-import { ScoreBox } from "./ui";
 import { MetricRow } from "./CandidateDetailComponents";
 import { CandidateHero } from "./candidate-hero";
-import { ScheduleModal } from "./schedule-modal";
+import { CalendarCard } from "@/components/card/calendar-card";
 import SuccessModal from "@/components/modal";
-import { Job, StatusType } from "../../../types/job.types";
-import { ArrowLeft } from "lucide-react";
+import { Job, StatusType } from "@/Interface/job.types";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Footer } from "@/components/global/footer";
 import { CANDIDATE_DETAIL_BUTTON_CONFIGS } from "../../../constants/ui";
+import ScoreCard from "@/components/card/scorecard";
+import { Button } from "@/components/ui/button";
 
 interface CandidateDetailContentProps {
   candidate: Job;
@@ -55,18 +56,19 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     <>
       {/* Breadcrumb */}
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
+      <div className="flex items-center gap-3">
+          <Button
             onClick={onBack}
-            className="p-1 hover:bg-gray-200 rounded transition-colors bg-white  border-2"
+            variant="ghost"
+            size="icon"
+            className="w-11 h-11 rounded-lg bg-white border flex items-center justify-center"
           >
-            <ArrowLeft className="w-6 h-7 text-gray-700" strokeWidth={1.5} />
-          </button>
-          <div className="text-xl">
-            <span className="text-gray-600">Jobs › </span>
-            <span className="text-orange-600 font-semibold">
-              {candidate.doctorName}
-            </span>
+            <ArrowLeft className="w-5 h-5 text-gray-900" strokeWidth={1.5} />
+          </Button>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Jobs</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <span className="text-orange-500 font-semibold">{candidate.doctorName}</span>
           </div>
         </div>
         <div className="flex gap-3">
@@ -236,7 +238,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-base font-semibold text-gray-900">
                 Conversational Round
               </h3>
-              <ScoreBox score={80} />
+              <ScoreCard category="Conversational Round" score={80} maxScore={100} />
             </div>
             <div className="space-y-4 mb-6">
               {[
@@ -275,7 +277,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-base font-semibold text-gray-900">
                 Behavioral Round
               </h3>
-              <ScoreBox score={40} />
+              <ScoreCard category="Behavioral Round" score={40} maxScore={100} />
             </div>
             <div className="space-y-4 mb-6">
               {[
@@ -311,13 +313,13 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
 
         {/* ===== ANALYSIS ===== */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-2 gap-8">
           <div className="bg-white border border-gray-200 rounded-lg p-8">
             <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
               <h3 className="text-base font-semibold text-gray-900">
                 Communication analysis
               </h3>
-              <ScoreBox score={58} />
+              <ScoreCard category="Communication analysis" score={58} maxScore={100} />
             </div>
             <div className="space-y-4 mb-6">
               {[
@@ -356,7 +358,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-base font-semibold text-gray-900">
                 Accuracy of answers
               </h3>
-              <ScoreBox score={88} />
+              <ScoreCard category="Accuracy of answers" score={88} maxScore={100} />
             </div>
             <div className="space-y-4 mb-6">
               {[
@@ -393,7 +395,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
       </div>
 
       {/* Modals */}
-      <ScheduleModal
+      <CalendarCard
         isOpen={isCalendarOpen}
         onClose={() => setIsCalendarOpen(false)}
         onSchedule={handleScheduleDate}

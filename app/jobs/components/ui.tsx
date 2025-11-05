@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { DetailedJobCardProps, ScoreBoxProps, JobCardProps, StatusSectionProps, StatusTableProps, BadgeColor, Job, StatusType } from '../types/job.types';
+import { DetailedJobCardProps, JobCardProps, StatusSectionProps, StatusTableProps, BadgeColor, Job, StatusType } from '@/Interface/job.types';
 import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, STATUS_CONFIG, JOB_CARD_BUTTON_CONFIGS, PRIMARY_BUTTON_COLOR_CLASSES } from '../constants/ui';
 import { MODAL_DEFAULTS } from '../constants/messages';
+import ScoreCard from '@/components/card/scorecard';
 
 // ============ DETAIL CARD ============
 export const DetailedJobCard: React.FC<DetailedJobCardProps> = ({ job, status, onClose }) => {
@@ -39,18 +40,6 @@ export const DetailedJobCard: React.FC<DetailedJobCardProps> = ({ job, status, o
     </div>
   );
 };
-
-// ============ SCORE BOX ============
-export const ScoreBox: React.FC<ScoreBoxProps> = ({ score }) => (
-  <div className="bg-white border border-green-400 rounded-md p-1.5 flex-shrink-0">
-    <div className="flex items-center gap-1">
-      <Image src="/svg/Progress.svg" alt="progress" width={16} height={16} />
-      <span className="text-xs font-semibold text-green-800">{score}/100</span>
-    </div>
-    <div className="text-xs text-green-600">Score</div>
-  </div>
-);
-
 
 // ============ JOB ACTION MODAL ============
 interface JobActionModalProps {
@@ -126,7 +115,7 @@ const JobCardComponent: React.FC<JobCardProps> = ({ job, status, badgeColor, ind
     <div>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0"><h3 className="font-semibold text-gray-800 text-sm truncate">{job.doctorName}</h3><p className="text-xs text-gray-600 truncate">{job.experience} yrs {job.position}</p></div>
-        <ScoreBox score={job.score} />
+        <ScoreCard category="Overall Score" score={job.score} maxScore={100} />
       </div>
       <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex items-center gap-1">
         <Image src="/svg/Briefcase.svg" alt="briefcase" width={14} height={14} />

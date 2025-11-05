@@ -3,53 +3,39 @@
 import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
-import { Job, StatusType } from "../../types/job.types";
-import { JOBS_DATA } from "../../constants/jobs";
 import { AppLayout } from "@/components/global/app-layout";
-
-// This is a placeholder - in a real app, you'd fetch the candidate data based on the ID
-const getCandidateById = (
-  id: string
-): { job: Job; status: StatusType } | null => {
-  // Search through all statuses to find the candidate
-  const statuses: StatusType[] = [
-    "applied",
-    "shortlisted",
-    "interviewing",
-    "hired",
-  ];
-
-  for (const status of statuses) {
-    const candidate = JOBS_DATA[status].find((job) => job.id.toString() === id);
-    if (candidate) {
-      return { job: candidate, status };
-    }
-  }
-
-  return null;
-};
+import { useCandidate } from "../../hooks/useJobData";
 
 export default function CandidateDetailPage() {
   const router = useRouter();
   const params = useParams();
   const candidateId = params?.id as string;
-
-  const candidateData = getCandidateById(candidateId);
+  const { candidate, isLoading, error } = useCandidate(candidateId);
 
   const handleBack = () => {
     router.push("/jobs");
   };
 
-  return (
-    <AppLayout>
-      {!candidateData ? (
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-600">Loading candidate...</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error || !candidate) {
+    return (
+      <AppLayout>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Candidate not found
             </h1>
             <p className="text-gray-600 mb-4">
-              The candidate you're looking for doesn't exist.
+              {error || "The candidate you're looking for doesn't exist."}
             </p>
             <button
               onClick={() => router.push("/jobs")}
@@ -59,15 +45,17 @@ export default function CandidateDetailPage() {
             </button>
           </div>
         </div>
-      ) : (
-       
-          <CandidateDetailContent
-            candidate={candidateData.job}
-            status={candidateData.status}
-            onBack={handleBack}
-          />
-       
-      )}
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <CandidateDetailContent
+        candidate={candidate.job}
+        status={candidate.status}
+        onBack={handleBack}
+      />
     </AppLayout>
   );
 }

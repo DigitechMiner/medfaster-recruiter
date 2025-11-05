@@ -1,4 +1,4 @@
-import { TopJob, JobsData } from '../types/job.types';
+import { TopJob, JobsData } from '@/Interface/job.types';
 
 export const ALL_TOP_JOB_LISTINGS: TopJob[] = [
   { id: 1, title: 'Job Title', experience: '5-7 yrs', position: 'Cardiology Part-time', specializations: ['Cardiology', 'Orthopaedics', 'Cardiology'], postedDaysAgo: 15, applicantCount: 60 },
