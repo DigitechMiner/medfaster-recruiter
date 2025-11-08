@@ -52,9 +52,9 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
 
   return (
     <>
-      {/* Breadcrumb */}
-      <div className="mb-4 flex items-center justify-between">
-      <div className="flex items-center gap-3">
+      {/* Breadcrumb - Responsive */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Button
             onClick={onBack}
             variant="ghost"
@@ -66,10 +66,12 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <span className="text-gray-600">Jobs</span>
             <ChevronRight className="w-4 h-4 text-gray-400" />
-            <span className="text-orange-500 font-semibold">{candidate.doctorName}</span>
+            <span className="text-orange-500 font-semibold truncate max-w-[150px] sm:max-w-none">
+              {candidate.doctorName}
+            </span>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           {config.map((btn, i) => (
             <button
               key={i}
@@ -82,35 +84,32 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Responsive */}
       <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg gap-4">
         {/* ===== HERO CARD ===== */}
-        <CandidateHero
-          candidate={candidate}
-          appliedTime="Applied 2 hours Ago"
-        />
+        <CandidateHero candidate={candidate} appliedTime="Applied 2 hours Ago" />
 
         {/* ===== AWARDS ===== */}
-        <div className="bg-white border border-gray-200 rounded-lg p-8 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Awards</h2>
-          <div className="grid grid-cols-2 gap-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Awards</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {[1, 2].map((i) => (
               <div key={i} className="border border-gray-200 rounded p-4">
-                <p className="font-semibold text-gray-900 mb-1">
+                <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
                   John McCrae Memorial Medal
                 </p>
-                <p className="text-sm text-gray-600">Jan 2025</p>
+                <p className="text-xs sm:text-sm text-gray-600">Jan 2025</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* ===== SOCIAL LINKS ===== */}
-        <div className="bg-white border border-gray-200 rounded-lg p-8 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Social Links
           </h2>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {[1, 2].map((i) => (
               <div
                 key={i}
@@ -121,7 +120,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                 </div>
                 <a
                   href="#"
-                  className="text-blue-600 hover:underline text-sm break-all"
+                  className="text-blue-600 hover:underline text-xs sm:text-sm break-all"
                 >
                   https://www.linkedin.com/in
                 </a>
@@ -131,20 +130,20 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
 
         {/* ===== EXPERIENCE ===== */}
-        <div className="bg-white border border-gray-200 rounded-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Experience</h2>
-            <span className="text-orange-600 text-sm font-semibold">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Experience</h2>
+            <span className="text-orange-600 text-xs sm:text-sm font-semibold">
               5+ Years
             </span>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="pb-6 border-b border-gray-200 last:border-0 last:pb-0"
+                className="pb-4 sm:pb-6 border-b border-gray-200 last:border-0 last:pb-0"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-2">
                   <div className="flex items-center gap-3">
                     <Image
                       src="/svg/hospital-iconn.svg"
@@ -152,25 +151,20 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                       width={20}
                       height={20}
                     />
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Medfaster
-                      </h3>
-                    </div>
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+                      Medfaster
+                    </h3>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600 font-medium">
-                      Assistant of audiology · Full Time
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-600 text-right">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium">
+                    Assistant of audiology · Full Time
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Jan 2025 - Present
                   </p>
                 </div>
-                <p className="text-sm text-gray-700 mt-3">
+                <p className="text-xs sm:text-sm text-gray-700 mt-2 sm:mt-3">
                   Lorem ipsum dolor sit amet consectetur. Augue dolor enim
-                  imperdiet placerat vulputate proin leo. Lorem est nisl
-                  pulvinar libero.
+                  imperdiet placerat vulputate proin leo.
                 </p>
               </div>
             ))}
@@ -178,20 +172,20 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
 
         {/* ===== EDUCATION ===== */}
-        <div className="bg-white border border-gray-200 rounded-lg p-8 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Education
           </h2>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {[1, 2].map((i) => (
               <div key={i} className="border border-gray-200 rounded p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm mb-1">
+                    <h3 className="font-semibold text-gray-900 text-xs sm:text-sm mb-1">
                       Canadian red cross university
                     </h3>
-                    <p className="text-sm text-gray-600 mb-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1">
                       Master degree · MD
                     </p>
                     <p className="text-xs text-gray-500">Jan 2025 - Dec 2023</p>
@@ -203,15 +197,15 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
 
         {/* ===== UPLOADED DOCUMENTS ===== */}
-        <div className="bg-white border border-gray-200 rounded-lg p-8 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Uploaded Documents
           </h2>
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {["Resume", "License", "Medical", "Certificate"].map((doc, i) => (
               <div key={i}>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-gray-900 text-sm">{doc}</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm">{doc}</p>
                   <a
                     href="#"
                     className="text-orange-600 text-xs font-semibold hover:underline"
@@ -230,15 +224,15 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
 
         {/* ===== PERFORMANCE CARDS ===== */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-8">
-            <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Conversational Round
               </h3>
               <ScoreCard category="Conversational Round" score={80} maxScore={100} />
             </div>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
                 { label: "live face match", value: 95 },
                 { label: "Communication skills", value: 25 },
@@ -249,7 +243,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                 <MetricRow key={i} label={m.label} value={m.value} />
               ))}
             </div>
-            <div className="p-4 bg-green-50 rounded border border-green-200">
+            <div className="p-3 sm:p-4 bg-green-50 rounded border border-green-200">
               <div className="flex gap-3">
                 <svg
                   className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"
@@ -259,10 +253,10 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-green-900 mb-1">
+                  <p className="text-xs sm:text-sm font-semibold text-green-900 mb-1">
                     Strengths
                   </p>
-                  <p className="text-sm text-green-800">
+                  <p className="text-xs sm:text-sm text-green-800">
                     Lorem ipsum dolor sit amet consectetur.
                   </p>
                 </div>
@@ -270,14 +264,14 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-8">
-            <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Behavioral Round
               </h3>
               <ScoreCard category="Behavioral Round" score={40} maxScore={100} />
             </div>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
                 { label: "live face match", value: 20 },
                 { label: "Communication skills", value: 25 },
@@ -288,7 +282,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                 <MetricRow key={i} label={m.label} value={m.value} />
               ))}
             </div>
-            <div className="p-4 bg-green-50 rounded border border-green-200">
+            <div className="p-3 sm:p-4 bg-green-50 rounded border border-green-200">
               <div className="flex gap-3">
                 <svg
                   className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"
@@ -298,10 +292,10 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-green-900 mb-1">
+                  <p className="text-xs sm:text-sm font-semibold text-green-900 mb-1">
                     Strengths
                   </p>
-                  <p className="text-sm text-green-800">
+                  <p className="text-xs sm:text-sm text-green-800">
                     Lorem ipsum dolor sit amet consectetur.
                   </p>
                 </div>
@@ -311,15 +305,15 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         </div>
 
         {/* ===== ANALYSIS ===== */}
-        <div className="grid grid-cols-2 gap-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-8">
-            <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Communication analysis
               </h3>
               <ScoreCard category="Communication analysis" score={58} maxScore={100} />
             </div>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
                 { label: "live face match", value: 95 },
                 { label: "Communication skills", value: 25 },
@@ -330,7 +324,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                 <MetricRow key={i} label={m.label} value={m.value} />
               ))}
             </div>
-            <div className="p-4 bg-green-50 rounded border border-green-200">
+            <div className="p-3 sm:p-4 bg-green-50 rounded border border-green-200">
               <div className="flex gap-3">
                 <svg
                   className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"
@@ -340,10 +334,10 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-green-900 mb-1">
+                  <p className="text-xs sm:text-sm font-semibold text-green-900 mb-1">
                     Strengths
                   </p>
-                  <p className="text-sm text-green-800">
+                  <p className="text-xs sm:text-sm text-green-800">
                     Lorem ipsum dolor sit amet consectetur.
                   </p>
                 </div>
@@ -351,14 +345,14 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-8">
-            <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Accuracy of answers
               </h3>
               <ScoreCard category="Accuracy of answers" score={88} maxScore={100} />
             </div>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
                 { label: "live face match", value: 95 },
                 { label: "Communication skills", value: 25 },
@@ -369,7 +363,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                 <MetricRow key={i} label={m.label} value={m.value} />
               ))}
             </div>
-            <div className="p-4 bg-green-50 rounded border border-green-200">
+            <div className="p-3 sm:p-4 bg-green-50 rounded border border-green-200">
               <div className="flex gap-3">
                 <svg
                   className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"
@@ -379,10 +373,10 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-green-900 mb-1">
+                  <p className="text-xs sm:text-sm font-semibold text-green-900 mb-1">
                     Strengths
                   </p>
-                  <p className="text-sm text-green-800">
+                  <p className="text-xs sm:text-sm text-green-800">
                     Lorem ipsum dolor sit amet consectetur.
                   </p>
                 </div>
