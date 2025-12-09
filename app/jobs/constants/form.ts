@@ -1,3 +1,5 @@
+import type { JobFormData } from '@/Interface/job.types';
+
 // ============ FORM DROPDOWNS ============
 export const JOB_TITLES = [
   "Nurse",
@@ -34,7 +36,7 @@ export const JOB_TYPES = [
 ];
 
 // ============ DEFAULT FORM VALUES ============
-export const DEFAULT_JOB_FORM_DATA = {
+export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   jobTitle: "Nurse",
   department: "Cardiology",
   jobType: "Part Time",

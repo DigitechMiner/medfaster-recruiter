@@ -4,14 +4,16 @@ import React from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
+import type { JobBackendResponse } from "@/Interface/job.types";
 
 interface JobDetailHeaderProps {
+  job: JobBackendResponse;
   onBack: () => void;
   onCloseJob: () => void;
-  applicantCount: number;
 }
 
 export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({
+  job,
   onBack,
   onCloseJob,
 }) => {
@@ -40,7 +42,7 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <span className="text-gray-600">Jobs</span>
             <ChevronRight className="w-4 h-4 text-gray-400" />
-            <span className="text-orange-500 font-semibold">Nurse</span>
+            <span className="text-orange-500 font-semibold">{job.job_title}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">

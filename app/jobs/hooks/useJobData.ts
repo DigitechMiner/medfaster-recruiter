@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { TopJob, JobsData, Job, StatusType } from '@/Interface/job.types';
-import JobService from '../services/jobService';
-import { JobDetailsData } from '../data/job-details';
+import { recruiterService } from '@/lib/api/recruiterService';
+import type { JobBackendResponse, TopJob, JobsData, Job, StatusType } from '@/Interface/job.types';
 
-export function useJobs() {
-  const [jobs, setJobs] = useState<TopJob[]>([]);
+// ============ NEW REAL API HOOKS ============
+// Job list hook with pagination
+export function useJobs(params?: {
+  status?: 'draft' | 'published' | 'closed' | 'archived';
+  page?: number;
+  limit?: number;
+}) {
+  const [jobs, setJobs] = useState<JobBackendResponse[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,8 +20,14 @@ export function useJobs() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await JobService.getAllJobs();
-        setJobs(data);
+        const response = await recruiterService.getJobs(params);
+        
+        if (response.success) {
+          setJobs(response.data.jobs as any[]);
+          setPagination(response.data.pagination);
+        } else {
+          setError(response.message);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch jobs');
       } finally {
@@ -24,13 +36,14 @@ export function useJobs() {
     };
 
     fetchJobs();
-  }, []);
+  }, [params?.status, params?.page, params?.limit]);
 
-  return { jobs, isLoading, error };
+  return { jobs, pagination, isLoading, error };
 }
 
-export function useJob(jobId: number | null) {
-  const [job, setJob] = useState<TopJob | null>(null);
+// Single job hook
+export function useJob(jobId: string | null) {
+  const [job, setJob] = useState<JobBackendResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +57,13 @@ export function useJob(jobId: number | null) {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await JobService.getJobById(jobId);
-        setJob(data);
+        const response = await recruiterService.getJob(jobId);
+        
+        if (response.success) {
+          setJob(response.data.job);
+        } else {
+          setError(response.message);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch job');
       } finally {
@@ -59,35 +77,36 @@ export function useJob(jobId: number | null) {
   return { job, isLoading, error };
 }
 
-export function useJobDetails(jobId: number | null) {
-  const [jobDetails, setJobDetails] = useState<JobDetailsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Delete job hook
+export function useDeleteJob() {
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!jobId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchJobDetails = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await JobService.getJobDetails(jobId);
-        setJobDetails(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch job details');
-      } finally {
-        setIsLoading(false);
+  const deleteJob = async (jobId: string): Promise<boolean> => {
+    try {
+      setIsDeleting(true);
+      setError(null);
+      const response = await recruiterService.deleteJob(jobId);
+      
+      if (response.success) {
+        return true;
+      } else {
+        setError(response.message);
+        return false;
       }
-    };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete job');
+      return false;
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
-    fetchJobDetails();
-  }, [jobId]);
-
-  return { jobDetails, isLoading, error };
+  return { deleteJob, isDeleting, error };
 }
+
+// ============ OLD/LEGACY HOOKS (Keep for now) ============
+// These are still using mock data - will be replaced later
 
 export function useCandidates(status?: StatusType) {
   const [candidates, setCandidates] = useState<Job[]>([]);
@@ -99,10 +118,8 @@ export function useCandidates(status?: StatusType) {
       try {
         setIsLoading(true);
         setError(null);
-        const data = status
-          ? await JobService.getCandidatesByStatus(status)
-          : await JobService.getAllCandidates();
-        setCandidates(Array.isArray(data) ? data : []);
+        // TODO: Replace with real API when candidates feature is ready
+        setCandidates([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch candidates');
       } finally {
@@ -126,8 +143,13 @@ export function useAllCandidates() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await JobService.getAllCandidates();
-        setCandidatesData(data);
+        // TODO: Replace with real API when candidates feature is ready
+        setCandidatesData({
+          applied: [],
+          shortlisted: [],
+          interviewing: [],
+          hired: [],
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch candidates');
       } finally {
@@ -156,8 +178,8 @@ export function useCandidate(candidateId: string | null) {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await JobService.getCandidateById(candidateId);
-        setCandidate(data);
+        // TODO: Replace with real API when candidates feature is ready
+        setCandidate(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch candidate');
       } finally {
@@ -171,12 +193,11 @@ export function useCandidate(candidateId: string | null) {
   return { candidate, isLoading, error };
 }
 
-export function useJobId(): number | null {
+export function useJobId(): string | null {
   const params = useParams();
   const jobId = params?.id;
 
   if (!jobId) return null;
 
-  return typeof jobId === "string" ? parseInt(jobId, 10) : Number(jobId);
+  return typeof jobId === "string" ? jobId : String(jobId);
 }
-

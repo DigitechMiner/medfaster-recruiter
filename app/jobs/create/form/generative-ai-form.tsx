@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuestionsTopic } from "../components/questions-topic";
 import { TopActionBar } from "@/components/custom/top-action-bar";
 import SuccessModal from "@/components/modal";
+import { recruiterService } from "@/lib/api/recruiterService";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
 import { useJobsStore } from "@/lib/store/jobs-store";
@@ -20,8 +21,18 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
   const router = useRouter();
   const setHasJobs = useJobsStore((state) => state.setHasJobs);
   const [topics, setTopics] = useState<Topic[]>(DEFAULT_TOPICS);
-
+  const [jobId, setJobId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get job ID from sessionStorage (created in step 1)
+  useEffect(() => {
+    const storedJobId = sessionStorage.getItem('createdJobId');
+    if (storedJobId) {
+      setJobId(storedJobId);
+    }
+  }, []);
 
   const addQuestion = (topicId: string) => {
     setTopics((prevTopics) =>
@@ -70,15 +81,56 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
     );
   };
 
-  const handleSave = () => {
-    console.log("Save & continue clicked", topics);
-    setShowSuccess(true);
+  // Convert topics to backend questions format
+  const convertQuestionsToBackendFormat = (topics: Topic[]): Record<string, any> => {
+    const questionsObject: Record<string, any> = {};
+    
+    topics.forEach((topic) => {
+      questionsObject[topic.id] = {
+        title: topic.title,
+        questions: topic.questions.map(q => q.text).filter(text => text.trim() !== ''),
+      };
+    });
+    
+    return questionsObject;
   };
 
-  const handleCreate = () => {
+  const handleSave = async () => {
+    if (!jobId) {
+      setError("Job ID not found. Please go back and create the job first.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const questionsData = convertQuestionsToBackendFormat(topics);
+      
+      // Update job with questions and change status to published
+      const response = await recruiterService.updateJob(jobId, {
+        questions: questionsData,
+        status: 'published', // Publish the job
+      });
+
+      if (response.success) {
+        setShowSuccess(true);
+        // Clear stored job ID
+        sessionStorage.removeItem('createdJobId');
+      } else {
+        setError(response.message || "Failed to update job with questions");
+      }
+    } catch (err: any) {
+      console.error("Error updating job:", err);
+      setError(err.message || "An error occurred while saving questions");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreate = async () => {
     if (onCreate) onCreate(topics);
-    console.log("Create clicked", topics);
-    setShowSuccess(true);
+    await handleSave();
   };
 
   const handleSuccessDone = () => {
@@ -90,67 +142,72 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
 
   return (
     <>
-    <div className="space-y-3 sm:space-y-4">
-      <TopActionBar
-        title={PAGE_TITLES.CREATE_JOB}
-        onPreview={() => onBack && onBack()}
-        onPrimary={handleSave}
-        primaryLabel={BUTTON_LABELS.SAVE_AND_CONTINUE}
-      />
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          {error}
+        </div>
+      )}
+      <div className="space-y-3 sm:space-y-4">
+        <TopActionBar
+          title={PAGE_TITLES.CREATE_JOB}
+          onPreview={() => onBack && onBack()}
+          onPrimary={handleSave}
+          primaryLabel={isSubmitting ? "Saving..." : BUTTON_LABELS.SAVE_AND_CONTINUE}
+        />
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 sm:p-6 lg:p-8">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-6 sm:mb-8">
-            {PAGE_TITLES.GENERATE_WITH_AI}
-          </h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-4 sm:p-6 lg:p-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-6 sm:mb-8">
+              {PAGE_TITLES.GENERATE_WITH_AI}
+            </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-            {topics.map((topic) => (
-              <QuestionsTopic
-                key={topic.id}
-                topic={topic}
-                onAddQuestion={() => addQuestion(topic.id)}
-                onRemoveQuestion={(questionId) =>
-                  removeQuestion(topic.id, questionId)
-                }
-                onUpdateQuestion={(questionId, text) =>
-                  updateQuestion(topic.id, questionId, text)
-                }
-              />
-            ))}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+              {topics.map((topic) => (
+                <QuestionsTopic
+                  key={topic.id}
+                  topic={topic}
+                  onAddQuestion={() => addQuestion(topic.id)}
+                  onRemoveQuestion={(questionId) =>
+                    removeQuestion(topic.id, questionId)
+                  }
+                  onUpdateQuestion={(questionId, text) =>
+                    updateQuestion(topic.id, questionId, text)
+                  }
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-center sm:justify-end items-stretch sm:items-center gap-2 sm:gap-3 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 rounded-b-lg">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto bg-white border-[#D9D9E0] border-2 hover:bg-gray-50 text-gray-600 px-4 sm:px-6 h-10 text-sm order-2 sm:order-1"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {BUTTON_LABELS.BACK}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleCreate}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm order-1 sm:order-2"
+            >
+              {isSubmitting ? "Creating..." : BUTTON_LABELS.CREATE}
+            </Button>
           </div>
         </div>
-
-        <div className="flex flex-col sm:flex-row justify-center sm:justify-end items-stretch sm:items-center gap-2 sm:gap-3 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 rounded-b-lg">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onBack}
-            className="w-full sm:w-auto bg-white border-[#D9D9E0] border-2 hover:bg-gray-50 text-gray-600 px-4 sm:px-6 h-10 text-sm order-2 sm:order-1"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {BUTTON_LABELS.BACK}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleCreate}
-            className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm order-1 sm:order-2"
-          >
-            {BUTTON_LABELS.CREATE}
-          </Button>
-        </div>
       </div>
-    </div>
-    <SuccessModal
-      visible={showSuccess}
-      onClose={handleSuccessDone}
-      title={SUCCESS_MESSAGES.JOB_CREATED.title}
-      message={SUCCESS_MESSAGES.JOB_CREATED.message}
-      buttonText={SUCCESS_MESSAGES.JOB_CREATED.buttonText}
-    />
+      <SuccessModal
+        visible={showSuccess}
+        onClose={handleSuccessDone}
+        title={SUCCESS_MESSAGES.JOB_CREATED.title}
+        message={SUCCESS_MESSAGES.JOB_CREATED.message}
+        buttonText={SUCCESS_MESSAGES.JOB_CREATED.buttonText}
+      />
     </>
   );
 }
-
-
