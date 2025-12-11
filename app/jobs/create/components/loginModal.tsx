@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { X, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/custom/custom-button';
-import { recruiterService } from '@/lib/api/recruiterService';
 import { useRouter } from 'next/navigation';
+import { useRecruiterAuthStore } from '@/lib/store/recruiter-auth-store';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -19,39 +19,36 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [countryCode, setCountryCode] = useState('+1');
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+
+  const {
+    sendOtp,
+    verifyOtp,
+    otpSending,
+    otpError,
+    setOtpError,
+  } = useRecruiterAuthStore();
 
   if (!isOpen) return null;
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setOtpError(null);
 
-    try {
-      if (!mobileNumber || mobileNumber.length < 8) {
-        throw new Error('Please enter a valid mobile number');
-      }
-
-      await recruiterService.sendOtp(mobileNumber, countryCode);
-      setShowOTP(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
+    if (!mobileNumber || mobileNumber.length < 8) {
+      setOtpError('Please enter a valid mobile number');
+      return;
     }
-  };
 
-  const handleGoogleSignIn = () => {
-    console.log('Google Sign In');
-    // TODO: Implement Google OAuth
+    const result = await sendOtp(mobileNumber, countryCode);
+    if (result.ok) {
+      setShowOTP(true);
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
     if (!/^\d*$/.test(value)) return;
-    
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
@@ -71,57 +68,41 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setOtpError(null);
 
-    try {
-      const otpString = otp.join('');
-      
-      if (otpString.length !== 4) {
-        throw new Error('Please enter complete 4-digit OTP');
-      }
+    const otpString = otp.join('');
+    if (otpString.length !== 4) {
+      setOtpError('Please enter complete 4-digit OTP');
+      return;
+    }
 
-      await recruiterService.validateOtp(mobileNumber, otpString, countryCode);
-
-      // Fetch profile
-      const profile = await recruiterService.getProfile();
-      
-      // Store profile in localStorage
-      localStorage.setItem('recruiter_profile', JSON.stringify(profile.data.profile));
-      localStorage.setItem('recruiter_documents', JSON.stringify(profile.data.documents));
-
-      // Close modal and redirect
+    const result = await verifyOtp(otpString);
+    if (result.ok) {
       onClose();
       router.push('/jobs');
-      
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP');
+    } else {
+      setOtpError(result.message || 'Invalid OTP');
       setOtp(['', '', '', '']);
       document.getElementById('otp-0')?.focus();
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleResendOTP = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      await recruiterService.sendOtp(mobileNumber, countryCode);
-      setOtp(['', '', '', '']);
-      document.getElementById('otp-0')?.focus();
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend OTP');
-    } finally {
-      setLoading(false);
-    }
+    setOtpError(null);
+    setOtp(['', '', '', '']);
+    await sendOtp(mobileNumber, countryCode);
+    document.getElementById('otp-0')?.focus();
   };
 
   const handleBackToSignIn = () => {
     setShowOTP(false);
     setOtp(['', '', '', '']);
-    setError('');
+    setOtpError(null);
+  };
+
+  const handleGoogleSignIn = () => {
+    console.log('Google Sign In');
+    // TODO: Implement Google OAuth
   };
 
   return (
@@ -129,9 +110,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-100/80 md:bg-black/50 p-4 md:p-0"
       onClick={onClose}
     >
-      {/* ============================================ */}
-      {/* MOBILE VIEW - Centered Modal Box */}
-      {/* ============================================ */}
+      {/* MOBILE VIEW */}
       <div 
         className="md:hidden relative w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-200"
         onClick={(e) => e.stopPropagation()}
@@ -194,7 +173,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F4781B] text-sm bg-white"
-                  disabled={loading}
+                  disabled={otpSending}
                 >
                   <option value="+1">+1 (USA/Canada)</option>
                   <option value="+91">+91 (India)</option>
@@ -216,20 +195,20 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   required
                   minLength={8}
                   maxLength={15}
-                  disabled={loading}
+                  disabled={otpSending}
                 />
               </div>
 
-              {error && (
-                <p className="text-red-500 text-sm text-center">{error}</p>
+              {otpError && (
+                <p className="text-red-500 text-sm text-center">{otpError}</p>
               )}
 
               <CustomButton 
                 type="submit"
                 className="w-full justify-center py-3 text-base font-semibold"
-                disabled={loading}
+                disabled={otpSending}
               >
-                {loading ? (
+                {otpSending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Sending...
@@ -247,7 +226,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <button
               onClick={handleGoogleSignIn}
               className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-white"
-              disabled={loading}
+              disabled={otpSending}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -257,16 +236,6 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               </svg>
               <span className="text-[#252B37] font-medium text-sm">Sign In with Google</span>
             </button>
-
-            <p className="mt-6 text-center text-sm text-[#717680]">
-              Don&apos;t have an account?{' '}
-              <button 
-                type="button" 
-                className="text-[#F4781B] font-semibold hover:opacity-80"
-              >
-                Sign Up
-              </button>
-            </p>
           </>
         ) : (
           <>
@@ -281,7 +250,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </h2>
             <p className="text-[#717680] text-sm mb-6 text-center">
               We sent a verification OTP to<br />
-              <span className="font-medium text-[#252B37]">{countryCode} {mobileNumber}</span>
+              <span className="font-medium text-[#252B37]">
+                {countryCode} {mobileNumber}
+              </span>
             </p>
 
             <form onSubmit={handleVerifyOTP} className="space-y-6">
@@ -297,22 +268,22 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
                     autoFocus={index === 0}
-                    disabled={loading}
+                    disabled={otpSending}
                     className="w-16 h-16 text-center text-2xl font-bold border-2 border-[#F4781B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F4781B] text-[#F4781B] disabled:opacity-50"
                   />
                 ))}
               </div>
 
-              {error && (
-                <p className="text-red-500 text-sm text-center">{error}</p>
+              {otpError && (
+                <p className="text-red-500 text-sm text-center">{otpError}</p>
               )}
 
               <CustomButton 
                 type="submit"
                 className="w-full justify-center py-3 text-base font-semibold"
-                disabled={loading}
+                disabled={otpSending}
               >
-                {loading ? (
+                {otpSending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Verifying...
@@ -328,7 +299,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               <button 
                 type="button"
                 onClick={handleResendOTP}
-                disabled={loading}
+                disabled={otpSending}
                 className="text-[#F4781B] font-semibold hover:opacity-80 disabled:opacity-50"
               >
                 Click to resend
@@ -337,7 +308,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
             <button
               onClick={handleBackToSignIn}
-              disabled={loading}
+              disabled={otpSending}
               className="mt-4 w-full flex items-center justify-center gap-2 text-sm text-[#717680] hover:text-[#252B37] transition-colors disabled:opacity-50"
             >
               <ArrowLeft size={16} />
@@ -347,9 +318,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         )}
       </div>
 
-      {/* ============================================ */}
-      {/* DESKTOP VIEW - Full Screen Split Layout */}
-      {/* ============================================ */}
+      {/* DESKTOP VIEW */}
       <div 
         className="hidden md:flex fixed inset-0 w-full h-full"
         onClick={(e) => e.stopPropagation()}
@@ -362,7 +331,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <X size={20} />
         </button>
 
-        {/* Image Section - Left Side */}
+        {/* Image Section */}
         <div className="w-[45%] h-full bg-white p-8">
           <div className="relative w-full h-full rounded-2xl overflow-hidden">
             <Image
@@ -377,7 +346,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         {/* Right Side - Form Container */}
         <div className="w-[55%] h-full flex items-center justify-center bg-white p-8 overflow-y-auto">
-          <div className="w-full max-w-md bg-white rounded-2xl border-2 border-gray-200 p-8">
+          <div className="w-full max-w-md bg.white rounded-2xl border-2 border-gray-200 p-8">
             <div className="mb-6 flex justify-center">
               <Image
                 src="/img/brand/medfaster-logo.png"
@@ -428,7 +397,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                       value={countryCode}
                       onChange={(e) => setCountryCode(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F4781B] text-sm bg-white"
-                      disabled={loading}
+                      disabled={otpSending}
                     >
                       <option value="+1">+1 (USA/Canada)</option>
                       <option value="+91">+91 (India)</option>
@@ -450,20 +419,20 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                       required
                       minLength={8}
                       maxLength={15}
-                      disabled={loading}
+                      disabled={otpSending}
                     />
                   </div>
 
-                  {error && (
-                    <p className="text-red-500 text-sm text-center">{error}</p>
+                  {otpError && (
+                    <p className="text-red-500 text-sm text-center">{otpError}</p>
                   )}
 
                   <CustomButton 
                     type="submit"
                     className="w-full justify-center py-3 text-base font-semibold"
-                    disabled={loading}
+                    disabled={otpSending}
                   >
-                    {loading ? (
+                    {otpSending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Sending...
@@ -486,7 +455,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 <button
                   onClick={handleGoogleSignIn}
                   className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-white"
-                  disabled={loading}
+                  disabled={otpSending}
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -520,7 +489,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 </h2>
                 <p className="text-[#717680] text-sm mb-6 text-center">
                   We sent a verification OTP to<br />
-                  <span className="font-medium text-[#252B37]">{countryCode} {mobileNumber}</span>
+                  <span className="font-medium text-[#252B37]">
+                    {countryCode} {mobileNumber}
+                  </span>
                 </p>
 
                 <form onSubmit={handleVerifyOTP} className="space-y-6">
@@ -536,22 +507,22 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                         onChange={(e) => handleOtpChange(index, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(index, e)}
                         autoFocus={index === 0}
-                        disabled={loading}
+                        disabled={otpSending}
                         className="w-16 h-16 text-center text-2xl font-bold border-2 border-[#F4781B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F4781B] text-[#F4781B] disabled:opacity-50"
                       />
                     ))}
                   </div>
 
-                  {error && (
-                    <p className="text-red-500 text-sm text-center">{error}</p>
+                  {otpError && (
+                    <p className="text-red-500 text-sm text-center">{otpError}</p>
                   )}
 
                   <CustomButton 
                     type="submit"
                     className="w-full justify-center py-3 text-base font-semibold"
-                    disabled={loading}
+                    disabled={otpSending}
                   >
-                    {loading ? (
+                    {otpSending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Verifying...
@@ -567,7 +538,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <button 
                     type="button"
                     onClick={handleResendOTP}
-                    disabled={loading}
+                    disabled={otpSending}
                     className="text-[#F4781B] font-semibold hover:opacity-80 disabled:opacity-50"
                   >
                     Click to resend
@@ -576,7 +547,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
                 <button
                   onClick={handleBackToSignIn}
-                  disabled={loading}
+                  disabled={otpSending}
                   className="mt-4 w-full flex items-center justify-center gap-2 text-sm text-[#717680] hover:text-[#252B37] transition-colors disabled:opacity-50"
                 >
                   <ArrowLeft size={16} />
