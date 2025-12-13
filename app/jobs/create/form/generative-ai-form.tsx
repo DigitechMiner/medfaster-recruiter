@@ -82,18 +82,18 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
   };
 
   // Convert topics to backend questions format
-  const convertQuestionsToBackendFormat = (topics: Topic[]): Record<string, any> => {
-    const questionsObject: Record<string, any> = {};
-    
-    topics.forEach((topic) => {
-      questionsObject[topic.id] = {
-        title: topic.title,
-        questions: topic.questions.map(q => q.text).filter(text => text.trim() !== ''),
-      };
-    });
-    
-    return questionsObject;
-  };
+  const convertQuestionsToBackendFormat = (topics: Topic[]): Record<string, { title: string; questions: string[] }> => {
+  const questionsObject: Record<string, { title: string; questions: string[] }> = {};
+  
+  topics.forEach((topic) => {
+    questionsObject[topic.id] = {
+      title: topic.title,
+      questions: topic.questions.map(q => q.text).filter(text => text.trim() !== ''),
+    };
+  });
+  
+  return questionsObject;
+};
 
   const handleSave = async () => {
     if (!jobId) {
@@ -120,10 +120,11 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
       } else {
         setError(response.message || "Failed to update job with questions");
       }
-    } catch (err: any) {
-      console.error("Error updating job:", err);
-      setError(err.message || "An error occurred while saving questions");
-    } finally {
+    } catch (err) {
+  const error = err as Error;
+  console.error("Error updating job:", error);
+  setError(error.message || "An error occurred while saving questions");
+} finally {
       setIsSubmitting(false);
     }
   };

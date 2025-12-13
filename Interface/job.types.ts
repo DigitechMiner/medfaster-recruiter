@@ -152,7 +152,7 @@ export interface DetailedJobCardProps {
 }
 
 export interface JobListingCardProps {
-  job: TopJob;
+  job: JobBackendResponse;
 }
 
 export interface JobCardProps {

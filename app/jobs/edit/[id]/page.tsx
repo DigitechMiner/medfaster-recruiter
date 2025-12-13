@@ -101,7 +101,7 @@ export default function EditJobPage() {
         visible={showSuccessModal}
         onClose={handleSuccessClose}
         title="Job updated successfully"
-        message={`${job.title} - Job ID: ${jobId} is now live and ready for applicants.`}
+        message={`${job.job_title} - Job ID: ${jobId} is now live and ready for applicants.`}
         buttonText="Done"
       />
     </AppLayout>

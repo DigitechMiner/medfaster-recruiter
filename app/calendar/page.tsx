@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import { Footer } from "@/components/global/footer";
-import { CustomButton } from "@/components/custom/custom-button";
 import { Navbar } from "@/components/global/navbar";
 
 type CalendarView = "day" | "week" | "month";

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import type { JobBackendResponse } from "@/Interface/job.types";
 import {
   Clock,
@@ -18,6 +17,10 @@ interface JobDetailSectionsProps {
   job: JobBackendResponse;
 }
 
+interface QuestionTopic {
+  title: string;
+  questions: string[];
+}
 export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => {
   // Calculate days ago from created_at
   const getDaysAgo = (dateString: string) => {
@@ -86,7 +89,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
 
   // Parse questions from backend format
   const interviewQuestions = job.questions
-    ? Object.entries(job.questions).map(([topicId, topicData]: [string, any]) => ({
+   ? Object.entries(job.questions as Record<string, QuestionTopic>).map(([topicId, topicData]) => ({
         topic: topicData.title || `Topic ${topicId}`,
         questions: Array.isArray(topicData.questions) ? topicData.questions : [],
       }))

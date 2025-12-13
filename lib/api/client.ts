@@ -35,9 +35,10 @@ export async function apiRequest<T>(
     }
 
     return data;
-  } catch (error: any) {
-    console.error(`API Error [${endpoint}]:`, error.message);
-    throw error;
+  } catch (error) {
+  const err = error as Error;
+  console.error(`API Error [${endpoint}]:`, err.message);
+  throw err;
   }
 }
 

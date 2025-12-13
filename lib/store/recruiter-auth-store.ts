@@ -5,11 +5,29 @@ import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { recruiterService } from '@/lib/api/recruiterService';
 
+interface RecruiterProfile {
+  id: string;
+  user_id: string;
+  company_name?: string;
+  organization_type?: string;
+  contact_person?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RecruiterDocument {
+  id: string;
+  recruiter_profile_id: string;
+  document_type: string;
+  document_url: string;
+  verification_status: string;
+}
+
 interface ApiEnvelope<T = unknown> {
   success?: boolean;
   message?: string;
   data?: T;
-  [key: string]: any;
 }
 
 interface OtpCredential {
@@ -20,8 +38,8 @@ interface OtpCredential {
 interface RecruiterAuthState {
   token: string | null;
   tokenSetAt: number | null;
-  profile: Record<string, any> | null;
-  documents: Record<string, any>[] | null;
+  profile: RecruiterProfile | null;
+  documents: RecruiterDocument[] | null;
 
   otpCredential: OtpCredential | null;
   otpSending: boolean;
@@ -68,9 +86,8 @@ export const useRecruiterAuthStore = create<RecruiterAuthStore>()(
 
           try {
             const res = await recruiterService.sendOtp(phone, countryCode);
-            const json = res as ApiEnvelope;
-            if (!json?.success) {
-              const msg = json?.message || 'Failed to send OTP';
+            if (!res?.success) {
+              const msg = res?.message || 'Failed to send OTP';
               set({ otpError: msg });
               return { ok: false, message: msg };
             }
@@ -79,9 +96,10 @@ export const useRecruiterAuthStore = create<RecruiterAuthStore>()(
               otpCredential: { phone, countryCode },
             });
 
-            return { ok: true, message: json.message || 'OTP sent successfully' };
-          } catch (error: any) {
-            const msg = error?.message || 'Failed to send OTP';
+            return { ok: true, message: res.message || 'OTP sent successfully' };
+          } catch (error) {
+            const err = error as Error;
+            const msg = err.message || 'Failed to send OTP';
             set({ otpError: msg });
             return { ok: false, message: msg };
           } finally {
@@ -101,15 +119,14 @@ export const useRecruiterAuthStore = create<RecruiterAuthStore>()(
               otp,
               otpCredential.countryCode,
             );
-            const json = res as ApiEnvelope<{ token: string; user?: any }>;
 
-            if (!json?.success || !json?.data?.token) {
-              const msg = json?.message || 'Invalid OTP';
+            if (!res?.success || !res?.data?.token) {
+              const msg = res?.message || 'Invalid OTP';
               return { ok: false, message: msg };
             }
 
             set({
-              token: json.data.token,
+              token: res.data.token,
               tokenSetAt: Date.now(),
             });
 
@@ -120,9 +137,10 @@ export const useRecruiterAuthStore = create<RecruiterAuthStore>()(
             // Optionally load profile immediately
             await get().loadProfile();
 
-            return { ok: true, message: json.message || 'Login successful' };
-          } catch (error: any) {
-            const msg = error?.message || 'Invalid OTP';
+            return { ok: true, message: res.message || 'Login successful' };
+          } catch (error) {
+            const err = error as Error;
+            const msg = err.message || 'Invalid OTP';
             return { ok: false, message: msg };
           }
         },
@@ -130,24 +148,21 @@ export const useRecruiterAuthStore = create<RecruiterAuthStore>()(
         loadProfile: async () => {
           try {
             const res = await recruiterService.getProfile();
-            const json = res as ApiEnvelope<{
-              profile: Record<string, any>;
-              documents: Record<string, any>[];
-            }>;
 
-            if (!json?.success || !json?.data) return;
+            if (!res?.success || !res?.data) return;
 
             set({
-              profile: json.data.profile,
-              documents: json.data.documents,
+              profile: res.data.profile,
+              documents: res.data.documents,
             });
 
             if (typeof window !== 'undefined') {
-              localStorage.setItem('recruiter_profile', JSON.stringify(json.data.profile));
-              localStorage.setItem('recruiter_documents', JSON.stringify(json.data.documents));
+              localStorage.setItem('recruiter_profile', JSON.stringify(res.data.profile));
+              localStorage.setItem('recruiter_documents', JSON.stringify(res.data.documents));
             }
-          } catch {
+          } catch (error) {
             // Silent fail for profile load
+            console.error('Failed to load profile:', error);
           }
         },
 

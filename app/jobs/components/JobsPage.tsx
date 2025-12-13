@@ -29,19 +29,19 @@ const JobsPage: React.FC = () => {
 
   // Filter jobs based on search query
   const filteredJobs = useMemo(() => {
-  if (!searchQuery) return jobs.slice(0, 4);
+    if (!searchQuery) return jobs.slice(0, 4);
 
-  const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
 
-  return jobs
-    .filter((job) => {
-      return (
-        job.job_title.toLowerCase().includes(q) ||
-        (job.department && job.department.toLowerCase().includes(q))
-      );
-    })
-    .slice(0, 4);
-}, [jobs, searchQuery]);
+    return jobs
+      .filter((job) => {
+        return (
+          job.job_title.toLowerCase().includes(q) ||
+          (job.department && job.department.toLowerCase().includes(q))
+        );
+      })
+      .slice(0, 4);
+  }, [jobs, searchQuery]);
 
   if (isLoadingJobs || isLoadingCandidates) {
     return (
@@ -83,29 +83,16 @@ const JobsPage: React.FC = () => {
         {/* Job Listing Cards */}
         <div className="mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            {filteredJobs.map((job) => {
-  const cardJob = {
-    id: job.id,
-    title: job.job_title,
-    position: job.job_title, // or job.department if you prefer
-    experience: job.years_of_experience || "Not specified",
-    specializations: job.specializations || [],
-    postedDaysAgo: 0, // compute from created_at if needed
-    applicantCount: 0, // backend doesn't provide yet
-  } as any; // or define proper TopJob type
-
-  return (
-    <div
-      key={job.id}
-      onClick={() => {
-        router.push(`/jobs/${job.id}`);
-      }}
-    >
-      <JobListingCard job={cardJob} />
-    </div>
-  );
-})}
-
+            {filteredJobs.map((job) => (
+              <div
+                key={job.id}
+                onClick={() => {
+                  router.push(`/jobs/${job.id}`);
+                }}
+              >
+                <JobListingCard job={job} />
+              </div>
+            ))}
           </div>
         </div>
 

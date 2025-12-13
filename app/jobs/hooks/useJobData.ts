@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { recruiterService } from '@/lib/api/recruiterService';
-import type { JobBackendResponse, TopJob, JobsData, Job, StatusType } from '@/Interface/job.types';
+import type { JobBackendResponse, JobsListResponse, JobsData, Job, StatusType } from '@/Interface/job.types';
+
+// Create a type for the list items
+type JobListItem = JobsListResponse['data']['jobs'][0];
 
 // ============ NEW REAL API HOOKS ============
 // Job list hook with pagination
@@ -10,8 +13,8 @@ export function useJobs(params?: {
   page?: number;
   limit?: number;
 }) {
-  const [jobs, setJobs] = useState<JobBackendResponse[]>([]);
-  const [pagination, setPagination] = useState<any>(null);
+  const [jobs, setJobs] = useState<JobListItem[]>([]); // Changed from JobBackendResponse[]
+  const [pagination, setPagination] = useState<JobsListResponse['data']['pagination'] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +26,7 @@ export function useJobs(params?: {
         const response = await recruiterService.getJobs(params);
         
         if (response.success) {
-          setJobs(response.data.jobs as any[]);
+          setJobs(response.data.jobs); // Now types match!
           setPagination(response.data.pagination);
         } else {
           setError(response.message);
@@ -36,7 +39,7 @@ export function useJobs(params?: {
     };
 
     fetchJobs();
-  }, [params?.status, params?.page, params?.limit]);
+  }, [params]);
 
   return { jobs, pagination, isLoading, error };
 }

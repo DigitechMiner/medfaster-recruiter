@@ -43,8 +43,9 @@ export default function JobDetailPageRoute() {
       } else {
         alert(res.message || "Failed to close job");
       }
-    } catch (err: any) {
-      alert(err.message || "Error closing job");
+    } catch (err) {
+  const error = err as Error;
+  alert(error.message || "Error closing job");
     } finally {
       setIsClosing(false);
     }

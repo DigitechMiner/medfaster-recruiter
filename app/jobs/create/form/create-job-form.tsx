@@ -68,9 +68,10 @@ export function CreateJobForm({ onNext, onBack }: Props) {
       } else {
         setError(response.message || "Failed to create job");
       }
-    } catch (err: any) {
-      console.error("Error creating job:", err);
-      setError(err.message || "An error occurred while creating the job");
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error creating job:", error);
+      setError(error.message || "An error occurred while creating the job");
     } finally {
       setIsSubmitting(false);
     }

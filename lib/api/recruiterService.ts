@@ -36,7 +36,11 @@ interface ValidateOtpResponse {
   message: string;
   data?: {
     token: string;
-    user?: any;
+    user?: {
+      id: string;
+      phone: string;
+      [key: string]: unknown;
+    };
   };
 }
 
