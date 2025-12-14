@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { fonts } from "@/lib/font";
-
-import { LoginModalProvider } from "@/contexts/login-modal-context"; // Import your LoginModal context provider
+import ClientLayout from "./client-layout";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -17,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={fonts}>
       <body className="font-sans">
-        <LoginModalProvider>
-          {children}
-        </LoginModalProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

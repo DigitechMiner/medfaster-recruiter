@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { recruiterService } from "@/services/recruiterService";
+import { useJobsStore } from "@/stores/jobs-store";
 import type { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
 import { BUTTON_LABELS } from "../../constants/messages";
@@ -15,6 +15,7 @@ interface Props {
 
 export function CreateJobForm({ onNext, onBack }: Props) {
   const router = useRouter();
+  const createJob = useJobsStore((state) => state.createJob);
   const [formData, setFormData] = useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export function CreateJobForm({ onNext, onBack }: Props) {
 
     try {
       const backendData = convertToBackendFormat(formData);
-      const response = await recruiterService.createJob(backendData);
+      const response = await createJob(backendData);
 
       if (response.success) {
         // Store job ID for step 2 (questions)

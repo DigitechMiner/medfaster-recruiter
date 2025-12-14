@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { recruiterService } from '@/services/recruiterService';
+import { useJobsStore } from '@/stores/jobs-store';
 import type { JobBackendResponse, JobsListResponse, JobsData, Job, StatusType } from '@/Interface/job.types';
 
 // Create a type for the list items
@@ -13,6 +13,7 @@ export function useJobs(params?: {
   page?: number;
   limit?: number;
 }) {
+  const getJobs = useJobsStore((state) => state.getJobs);
   const [jobs, setJobs] = useState<JobListItem[]>([]); // Changed from JobBackendResponse[]
   const [pagination, setPagination] = useState<JobsListResponse['data']['pagination'] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +24,7 @@ export function useJobs(params?: {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await recruiterService.getJobs(params);
+        const response = await getJobs(params);
         
         if (response.success) {
           setJobs(response.data.jobs); // Now types match!
@@ -39,13 +40,14 @@ export function useJobs(params?: {
     };
 
     fetchJobs();
-  }, [params]);
+  }, [params, getJobs]);
 
   return { jobs, pagination, isLoading, error };
 }
 
 // Single job hook
 export function useJob(jobId: string | null) {
+  const getJob = useJobsStore((state) => state.getJob);
   const [job, setJob] = useState<JobBackendResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export function useJob(jobId: string | null) {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await recruiterService.getJob(jobId);
+        const response = await getJob(jobId);
         
         if (response.success) {
           setJob(response.data.job);
@@ -75,13 +77,14 @@ export function useJob(jobId: string | null) {
     };
 
     fetchJob();
-  }, [jobId]);
+  }, [jobId, getJob]);
 
   return { job, isLoading, error };
 }
 
 // Delete job hook
 export function useDeleteJob() {
+  const deleteJobFromStore = useJobsStore((state) => state.deleteJob);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +92,7 @@ export function useDeleteJob() {
     try {
       setIsDeleting(true);
       setError(null);
-      const response = await recruiterService.deleteJob(jobId);
+      const response = await deleteJobFromStore(jobId);
       
       if (response.success) {
         return true;

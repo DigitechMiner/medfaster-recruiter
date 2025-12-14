@@ -12,15 +12,16 @@ import {
 import SuccessModal from "@/components/modal";
 import { useJobId, useJob } from "../../hooks/useJobData";
 import { useQuestions } from "../../hooks/useQuestions";
-import { recruiterService } from "@/services/recruiterService";
+import { useJobsStore } from "@/stores/jobs-store";
 import type { JobBackendResponse, JobUpdatePayload } from "@/Interface/job.types";
 import { JOB_TITLES, DEPARTMENTS, EXPERIENCES } from "../../constants/form";
-import { convertToFrontendValue, convertToBackendValue } from "@/constants/jobTypes";
+import { convertToFrontendValue, convertToBackendValue } from "@/utils/constant/jobTypes";
 
 export default function EditJobPage() {
   const router = useRouter();
   const jobId = useJobId();
   const { job, isLoading, error } = useJob(jobId);
+  const updateJob = useJobsStore((state) => state.updateJob);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,7 +164,7 @@ export default function EditJobPage() {
     try {
       const questionsData = convertTopicsToBackendFormat(topics);
       const backendData = convertToBackendFormat(formData, questionsData);
-      const response = await recruiterService.updateJob(jobId, backendData);
+      const response = await updateJob(jobId, backendData);
 
       if (response.success) {
         setShowSuccessModal(true);

@@ -7,12 +7,13 @@ import { JobDetailHeader } from "./components/JobDetailHeader";
 import { JobDetailSections } from "./components/JobDetailSections";
 import { AppLayout } from "@/components/global/app-layout";
 import { useJobId, useJob } from "../hooks/useJobData";
-import { recruiterService } from "@/services/recruiterService";
+import { useJobsStore } from "@/stores/jobs-store";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();
   const jobId = useJobId(); // string | null (UUID)
   const { job, isLoading, error } = useJob(jobId);
+  const updateJob = useJobsStore((state) => state.updateJob);
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -36,7 +37,7 @@ export default function JobDetailPageRoute() {
 
     setIsClosing(true);
     try {
-      const res = await recruiterService.updateJob(jobId, { status: "closed" });
+      const res = await updateJob(jobId, { status: "closed" });
       if (res.success) {
         setShowCloseModal(false);
         router.push("/jobs");

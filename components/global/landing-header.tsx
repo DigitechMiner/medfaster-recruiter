@@ -1,24 +1,43 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-import { useLoginModal } from "@/contexts/login-modal-context"; // Import login modal context
 import { CustomButton } from "@/components/custom/custom-button";
 import Image from "next/image";
-import { landingNavLinks } from "@/constants/landingPage";
-import LoginModal from "@/app/jobs/create/components/loginModal";
+import { landingNavLinks } from "@/utils/constant/landingPage";
+import LoginModal from "@/components/global/otpModal";
+import { useAuthStore } from "@/stores/authStore";
 
-export function LandingHeader() {
+export function LandingHeader({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [active, setActive] = useState("Home");
-  const { isOpen, openLogin, closeLogin } = useLoginModal(); // Get modal state and open function
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const pathname = usePathname();
+  
+  // Get auth state from store
+  const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
+  const logout = useAuthStore((state) => state.logout);
+  const isAuthenticated = !!recruiterProfile;
+
+  // Open login modal if user is not authenticated and on /jobs route
+  useEffect(() => {
+    if (!isAuthenticated && pathname === "/jobs") {
+      setIsLoginModalOpen(true);
+    }
+  }, [isAuthenticated, pathname]);
+
+  const handleLogout = async () => {
+    await logout();
+    // All state is cleared in authStore, UI will update automatically via Zustand reactivity
+  };
 
   return (
-    <>
-      <header className="relative w-full bg-white flex items-center justify-between rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl p-2 md:px-4 lg:px-6 xl:px-8">
+    <div className="w-full bg-white rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-3xl ">
+        <header className="relative w-full flex items-center justify-between p-2 md:p-4 lg:p-6 xl:p-8 px-4 md:px-8 lg:px-16 xl:px-16">
         <div className="flex items-center gap-2">
           <Button
             className="lg:hidden rounded p-2 z-20"
@@ -57,15 +76,27 @@ export function LandingHeader() {
           ))}
         </nav>
 
-        <CustomButton
-          className="hidden md:flex my-0"
-          style={{
-            background: "linear-gradient(225deg, #EB001B 0%, #F79E1B 100%)",
-          }}
-          onClick={openLogin} // Open modal instead of redirect
-        >
-          Login as Recruiter
-        </CustomButton>
+        {isAuthenticated ? (
+          <CustomButton
+            className="hidden md:flex my-0"
+            style={{
+              background: "linear-gradient(225deg, #EB001B 0%, #F79E1B 100%)",
+            }}
+            onClick={handleLogout}
+          >
+            Logout
+          </CustomButton>
+        ) : (
+          <CustomButton
+            className="hidden md:flex my-0"
+            style={{
+              background: "linear-gradient(225deg, #EB001B 0%, #F79E1B 100%)",
+            }}
+            onClick={() => setIsLoginModalOpen(true)} // Open modal instead of redirect
+          >
+            Login as Recruiter
+          </CustomButton>
+        )}
 
         {mobileOpen && (
           <div className="absolute top-[calc(100%+10px)] left-0 w-full max-w-sm min-h-[calc(100vh-100%-30px)] z-50 flex flex-col items-center bg-white border-b rounded-lg shadow-lg lg:hidden justify-between">
@@ -90,26 +121,42 @@ export function LandingHeader() {
               ))}
             </div>
             <div className="w-full max-w-sm py-4 px-4">
-              <CustomButton
-                className="w-full justify-center my-1 py-2"
-                style={{
-                  background: "linear-gradient(225deg, #EB001B 0%, #F79E1B 100%)",
-                }}
-                onClick={() => {
-                  setMobileOpen(false);
-                  openLogin(); // Open modal instead of redirect
-                }}
-              >
-                Login as Recruiter
-              </CustomButton>
+              {isAuthenticated ? (
+                <CustomButton
+                  className="w-full justify-center my-1 py-2"
+                  style={{
+                    background: "linear-gradient(225deg, #EB001B 0%, #F79E1B 100%)",
+                  }}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  Logout
+                </CustomButton>
+              ) : (
+                <CustomButton
+                  className="w-full justify-center my-1 py-2"
+                  style={{
+                    background: "linear-gradient(225deg, #EB001B 0%, #F79E1B 100%)",
+                  }}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setIsLoginModalOpen(true); // Open modal instead of redirect
+                  }}
+                >
+                  Login as Recruiter
+                </CustomButton>
+              )}
             </div>
           </div>
-        )}
+        )}      
       </header>
+      {children}
 
       {/* Render the login modal */}
-      <LoginModal isOpen={isOpen} onClose={closeLogin} />
-    </>
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+    </div>
   );
 }
 

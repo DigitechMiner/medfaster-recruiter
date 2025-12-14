@@ -8,7 +8,7 @@ import { Heading } from "@/components/custom/heading";
 import { Section } from "@/components/custom/section";
 import { CustomButton } from "@/components/custom/custom-button";
 import { ResponsiveParagraph } from "@/components/custom/paragraph";
-import { landingFooterColumns } from "@/constants/landingPage";
+import { landingFooterColumns } from "@/utils/constant/landingPage";
 
 export function LandingFooter() {
   const [email, setEmail] = useState("");

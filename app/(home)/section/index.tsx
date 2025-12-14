@@ -7,7 +7,7 @@ import { Section } from "@/components/custom/section";
 import { Heading } from "@/components/custom/heading";
 import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
 import { FeatureCard } from "@/components/custom/feature-card";
-import { companyLogos, hiringSteps, dashboardFeatures } from "@/constants/landingPage";
+import { companyLogos, hiringSteps, dashboardFeatures } from "@/utils/constant/landingPage";
 
 // Hero Section
 export function HeroSection() {

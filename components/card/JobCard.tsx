@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { getTimeAgo } from '@/utils/getTimePeriod';
-import { convertToFrontendValue } from '@/constants/jobTypes';
+import { convertToFrontendValue } from '@/utils/constant/jobTypes';
 
 interface JobListingCardProps {
   job: {

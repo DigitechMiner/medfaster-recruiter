@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { QuestionsTopic } from "../components/questions-topic";
 import { TopActionBar } from "@/components/custom/top-action-bar";
 import SuccessModal from "@/components/modal";
-import { recruiterService } from "@/services/recruiterService";
+import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
-import { useJobsStore } from "@/stores/jobs-store";
 
 interface Props {
   onBack?: () => void;
@@ -20,6 +19,7 @@ interface Props {
 export function GenerateAIForm({ onBack, onCreate }: Props) {
   const router = useRouter();
   const setHasJobs = useJobsStore((state) => state.setHasJobs);
+  const updateJob = useJobsStore((state) => state.updateJob);
   const [topics, setTopics] = useState<Topic[]>(DEFAULT_TOPICS);
   const [jobId, setJobId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -108,7 +108,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
       const questionsData = convertQuestionsToBackendFormat(topics);
       
       // Update job with questions and change status to published
-      const response = await recruiterService.updateJob(jobId, {
+      const response = await updateJob(jobId, {
         questions: questionsData,
         status: 'published', // Publish the job
       });

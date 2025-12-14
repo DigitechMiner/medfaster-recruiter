@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { X, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/custom/custom-button';
 import { useRouter } from 'next/navigation';
-import { useRecruiterAuthStore } from '@/stores/recruiter-auth-store';
+import { useAuthStore } from '@/stores/authStore';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     otpSending,
     otpError,
     setOtpError,
-  } = useRecruiterAuthStore();
+  } = useAuthStore();
 
   if (!isOpen) return null;
 
@@ -39,7 +39,11 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       return;
     }
 
-    const result = await sendOtp(mobileNumber, countryCode);
+    const result = await sendOtp({
+      target: mobileNumber,
+      targetType: 'phone',
+      countryCode,
+    });
     if (result.ok) {
       setShowOTP(true);
     }
@@ -76,7 +80,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       return;
     }
 
-    const result = await verifyOtp(otpString);
+    const result = await verifyOtp(otpString, true); // Load recruiter profile after login
     if (result.ok) {
       onClose();
       router.push('/jobs');
@@ -90,7 +94,11 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const handleResendOTP = async () => {
     setOtpError(null);
     setOtp(['', '', '', '']);
-    await sendOtp(mobileNumber, countryCode);
+    await sendOtp({
+      target: mobileNumber,
+      targetType: 'phone',
+      countryCode,
+    });
     document.getElementById('otp-0')?.focus();
   };
 

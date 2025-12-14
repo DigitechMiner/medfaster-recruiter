@@ -7,7 +7,7 @@ import { Section } from "@/components/custom/section";
 import { Heading } from "@/components/custom/heading";
 import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
 import { FaStar } from "react-icons/fa";
-import { testimonials as landingTestimonials } from "@/constants/landingPage";
+import { testimonials as landingTestimonials } from "@/utils/constant/landingPage";
 
 export default function TestimonialsSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
