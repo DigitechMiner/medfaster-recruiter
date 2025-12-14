@@ -1,5 +1,3 @@
-// lib/api/client.ts - SIMPLIFIED
-
 const HOST = 'http://localhost:4000'; // One URL for all browsers
 
 export const BASE_URL = `${HOST}/api/v1`;

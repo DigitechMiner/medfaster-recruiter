@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { recruiterService } from "@/lib/api/recruiterService";
+import { recruiterService } from "@/services/recruiterService";
 import type { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
 import { BUTTON_LABELS } from "../../constants/messages";

@@ -1,7 +1,5 @@
-// lib/api/recruiterService.ts
-
-import { apiRequest } from './client';
-import { ENDPOINTS } from './endpoints';
+import { apiRequest } from './api-client';
+import { ENDPOINTS } from './api-endpoints';
 import type {
   JobsListResponse,
   JobDetailResponse,

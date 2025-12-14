@@ -1,5 +1,3 @@
-// lib/api/endpoints.ts
-
 export const ENDPOINTS = {
   // Recruiter Auth
   RECRUITER_SEND_OTP: '/recruiter/send-otp',

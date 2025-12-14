@@ -182,7 +182,7 @@ export function JobForm({
               <Button
                 type={onSubmit ? "submit" : "button"}
                 onClick={onSubmit ? undefined : onCancel}
-                className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm order-1 sm:order-2"
+                className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm rounded-lg order-1 sm:order-2"
               >
                 {submitLabel || (isEditMode ? "Save" : BUTTON_LABELS.SAVE_AND_CONTINUE)}
               </Button>

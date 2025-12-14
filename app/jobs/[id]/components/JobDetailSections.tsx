@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
 import { Heading } from "@/components/custom/heading";
+import { getTimeAgo } from "@/utils/getTimePeriod";
 
 interface JobDetailSectionsProps {
   job: JobBackendResponse;
@@ -22,23 +23,6 @@ interface QuestionTopic {
   questions: string[];
 }
 export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => {
-  // Calculate days ago from created_at
-  const getDaysAgo = (dateString: string) => {
-    const created = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - created.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-      if (diffHours === 0) {
-        const diffMinutes = Math.floor(diffTime / (1000 * 60));
-        return `${diffMinutes} min ago`;
-      }
-      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    }
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  };
 
   // Format job type for display
   const formatJobType = (type: string | null) => {
@@ -127,7 +111,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
             className="text-gray-500 mb-0.5 flex items-center gap-1"
           >
             <Clock className="w-4 h-4 text-[#F4781B]" />
-            {getDaysAgo(job.created_at)}
+            {getTimeAgo(job.createdAt || "")}
           </Paragraph>
           <ResponsiveParagraph
             size="base"
@@ -341,7 +325,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
               Last Updated
             </Paragraph>
             <Paragraph size="sm" weight="semibold" className="text-gray-900">
-              {new Date(job.updated_at).toLocaleDateString()}
+              {getTimeAgo(job.updatedAt || "")}
             </Paragraph>
           </div>
         </div>

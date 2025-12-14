@@ -1,3 +1,5 @@
+'use client';
+
 import { create } from "zustand";
 
 interface JobsStore {
@@ -9,4 +11,3 @@ export const useJobsStore = create<JobsStore>((set) => ({
   hasJobs: false,
   setHasJobs: (hasJobs: boolean) => set({ hasJobs }),
 }));
-

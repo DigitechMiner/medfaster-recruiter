@@ -17,8 +17,8 @@ export interface JobBackendResponse {
   description: string | null;
   questions: Record<string, any> | null;
   status: 'draft' | 'published' | 'closed' | 'archived';
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface JobCreatePayload {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { recruiterService } from '@/lib/api/recruiterService';
+import { recruiterService } from '@/services/recruiterService';
 import type { JobBackendResponse, JobsListResponse, JobsData, Job, StatusType } from '@/Interface/job.types';
 
 // Create a type for the list items

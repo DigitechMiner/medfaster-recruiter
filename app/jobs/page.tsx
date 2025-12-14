@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { EmptyJobState } from "./components/empty";
 import { AppLayout } from "@/components/global/app-layout";
 import JobsPage from "./components/JobsPage";
-import { useJobsStore } from "@/lib/store/jobs-store";
+import { useJobsStore } from "@/stores/jobs-store";
 import { useJobs } from "./hooks/useJobData";
 
 export default function JobsPageWrapper() {
-  const hasJobs = useJobsStore((state) => state.hasJobs);
+  const hasJobs = useJobsStore((state: { hasJobs: boolean }) => state.hasJobs);
   const { jobs, isLoading } = useJobs();
 
   // Update store when jobs are loaded

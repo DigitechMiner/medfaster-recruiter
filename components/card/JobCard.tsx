@@ -2,6 +2,8 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { getTimeAgo } from '@/utils/getTimePeriod';
+import { convertToFrontendValue } from '@/constants/jobTypes';
 
 interface JobListingCardProps {
   job: {
@@ -18,9 +20,7 @@ interface JobListingCardProps {
 }
 
 export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => {
-  const daysAgo = Math.ceil(
-    (Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const timeAgo = getTimeAgo(job.created_at);
 
   return (
     <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer hover:border-orange-400 hover:border-2 active:border-orange-400 active:border-2">
@@ -43,7 +43,7 @@ export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => {
       <div className="flex items-center text-sm text-gray-600 mb-3">
         <Image src="/svg/Briefcase.svg" alt="briefcase" width={16} height={16} className="mr-1" />
         <span>
-          {job.years_of_experience || 'Not specified'} | {job.specializations?.[0] || 'General'} | {job.job_type || 'Full-time'}
+          {job.years_of_experience || 'Not specified'} | {job.specializations?.[0] || 'General'} | {convertToFrontendValue(job.job_type)}
         </span>
       </div>
       
@@ -61,7 +61,7 @@ export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => {
         <div className="flex items-center justify-between text-xs text-gray-600">
           <div className="flex items-center gap-1">
             <Image src="/svg/Time.svg" alt="time" width={16} height={16} />
-            <span>{daysAgo} day{daysAgo !== 1 ? 's' : ''} ago</span>
+            <span>{timeAgo}</span>
           </div>
           <div className="flex items-center gap-1">
             <Image src="/svg/People.svg" alt="people" width={16} height={16} />

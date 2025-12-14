@@ -1,9 +1,8 @@
-// lib/store/recruiter-auth-store.ts
 'use client';
 
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
-import { recruiterService } from '@/lib/api/recruiterService';
+import { recruiterService } from '@/services/recruiterService';
 
 interface RecruiterProfile {
   id: string;

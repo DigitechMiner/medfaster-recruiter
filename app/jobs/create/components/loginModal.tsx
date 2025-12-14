@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { X, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/custom/custom-button';
 import { useRouter } from 'next/navigation';
-import { useRecruiterAuthStore } from '@/lib/store/recruiter-auth-store';
+import { useRecruiterAuthStore } from '@/stores/recruiter-auth-store';
 
 interface LoginModalProps {
   isOpen: boolean;

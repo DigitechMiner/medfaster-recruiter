@@ -7,7 +7,7 @@ import { JobDetailHeader } from "./components/JobDetailHeader";
 import { JobDetailSections } from "./components/JobDetailSections";
 import { AppLayout } from "@/components/global/app-layout";
 import { useJobId, useJob } from "../hooks/useJobData";
-import { recruiterService } from "@/lib/api/recruiterService";
+import { recruiterService } from "@/services/recruiterService";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();

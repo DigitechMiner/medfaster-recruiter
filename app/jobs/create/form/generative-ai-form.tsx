@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { QuestionsTopic } from "../components/questions-topic";
 import { TopActionBar } from "@/components/custom/top-action-bar";
 import SuccessModal from "@/components/modal";
-import { recruiterService } from "@/lib/api/recruiterService";
+import { recruiterService } from "@/services/recruiterService";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
-import { useJobsStore } from "@/lib/store/jobs-store";
+import { useJobsStore } from "@/stores/jobs-store";
 
 interface Props {
   onBack?: () => void;
