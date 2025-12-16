@@ -4,8 +4,7 @@ import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
 import { AppLayout } from "@/components/global/app-layout";
-import { useCandidate } from "../../hooks/useJobData";
-
+import { useCandidate } from "@/hooks/useJobData";
 export default function CandidateDetailPage() {
   const router = useRouter();
   const params = useParams();

@@ -14,7 +14,7 @@ import {
 } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { BUTTON_LABELS } from "../constants/messages";
-import { useJobs, useAllCandidates } from "../hooks/useJobData";
+import { useAllCandidates, useJobs } from "@/hooks/useJobData";
 
 const JobsPage: React.FC = () => {
   const router = useRouter();

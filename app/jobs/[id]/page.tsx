@@ -6,8 +6,9 @@ import Modal from "@/components/modal";
 import { JobDetailHeader } from "./components/JobDetailHeader";
 import { JobDetailSections } from "./components/JobDetailSections";
 import { AppLayout } from "@/components/global/app-layout";
-import { useJobId, useJob } from "../hooks/useJobData";
+
 import { useJobsStore } from "@/stores/jobs-store";
+import { useJob, useJobId } from "@/hooks/useJobData";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();

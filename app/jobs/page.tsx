@@ -6,8 +6,9 @@ import { EmptyJobState } from "./components/empty";
 import { AppLayout } from "@/components/global/app-layout";
 import JobsPage from "./components/JobsPage";
 import { useJobsStore } from "@/stores/jobs-store";
-import { useJobs } from "./hooks/useJobData";
+
 import { useAuthStore } from "@/stores/authStore";
+import { useJobs } from "@/hooks/useJobData";
 
 export default function JobsPageWrapper() {
   const router = useRouter();

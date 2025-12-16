@@ -10,8 +10,8 @@ import {
   Topic,
 } from "../../constants/form";
 import SuccessModal from "@/components/modal";
-import { useJobId, useJob } from "../../hooks/useJobData";
-import { useQuestions } from "../../hooks/useQuestions";
+
+import { useQuestions } from "@/hooks/useQuestions";
 import { useJobsStore } from "@/stores/jobs-store";
 import type {
   JobBackendResponse,
@@ -22,6 +22,7 @@ import {
   convertToFrontendValue,
   convertToBackendValue,
 } from "@/utils/constant/jobTypes";
+import { useJob, useJobId } from "@/hooks/useJobData";
 
 const JOB_TITLES = metadata.job_title;
 const DEPARTMENTS = metadata.department;

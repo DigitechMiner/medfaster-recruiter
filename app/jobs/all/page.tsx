@@ -7,7 +7,8 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BUTTON_LABELS } from "../constants/messages";
 import { AppLayout } from "@/components/global/app-layout";
-import { useJobs } from "../hooks/useJobData";
+import { useJobs } from "@/hooks/useJobData";
+
 
 const AllJobsPage: React.FC = () => {
   const router = useRouter();
