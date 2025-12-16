@@ -1,16 +1,16 @@
-// OTP related constants
+import { otp, regex } from "@/utils/constant/config";
 
 // Resend OTP timer duration in seconds (2 minutes)
-export const OTP_RESEND_TIMER_SECONDS = 120;
+export const OTP_RESEND_TIMER_SECONDS = otp.resend_timer_seconds;
 
 // Email validation regex
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = regex.email;
 
 // Minimum digits to detect as phone number
-export const PHONE_DETECT_MIN_LENGTH = 5;
+export const PHONE_DETECT_MIN_LENGTH = otp.phone_min_length;
 
 // Default country code (USA/Canada)
-export const DEFAULT_COUNTRY_CODE = '1';
+export const DEFAULT_COUNTRY_CODE = otp.default_country_code;
 
 /**
  * Validates if a string is a valid email address
@@ -38,28 +38,26 @@ export function isPhoneNumber(value: string): boolean {
  * @param value - The contact value to analyze
  * @returns 'email' if detected as email, 'phone' if detected as phone, null if empty
  */
-export function detectContactType(value: string): 'email' | 'phone' | null {
+export function detectContactType(
+  value: string
+): "email" | "phone" | null {
   const trimmedValue = value.trim();
-  
-  // If empty, return null
+
   if (trimmedValue.length === 0) {
     return null;
   }
 
-  // Check if it contains email indicators (like @) - prioritize email detection
-  const hasEmailIndicator = trimmedValue.includes('@') || trimmedValue.includes('.');
+  const hasEmailIndicator =
+    trimmedValue.includes("@") || trimmedValue.includes(".");
   const isEmail = isValidEmail(trimmedValue);
-  
-  // If it has email indicators or is a valid email, treat as email
+
   if (hasEmailIndicator || isEmail) {
-    return 'email';
+    return "email";
   }
 
-  // Check if it's all digits and long enough to be a phone number
   if (isPhoneNumber(trimmedValue)) {
-    return 'phone';
+    return "phone";
   }
 
-  // Default to email mode if it contains non-digit characters
-  return 'email';
+  return "email";
 }

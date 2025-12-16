@@ -70,16 +70,6 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
   },
 ];
 
-export const provinces = [
-  { label: "Ontario (ON)", value: "Ontario (ON)" },
-  { label: "Quebec (QC)", value: "Quebec (QC)" },
-];
-
-export const orgTypes = [
-  { label: "Hospital", value: "Hospital" },
-  { label: "Clinic", value: "Clinic" },
-];
-
 export const complianceFields = [
   { label: "Operating License", name: "operatingLicense" },
   { label: "Accreditation Certificate", name: "accreditationCertificate" },

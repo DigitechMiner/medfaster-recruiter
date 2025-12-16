@@ -10,8 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { JOB_TITLES, DEPARTMENTS } from "../../constants/form";
+import metadata from "@/utils/constant/metadata";
 import { JobFormData } from "../../components/JobForm";
+
+const JOB_TITLES = metadata.job_title;
+const DEPARTMENTS = metadata.department;
 
 interface JobBasicInfoProps {
   formData: JobFormData;
@@ -84,7 +87,10 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
                 id="part-time"
                 className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
               />
-              <Label htmlFor="part-time" className="font-normal cursor-pointer text-sm">
+              <Label
+                htmlFor="part-time"
+                className="font-normal cursor-pointer text-sm"
+              >
                 Part Time
               </Label>
             </div>
@@ -94,7 +100,10 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
                 id="full-time"
                 className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
               />
-              <Label htmlFor="full-time" className="font-normal cursor-pointer text-sm">
+              <Label
+                htmlFor="full-time"
+                className="font-normal cursor-pointer text-sm"
+              >
                 Full Time
               </Label>
             </div>
@@ -104,7 +113,10 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
                 id="freelancer"
                 className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
               />
-              <Label htmlFor="freelancer" className="font-normal cursor-pointer text-sm">
+              <Label
+                htmlFor="freelancer"
+                className="font-normal cursor-pointer text-sm"
+              >
                 Freelancer
               </Label>
             </div>
@@ -128,5 +140,3 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
     </div>
   );
 }
-
-

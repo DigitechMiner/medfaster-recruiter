@@ -13,7 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EXPERIENCES, PAY_RANGE_MIN, PAY_RANGE_MAX, PAY_RANGE_STEP } from "../../constants/form";
+import metadata from "@/utils/constant/metadata";
+
+const EXPERIENCES = metadata.experience;
+const PAY_RANGE_MIN = metadata.pay_range.min;
+const PAY_RANGE_MAX = metadata.pay_range.max;
+const PAY_RANGE_STEP = metadata.pay_range.step;
 
 interface FormData {
   payRange: [number, number];
@@ -79,14 +84,19 @@ export function JobRequirements({
               max={PAY_RANGE_MAX}
               step={PAY_RANGE_STEP}
               value={formData.payRange}
-              onValueChange={(value) => updateFormData({ payRange: value as [number, number] })}
+              onValueChange={(value) =>
+                updateFormData({ payRange: value as [number, number] })
+              }
               className="w-full"
             />
           </div>
         </div>
 
         <div className="space-y-2 sm:space-y-3">
-          <Label htmlFor="experience" className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor="experience"
+            className="text-sm font-medium text-gray-700"
+          >
             Years of Experience <span className="text-red-500">*</span>
           </Label>
           <Select
@@ -109,7 +119,10 @@ export function JobRequirements({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
         <div className="space-y-2 sm:space-y-3">
-          <Label htmlFor="qualification" className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor="qualification"
+            className="text-sm font-medium text-gray-700"
+          >
             Qualification <span className="text-red-500">*</span>
           </Label>
           <Input
@@ -149,7 +162,10 @@ export function JobRequirements({
         </div>
 
         <div className="space-y-2 sm:space-y-3">
-          <Label htmlFor="specialization" className="text-sm font-medium text-gray-700">
+          <Label
+            htmlFor="specialization"
+            className="text-sm font-medium text-gray-700"
+          >
             Specialization
           </Label>
           <Input
@@ -191,5 +207,3 @@ export function JobRequirements({
     </div>
   );
 }
-
-
