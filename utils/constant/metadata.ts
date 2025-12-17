@@ -37,17 +37,24 @@ const metadata = {
     "10+ Yrs",
   ],
 
+  // Updated to match backend EMPLOYMENT_TYPES
   job_type: [
-    "Part Time",
     "Full Time",
-    "Freelancer",
+    "Part Time",
+    "Contract",
+    "Temporary",
+    "Internship",
+    "Remote",
   ],
 
   // Job type mapping for backend API (frontend → backend)
   job_type_mapping: {
-    "Part Time": "parttime",
     "Full Time": "fulltime",
-    "Freelancer": "freelancer",
+    "Part Time": "parttime",
+    "Contract": "contract",
+    "Temporary": "temporary",
+    "Internship": "internship",
+    "Remote": "remote",
   },
 
   urgency: [
@@ -87,30 +94,44 @@ const metadata = {
   // ORGANIZATION-RELATED METADATA
   // ============================================================================
 
+  // Updated to match backend CANADIAN_PROVINCES (alphabetically sorted)
   province: [
-    "Ontario (ON)",
-    "Quebec (QC)",
-    "British Columbia (BC)",
     "Alberta (AB)",
+    "British Columbia (BC)",
     "Manitoba (MB)",
-    "Saskatchewan (SK)",
-    "Nova Scotia (NS)",
     "New Brunswick (NB)",
     "Newfoundland and Labrador (NL)",
-    "Prince Edward Island (PE)",
     "Northwest Territories (NT)",
-    "Yukon (YT)",
+    "Nova Scotia (NS)",
     "Nunavut (NU)",
+    "Ontario (ON)",
+    "Prince Edward Island (PE)",
+    "Quebec (QC)",
+    "Saskatchewan (SK)",
+    "Yukon (YT)",
   ],
 
+  // Updated to match backend ORGANIZATION_TYPES
   organization_type: [
     "Hospital",
     "Clinic",
-    "Medical Center",
-    "Healthcare Facility",
     "Nursing Home",
-    "Rehabilitation Center",
+    "Medical Center",
+    "Pharmacy",
+    "Laboratory",
+    "Other",
   ],
+
+  // Organization type mapping for backend API (frontend → backend)
+  organization_type_mapping: {
+    "Hospital": "hospital",
+    "Clinic": "clinic",
+    "Nursing Home": "nursing_home",
+    "Medical Center": "medical_center",
+    "Pharmacy": "pharmacy",
+    "Laboratory": "laboratory",
+    "Other": "other",
+  },
 
   // ============================================================================
   // PERSONAL INFORMATION METADATA
@@ -121,6 +142,13 @@ const metadata = {
     "Female",
     "Other",
   ],
+
+  // Gender mapping for backend API (frontend → backend)
+  gender_mapping: {
+    "Male": "male",
+    "Female": "female",
+    "Other": "other",
+  },
 
   // ============================================================================
   // INTERVIEW/HIRING METADATA
@@ -157,18 +185,18 @@ const metadata = {
 
 /**
  * Convert frontend job type value to backend API value
- * @param frontendValue - "Part Time", "Full Time", or "Freelancer"
- * @returns Backend API value - "parttime", "fulltime", or "freelancer"
+ * @param frontendValue - "Full Time", "Part Time", etc.
+ * @returns Backend API value - "fulltime", "parttime", etc.
  */
 export function convertJobTypeToBackend(frontendValue: string): string {
   return metadata.job_type_mapping[frontendValue as keyof typeof metadata.job_type_mapping] 
-    || metadata.job_type_mapping["Part Time"];
+    || "fulltime";
 }
 
 /**
  * Convert backend API value to frontend display value
- * @param backendValue - "parttime", "fulltime", or "freelancer"
- * @returns Frontend display value - "Part Time", "Full Time", or "Freelancer"
+ * @param backendValue - "fulltime", "parttime", etc.
+ * @returns Frontend display value - "Full Time", "Part Time", etc.
  */
 export function convertJobTypeToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.job_type[0];
@@ -178,6 +206,56 @@ export function convertJobTypeToFrontend(backendValue: string | null | undefined
     ([_, value]) => value === normalized
   );
   return entry ? entry[0] : metadata.job_type[0];
+}
+
+/**
+ * Convert frontend organization type to backend API value
+ * @param frontendValue - "Hospital", "Clinic", etc.
+ * @returns Backend API value - "hospital", "clinic", etc.
+ */
+export function convertOrganizationTypeToBackend(frontendValue: string): string {
+  return metadata.organization_type_mapping[frontendValue as keyof typeof metadata.organization_type_mapping] 
+    || "other";
+}
+
+/**
+ * Convert backend organization type to frontend display value
+ * @param backendValue - "hospital", "clinic", etc.
+ * @returns Frontend display value - "Hospital", "Clinic", etc.
+ */
+export function convertOrganizationTypeToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.organization_type[0];
+
+  const normalized = backendValue.toLowerCase();
+  const entry = Object.entries(metadata.organization_type_mapping).find(
+    ([_, value]) => value === normalized
+  );
+  return entry ? entry[0] : metadata.organization_type[0];
+}
+
+/**
+ * Convert frontend gender to backend API value
+ * @param frontendValue - "Male", "Female", "Other"
+ * @returns Backend API value - "male", "female", "other"
+ */
+export function convertGenderToBackend(frontendValue: string): string {
+  return metadata.gender_mapping[frontendValue as keyof typeof metadata.gender_mapping] 
+    || "other";
+}
+
+/**
+ * Convert backend gender to frontend display value
+ * @param backendValue - "male", "female", "other"
+ * @returns Frontend display value - "Male", "Female", "Other"
+ */
+export function convertGenderToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.gender[0];
+
+  const normalized = backendValue.toLowerCase();
+  const entry = Object.entries(metadata.gender_mapping).find(
+    ([_, value]) => value === normalized
+  );
+  return entry ? entry[0] : metadata.gender[0];
 }
 
 /**
@@ -206,7 +284,9 @@ export const {
   specialization,
   province,
   organization_type,
+  organization_type_mapping,
   gender,
+  gender_mapping,
   yes_no,
   interview_type,
   pay_range,

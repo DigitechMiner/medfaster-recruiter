@@ -159,8 +159,7 @@ export default function SignInForm({
           <label className="block text-sm font-medium text-[#252B37] mb-2">
             Email / Mobile No <span className="text-red-500">*</span>
           </label>
-          <div className={`flex overflow-hidden items-center border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#F4781B] focus-within:border-transparent bg-white ${!isPhoneNumber ? 'px-0' : ''}`}>
-            {isPhoneNumber && (
+          <div className={`flex overflow-visible items-center border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-[#F4781B] focus-within:border-transparent bg-white ${!isPhoneNumber ? 'px-0' : ''}`}>            {isPhoneNumber && (
               <CountryCodeSelector
                 value={countryCode}
                 onChange={setCountryCode}

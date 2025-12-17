@@ -195,9 +195,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </div>
 
         {/* Right Side Container */}
-        <div className="w-[55%] h-full flex items-center justify-center bg-white p-8 overflow-y-auto">
-          <div className="w-full max-w-md bg-white rounded-2xl border-[1.5px] border-gray-200 p-8">
-            <Logo />
+       <div className="w-[55%] h-full flex items-center justify-center bg-white p-8 overflow-y-auto">
+  <div className="w-full max-w-md bg-white rounded-2xl border-[1.5px] border-gray-200 p-8 overflow-visible">            <Logo />
             {formContent}
           </div>
         </div>
