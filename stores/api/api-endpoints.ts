@@ -6,11 +6,18 @@ export const ENDPOINTS = {
   // Recruiter Profile
   RECRUITER_PROFILE: '/recruiter/profile',
   RECRUITER_LOGOUT: '/recruiter/logout',
-  
+
   // Jobs CRUD
   JOBS_LIST: '/recruiter/jobs',
   JOBS_CREATE: '/recruiter/jobs',
   JOBS_DETAIL: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_UPDATE: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DELETE: (id: string) => `/recruiter/jobs/${id}`,
-};
+
+  // Chat
+  CHAT_CONVERSATIONS: '/chat/conversations',
+  CHAT_CONVERSATION_MESSAGES: (conversationId: string) =>
+    `/chat/conversation/${conversationId}/messages`,
+  CHAT_SEND_MESSAGE: '/chat/message',
+  CHAT_CREATE_OR_GET: '/chat/conversation',
+} as const;
