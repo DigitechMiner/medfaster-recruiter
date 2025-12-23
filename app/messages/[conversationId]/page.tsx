@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchChatMessages, sendChatMessage } from "@/stores/api/chat-api";
-import { getRecruiterChatSocket } from "@/lib/chatSocket";
+import { getRecruiterChatSocket, initRecruiterChatSocket } from "@/lib/chatSocket";
 
 interface Message {
   id: string;
@@ -25,6 +25,7 @@ export default function RecruiterConversationPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [socketReady, setSocketReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -59,69 +60,78 @@ export default function RecruiterConversationPage() {
       }
     }
 
-    load();
-
-    const socket = getRecruiterChatSocket();
-    if (socket) {
-      socket.emit("join_conversation", conversationId);
-      console.log('🔌 Emitted join_conversation:', conversationId);
-
-      const onReceived = (msg: Message) => {
-        console.log('🔥 [RECRUITER] message_received:', {
-          id: msg.id?.slice(0, 8),
-          conversation_id: msg.conversation_id,
-          sender_type: msg.sender_type,
-          message: msg.message.slice(0, 30),
-        });
+    async function setupSocket() {
+      try {
+        let socket = getRecruiterChatSocket();
         
-        if (msg.conversation_id === conversationId) {
-          setMessages(prev => {
-            // Prevent duplicates
-            if (prev.some(m => m.id === msg.id)) {
-              console.log('⚠️ Duplicate message detected, skipping');
-              return prev;
-            }
-            return [...prev, msg];
+        if (!socket?.connected) {
+          console.log('Socket not connected, initializing...');
+          socket = await initRecruiterChatSocket();
+        }
+
+        if (!socket) {
+          console.warn('⚠️ Socket unavailable - real-time updates disabled');
+          return;
+        }
+
+        console.log('✅ Recruiter socket ready');
+        setSocketReady(true);
+
+        socket.emit("join_conversation", conversationId);
+        console.log('🔌 Joined conversation:', conversationId);
+
+        const onReceived = (msg: Message) => {
+          console.log('📩 New message:', {
+            id: msg.id?.slice(0, 8),
+            sender_type: msg.sender_type,
+            message: msg.message?.slice(0, 20)
           });
-        } else {
-          console.warn('❌ Message conversation mismatch:', {
-            expected: conversationId,
-            received: msg.conversation_id
-          });
-        }
-      };
+          
+          if (msg.conversation_id === conversationId) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === msg.id)) {
+                console.log('⚠️ Duplicate detected, skipping');
+                return prev;
+              }
+              return [...prev, msg];
+            });
+          }
+        };
 
-      const onUpdated = (msg: Message) => {
-        console.log('✏️ [RECRUITER] message_updated:', msg.id?.slice(0, 8));
-        setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, ...msg } : m)));
-      };
+        const onUpdated = (msg: Message) => {
+          console.log('✏️ Message updated');
+          setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, ...msg } : m)));
+        };
 
-      const onDeleted = (payload: { messageId: string; conversationId: string }) => {
-        console.log('🗑️ [RECRUITER] message_deleted:', payload.messageId?.slice(0, 8));
-        if (payload.conversationId === conversationId) {
-          setMessages(prev =>
-            prev.map(m => (m.id === payload.messageId ? { ...m, is_deleted: true } : m)),
-          );
-        }
-      };
+        const onDeleted = (payload: { messageId: string; conversationId: string }) => {
+          console.log('🗑️ Message deleted');
+          if (payload.conversationId === conversationId) {
+            setMessages(prev =>
+              prev.map(m => (m.id === payload.messageId ? { ...m, is_deleted: true } : m)),
+            );
+          }
+        };
 
-      socket.on("message_received", onReceived);
-      socket.on("message_updated", onUpdated);
-      socket.on("message_deleted", onDeleted);
+        socket.on("message_received", onReceived);
+        socket.on("message_updated", onUpdated);
+        socket.on("message_deleted", onDeleted);
 
-      return () => {
-        mounted = false;
-        if (socket) {
-          socket.emit("leave_conversation", conversationId);
-          socket.off("message_received", onReceived);
-          socket.off("message_updated", onUpdated);
-          socket.off("message_deleted", onDeleted);
-          console.log('🔌 Left conversation:', conversationId);
-        }
-      };
-    } else {
-      console.warn('⚠️ Socket unavailable - real-time updates disabled');
+        return () => {
+          if (mounted && socket) {
+            socket.emit("leave_conversation", conversationId);
+            socket.off("message_received", onReceived);
+            socket.off("message_updated", onUpdated);
+            socket.off("message_deleted", onDeleted);
+            console.log('👋 Left conversation');
+          }
+        };
+      } catch (err) {
+        console.error('Socket setup error:', err);
+      }
     }
+
+    load();
+    setupSocket();
 
     return () => {
       mounted = false;
@@ -137,9 +147,9 @@ export default function RecruiterConversationPage() {
 
     try {
       await sendChatMessage(conversationId, messageContent);
-      console.log('📤 Message sent, waiting for socket event...');
+      console.log('📤 Message sent successfully');
     } catch (err: any) {
-      console.error("Send failed:", err);
+      console.error("❌ Send failed:", err);
       setInput(messageContent);
       alert(err?.message || 'Failed to send message');
     } finally {
@@ -193,7 +203,6 @@ export default function RecruiterConversationPage() {
 
   return (
     <div className="flex h-screen flex-col bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
       <div className="bg-white border-b shadow-sm px-6 py-4">
         <div className="flex items-center gap-3">
           <button
@@ -204,14 +213,15 @@ export default function RecruiterConversationPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div>
+          <div className="flex-1">
             <h2 className="font-semibold text-gray-900">Conversation</h2>
-            <p className="text-xs text-gray-500">{messages.length} messages</p>
+            <p className="text-xs text-gray-500">
+              {messages.length} messages {socketReady && '• Connected'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -256,7 +266,6 @@ export default function RecruiterConversationPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="bg-white border-t shadow-lg p-4">
         <div className="flex gap-3 max-w-4xl mx-auto">
           <input
@@ -284,17 +293,7 @@ export default function RecruiterConversationPage() {
             onClick={handleSend}
             disabled={sending || !input.trim()}
           >
-            {sending ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Sending
-              </span>
-            ) : (
-              "Send"
-            )}
+            {sending ? "Sending..." : "Send"}
           </button>
         </div>
         <div className="text-xs text-gray-500 text-center mt-2">

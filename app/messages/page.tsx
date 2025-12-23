@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchChatConversations } from "@/stores/api/chat-api";
+import { useRouter } from "next/navigation";
+import { fetchChatConversations, createOrGetChatConversation } from "@/stores/api/chat-api";
 import { initRecruiterChatSocket } from "@/lib/chatSocket";
+import { useAuthStore } from "@/stores/authStore";
 
 interface Conversation {
   id: string;
@@ -20,29 +22,46 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const router = useRouter();
+  const { recruiterProfile, loadRecruiterProfile } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // New chat form state
+  const [candidateId, setCandidateId] = useState('');
+  const [creatingChat, setCreatingChat] = useState(false);
 
   useEffect(() => {
-    try {
-      console.log('🔌 Recruiter MessagesPage: Initializing socket...');
-      const socket = initRecruiterChatSocket();
-      if (socket) {
-        console.log('✅ Socket initialized for real-time updates');
+    const init = async () => {
+      try {
+        const socket = await initRecruiterChatSocket();
+        if (socket) {
+          console.log('✅ Recruiter socket ready for chat');
+        } else {
+          console.warn('⚠️ Socket initialization failed');
+        }
+      } catch (err) {
+        console.error('❌ Socket init error:', err);
       }
-    } catch (e) {
-      console.warn('⚠️ Socket init skipped:', e);
-    }
+    };
+    init();
   }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadConversations() {
+    async function loadData() {
       try {
         setLoading(true);
         setError(null);
+        
+        // Load profile if not loaded
+        if (!recruiterProfile) {
+          await loadRecruiterProfile();
+        }
+        
+        // Load conversations
         const data = await fetchChatConversations();
         if (mounted) {
           setConversations(data || []);
@@ -59,12 +78,28 @@ export default function MessagesPage() {
       }
     }
 
-    loadConversations();
+    loadData();
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [recruiterProfile, loadRecruiterProfile]);
+
+  const handleStartChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!candidateId.trim()) return;
+
+    setCreatingChat(true);
+    try {
+      const conversation = await createOrGetChatConversation(candidateId.trim());
+      router.push(`/messages/${conversation.id}`);
+    } catch (err: any) {
+      console.error('Failed to create conversation:', err);
+      alert('Failed to start conversation. Please check the Candidate ID.');
+    } finally {
+      setCreatingChat(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -102,6 +137,46 @@ export default function MessagesPage() {
         <p className="text-sm text-gray-600 mt-1">
           {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
         </p>
+      </div>
+
+      {/* Display Current User ID */}
+      {recruiterProfile && (
+        <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <p className="text-sm text-gray-600">
+            <strong>Your Recruiter ID:</strong> 
+            <code className="ml-2 px-2 py-1 bg-white rounded text-xs font-mono select-all">
+              {recruiterProfile.id}
+            </code>
+            <button
+              onClick={() => navigator.clipboard.writeText(recruiterProfile.id)}
+              className="ml-2 text-xs text-green-600 hover:text-green-800"
+            >
+              📋 Copy
+            </button>
+          </p>
+        </div>
+      )}
+
+      {/* Start New Chat Section */}
+      <div className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200 p-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Start New Conversation</h2>
+        <form onSubmit={handleStartChat} className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Enter Candidate ID (e.g., c1d8e4fe-b346-41f1-9409-c7825cbc56b2)"
+            value={candidateId}
+            onChange={(e) => setCandidateId(e.target.value)}
+            className="flex-1 px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+          />
+          <button
+            type="submit"
+            disabled={creatingChat || !candidateId.trim()}
+            className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          >
+            {creatingChat ? 'Creating...' : 'Start Chat'}
+          </button>
+        </form>
+        <p className="text-xs text-gray-500 mt-2">💡 Paste a candidate ID to start chatting with them</p>
       </div>
 
       {conversations.length === 0 ? (

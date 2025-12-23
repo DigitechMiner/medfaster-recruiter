@@ -1,107 +1,104 @@
-// lib/chatSocket.ts (3001 - Recruiter) - PRODUCTION READY
 import { io, Socket } from 'socket.io-client';
 
 let recruiterSocket: Socket | null = null;
+let isInitializing = false;
 
-const getCookie = (name: string): string | null => {
-  // Only run in browser
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+
+export const initRecruiterChatSocket = async (): Promise<Socket | null> => {
+  if (recruiterSocket?.connected) {
+    console.log('Recruiter socket already connected');
+    return recruiterSocket;
+  }
+
+  if (isInitializing) {
+    console.log('Socket initialization in progress...');
     return null;
   }
-  
+
+  isInitializing = true;
+
   try {
-    const cookies = document.cookie.split('; ');
-    for (const cookie of cookies) {
-      const [key, value] = cookie.split('=');
-      if (key === name && value) {
-        return decodeURIComponent(value);
-      }
+    console.log('Fetching socket token...');
+    const res = await fetch('http://localhost:4000/api/v1/common/socket-token', {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!res.ok) {
+      console.warn('Failed to get socket token:', res.status);
+      isInitializing = false;
+      return null;
     }
-    return null;
+
+    const data = await res.json();
+    const token = data.token;
+
+    if (!token) {
+      console.warn('No token in response');
+      isInitializing = false;
+      return null;
+    }
+
+    console.log('Initializing recruiter socket...');
+    recruiterSocket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      auth: {
+        token,
+        userType: 'recruiter',
+      },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    recruiterSocket.on('connect', () => {
+      console.log('✅ Recruiter socket connected:', recruiterSocket?.id);
+    });
+
+    recruiterSocket.on('connect_error', (err) => {
+      console.error('❌ Recruiter socket error:', err.message);
+    });
+
+    recruiterSocket.on('disconnect', (reason) => {
+      console.log('🔌 Recruiter socket disconnected:', reason);
+    });
+
+    // Wait for connection
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Socket connection timeout'));
+      }, 5000);
+
+      recruiterSocket?.once('connect', () => {
+        clearTimeout(timeout);
+        resolve(true);
+      });
+
+      recruiterSocket?.once('connect_error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+
+    isInitializing = false;
+    return recruiterSocket;
   } catch (error) {
-    console.error('Error reading cookie:', error);
+    console.error('Error initializing recruiter socket:', error);
+    isInitializing = false;
+    recruiterSocket = null;
     return null;
   }
-};
-
-const getSocketUrl = (): string => {
-  return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
 };
 
 export const getRecruiterChatSocket = (): Socket | null => {
-  // Only run in browser
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  if (recruiterSocket?.connected) {
-    console.log('✅ Returning existing connected socket');
-    return recruiterSocket;
-  }
-  
-  const recruiterToken = getCookie('recruiter_token');
-  
-  if (!recruiterToken) {
-    console.warn('⚠️ No recruiter_token found');
-    console.log('🔍 Available cookies:', document.cookie.split('; ').map(c => c.split('=')[0]).join(', '));
-    return null;
-  }
-  
-  console.log('✅ Found recruiter_token, length:', recruiterToken.length);
-  
-  recruiterSocket = io(getSocketUrl(), {
-    auth: {
-      token: recruiterToken,
-      userType: 'recruiter' as const
-    },
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    timeout: 20000,
-  });
-  
-  console.log('🔌 Recruiter socket connecting to:', getSocketUrl());
-  
-  recruiterSocket.on('connect', () => {
-    console.log('✅ Recruiter socket connected (ID:', recruiterSocket?.id, ')');
-  });
-  
-  recruiterSocket.on('disconnect', (reason) => {
-    console.log('🔌 Recruiter socket disconnected:', reason);
-  });
-  
-  recruiterSocket.on('connect_error', (err) => {
-    console.error('❌ Recruiter socket connect_error:', err.message);
-  });
-
-  recruiterSocket.on('error', (error) => {
-    console.error('❌ Socket error event:', error);
-  });
-
-  recruiterSocket.on('joined_conversation', (data) => {
-    console.log('✅ Successfully joined conversation:', data.conversationId);
-  });
-  
   return recruiterSocket;
-};
-
-export const initRecruiterChatSocket = (): Socket | null => {
-  // Only run in browser
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const s = getRecruiterChatSocket();
-  if (!s) console.warn('⚠️ Socket unavailable - check if logged in');
-  return s;
 };
 
 export const disconnectRecruiterSocket = () => {
   if (recruiterSocket) {
     recruiterSocket.disconnect();
     recruiterSocket = null;
-    console.log('🔌 Socket disconnected and cleared');
   }
 };
