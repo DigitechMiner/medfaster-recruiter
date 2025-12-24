@@ -5,9 +5,9 @@ let isInitializing = false;
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
 
-export const initRecruiterChatSocket = async (): Promise<Socket | null> => {
+export const initRecruiterChatSocket = (): Socket | null => {
   if (recruiterSocket?.connected) {
-    console.log('Recruiter socket already connected');
+    console.log('✅ Recruiter socket already connected');
     return recruiterSocket;
   }
 
@@ -19,34 +19,12 @@ export const initRecruiterChatSocket = async (): Promise<Socket | null> => {
   isInitializing = true;
 
   try {
-    console.log('Fetching socket token...');
-    const res = await fetch('http://localhost:4000/api/v1/common/socket-token', {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!res.ok) {
-      console.warn('Failed to get socket token:', res.status);
-      isInitializing = false;
-      return null;
-    }
-
-    const data = await res.json();
-    const token = data.token;
-
-    if (!token) {
-      console.warn('No token in response');
-      isInitializing = false;
-      return null;
-    }
-
-    console.log('Initializing recruiter socket...');
+    console.log('🔌 Initializing recruiter socket with cookie auth...');
     recruiterSocket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
-      withCredentials: true,
+      withCredentials: true, // ✅ Sends recruiter_token cookie
       auth: {
-        token,
-        userType: 'recruiter',
+        userType: 'recruiter', // ✅ Backend reads cookie directly
       },
       reconnection: true,
       reconnectionAttempts: 5,
@@ -55,34 +33,18 @@ export const initRecruiterChatSocket = async (): Promise<Socket | null> => {
 
     recruiterSocket.on('connect', () => {
       console.log('✅ Recruiter socket connected:', recruiterSocket?.id);
+      isInitializing = false;
     });
 
     recruiterSocket.on('connect_error', (err) => {
       console.error('❌ Recruiter socket error:', err.message);
+      isInitializing = false;
     });
 
     recruiterSocket.on('disconnect', (reason) => {
       console.log('🔌 Recruiter socket disconnected:', reason);
     });
 
-    // Wait for connection
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Socket connection timeout'));
-      }, 5000);
-
-      recruiterSocket?.once('connect', () => {
-        clearTimeout(timeout);
-        resolve(true);
-      });
-
-      recruiterSocket?.once('connect_error', (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
-    });
-
-    isInitializing = false;
     return recruiterSocket;
   } catch (error) {
     console.error('Error initializing recruiter socket:', error);
@@ -92,9 +54,7 @@ export const initRecruiterChatSocket = async (): Promise<Socket | null> => {
   }
 };
 
-export const getRecruiterChatSocket = (): Socket | null => {
-  return recruiterSocket;
-};
+export const getRecruiterChatSocket = (): Socket | null => recruiterSocket;
 
 export const disconnectRecruiterSocket = () => {
   if (recruiterSocket) {
