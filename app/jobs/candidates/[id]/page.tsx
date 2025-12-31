@@ -54,7 +54,9 @@ export default function CandidateDetailPage() {
         candidate={candidate.job}
         status={candidate.status}
         onBack={handleBack}
+        candidateId={candidateId}
       />
     </AppLayout>
   );
 }
+

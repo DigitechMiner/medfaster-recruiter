@@ -20,4 +20,9 @@ export const ENDPOINTS = {
     `/chat/conversation/${conversationId}/messages`,
   CHAT_SEND_MESSAGE: '/chat/message',
   CHAT_CREATE_OR_GET: '/chat/conversation',
+
+   // Interview Requests
+  RECRUITER_INTERVIEW_REQUESTS: '/recruiter/interview-requests',
+  RECRUITER_INTERVIEW_REQUEST_CANCEL: (id: string) =>
+    `/recruiter/interview-requests/${id}/cancel`,
 } as const;

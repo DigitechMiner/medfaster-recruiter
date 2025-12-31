@@ -19,6 +19,7 @@ export interface JobBackendResponse {
   status: 'draft' | 'published' | 'closed' | 'archived';
   createdAt: string;
   updatedAt: string;
+  application_count?: number;
 }
 
 export interface JobCreatePayload {
@@ -55,6 +56,7 @@ export interface JobsListResponse {
       qualifications: string[] | null;
       created_at: string;
       updated_at: string;
+      application_count: number;
     }>;
     pagination: {
       total: number;

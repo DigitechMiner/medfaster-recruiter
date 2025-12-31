@@ -26,7 +26,7 @@ export default function CountryCodeSelector({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = (countryList as Country[]).find((c) => c.dial_code === value) || 
-    (countryList as Country[]).find((c) => c.code === 'US') || 
+    (countryList as Country[]).find((c) => c.code === 'CA') || 
     (countryList as Country[])[0];
 
   useEffect(() => {

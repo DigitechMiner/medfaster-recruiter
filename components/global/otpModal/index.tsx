@@ -142,6 +142,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   ) : (
     <OtpVerificationForm
       contactValue={contactValue}
+      countryCode={countryCode}
       otp={otp}
       otpSending={otpSending}
       otpError={otpError}

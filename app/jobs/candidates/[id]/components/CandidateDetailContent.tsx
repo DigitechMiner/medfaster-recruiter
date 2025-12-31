@@ -11,17 +11,21 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { CANDIDATE_DETAIL_BUTTON_CONFIGS } from "../../../constants/ui";
 import ScoreCard from "@/components/card/scorecard";
 import { Button } from "@/components/ui/button";
+import { createRecruiterInterviewRequest } from "@/app/jobs/services/interviewApi";
+ // adjust path if needed
 
 interface CandidateDetailContentProps {
   candidate: Job;
   status: StatusType;
   onBack: () => void;
+  candidateId: string; // ✅ we pass this from page.tsx
 }
 
 export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   candidate,
   status,
   onBack,
+  candidateId,
 }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -50,9 +54,33 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     setScheduledDate("");
   };
 
+  // ✅ NEW: Send interview request API call
+  const handleSendInterviewRequest = async () => {
+    try {
+      // TODO: replace this with real job_application_id when you have it
+      const tempJobApplicationId = "00000000-0000-0000-0000-000000000001";
+
+      const interviewRequest = await createRecruiterInterviewRequest({
+        candidate_id: candidateId,
+        job_application_id: tempJobApplicationId,
+        message:
+          "You have been shortlisted for an interview. Please book a suitable slot.",
+        valid_until: new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        ).toISOString(),
+      });
+
+      console.log("Interview request created:", interviewRequest);
+      alert("Interview request sent to candidate!");
+    } catch (error: any) {
+      console.error("Failed to send interview request:", error);
+      alert(error?.message || "Failed to send interview request");
+    }
+  };
+
   return (
     <>
-      {/* Breadcrumb - Responsive */}
+      {/* Breadcrumb + Actions */}
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Button
@@ -71,6 +99,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
             </span>
           </div>
         </div>
+
         <div className="flex flex-wrap gap-2 sm:gap-3">
           {config.map((btn, i) => (
             <button
@@ -81,17 +110,30 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               {btn.label}
             </button>
           ))}
+
+          {/* ✅ NEW: Send Interview Request button */}
+          <Button
+            onClick={handleSendInterviewRequest}
+            className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          >
+            📅 Send Interview Request
+          </Button>
         </div>
       </div>
 
-      {/* Main Content - Responsive */}
+      {/* Main Content */}
       <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg gap-4">
         {/* ===== HERO CARD ===== */}
-        <CandidateHero candidate={candidate} appliedTime="Applied 2 hours Ago" />
+        <CandidateHero
+          candidate={candidate}
+          appliedTime="Applied 2 hours Ago"
+        />
 
         {/* ===== AWARDS ===== */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Awards</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
+            Awards
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {[1, 2].map((i) => (
               <div key={i} className="border border-gray-200 rounded p-4">
@@ -132,7 +174,9 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         {/* ===== EXPERIENCE ===== */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Experience</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+              Experience
+            </h2>
             <span className="text-orange-600 text-xs sm:text-sm font-semibold">
               5+ Years
             </span>
@@ -188,7 +232,9 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                     <p className="text-xs sm:text-sm text-gray-600 mb-1">
                       Master degree · MD
                     </p>
-                    <p className="text-xs text-gray-500">Jan 2025 - Dec 2023</p>
+                    <p className="text-xs text-gray-500">
+                      Jan 2025 - Dec 2023
+                    </p>
                   </div>
                 </div>
               </div>
@@ -205,7 +251,9 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
             {["Resume", "License", "Medical", "Certificate"].map((doc, i) => (
               <div key={i}>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-gray-900 text-xs sm:text-sm">{doc}</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm">
+                    {doc}
+                  </p>
                   <a
                     href="#"
                     className="text-orange-600 text-xs font-semibold hover:underline"
@@ -230,7 +278,11 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Conversational Round
               </h3>
-              <ScoreCard category="Conversational Round" score={80} maxScore={100} />
+              <ScoreCard
+                category="Conversational Round"
+                score={80}
+                maxScore={100}
+              />
             </div>
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
@@ -269,7 +321,11 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Behavioral Round
               </h3>
-              <ScoreCard category="Behavioral Round" score={40} maxScore={100} />
+              <ScoreCard
+                category="Behavioral Round"
+                score={40}
+                maxScore={100}
+              />
             </div>
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
@@ -311,7 +367,11 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Communication analysis
               </h3>
-              <ScoreCard category="Communication analysis" score={58} maxScore={100} />
+              <ScoreCard
+                category="Communication analysis"
+                score={58}
+                maxScore={100}
+              />
             </div>
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[
@@ -350,7 +410,11 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
               <h3 className="text-sm sm:text-base font-semibold text-gray-900">
                 Accuracy of answers
               </h3>
-              <ScoreCard category="Accuracy of answers" score={88} maxScore={100} />
+            <ScoreCard
+              category="Accuracy of answers"
+              score={88}
+              maxScore={100}
+            />
             </div>
             <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
               {[

@@ -16,6 +16,7 @@ interface JobListingCardProps {
     qualifications: string[] | null;
     created_at: string;
     updated_at: string;
+    application_count?: number;
   };
 }
 
@@ -65,7 +66,7 @@ export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => {
           </div>
           <div className="flex items-center gap-1">
             <Image src="/svg/People.svg" alt="people" width={16} height={16} />
-            <span>0 applied</span>
+            <span>{job.application_count || 0} applied</span>
           </div>
         </div>
       </div>

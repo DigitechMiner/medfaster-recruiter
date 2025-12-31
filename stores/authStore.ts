@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { axiosInstance } from '@/stores/api/api-client';
 import { ENDPOINTS } from '@/stores/api/api-endpoints';
+import { formatPhoneToE164 } from '@/utils/phone';  // ✅ ADDED E.164 import
 
 interface OtpCredential {
   target: string;
@@ -34,7 +35,6 @@ interface AuthState {
   otpCredential: OtpCredential | null;
   otpSending: boolean;
   otpError: string | null;
-  // Optional recruiter profile data
   recruiterProfile: RecruiterProfile | null;
   recruiterDocuments: RecruiterDocument[] | null;
 }
@@ -72,27 +72,39 @@ export const useAuthStore = create<AuthStore>()(
         set({ otpSending: true, otpError: null });
 
         try {
-          // Detect target type if not provided
+          // ✅ Auto-detect type if not provided
           let targetType: 'email' | 'phone' = params.targetType || 'email';
           if (!params.targetType) {
             targetType = params.target.includes('@') ? 'email' : 'phone';
           }
 
-          // Build payload
+          // ✅ CRITICAL: Format phone to E.164 (Canada/India)
+          let target = params.target;
+          let countryCode = params.countryCode || '1';
+          
+          if (targetType === 'phone') {
+            const e164Phone = formatPhoneToE164(target, countryCode);
+            console.log('📱 formatPhoneToE164:', { target, countryCode, e164Phone });
+            if (e164Phone.startsWith('+')) {
+              target = e164Phone; // +919686009317 ✅
+            }
+          }
+
+          // ✅ Backend-compatible payload
           const payload: {
             email?: string;
             phone?: string;
             country_code?: string;
           } = {};
 
-          if (targetType === 'email' || params.target.includes('@')) {
+          if (targetType === 'email') {
             payload.email = params.target;
           } else {
-            payload.phone = params.target;
-            if (params.countryCode) {
-              payload.country_code = params.countryCode.replace('+', '');
-            }
+            payload.phone = target;                    // E.164 format ✅
+            payload.country_code = countryCode.replace(/[^\d]/g, ''); // "91" ✅
           }
+
+          console.log('📤 sendOtp payload:', payload);
 
           const res = await axiosInstance.post<{
             success: boolean;
@@ -105,19 +117,19 @@ export const useAuthStore = create<AuthStore>()(
             return { ok: false, message: msg };
           }
 
-          // Store credential for verification
+          // ✅ Store RAW input for display + countryCode for formatting
           set({
             otpCredential: {
-              target: params.target,
+              target: params.target,        // 9686009317 (display)
               targetType,
-              countryCode: params.countryCode,
+              countryCode,                  // +91 (formatting)
             },
           });
 
           return { ok: true, message: res.data.message || 'OTP sent successfully' };
-        } catch (error) {
-          const err = error as Error;
-          const msg = err.message || 'Failed to send OTP';
+        } catch (error: any) {
+          console.error('sendOtp error:', error.response?.data);
+          const msg = error.response?.data?.message || 'Failed to send OTP';
           set({ otpError: msg });
           return { ok: false, message: msg };
         } finally {
@@ -133,36 +145,40 @@ export const useAuthStore = create<AuthStore>()(
         }
 
         try {
-          // Build payload
+          // ✅ Re-format E.164 for verification (same logic)
+          let target = otpCredential.target;
+          let countryCode = otpCredential.countryCode || '1';
+          
+          if (otpCredential.targetType === 'phone') {
+            const e164Phone = formatPhoneToE164(target, countryCode);
+            if (e164Phone.startsWith('+')) {
+              target = e164Phone; // +919686009317 ✅
+            }
+          }
+
+          // ✅ Backend-compatible payload
           const payload: {
             email?: string;
             phone?: string;
             country_code?: string;
             otp: string;
-          } = {
-            otp,
-          };
+          } = { otp };
 
           if (otpCredential.targetType === 'email' || otpCredential.target.includes('@')) {
             payload.email = otpCredential.target;
           } else {
-            payload.phone = otpCredential.target;
-            if (otpCredential.countryCode) {
-              payload.country_code = otpCredential.countryCode.replace('+', '');
-            }
+            payload.phone = target;                      // E.164 ✅
+            payload.country_code = countryCode.replace(/[^\d]/g, ''); // "91"
           }
+
+          console.log('🔐 verifyOtp payload:', payload);
 
           const res = await axiosInstance.post<{
             success: boolean;
             message: string;
             data?: {
               token: string;
-              user?: {
-                id: string;
-                email?: string;
-                phone?: string;
-                [key: string]: unknown;
-              };
+              user?: any;
             };
           }>(ENDPOINTS.RECRUITER_VALIDATE_OTP, payload);
 
@@ -171,19 +187,15 @@ export const useAuthStore = create<AuthStore>()(
             return { ok: false, message: msg };
           }
 
-          // Note: Cookies are automatically set by the backend via Set-Cookie headers
-          // The axios instance is configured with withCredentials: true to handle cookies
-          // The browser will automatically store and send these cookies with subsequent requests
-
-          // Optionally load recruiter profile
+          // Cookies set automatically by backend
           if (loadProfile) {
             await get().loadRecruiterProfile();
           }
 
           return { ok: true, message: res.data.message || 'Login successful' };
-        } catch (error) {
-          const err = error as Error;
-          const msg = err.message || 'Invalid OTP';
+        } catch (error: any) {
+          console.error('verifyOtp error:', error.response?.data);
+          const msg = error.response?.data?.message || 'Invalid OTP';
           return { ok: false, message: msg };
         }
       },
@@ -200,7 +212,6 @@ export const useAuthStore = create<AuthStore>()(
           }>(ENDPOINTS.RECRUITER_PROFILE);
 
           if (!res.data?.success || !res.data?.data) {
-            // Clear profile if API call failed (user not authenticated)
             set({
               recruiterProfile: null,
               recruiterDocuments: null,
@@ -212,28 +223,21 @@ export const useAuthStore = create<AuthStore>()(
             recruiterProfile: res.data.data.profile,
             recruiterDocuments: res.data.data.documents,
           });
-        } catch (error) {
-          // Clear profile on error (user not authenticated or session expired)
+        } catch (error: any) {
           set({
             recruiterProfile: null,
             recruiterDocuments: null,
           });
-          console.log('Failed to load recruiter profile:', error);
+          console.log('Failed to load recruiter profile:', error.response?.data || error);
         }
       },
 
       logout: async () => {
         try {
-          // Call logout API to clear cookies on backend
-          await axiosInstance.post<{
-            success: boolean;
-            message: string;
-          }>(ENDPOINTS.RECRUITER_LOGOUT);
+          await axiosInstance.post(ENDPOINTS.RECRUITER_LOGOUT);
         } catch (error) {
-          // Even if API call fails, clear local state
           console.error('Logout API error:', error);
         } finally {
-          // Clear all auth state regardless of API call result
           set({ ...initialState });
         }
       },

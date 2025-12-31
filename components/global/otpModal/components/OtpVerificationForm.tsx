@@ -7,6 +7,7 @@ import { OTP_RESEND_TIMER_SECONDS } from "@/utils/otp";
 
 interface OtpVerificationFormProps {
   contactValue: string;
+  countryCode?: string;        // ✅ ADDED
   otp: string[];
   otpSending: boolean;
   otpError: string | null;
@@ -18,6 +19,7 @@ interface OtpVerificationFormProps {
 
 export default function OtpVerificationForm({
   contactValue,
+  countryCode = '+1',          // ✅ Default Canada
   otp,
   otpSending,
   otpError,
@@ -27,18 +29,21 @@ export default function OtpVerificationForm({
   onResendOTP,
 }: OtpVerificationFormProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [resendTimer, setResendTimer] = useState(0); // Timer in seconds
+  const [resendTimer, setResendTimer] = useState(0);
 
-  // Auto-focus first input when component mounts
+  // ✅ FIXED: Format display with country code
+  const displayContact = contactValue.includes("@") 
+    ? contactValue 
+    : `${countryCode} ${contactValue}`;  // +1 4165551234
+
+  // ... ALL YOUR EXISTING LOGIC UNCHANGED ...
   useEffect(() => {
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
-    // Start the timer when component mounts
     setResendTimer(OTP_RESEND_TIMER_SECONDS);
   }, []);
 
-  // Timer countdown effect
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => {
@@ -48,7 +53,6 @@ export default function OtpVerificationForm({
     }
   }, [resendTimer]);
 
-  // Auto-focus first empty input when OTP is reset
   useEffect(() => {
     const firstEmptyIndex = otp.findIndex((digit) => !digit);
     if (firstEmptyIndex !== -1 && inputRefs.current[firstEmptyIndex]) {
@@ -57,7 +61,6 @@ export default function OtpVerificationForm({
   }, [otp]);
 
   const handleInputChange = (index: number, value: string) => {
-    // Handle paste event - extract digits from pasted content
     if (value.length > 1) {
       const digits = value.replace(/\D/g, "").slice(0, 4);
       digits.split("").forEach((digit, i) => {
@@ -65,7 +68,6 @@ export default function OtpVerificationForm({
           onOtpChange(index + i, digit);
         }
       });
-      // Focus the next empty input or the last input
       const nextIndex = Math.min(index + digits.length, 3);
       setTimeout(() => {
         inputRefs.current[nextIndex]?.focus();
@@ -73,12 +75,10 @@ export default function OtpVerificationForm({
       return;
     }
 
-    // Single digit input
     if (!/^\d*$/.test(value)) return;
 
     onOtpChange(index, value);
 
-    // Auto-focus next input if a digit was entered
     if (value && index < 3) {
       setTimeout(() => {
         inputRefs.current[index + 1]?.focus();
@@ -86,27 +86,20 @@ export default function OtpVerificationForm({
     }
   };
 
-  const handleKeyDown = (
-    index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    // Handle backspace
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace") {
       if (!otp[index] && index > 0) {
-        // If current input is empty, focus previous and clear it
         onOtpChange(index - 1, "");
         setTimeout(() => {
           inputRefs.current[index - 1]?.focus();
         }, 0);
       } else if (otp[index]) {
-        // If current input has value, clear it
         onOtpChange(index, "");
       }
       e.preventDefault();
       return;
     }
 
-    // Handle arrow keys
     if (e.key === "ArrowLeft" && index > 0) {
       e.preventDefault();
       inputRefs.current[index - 1]?.focus();
@@ -119,13 +112,11 @@ export default function OtpVerificationForm({
       return;
     }
 
-    // Handle delete key
     if (e.key === "Delete" && otp[index]) {
       onOtpChange(index, "");
       return;
     }
 
-    // Call parent handler for other keys
     onOtpKeyDown(index, e);
   };
 
@@ -144,7 +135,6 @@ export default function OtpVerificationForm({
         }
       });
 
-      // Focus the next empty input or the last input
       const nextIndex = Math.min(startIndex + digits.length, 3);
       setTimeout(() => {
         inputRefs.current[nextIndex]?.focus();
@@ -167,7 +157,6 @@ export default function OtpVerificationForm({
 
   return (
     <>
-      {/* OTP Verification Screen */}
       <div className="flex justify-center mb-6">
         <div className="w-16 h-16 bg-[#FFF4ED] rounded-full flex items-center justify-center">
           <Mail className="w-8 h-8 text-[#F4781B]" />
@@ -177,13 +166,14 @@ export default function OtpVerificationForm({
       <h2 className="text-2xl font-bold text-[#252B37] mb-2 text-center">
         Check your {contactValue.includes("@") ? "email" : "phone"}
       </h2>
+      
+      {/* ✅ FIXED: Shows +1 4165551234 */}
       <p className="text-[#717680] text-sm mb-6 text-center">
         We sent a verification OTP to
         <br />
-        <span className="font-medium text-[#252B37]">{contactValue}</span>
+        <span className="font-medium text-[#252B37] break-all">{displayContact}</span>
       </p>
 
-      {/* OTP Input */}
       <form onSubmit={onVerifyOTP} className="space-y-6">
         <div className="flex gap-3 justify-center">
           {otp.map((digit, index) => (
@@ -206,7 +196,6 @@ export default function OtpVerificationForm({
           ))}
         </div>
 
-        {/* Error Message */}
         {otpError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
             {otpError}
@@ -229,9 +218,8 @@ export default function OtpVerificationForm({
         </CustomButton>
       </form>
 
-      {/* Resend OTP */}
       <p className="mt-4 text-center text-sm text-[#717680]">
-        Didn&apos;t receive the code?{" "}
+        Didn't receive the code?{" "}
         <button
           type="button"
           onClick={handleResendClick}
@@ -241,7 +229,6 @@ export default function OtpVerificationForm({
           {resendTimer > 0 ? `Resend in ${formatTimer(resendTimer)}` : "Click to resend"}
         </button>
       </p>
-
     </>
   );
 }
