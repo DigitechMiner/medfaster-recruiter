@@ -55,28 +55,34 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   };
 
   // ✅ NEW: Send interview request API call
-  const handleSendInterviewRequest = async () => {
-    try {
-      // TODO: replace this with real job_application_id when you have it
-      const tempJobApplicationId = "00000000-0000-0000-0000-000000000001";
-
-      const interviewRequest = await createRecruiterInterviewRequest({
-        candidate_id: candidateId,
-        job_application_id: tempJobApplicationId,
-        message:
-          "You have been shortlisted for an interview. Please book a suitable slot.",
-        valid_until: new Date(
-          Date.now() + 7 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-      });
-
-      console.log("Interview request created:", interviewRequest);
-      alert("Interview request sent to candidate!");
-    } catch (error: any) {
-      console.error("Failed to send interview request:", error);
-      alert(error?.message || "Failed to send interview request");
+ const handleSendInterviewRequest = async () => {
+  try {
+    // ✅ Debug: Log exact values
+    console.log('candidateId received:', candidateId, typeof candidateId, 'Valid UUID?', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId));
+    
+    if (!candidateId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId)) {
+      alert('Invalid candidate ID - check console');
+      return;
     }
-  };
+
+    // ✅ TODO: Get real job_application_id from route params or context
+    const jobApplicationId = "real-job-app-id-here"; // From useParams() or applicant data
+
+    const interviewRequest = await createRecruiterInterviewRequest({
+      candidate_id: candidateId,  // ✅ This is correct
+      job_application_id: jobApplicationId,
+      message: "You have been shortlisted for an interview. Please book a suitable slot.",
+      valid_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    console.log("Interview request created:", interviewRequest);
+    alert("Interview request sent to candidate!");
+  } catch (error: any) {
+    console.error("Failed to send interview request:", error);
+    alert(error?.response?.data?.message || error?.message || "Failed to send interview request");
+  }
+};
+
 
   return (
     <>

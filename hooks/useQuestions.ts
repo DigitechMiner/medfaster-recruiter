@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Topic } from '../constants/form';
+import { Topic } from '@/app/jobs/constants/form';
 
 export function useQuestions(initialTopics: Topic[]) {
   const [topics, setTopics] = useState<Topic[]>(initialTopics);

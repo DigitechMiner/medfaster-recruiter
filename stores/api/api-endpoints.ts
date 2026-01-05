@@ -14,6 +14,8 @@ export const ENDPOINTS = {
   JOBS_UPDATE: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DELETE: (id: string) => `/recruiter/jobs/${id}`,
 
+// AI Job Description
+  GENERATE_JOB_DESCRIPTION: '/recruiter/jobs/generate-description',
   // Chat
   CHAT_CONVERSATIONS: '/chat/conversations',
   CHAT_CONVERSATION_MESSAGES: (conversationId: string) =>

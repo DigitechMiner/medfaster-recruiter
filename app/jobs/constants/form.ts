@@ -34,8 +34,45 @@ export interface Topic {
 }
 
 export const DEFAULT_TOPICS: Topic[] = [
-  // ... same as before
+  {
+    id: "1",
+    title: "Questions Topic 1",
+    questions: [
+      { id: "1-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "1-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "1-3", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "1-4", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+    ],
+  },
+  {
+    id: "2",
+    title: "Questions Topic 2",
+    questions: [
+      { id: "2-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "2-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "2-3", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+    ],
+  },
+  {
+    id: "3",
+    title: "Questions Topic 3",
+    questions: [
+      { id: "3-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "3-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "3-3", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "3-4", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+    ],
+  },
+  {
+    id: "4",
+    title: "Questions Topic 4",
+    questions: [
+      { id: "4-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
+      { id: "4-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo" },
+    ],
+  },
 ];
+
 
 // ============ LAYOUT MODES ============
 export type LayoutMode = "kanban" | "table";
