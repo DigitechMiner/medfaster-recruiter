@@ -135,6 +135,7 @@ export interface Job {
   score: number;
   specialization: string[];
   currentCompany?: string;
+  candidateId?: string;
 }
 
 export type StatusType = 'applied' | 'shortlisted' | 'interviewing' | 'hired';

@@ -23,6 +23,12 @@ export const ENDPOINTS = {
   CHAT_SEND_MESSAGE: '/chat/message',
   CHAT_CREATE_OR_GET: '/chat/conversation',
 
+ // JOB applications
+  JOB_APPLICATIONS: '/recruiter/job-applications',
+  CANDIDATE_DETAILS: (id: string) => `/recruiter/candidates/${id}`,
+  INTERVIEW_REQUESTS: '/recruiter/interview-requests',
+  INTERVIEW_REQUEST_CANCEL: (id: string) => `/recruiter/interview-requests/${id}/cancel`,
+
    // Interview Requests
   RECRUITER_INTERVIEW_REQUESTS: '/recruiter/interview-requests',
   RECRUITER_INTERVIEW_REQUEST_CANCEL: (id: string) =>

@@ -8,14 +8,15 @@ import { CalendarCard } from "@/components/card/calendar-card";
 import SuccessModal from "@/components/modal";
 import { Job, StatusType } from "@/Interface/job.types";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { CANDIDATE_DETAIL_BUTTON_CONFIGS } from "../../../constants/ui";
+import { CANDIDATE_DETAIL_BUTTON_CONFIGS } from '@/app/jobs/constants/ui'
 import ScoreCard from "@/components/card/scorecard";
 import { Button } from "@/components/ui/button";
 import { createRecruiterInterviewRequest } from "@/app/jobs/services/interviewApi";
+import { CandidateDetailsResponse } from "@/stores/api/recruiter-job-api";
  // adjust path if needed
 
 interface CandidateDetailContentProps {
-  candidate: Job;
+  candidate: CandidateDetailsResponse;
   status: StatusType;
   onBack: () => void;
   candidateId: string; // ✅ we pass this from page.tsx
@@ -101,7 +102,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
             <span className="text-gray-600">Jobs</span>
             <ChevronRight className="w-4 h-4 text-gray-400" />
             <span className="text-orange-500 font-semibold truncate max-w-[150px] sm:max-w-none">
-              {candidate.doctorName}
+              {candidate.first_name}
             </span>
           </div>
         </div>

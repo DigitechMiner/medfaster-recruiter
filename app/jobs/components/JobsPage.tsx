@@ -1,20 +1,15 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
-import {
-  StatusSection,
-  StatusTable,
-} from "./ui";
+import { StatusSection, StatusTable } from "./ui";
 import { Job, StatusType } from "@/Interface/job.types";
-import {
-  STATUS_SECTIONS,
-} from "../constants/jobs";
+import { STATUS_SECTIONS } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { BUTTON_LABELS } from "../constants/messages";
-import { useJobs } from "@/hooks/useJobData";
+import { useJobs, useJobApplications } from "@/hooks/useJobData"; // ✅ Import hook
 
 interface CandidatesData {
   applied: Job[];
@@ -29,68 +24,58 @@ const JobsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const { jobs, isLoading: isLoadingJobs } = useJobs();
   
-  // ✅ Real API candidates data
-  const [candidatesData, setCandidatesData] = useState<CandidatesData>({
-    applied: [],
-    shortlisted: [],
-    interviewing: [],
-    hired: [],
-  });
-  const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
+  // ✅ FETCH REAL APPLICATIONS FROM API HOOK
+  const { applications: applicationsData, isLoading: isLoadingApps } = useJobApplications();
 
-  // ✅ Generate candidates from REAL job applications
-  useEffect(() => {
-    if (!jobs?.length) {
-      setIsLoadingCandidates(false);
-      return;
+  // ✅ Transform REAL API data to Job format
+  const candidatesData = useMemo<CandidatesData>(() => {
+    if (!applicationsData?.applications) {
+      return { applied: [], shortlisted: [], interviewing: [], hired: [] };
     }
 
-    console.log('📊 Real jobs loaded:', jobs.length);
-    
-    const realCandidates: Job[] = [];
-    
-    jobs.forEach((job: any, jobIndex: number) => {
-      const appCount = job.application_count || 0;
-      
-      for (let i = 0; i < appCount; i++) {
-        realCandidates.push({
-          id: jobIndex * 100 + i + 1, // Unique ID for routing
-          doctorName: `Dr. ${job.job_title.split(' ')[0]} ${i + 1}`,
-          experience: parseInt(job.years_of_experience || '3'),
-          position: job.department || 'Healthcare Professional',
-          score: 75 + Math.floor(Math.random() * 25),
-          specialization: Array.isArray(job.specializations)
-            ? job.specializations.slice(0, 2)
-            : ['General Medicine'],
-          currentCompany: `${job.department || 'Health'} Network`,
-        });
-      }
-    });
+    const applied: Job[] = applicationsData.applications.map((app: any) => ({
+      id: app.id, // Application ID
+      candidateId: app.candidate_id, // ✅ REAL UUID from DB
+      doctorName: app.candidate?.full_name || 
+                  `${app.candidate?.first_name} ${app.candidate?.last_name}` || 
+                  'Unknown',
+      experience: app.candidate?.work_experiences?.[0]?.years || 3,
+      position: app.candidate?.work_experiences?.[0]?.title || 'Healthcare Professional',
+      score: app.score || Math.floor(Math.random() * 25) + 75,
+      specialization: app.candidate?.specialty ? [app.candidate.specialty] : ['General Medicine'],
+      currentCompany: app.candidate?.work_experiences?.[0]?.company || 'Health Network',
+    }));
 
-    console.log('✅ Generated', realCandidates.length, 'real candidates');
+    console.log('✅ Real applications loaded:', applied.length);
     
-    setCandidatesData({
-      applied: realCandidates,
+    // ✅ TODO: Filter by status
+    return {
+      applied: applied.filter((a: any) => applicationsData.applications.find((app: any) => app.id === a.id)?.status === 'PENDING'),
       shortlisted: [],
       interviewing: [],
-      hired: [],
-    });
-    setIsLoadingCandidates(false);
-  }, [jobs]);
+      hired: applied.filter((a: any) => applicationsData.applications.find((app: any) => app.id === a.id)?.status === 'ACCEPTED'),
+    };
+  }, [applicationsData]);
 
+  // ✅ FIXED: Use REAL candidate UUID
   const handleCandidateClick = (job: Job, _status: StatusType) => {
-    console.log('✅ Opening real candidate:', job.doctorName);
-    router.push(`jobs/candidates/${job.id}`); // ✅ Your working route!
+    console.log('✅ Opening candidate:', job.doctorName, 'UUID:', job.candidateId);
+    
+    if (!job.candidateId) {
+      console.error('❌ No candidate ID for:', job.doctorName);
+      return;
+    }
+    
+    // ✅ Use REAL UUID from API
+    router.push(`/candidates/${job.candidateId}`);
   };
 
   // Filter jobs based on search query
   const filteredJobs = useMemo(() => {
     if (!Array.isArray(jobs)) return [];
-    
     if (!searchQuery) return jobs.slice(0, 4);
 
     const q = searchQuery.toLowerCase();
-
     return jobs
       .filter((job: any) => {
         return (
@@ -101,8 +86,8 @@ const JobsPage: React.FC = () => {
       .slice(0, 4);
   }, [jobs, searchQuery]);
 
-  // ✅ Wait for both jobs AND candidates
-  if (isLoadingJobs || isLoadingCandidates) {
+  // ✅ Wait for both jobs AND applications
+  if (isLoadingJobs || isLoadingApps) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-gray-600">Loading jobs and applications...</p>
@@ -117,9 +102,7 @@ const JobsPage: React.FC = () => {
       <div>
         <div className="flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 w-full">
-            <h1 className="text-2xl sm:text-2xl font-bold text-gray-800">
-              Jobs
-            </h1>
+            <h1 className="text-2xl sm:text-2xl font-bold text-gray-800">Jobs</h1>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-3">
               <button
                 onClick={() => router.push("/jobs/all")}
@@ -179,12 +162,7 @@ const JobsPage: React.FC = () => {
               </div>
               <div className="flex gap-2 items-center">
                 <button className="px-3 py-2 hover:bg-gray-100 rounded text-sm font-medium whitespace-nowrap border border-gray-300 inline-flex items-center gap-2">
-                  <Image
-                    src="/svg/Filter.svg"
-                    alt="filter"
-                    width={16}
-                    height={16}
-                  />
+                  <Image src="/svg/Filter.svg" alt="filter" width={16} height={16} />
                   Filter
                 </button>
                 <div className="flex gap-2">
@@ -196,12 +174,7 @@ const JobsPage: React.FC = () => {
                         : "bg-white text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <Image
-                      src="/svg/Kanban.svg"
-                      alt="kanban"
-                      width={20}
-                      height={20}
-                    />
+                    <Image src="/svg/Kanban.svg" alt="kanban" width={20} height={20} />
                   </button>
                   <button
                     onClick={() => setLayoutMode("table")}
@@ -211,12 +184,7 @@ const JobsPage: React.FC = () => {
                         : "bg-white text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <Image
-                      src="/svg/Table.svg"
-                      alt="table"
-                      width={20}
-                      height={20}
-                    />
+                    <Image src="/svg/Table.svg" alt="table" width={20} height={20} />
                   </button>
                 </div>
               </div>
@@ -224,7 +192,7 @@ const JobsPage: React.FC = () => {
           </div>
 
           {/* Kanban/Table Views */}
-          {layoutMode === "kanban" && candidatesData && (
+          {layoutMode === "kanban" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
                 <StatusSection
@@ -239,7 +207,7 @@ const JobsPage: React.FC = () => {
               ))}
             </div>
           )}
-          {layoutMode === "table" && candidatesData && (
+          {layoutMode === "table" && (
             <div className="space-y-4">
               {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
                 <StatusTable
