@@ -1,3 +1,5 @@
+// lib/recruiter-interview-api.ts (or wherever this file is)
+
 import { apiRequest } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints"; 
 
@@ -45,7 +47,7 @@ export async function fetchRecruiterInterviewRequests(
   if (status) params.status = status;
 
   const res = await apiRequest<InterviewRequestsResponse>(
-    ENDPOINTS.RECRUITER_INTERVIEW_REQUESTS,
+    ENDPOINTS.INTERVIEW_REQUESTS, // ✅ CHANGED: Remove RECRUITER_ prefix
     { method: 'GET', params }
   );
 
@@ -61,7 +63,7 @@ export async function createRecruiterInterviewRequest(input: {
 }) {
   const res = await apiRequest<{
     data: { interviewRequest: InterviewRequest };
-  }>(ENDPOINTS.RECRUITER_INTERVIEW_REQUESTS, {
+  }>(ENDPOINTS.INTERVIEW_REQUESTS, { // ✅ CHANGED: Remove RECRUITER_ prefix
     method: 'POST',
     data: input,
   });
@@ -73,7 +75,7 @@ export async function createRecruiterInterviewRequest(input: {
 export async function cancelRecruiterInterviewRequest(id: string) {
   const res = await apiRequest<{
     data: { interviewRequest: InterviewRequest };
-  }>(ENDPOINTS.RECRUITER_INTERVIEW_REQUEST_CANCEL(id), {
+  }>(ENDPOINTS.INTERVIEW_REQUEST_CANCEL(id), { // ✅ CHANGED: Remove RECRUITER_ prefix
     method: 'PATCH',
   });
 

@@ -1,111 +1,67 @@
-// TODO: Replace this mock service with actual API calls when backend is ready
-// This service simulates API calls with a 500ms delay
+// services/job.service.ts
 
-import { TopJob, JobsData, Job, StatusType } from '@/Interface/job.types';
-import { jobsData } from '../data/jobs';
-import { candidatesData } from '../data/candidates';
-import { jobDetailsData, JobDetailsData } from '../data/job-details';
-import { JobFormData } from '../components/JobForm';
-
-// Mock delay function to simulate API call
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import {
+  getRecruiterJobs,
+  getRecruiterJob,
+  createRecruiterJob,
+  updateRecruiterJob,
+  deleteRecruiterJob,
+  getJobApplications,
+  getCandidateDetails,
+  type JobCreatePayload,
+  type JobUpdatePayload,
+} from '@/stores/api/recruiter-job-api';
 
 class JobService {
-  /**
-   * TODO: Replace with actual API call
-   * GET /api/jobs
-   */
-  static async getAllJobs(): Promise<TopJob[]> {
-    await delay(500);
-    return jobsData;
+  static async getAllJobs(params?: {
+    page?: number;
+    limit?: number;
+    status?: 'draft' | 'published' | 'closed' | 'archived';
+  }) {
+    return await getRecruiterJobs(params);
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * GET /api/jobs/:id
-   */
-  static async getJobById(id: number): Promise<TopJob | null> {
-    await delay(500);
-    return jobsData.find((job: TopJob) => job.id === id) || null;
+  static async getJobById(id: string) {
+    const response = await getRecruiterJob(id);
+    return response.job;
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * GET /api/jobs/:id/details
-   */
-  static async getJobDetails(_jobId: number): Promise<JobDetailsData | null> {
-    await delay(500);
-    // In real API, this would fetch details for the specific job
-    // For now, return the same mock data for all jobs
-    return jobDetailsData;
+  static async getJobDetails(id: string) {
+    return await this.getJobById(id);
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * GET /api/jobs/candidates
-   */
-  static async getCandidatesByStatus(status: StatusType): Promise<Job[]> {
-    await delay(500);
-    return candidatesData[status] || [];
+  static async createJob(jobData: JobCreatePayload) {
+    const response = await createRecruiterJob(jobData);
+    return response.job;
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * GET /api/jobs/candidates/:id
-   */
-  static async getCandidateById(id: string): Promise<{ job: Job; status: StatusType } | null> {
-    await delay(500);
-    const statuses: StatusType[] = ['applied', 'shortlisted', 'interviewing', 'hired'];
-
-    for (const status of statuses) {
-      const candidate = candidatesData[status].find((job: Job) => job.id.toString() === id);
-      if (candidate) {
-        return { job: candidate, status };
-      }
-    }
-
-    return null;
+  static async updateJob(id: string, jobData: JobUpdatePayload) {
+    const response = await updateRecruiterJob(id, jobData);
+    return response.job;
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * GET /api/jobs/candidates/all
-   */
-  static async getAllCandidates(): Promise<JobsData> {
-    await delay(500);
-    return candidatesData;
+  static async deleteJob(id: string) {
+    await deleteRecruiterJob(id);
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * POST /api/jobs
-   */
-  static async createJob(_jobData: JobFormData): Promise<TopJob> {
-    await delay(500);
-    // In real API, this would create a new job
-    throw new Error('Not implemented - will be added when API is ready');
+  // ✅ FIX: Add default empty object
+  static async getCandidatesByStatus(params?: {
+    job_id?: string;
+    status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
+    page?: number;
+    limit?: number;
+  }) {
+    return await getJobApplications(params || {}); // ← Add || {}
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * PUT /api/jobs/:id
-   */
-  static async updateJob(_id: number, _jobData: Partial<JobFormData>): Promise<TopJob> {
-    await delay(500);
-    // In real API, this would update the job
-    throw new Error('Not implemented - will be added when API is ready');
+  // ✅ FIX: Add default empty object
+  static async getAllCandidates(job_id?: string) {
+    return await getJobApplications(job_id ? { job_id } : {}); // ← Add : {}
   }
 
-  /**
-   * TODO: Replace with actual API call
-   * DELETE /api/jobs/:id
-   */
-  static async deleteJob(_id: number): Promise<void> {
-    await delay(500);
-    // In real API, this would delete the job
-    throw new Error('Not implemented - will be added when API is ready');
+  static async getCandidateById(candidateId: string) {
+    return await getCandidateDetails(candidateId);
   }
 }
 
 export default JobService;
-

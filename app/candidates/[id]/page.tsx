@@ -1,8 +1,8 @@
-// app/candidates/[id]/page.tsx - FIXED VERSION
+// app/candidates/[id]/page.tsx
 'use client';
 
 import React from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
 import { AppLayout } from "@/components/global/app-layout";
 import { useCandidate } from "@/hooks/useJobData";
@@ -10,7 +10,11 @@ import { useCandidate } from "@/hooks/useJobData";
 export default function CandidateDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
+  
   const candidateId = params?.id as string;
+  const jobApplicationId = searchParams.get('job_application_id') || undefined;
+  
   const { candidate, isLoading, error } = useCandidate(candidateId);
 
   const handleBack = () => {
@@ -21,7 +25,7 @@ export default function CandidateDetailPage() {
     return (
       <AppLayout>
         <div className="flex-1 flex items-center justify-center p-8">
-          <p className="text-gray-600 text-lg">Loading candidate {candidateId?.slice(0,8)}...</p>
+          <p className="text-gray-600 text-lg">Loading candidate...</p>
         </div>
       </AppLayout>
     );
@@ -33,7 +37,6 @@ export default function CandidateDetailPage() {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md mx-auto">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Candidate not found</h1>
-            <p className="text-gray-600 mb-6">ID: <code>{candidateId}</code></p>
             <button
               onClick={handleBack}
               className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
@@ -46,14 +49,14 @@ export default function CandidateDetailPage() {
     );
   }
 
-  // ✅ FIXED: Pass correct props
   return (
     <AppLayout>
       <CandidateDetailContent
-        candidate={candidate}           // ✅ WHOLE candidate object
-        status="applied"      // ✅ Hardcoded for now
+        candidate={candidate}
+        status="applied"
         onBack={handleBack}
         candidateId={candidateId}
+        jobApplicationId={jobApplicationId}
       />
     </AppLayout>
   );

@@ -1,25 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { MetricRow } from "./CandidateDetailComponents";
 import { CandidateHero } from "./candidate-hero";
 import { CalendarCard } from "@/components/card/calendar-card";
 import SuccessModal from "@/components/modal";
-import { Job, StatusType } from "@/Interface/job.types";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { StatusType } from "@/Interface/job.types";
+import { ArrowLeft, ChevronRight, Check } from "lucide-react";
 import { CANDIDATE_DETAIL_BUTTON_CONFIGS } from '@/app/jobs/constants/ui'
 import ScoreCard from "@/components/card/scorecard";
 import { Button } from "@/components/ui/button";
-import { createRecruiterInterviewRequest } from "@/app/jobs/services/interviewApi";
+import { createRecruiterInterviewRequest, fetchRecruiterInterviewRequests } from "@/app/jobs/services/interviewApi";
 import { CandidateDetailsResponse } from "@/stores/api/recruiter-job-api";
- // adjust path if needed
 
 interface CandidateDetailContentProps {
   candidate: CandidateDetailsResponse;
   status: StatusType;
   onBack: () => void;
-  candidateId: string; // ✅ we pass this from page.tsx
+  candidateId: string;
+  jobApplicationId?: string;
 }
 
 export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
@@ -27,20 +27,54 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   status,
   onBack,
   candidateId,
+  jobApplicationId,
 }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<string>("");
+  const [isSending, setIsSending] = useState(false);
+  const [hasExistingRequest, setHasExistingRequest] = useState(false);
+  const [isCheckingRequest, setIsCheckingRequest] = useState(true);
 
   const config = CANDIDATE_DETAIL_BUTTON_CONFIGS[status];
+
+  // Check if interview request already exists
+  useEffect(() => {
+    const checkExistingRequest = async () => {
+      if (!candidateId || !jobApplicationId) {
+        setIsCheckingRequest(false);
+        return;
+      }
+
+      try {
+        setIsCheckingRequest(true);
+        const response = await fetchRecruiterInterviewRequests(undefined, 1, 100);
+        
+        // Check if there's an existing request for this candidate and job application
+        const existingRequest = response.interviewRequests?.find(
+          (req: any) => 
+            req.candidate_id === candidateId && 
+            req.job_application_id === jobApplicationId
+        );
+
+        setHasExistingRequest(!!existingRequest);
+      } catch (error) {
+        console.error("Failed to check existing interview requests:", error);
+      } finally {
+        setIsCheckingRequest(false);
+      }
+    };
+
+    checkExistingRequest();
+  }, [candidateId, jobApplicationId]);
 
   const handleButtonClick = (buttonLabel: string, action?: string) => {
     if (action === "schedule") {
       setIsCalendarOpen(true);
     } else if (action === "reject") {
-      console.log("Reject clicked");
+      // Handle reject action
     } else if (action === "hire") {
-      console.log("Hire clicked");
+      // Handle hire action
     }
   };
 
@@ -55,35 +89,43 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     setScheduledDate("");
   };
 
-  // ✅ NEW: Send interview request API call
- const handleSendInterviewRequest = async () => {
-  try {
-    // ✅ Debug: Log exact values
-    console.log('candidateId received:', candidateId, typeof candidateId, 'Valid UUID?', /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId));
-    
-    if (!candidateId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidateId)) {
-      alert('Invalid candidate ID - check console');
+  const handleSendInterviewRequest = async () => {
+    if (!candidateId || !jobApplicationId || hasExistingRequest) {
       return;
     }
 
-    // ✅ TODO: Get real job_application_id from route params or context
-    const jobApplicationId = "real-job-app-id-here"; // From useParams() or applicant data
+    setIsSending(true);
 
-    const interviewRequest = await createRecruiterInterviewRequest({
-      candidate_id: candidateId,  // ✅ This is correct
-      job_application_id: jobApplicationId,
-      message: "You have been shortlisted for an interview. Please book a suitable slot.",
-      valid_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    });
+    try {
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 7);
 
-    console.log("Interview request created:", interviewRequest);
-    alert("Interview request sent to candidate!");
-  } catch (error: any) {
-    console.error("Failed to send interview request:", error);
-    alert(error?.response?.data?.message || error?.message || "Failed to send interview request");
-  }
-};
+      await createRecruiterInterviewRequest({
+        candidate_id: candidateId,
+        job_application_id: jobApplicationId,
+        message: "You have been shortlisted for an interview. Please accept and book a suitable slot.",
+        valid_until: validUntil.toISOString(),
+      });
 
+      setHasExistingRequest(true);
+      setIsSuccessOpen(true);
+      
+    } catch (error: any) {
+      const errorMessage = 
+        error?.response?.data?.message || 
+        error?.message || 
+        "Failed to send interview request. Please try again.";
+      
+      console.error("Failed to send interview request:", errorMessage);
+      
+      // If error is about existing request, update state
+      if (errorMessage.includes("already exists")) {
+        setHasExistingRequest(true);
+      }
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <>
@@ -118,25 +160,42 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
             </button>
           ))}
 
-          {/* ✅ NEW: Send Interview Request button */}
-          <Button
-            onClick={handleSendInterviewRequest}
-            className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg"
-          >
-            📅 Send Interview Request
-          </Button>
+          {/* Interview Request Button with States */}
+          {isCheckingRequest ? (
+            <Button
+              disabled
+              className="bg-gray-300 text-gray-600 text-sm font-medium px-4 py-2 rounded-lg cursor-not-allowed"
+            >
+              Checking...
+            </Button>
+          ) : hasExistingRequest ? (
+            <Button
+              disabled
+              className="bg-green-100 text-green-700 text-sm font-medium px-4 py-2 rounded-lg cursor-not-allowed flex items-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              Interview Request Sent
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSendInterviewRequest}
+              disabled={isSending || !jobApplicationId}
+              className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSending ? "Sending..." : "📅 Send Interview Request"}
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
       <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg gap-4">
-        {/* ===== HERO CARD ===== */}
         <CandidateHero
           candidate={candidate}
           appliedTime="Applied 2 hours Ago"
         />
 
-        {/* ===== AWARDS ===== */}
+        {/* Awards */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Awards
@@ -153,7 +212,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
 
-        {/* ===== SOCIAL LINKS ===== */}
+        {/* Social Links */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Social Links
@@ -178,7 +237,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
 
-        {/* ===== EXPERIENCE ===== */}
+        {/* Experience */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900">
@@ -222,7 +281,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
 
-        {/* ===== EDUCATION ===== */}
+        {/* Education */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Education
@@ -249,7 +308,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
 
-        {/* ===== UPLOADED DOCUMENTS ===== */}
+        {/* Uploaded Documents */}
         <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             Uploaded Documents
@@ -278,7 +337,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
 
-        {/* ===== PERFORMANCE CARDS ===== */}
+        {/* Performance Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8">
             <div className="flex items-center justify-between mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
@@ -367,7 +426,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
 
-        {/* ===== ANALYSIS ===== */}
+        {/* Analysis */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 lg:p-8">
             <div className="flex items-center justify-between mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
@@ -466,8 +525,8 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
       <SuccessModal
         visible={isSuccessOpen}
         onClose={handleSuccessClose}
-        title="Interview Scheduled"
-        message={`Interview Scheduled on ${scheduledDate}`}
+        title="Success"
+        message={scheduledDate ? `Interview Scheduled on ${scheduledDate}` : "Interview request sent successfully!"}
         buttonText="Done"
       />
     </>

@@ -9,7 +9,7 @@ import { Job, StatusType } from "@/Interface/job.types";
 import { STATUS_SECTIONS } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { BUTTON_LABELS } from "../constants/messages";
-import { useJobs, useJobApplications } from "@/hooks/useJobData"; // ✅ Import hook
+import { useJobs, useJobApplications } from "@/hooks/useJobData";
 
 interface CandidatesData {
   applied: Job[];
@@ -23,19 +23,17 @@ const JobsPage: React.FC = () => {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("kanban");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const { jobs, isLoading: isLoadingJobs } = useJobs();
-  
-  // ✅ FETCH REAL APPLICATIONS FROM API HOOK
   const { applications: applicationsData, isLoading: isLoadingApps } = useJobApplications();
 
-  // ✅ Transform REAL API data to Job format
   const candidatesData = useMemo<CandidatesData>(() => {
     if (!applicationsData?.applications) {
       return { applied: [], shortlisted: [], interviewing: [], hired: [] };
     }
 
     const applied: Job[] = applicationsData.applications.map((app: any) => ({
-      id: app.id, // Application ID
-      candidateId: app.candidate_id, // ✅ REAL UUID from DB
+      id: app.id,
+      candidateId: app.candidate_id,
+      jobApplicationId: app.id,
       doctorName: app.candidate?.full_name || 
                   `${app.candidate?.first_name} ${app.candidate?.last_name}` || 
                   'Unknown',
@@ -45,10 +43,7 @@ const JobsPage: React.FC = () => {
       specialization: app.candidate?.specialty ? [app.candidate.specialty] : ['General Medicine'],
       currentCompany: app.candidate?.work_experiences?.[0]?.company || 'Health Network',
     }));
-
-    console.log('✅ Real applications loaded:', applied.length);
     
-    // ✅ TODO: Filter by status
     return {
       applied: applied.filter((a: any) => applicationsData.applications.find((app: any) => app.id === a.id)?.status === 'PENDING'),
       shortlisted: [],
@@ -57,20 +52,11 @@ const JobsPage: React.FC = () => {
     };
   }, [applicationsData]);
 
-  // ✅ FIXED: Use REAL candidate UUID
   const handleCandidateClick = (job: Job, _status: StatusType) => {
-    console.log('✅ Opening candidate:', job.doctorName, 'UUID:', job.candidateId);
-    
-    if (!job.candidateId) {
-      console.error('❌ No candidate ID for:', job.doctorName);
-      return;
-    }
-    
-    // ✅ Use REAL UUID from API
-    router.push(`/candidates/${job.candidateId}`);
+    if (!job.candidateId || !job.id) return;
+    router.push(`/candidates/${job.candidateId}?job_application_id=${job.id}`);
   };
 
-  // Filter jobs based on search query
   const filteredJobs = useMemo(() => {
     if (!Array.isArray(jobs)) return [];
     if (!searchQuery) return jobs.slice(0, 4);
@@ -86,7 +72,6 @@ const JobsPage: React.FC = () => {
       .slice(0, 4);
   }, [jobs, searchQuery]);
 
-  // ✅ Wait for both jobs AND applications
   if (isLoadingJobs || isLoadingApps) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -95,7 +80,6 @@ const JobsPage: React.FC = () => {
     );
   }
 
-  // Main Dashboard View
   return (
     <>
       {/* Header */}
@@ -128,9 +112,7 @@ const JobsPage: React.FC = () => {
             {filteredJobs.map((job: any) => (
               <div
                 key={job.id}
-                onClick={() => {
-                  router.push(`/jobs/${job.id}`);
-                }}
+                onClick={() => router.push(`/jobs/${job.id}`)}
               >
                 <JobListingCard job={job} />
               </div>
