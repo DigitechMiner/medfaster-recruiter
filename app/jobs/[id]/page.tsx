@@ -55,7 +55,7 @@ export default function JobDetailPageRoute() {
 
   if (isLoading) {
     return (
-      <AppLayout>
+      <AppLayout padding="all">
         <div className="min-h-screen bg-white flex items-center justify-center">
           <p className="text-gray-600">Loading...</p>
         </div>
@@ -65,7 +65,7 @@ export default function JobDetailPageRoute() {
 
   if (error || !job) {
     return (
-      <AppLayout>
+      <AppLayout padding="all">
         <div className="min-h-screen bg-white flex items-center justify-center">
           <p className="text-red-600">{error || "Job not found"}</p>
         </div>
@@ -74,13 +74,13 @@ export default function JobDetailPageRoute() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout padding="all">
       <JobDetailHeader
         job={job}
         onBack={handleBack}
         onCloseJob={handleCloseJobClick}
       />
-      <div className="p-4 sm:p-6 lg:p-8 bg-white rounded-lg border border-gray-200">
+      <div className="p-4 y:p-6 lg:p-8 bg-white rounded-lg border border-gray-200">
         <JobDetailSections job={job} />
       </div>
       <Modal

@@ -3,7 +3,7 @@
 import FileUpload from "../components/FileUpload";
 import FormInput from "../components/FormInput";
 import FormSelect from "../components/FormSelect";
-import { provinces, orgTypes } from "../const";
+import { provinces, orgTypes } from "@/utils/constant/metadata";
 
 export default function OrganizationDetailsStep() {
   return (

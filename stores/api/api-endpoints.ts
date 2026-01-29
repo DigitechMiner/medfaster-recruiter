@@ -7,6 +7,7 @@ export const ENDPOINTS = {
 
   // Recruiter Profile
   RECRUITER_PROFILE: '/recruiter/profile',
+  RECRUITER_PROFILE_UPDATE: '/recruiter/profile',
 
   // Jobs CRUD
   JOBS_LIST: '/recruiter/jobs',
@@ -23,6 +24,11 @@ export const ENDPOINTS = {
   // Interview Requests
   INTERVIEW_REQUESTS: '/recruiter/interview-requests',
   INTERVIEW_REQUEST_CANCEL: (id: string) => `/recruiter/interview-requests/${id}/cancel`,
+
+  // ✅ NEW: Interview Viewing (for VAPI integration)
+  RECRUITER_INTERVIEW_DETAILS: (interviewId: string) => `/recruiter/interviews/${interviewId}`,
+  RECRUITER_CANDIDATE_INTERVIEWS: (candidateId: string) => `/recruiter/candidates/${candidateId}/interviews`,
+  RECRUITER_BOOKING_INTERVIEWS: (bookingId: string) => `/recruiter/bookings/${bookingId}/interviews`,
 
   // Chat
   CHAT_CONVERSATIONS: '/chat/conversations',

@@ -1,8 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
-import { Footer } from "@/components/global/footer";
-import { Navbar } from "@/components/global/navbar";
+import { AppLayout } from "@/components/global/app-layout";
 
 type CalendarView = "day" | "week" | "month";
 
@@ -222,7 +221,7 @@ export default function CalendarPage() {
 
   return (
     <>
-      <Navbar />
+      <AppLayout padding="none">
       <div className="w-full min-h-screen bg-[#F9F8F6] px-6 py-6">
         <div className="max-w-[1400px] mx-auto">
           {/* Toolbar */}
@@ -272,7 +271,7 @@ export default function CalendarPage() {
           {view === "month" && <CalendarMonthView />}
         </div>
       </div>
-      <Footer />
+      </AppLayout>
     </>
   );
 }

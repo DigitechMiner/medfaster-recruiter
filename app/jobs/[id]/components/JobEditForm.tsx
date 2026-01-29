@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Navbar } from "@/components/global/navbar";
 import SuccessModal from "@/components/modal";
 import { Topic } from "../../constants/form";
 import { JobForm, JobFormData } from "../../components/JobForm";
+import { AppLayout } from "@/components/global/app-layout";
 
 interface JobEditFormProps {
   formData: JobFormData;
@@ -38,7 +38,7 @@ export const JobEditForm: React.FC<JobEditFormProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <AppLayout padding="none">
       <div className="w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -81,7 +81,9 @@ export const JobEditForm: React.FC<JobEditFormProps> = ({
         message="Your job post has been updated."
         buttonText="Done"
       />
+      </AppLayout>
     </div>
+    
   );
 };
 

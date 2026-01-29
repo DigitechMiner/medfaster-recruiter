@@ -5,7 +5,6 @@ import { Footer } from "./footer";
 type AppLayoutProps = {
   children: ReactNode;
   padding?: "none" | "all" | "x" | "y" | "sm";
-  
 };
 
 export function AppLayout({ children, padding = "sm" }: AppLayoutProps) {
@@ -18,15 +17,24 @@ export function AppLayout({ children, padding = "sm" }: AppLayoutProps) {
   };
 
   const paddingClasses = paddingClassesMap[padding];
+  
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F5F1]">
+    <>
       <Navbar />
-      <main className={`mx-auto flex-1 w-full flex flex-col ${paddingClasses}`}>
-        {children}
-      </main>
-      <Footer />
-    </div>
+      
+      {/* Main content wrapper with proper spacing */}
+      <div className="ml-20 min-h-screen flex flex-col bg-[#F7F5F1]">
+        {/* Top spacer for fixed header */}
+        <div className="h-16"></div>
+        
+        {/* Content area */}
+        <main className={`flex-1 ${paddingClasses}`}>
+          {children}
+        </main>
+        
+        {/* Footer */}
+        <Footer />
+      </div>
+    </>
   );
 }
-
-
