@@ -4,33 +4,23 @@ import FormInput from "../components/FormInput";
 
 export default function ContactInformationStep() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
       <FormInput
-        name="primaryContact"
-        label="Primary Contact Person"
-        required
-      />
-      <FormInput
-        name="contactName"
-        label="Contact Person Name"
-        required
+        name="fullName"
+        label="Full Name"
       />
       <FormInput
         name="designation"
-        label="Contact Person Designation"
-        required
+        label="Designation"
       />
       <FormInput
-        name="contactEmail"
-        label="Contact Person Email"
+        name="emailId"
+        label="Email Id"
         type="email"
-        required
-        wrapperClassName="sm:col-span-2 lg:col-span-2"
       />
       <FormInput
-        name="phone"
-        label="Contact Person Phone"
-        required
+        name="phoneNumber"
+        label="Phone Number"
       />
     </div>
   );

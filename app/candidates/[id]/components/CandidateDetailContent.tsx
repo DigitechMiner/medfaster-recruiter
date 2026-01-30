@@ -73,7 +73,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
       setIsCalendarOpen(true);
     } else if (action === "reject") {
       // Handle reject action
-    } else if (action === "hire") {
+    } else if (action === "Shortlist") {
       // Handle hire action
     }
   };

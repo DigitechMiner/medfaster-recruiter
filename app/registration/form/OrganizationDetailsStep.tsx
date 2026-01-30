@@ -18,11 +18,16 @@ export default function OrganizationDetailsStep() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+      {/* Row 1: 3 columns - Org Name, Registered Business Name, Org Type */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
         <FormInput
           name="orgName"
-          label="Organization Name"
+          label="Organization / Company Name"
           required
+        />
+        <FormInput
+          name="registeredBusinessName"
+          label="Registered Business Name"
         />
         <FormSelect
           name="orgType"
@@ -33,38 +38,42 @@ export default function OrganizationDetailsStep() {
         />
       </div>
 
+      {/* Row 2: 2 columns - Email, Contact Number */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
         <FormInput
           name="email"
           label="Official Email Address"
           type="email"
-          required
         />
         <FormInput
           name="contactNumber"
           label="Contact Number (landline or mobile)"
-          required
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
+      {/* Row 3: 3 columns - Website, Business Number, GST No */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-4">
         <FormInput
           name="website"
           label="Organisation Website"
-          required
         />
         <FormInput
           name="businessNumber"
           label="Canadian Business Number"
           required
         />
+        <FormInput
+          name="gstNo"
+          label="GST No"
+          required
+        />
       </div>
 
+      {/* Row 4: 2 columns - Street Address, Postal Code */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
         <FormInput
           name="address"
           label="Street Address"
-          required
         />
         <FormInput
           name="postalCode"
@@ -73,7 +82,8 @@ export default function OrganizationDetailsStep() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
+      {/* Row 5: 3 columns - Province, City, Country */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-4">
         <FormSelect
           name="province"
           label="Province"
@@ -81,18 +91,16 @@ export default function OrganizationDetailsStep() {
           required
           placeholder="Select Province"
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-          <FormInput
-            name="city"
-            label="City"
-            required
-          />
-          <FormInput
-            name="country"
-            label="Country"
-            required
-          />
-        </div>
+        <FormInput
+          name="city"
+          label="City"
+          required
+        />
+        <FormInput
+          name="country"
+          label="Country"
+          required
+        />
       </div>
     </>
   );

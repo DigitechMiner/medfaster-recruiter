@@ -3,9 +3,28 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { DetailedJobCardProps, JobCardProps, StatusSectionProps, StatusTableProps, Job, StatusType } from '@/Interface/job.types';
-import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, JOB_CARD_BUTTON_CONFIGS, PRIMARY_BUTTON_COLOR_CLASSES } from '../constants/ui';
+import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, PRIMARY_BUTTON_COLOR_CLASSES } from '../constants/ui';
 import { MODAL_DEFAULTS } from '../constants/messages';
 import ScoreCard from '@/components/card/scorecard';
+
+// ============ TOOLTIP COMPONENT ============
+interface TooltipProps {
+  children: React.ReactNode;
+  content: string;
+}
+
+const Tooltip: React.FC<TooltipProps> = ({ children, content }) => {
+  return (
+    <div className="relative group flex-1">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-900 text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap pointer-events-none z-10 shadow-lg">
+        {content}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-white"></div>
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-300"></div>
+      </div>
+    </div>
+  );
+};
 
 // ============ DETAIL CARD ============
 export const DetailedJobCard: React.FC<DetailedJobCardProps> = ({ job, status, onClose }) => {
@@ -108,24 +127,118 @@ export const StatusSection: React.FC<StatusSectionPropsExtended> = ({ status, ti
 // ============ JOB CARD (Internal) ============
 const JobCardComponent: React.FC<JobCardProps> = ({ job, status, badgeColor: _badgeColor, index: _index, onView: _onView }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const buttonConfigs = JOB_CARD_BUTTON_CONFIGS;
+
+  // Button configurations based on status matching the screenshot
+  const renderButtons = () => {
+    switch (status) {
+      case 'applied':
+        return (
+          <>
+            <Tooltip content="On Site / Virtual Interview">
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="w-full text-xs px-3 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Schedule
+              </button>
+            </Tooltip>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 text-xs px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors"
+            >
+              Shortlist
+            </button>
+          </>
+        );
+      
+      case 'shortlisted':
+        return (
+          <>
+            <button
+              disabled
+              className="text-xs px-3 py-2 bg-orange-100 text-orange-700 rounded-lg font-medium cursor-default"
+            >
+              Shortlisted
+            </button>
+            <Tooltip content="On Site / Virtual Interview">
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="w-full text-xs px-3 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Schedule
+              </button>
+            </Tooltip>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 text-xs px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors"
+            >
+              Hire
+            </button>
+          </>
+        );
+      
+      case 'interviewing':
+        return (
+          <>
+            <button
+              disabled
+              className="flex-1 text-xs px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium cursor-default"
+            >
+              Interviewing
+            </button>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 text-xs px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors"
+            >
+              Hire
+            </button>
+          </>
+        );
+      
+      case 'hired':
+        return (
+          <button
+            disabled
+            className="w-full text-xs px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium cursor-default"
+          >
+            Hired
+          </button>
+        );
+      
+      default:
+        return null;
+    }
+  };
 
   return (
     <div>
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 min-w-0"><h3 className="font-semibold text-gray-800 text-sm truncate">{job.doctorName}</h3><p className="text-xs text-gray-600 truncate">{job.experience} yrs {job.position}</p></div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-800 text-sm truncate">{job.doctorName}</h3>
+          <p className="text-xs text-gray-600 truncate">{job.experience}+ yrs | {job.position}</p>
+        </div>
         <ScoreCard category="Overall Score" score={job.score} maxScore={100} />
       </div>
+      
       <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex items-center gap-1">
         <Image src="/svg/Briefcase.svg" alt="briefcase" width={14} height={14} />
-        <span>{job.experience} yrs {job.position}</span>
+        <span>{job.experience}+ yrs | Part-Time</span>
       </p>
+      
       <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex items-center gap-1">
         <span className="text-orange-600 font-medium">Spec :</span>
-        <span>{job.specialization.join(' · ')}</span>
+        <span>{job.specialization.join(' | ')}</span>
       </p>
-      <div className="flex gap-2">{buttonConfigs[status].map((btn, i) => (<button key={i} onClick={(e) => e.stopPropagation()} className={`text-xs px-3 py-1.5 transition flex-1 ${btn.style}`}>{btn.label}</button>))}</div>
-      {isExpanded && (<div className="mt-3 pt-3 border-t border-gray-100"><DetailedJobCard job={job} status={status} onClose={() => setIsExpanded(false)} /></div>)}
+      
+      <div className="flex gap-2">
+        {renderButtons()}
+      </div>
+      
+      {isExpanded && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <DetailedJobCard job={job} status={status} onClose={() => setIsExpanded(false)} />
+        </div>
+      )}
     </div>
   );
 };
@@ -133,6 +246,24 @@ const JobCardComponent: React.FC<JobCardProps> = ({ job, status, badgeColor: _ba
 // ============ STATUS TABLE ============
 export const StatusTable: React.FC<StatusTableProps> = ({ title, count, jobs, badgeColor }) => {
   const c = STATUS_TABLE_COLORS[badgeColor];
+  
+  // Determine action button based on badgeColor/status
+  const getActionButton = () => {
+    switch (badgeColor) {
+      case 'blue': // Applied
+        return { text: 'Shortlist', show: true };
+      case 'orange': // Shortlisted
+        return { text: 'Hire', show: true };
+      case 'red': // Interviewing
+        return { text: 'Hire', show: true };
+      case 'green': // Hired
+        return { text: '', show: false };
+      default:
+        return { text: 'Hire', show: true };
+    }
+  };
+
+  const actionButton = getActionButton();
   
   return (
     <div className={`rounded-lg border ${c.border} overflow-hidden mb-6`}>
@@ -152,7 +283,7 @@ export const StatusTable: React.FC<StatusTableProps> = ({ title, count, jobs, ba
             <div className="col-span-2">Current Company</div>
             <div className="col-span-2">Job Type</div>
             <div className="col-span-1 text-right">Overall Score</div>
-            <div className="col-span-1 text-right">Action</div>
+            {actionButton.show && <div className="col-span-1 text-right">Action</div>}
           </div>
 
           {/* Table Body */}
@@ -177,9 +308,13 @@ export const StatusTable: React.FC<StatusTableProps> = ({ title, count, jobs, ba
                   <div className="col-span-2 text-gray-700">{j.currentCompany ?? '—'}</div>
                   <div className="col-span-2 text-gray-700">{j.position}</div>
                   <div className="col-span-1 text-right text-gray-800">{j.score}/100</div>
-                  <div className="col-span-1 flex justify-end">
-                    <button className="text-orange-600 hover:text-orange-700 underline text-sm">Hire</button>
-                  </div>
+                  {actionButton.show && (
+                    <div className="col-span-1 flex justify-end">
+                      <button className="text-orange-600 hover:text-orange-700 underline text-sm">
+                        {actionButton.text}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mobile/Tablet View */}
@@ -198,9 +333,11 @@ export const StatusTable: React.FC<StatusTableProps> = ({ title, count, jobs, ba
                         <span className="text-[11px] sm:text-xs text-gray-500 line-clamp-1">Spec: {j.specialization.join(' | ')}</span>
                       </div>
                     </div>
-                    <button className="text-orange-600 hover:text-orange-700 underline text-sm flex-shrink-0">
-                      Hire
-                    </button>
+                    {actionButton.show && (
+                      <button className="text-orange-600 hover:text-orange-700 underline text-sm flex-shrink-0">
+                        {actionButton.text}
+                      </button>
+                    )}
                   </div>
 
                   {/* Details Grid */}
