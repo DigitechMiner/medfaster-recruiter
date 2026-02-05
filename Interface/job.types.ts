@@ -16,7 +16,7 @@ export interface JobBackendResponse {
   physical_interview: boolean | null;
   description: string | null;
   questions: Record<string, any> | null;
-  status: 'draft' | 'published' | 'closed' | 'archived';
+  status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
   createdAt: string;
   updatedAt: string;
   application_count?: number;
@@ -32,12 +32,18 @@ export interface JobCreatePayload {
   years_of_experience?: string | null;
   qualifications?: string[] | null;
   specializations?: string[] | null;
-  urgency?: string | null;
+  job_urgency?: string | null;
+  numberOfHires?: number | null;
+  ai_interview: boolean;
   in_person_interview?: boolean | null;
   physical_interview?: boolean | null;
   description?: string | null;
   questions?: Record<string, any> | null;
-  status?: 'draft' | 'published' | 'closed' | 'archived';
+status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+  start_date?: string | null;
+  end_date?: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
 }
 
 export interface JobUpdatePayload extends Partial<JobCreatePayload> {}
@@ -111,9 +117,20 @@ export interface JobFormData {
   qualification: string[];
   specialization: string[];
   urgency: string;
-  inPersonInterview: string; // "Yes" or "No" for UI
-  physicalInterview: string; // "Yes" or "No" for UI
+  inPersonInterview: string;
+  physicalInterview: string;
+  aiInterview?: string;
   description: string;
+  streetAddress?: string;
+  postalCode?: string;
+  province?: string;
+  city?: string;
+  country?: string;
+  numberOfHires?: string;
+  tillDate1?: Date;
+  tillDate2?: Date;
+  fromTime?: string;
+  toTime?: string;
 }
 
 // ============ LEGACY TYPES (Keep for other components) ============

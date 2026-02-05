@@ -27,7 +27,7 @@ export const STORAGE_KEYS = {
 // ============ PAGE TITLES ============
 export const PAGE_TITLES = {
   CREATE_JOB: "Create Job post",
-  GENERATE_WITH_AI: "generate with AI"
+  GENERATE_WITH_AI: "Create Job post"
 };
 
 // ============ BUTTON LABELS ============

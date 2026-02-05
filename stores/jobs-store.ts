@@ -30,7 +30,7 @@ interface JobsActions {
    * @param params - Query parameters for filtering and pagination
    */
   getJobs: (params?: {
-    status?: 'draft' | 'published' | 'closed' | 'archived';
+    status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
     page?: number;
     limit?: number;
     offset?: number;

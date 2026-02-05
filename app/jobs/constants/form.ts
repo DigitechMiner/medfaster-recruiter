@@ -11,11 +11,17 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   experience: "2-3 Yrs",
   qualification: ["Cardiology", "Orthopedics", "Neurology"],
   specialization: ["Cardiology", "Orthopedics", "Neurology"],
-  urgency: "High",
+  urgency: "normal",
   inPersonInterview: "Yes",
   physicalInterview: "Yes",
+  aiInterview: "Yes",
   description:
     "Lorem ipsum dolor sit amet consectetur. Ornare in neque varius neque. Donec quam aliquam donec morbi vel vulputate tristique quis semper. Nulla vitae sed purus enim. Dui metus tortor sit elit accumsan eu. In molestie aliquam dictum accumsan id. Sit libero nec gravida scelerisque vulputate est vitae.",
+  numberOfHires: "5",
+  tillDate1: undefined,
+  tillDate2: undefined,
+  fromTime: "07:30",
+  toTime: "07:30",
 };
 
 export const DEFAULT_JOB_DESCRIPTION =
@@ -42,33 +48,6 @@ export const DEFAULT_TOPICS: Topic[] = [
       { id: "1-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
       { id: "1-3", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
       { id: "1-4", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-    ],
-  },
-  {
-    id: "2",
-    title: "Questions Topic 2",
-    questions: [
-      { id: "2-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-      { id: "2-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-      { id: "2-3", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-    ],
-  },
-  {
-    id: "3",
-    title: "Questions Topic 3",
-    questions: [
-      { id: "3-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-      { id: "3-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-      { id: "3-3", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-      { id: "3-4", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-    ],
-  },
-  {
-    id: "4",
-    title: "Questions Topic 4",
-    questions: [
-      { id: "4-1", text: "Lorem ipsum dolor sit amet consectetuer Non commodo tellus non enim sit?" },
-      { id: "4-2", text: "Lorem ipsum dolor sit amet consectetuer Non commodo" },
     ],
   },
 ];

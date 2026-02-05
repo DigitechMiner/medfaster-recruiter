@@ -110,7 +110,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
       // Update job with questions and change status to published
       const response = await updateJob(jobId, {
         questions: questionsData,
-        status: 'published', // Publish the job
+        status: 'OPEN', // Publish the job {I WANNA CHECK THIS !}
       });
 
       if (response.success) {

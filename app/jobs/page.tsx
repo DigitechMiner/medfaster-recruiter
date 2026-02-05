@@ -42,7 +42,7 @@ export default function JobsPageWrapper() {
   // Update store when jobs are loaded
   useEffect(() => {
     if (jobs.length > 0) {
-      useJobsStore.getState().setHasJobs(true);
+      useJobsStore.getState().setHasJobs(jobs.length>0);
     }
   }, [jobs]);
 

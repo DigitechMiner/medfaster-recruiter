@@ -1,3 +1,4 @@
+// app/profile-setup/page.tsx (or wherever your form lives)
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -14,12 +15,15 @@ import {
   ContactInformationStep,
   ComplianceVerificationStep,
 } from "./form";
-
+import { useAuthStore } from "@/stores/authStore";
+import { toast } from "react-toastify";
 type FormValues = typeof allDefaultValues[number];
 
 export default function SmartFormPage() {
   const [step, setStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const updateProfile = useAuthStore((state) => state.updateProfile);
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(schemas[step]),
@@ -48,14 +52,59 @@ export default function SmartFormPage() {
     }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     const isValid = await methods.trigger();
-    if (isValid) {
-      const data = methods.getValues();
-      console.log("Form Data:", data);
-      // Redirect to jobs page after successful submission
-      router.push("/jobs");
+    if (!isValid) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Get all form data from all steps
+      const formValues = methods.getValues();
+      console.log("Form Values:", formValues);
+
+      // Build FormData for API submission
+      const formData = new FormData(e.currentTarget);
+
+      // Log FormData contents for debugging
+      console.log("FormData contents:");
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, "=>", value.name, value.size, "bytes");
+        } else {
+          console.log(key, "=>", value);
+        }
+      }
+
+      // Submit to backend with file uploads
+      const result = await updateProfile(formData);
+
+      if (result.ok) {
+        toast.success("Profile updated successfully!");
+        console.log("Uploaded files:", {
+          profile_photo: result.data.profile.organization_photo_url,
+          documents: result.data.documents,
+        });
+        
+        // Redirect to jobs page
+        router.push("/jobs");
+      } else {
+        toast.error(result.message || "Failed to update profile");
+        
+        // Show validation errors if any
+        if (result.errors && result.errors.length > 0) {
+          result.errors.forEach((error) => {
+            toast.error(`${error.field}: ${error.message}`);
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error("Submission error:", error);
+      toast.error(error.message || "Failed to submit form");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -73,9 +122,9 @@ export default function SmartFormPage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-[#F8FAFC] ">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#F8FAFC]">
       <Sidebar step={step} onStepChange={setStep} />
-      <main className="flex-1 flex flex-col lg:h-screen lg:overflow-hidden ">
+      <main className="flex-1 flex flex-col lg:h-screen lg:overflow-hidden">
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-0 md:pb-6 bg-[#F8FAFC] lg:bg-white">
           <div className="bg-white">
             {/* step navigation */}
@@ -104,6 +153,7 @@ export default function SmartFormPage() {
                       variant="ghost"
                       onClick={goToPrevStep}
                       className="flex items-center gap-2 text-gray-600 hover:text-gray-900 p-0 h-auto hover:bg-transparent"
+                      disabled={isSubmitting}
                     >
                       <ChevronLeft className="w-5 h-5" />
                       <span className="text-sm font-medium">Back</span>
@@ -116,9 +166,14 @@ export default function SmartFormPage() {
                 <div className="flex mt-6 sm:mt-8 justify-end">
                   <Button
                     type="submit"
-                    className="bg-[#F4781B] hover:bg-[#d5650e] text-white px-4 sm:px-6 py-2 rounded-lg w-full sm:w-auto"
+                    className="bg-[#F4781B] hover:bg-[#d5650e] text-white px-4 sm:px-6 py-2 rounded-lg w-full sm:w-auto disabled:opacity-50"
+                    disabled={isSubmitting}
                   >
-                    {step === steps.length - 1 ? "Submit" : "Save & continue"}
+                    {isSubmitting 
+                      ? "Uploading..." 
+                      : step === steps.length - 1 
+                        ? "Submit" 
+                        : "Save & continue"}
                   </Button>
                 </div>
               </form>

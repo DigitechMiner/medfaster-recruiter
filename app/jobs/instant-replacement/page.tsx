@@ -1,12 +1,13 @@
-// app/jobs/create/page.tsx
+// app/jobs/instant-replacement/page.tsx
 'use client'
 import { useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
-import { CreateJobForm } from "./form/create-job-form";
-import { GenerateAIForm } from "./form/generative-ai-form";
 
-function CreateJobContent() {
+import { GenerateAIForm } from "../create/form/generative-ai-form"; // Reuse AI form
+import { InstantReplacementForm } from "../create/form/instant-replacement-form";
+
+function InstantReplacementContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -18,15 +19,15 @@ function CreateJobContent() {
   const goToStep = (nextStep: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("step", String(nextStep));
-    router.replace(`/jobs/create?${params.toString()}`);
+    router.replace(`/jobs/instant-replacement?${params.toString()}`);
   };
 
   return (
     <AppLayout>
       <div className="py-2 md:py-4 lg:py-6">
         {step === 1 ? (
-          <CreateJobForm 
-            urgencyMode="normal" 
+          <InstantReplacementForm 
+            urgencyMode="instant" // 👈 Always "instant"
             onNext={() => goToStep(2)} 
           />
         ) : (
@@ -37,7 +38,7 @@ function CreateJobContent() {
   );
 }
 
-export default function CreateJobPage() {
+export default function InstantReplacementPage() {
   return (
     <Suspense fallback={
       <AppLayout>
@@ -48,7 +49,7 @@ export default function CreateJobPage() {
         </div>
       </AppLayout>
     }>
-      <CreateJobContent />
+      <InstantReplacementContent />
     </Suspense>
   );
 }

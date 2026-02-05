@@ -9,7 +9,7 @@ type JobListItem = JobsListResponse['data']['jobs'][0];
 
 // ============ EXISTING JOB HOOKS (Keep these - they work) ============
 export function useJobs(params?: {
-  status?: 'draft' | 'published' | 'closed' | 'archived';
+status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
   page?: number;
   limit?: number;
 }) {

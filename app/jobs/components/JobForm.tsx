@@ -1,3 +1,4 @@
+// app/jobs/components/JobForm.tsx
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -10,6 +11,7 @@ import { QuestionsTopic } from "../create/components/questions-topic";
 import { TopActionBar } from "@/components/custom/top-action-bar";
 import { Topic } from "../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS } from "../constants/messages";
+import { LocationFields } from "../create/components/location-fields";
 
 export interface JobFormData {
   jobTitle: string;
@@ -24,6 +26,16 @@ export interface JobFormData {
   inPersonInterview: string;
   physicalInterview: string;
   description: string;
+  streetAddress?: string;
+  postalCode?: string;
+  province?: string;
+  city?: string;
+  country?: string;
+  numberOfHires?: string;
+  tillDate1?: Date;
+  tillDate2?: Date;
+  fromTime?: string;
+  toTime?: string;
 }
 
 interface JobFormProps {
@@ -46,6 +58,10 @@ interface JobFormProps {
   backLabel?: string;
   nextLabel?: string;
   wrapperClassName?: string;
+  // NEW: Allow custom sections
+  customSections?: React.ReactNode;
+  hideRequirements?: boolean;
+  hideInterviewSettings?: boolean;
 }
 
 export function JobForm({
@@ -68,6 +84,9 @@ export function JobForm({
   backLabel = BUTTON_LABELS.BACK,
   nextLabel = BUTTON_LABELS.NEXT,
   wrapperClassName,
+  customSections,
+  hideRequirements = false,
+  hideInterviewSettings = false,
 }: JobFormProps) {
   const isEditMode = mode === "edit";
   const isCreateMode = mode === "create";
@@ -81,7 +100,6 @@ export function JobForm({
 
   const handleTopActionBarPrimary = () => {
     if (onSubmit) {
-      // Create a synthetic event for the form submission
       const syntheticEvent = {
         preventDefault: () => {},
       } as React.FormEvent;
@@ -113,15 +131,26 @@ export function JobForm({
 
           <JobBasicInfo formData={formData} updateFormData={updateFormData} />
 
-          <JobRequirements
-            formData={formData}
-            updateFormData={updateFormData}
-          />
+          {/* Render custom sections (for instant replacement fields) */}
+          {customSections}
 
-          <JobInterviewSettings
-            formData={formData}
-            updateFormData={updateFormData}
-          />
+          {!hideRequirements && (
+            <JobRequirements
+              formData={formData}
+              updateFormData={updateFormData}
+            />
+          )}
+
+          {!hideInterviewSettings && (
+            <JobInterviewSettings
+              formData={formData}
+              updateFormData={updateFormData}
+            />
+          )}
+          <LocationFields
+  formData={formData}
+  updateFormData={updateFormData}
+/>
 
           <JobDescription
             formData={formData}
@@ -193,4 +222,3 @@ export function JobForm({
     </div>
   );
 }
-

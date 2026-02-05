@@ -1,3 +1,4 @@
+// app/jobs/create/components/job-interview-settings.tsx
 "use client";
 
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ interface FormData {
   urgency: string;
   inPersonInterview: string;
   physicalInterview: string;
+  aiInterview?: string; // New field
 }
 
 interface JobInterviewSettingsProps {
@@ -19,118 +21,42 @@ export function JobInterviewSettings({
   updateFormData,
 }: JobInterviewSettingsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
-      <div className="space-y-2 sm:space-y-3 lg:col-start-1">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+      {/* Turn on AI interview */}
+      <div className="space-y-3">
         <Label className="text-sm font-medium text-gray-700">
-          Urgency <span className="text-red-500">*</span>
+          Turn on AI interview <span className="text-red-500">*</span>
         </Label>
         <RadioGroup
-          value={formData.urgency}
-          onValueChange={(value) => updateFormData({ urgency: value })}
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem
-              value="High"
-              id="high"
-              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-            />
-            <Label htmlFor="high" className="font-normal cursor-pointer text-gray-700 text-sm">
-              High
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem
-              value="Low"
-              id="low"
-              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-            />
-            <Label htmlFor="low" className="font-normal cursor-pointer text-gray-700 text-sm">
-              Low
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem
-              value="Medium"
-              id="medium"
-              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-            />
-            <Label htmlFor="medium" className="font-normal cursor-pointer text-gray-700 text-sm">
-              Medium
-            </Label>
-          </div>
-        </RadioGroup>
-      </div>
- <div className="hidden lg:block"></div>
-      <div className="space-y-2 sm:space-y-3 lg:col-start-3 ">
-        <Label className="text-sm font-medium text-gray-700">
-          In Person Interview <span className="text-red-500">*</span>
-        </Label>
-        <RadioGroup
-          value={formData.inPersonInterview}
-          onValueChange={(value) =>
-            updateFormData({ inPersonInterview: value })
-          }
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2"
+          value={formData.aiInterview || "Yes"}
+          onValueChange={(value) => updateFormData({ aiInterview: value })}
+          className="flex gap-4 pt-2"
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem
               value="Yes"
-              id="in-person-yes"
+              id="ai-yes"
               className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
             />
-            <Label htmlFor="in-person-yes" className="font-normal cursor-pointer text-gray-700 text-sm">
+            <Label htmlFor="ai-yes" className="font-normal cursor-pointer text-gray-700 text-sm">
               Yes
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem
               value="No"
-              id="in-person-no"
+              id="ai-no"
               className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
             />
-            <Label htmlFor="in-person-no" className="font-normal cursor-pointer text-gray-700 text-sm">
+            <Label htmlFor="ai-no" className="font-normal cursor-pointer text-gray-700 text-sm">
               No
             </Label>
           </div>
         </RadioGroup>
       </div>
 
-      <div className="space-y-3 sm:space-y-3 lg:col-start-1">
-        <Label className="text-sm font-medium text-gray-700">
-          Physical Interview <span className="text-red-500">*</span>
-        </Label>
-        <RadioGroup
-          value={formData.physicalInterview}
-          onValueChange={(value) =>
-            updateFormData({ physicalInterview: value })
-          }
-          className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem
-              value="Yes"
-              id="physical-yes"
-              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-            />
-            <Label htmlFor="physical-yes" className="font-normal cursor-pointer text-gray-700 text-sm">
-              Yes
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem
-              value="No"
-              id="physical-no"
-              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-            />
-            <Label htmlFor="physical-no" className="font-normal cursor-pointer text-gray-700 text-sm">
-              No
-            </Label>
-          </div>
-        </RadioGroup>
-      </div>
+      {/* Empty spacer */}
+      <div className="hidden sm:block"></div>
     </div>
   );
 }
-
-

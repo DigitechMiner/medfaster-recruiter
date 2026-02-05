@@ -16,7 +16,7 @@ class JobService {
   static async getAllJobs(params?: {
     page?: number;
     limit?: number;
-    status?: 'draft' | 'published' | 'closed' | 'archived';
+    status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
   }) {
     return await getRecruiterJobs(params);
   }

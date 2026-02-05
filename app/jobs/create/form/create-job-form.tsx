@@ -1,3 +1,4 @@
+// app/jobs/create/form/create-job-form.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,14 +10,21 @@ import { BUTTON_LABELS } from "../../constants/messages";
 import { JobForm } from "../../components/JobForm";
 
 interface Props {
+  urgencyMode: "normal" | "instant";
   onNext?: () => void;
   onBack?: () => void;
 }
 
-export function CreateJobForm({ onNext, onBack }: Props) {
+export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
-  const [formData, setFormData] = useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
+  
+  const [formData, setFormData] = useState<JobFormData>({
+    ...DEFAULT_JOB_FORM_DATA,
+    urgency: urgencyMode,
+    aiInterview: "Yes", // Add default value
+  });
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,31 +32,40 @@ export function CreateJobForm({ onNext, onBack }: Props) {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
-  // Convert frontend format to backend format
-  const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
-    // Map job type: "Part Time" -> "parttime", "Full Time" -> "fulltime", "Freelancer" -> "freelancer"
-    let jobType = data.jobType.toLowerCase().replace(/\s+/g, '');
-    if (jobType === 'fulltime') jobType = 'fulltime';
-    else if (jobType === 'parttime') jobType = 'parttime';
-    else if (jobType === 'freelancer') jobType = 'freelancer';
+  // app/jobs/create/form/create-job-form.tsx
+const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
+  let jobType = data.jobType.toLowerCase().replace(/\s+/g, "");
+  if (jobType === "fulltime") jobType = "fulltime";
+  else if (jobType === "parttime") jobType = "parttime";
+  else if (jobType === "freelancer") jobType = "freelancer";
+  else if (jobType === "casual") jobType = "casual";
 
-    return {
-      job_title: data.jobTitle,
-      department: data.department || null,
-      job_type: jobType,
-      location: data.location || null,
-      pay_range_min: data.payRange[0] || null,
-      pay_range_max: data.payRange[1] || null,
-      years_of_experience: data.experience || null,
-      qualifications: data.qualification.length > 0 ? data.qualification : null,
-      specializations: data.specialization.length > 0 ? data.specialization : null,
-      urgency: data.urgency.toLowerCase(), // "High" -> "high"
-      in_person_interview: data.inPersonInterview === "Yes",
-      physical_interview: data.physicalInterview === "Yes",
-      description: data.description || null,
-      questions: null, // Will be added in step 2
-      status: 'draft', // Default to draft
-    };
+  return {
+    job_title: data.jobTitle,
+    department: data.department || null,
+    job_type: jobType,
+    location: data.location || null,
+    pay_range_min: data.payRange[0] || null,
+    pay_range_max: data.payRange[1] || null,
+    years_of_experience: data.experience || null,
+    qualifications: data.qualification.length > 0 ? data.qualification : null,
+    specializations: data.specialization.length > 0 ? data.specialization : null,
+    job_urgency: urgencyMode,
+    ai_interview: data.aiInterview === "Yes", // REQUIRED - must be boolean
+    in_person_interview: data.inPersonInterview === "Yes",
+    physical_interview: data.physicalInterview === "Yes",
+    description: data.description || null,
+    questions: null,
+    status: "DRAFT",
+  };
+};
+
+
+  const formatDateForBackend = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,13 +75,12 @@ export function CreateJobForm({ onNext, onBack }: Props) {
 
     try {
       const backendData = convertToBackendFormat(formData);
+      console.log("📤 Sending to backend:", backendData); // Debug log
+      
       const response = await createJob(backendData);
 
       if (response.success) {
-        // Store job ID for step 2 (questions)
-        sessionStorage.setItem('createdJobId', response.data.job.id);
-        
-        // Go to step 2 (AI questions)
+        sessionStorage.setItem("createdJobId", response.data.job.id);
         if (onNext) onNext();
       } else {
         setError(response.message || "Failed to create job");
@@ -79,7 +95,6 @@ export function CreateJobForm({ onNext, onBack }: Props) {
   };
 
   const handlePreview = () => {
-    // TODO: Implement preview functionality
     console.log("Preview job:", formData);
   };
 

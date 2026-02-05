@@ -94,7 +94,7 @@ export interface JobCreatePayload {
   physical_interview?: boolean | null;
   description?: string | null;
   questions?: Record<string, any> | null;
-  status?: 'draft' | 'published' | 'closed' | 'archived';
+  status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
 }
 
 export interface JobUpdatePayload extends Partial<JobCreatePayload> {}
@@ -144,7 +144,7 @@ export interface JobDetailResponse {
     physical_interview: boolean | null;
     description: string | null;
     questions: Record<string, any> | null;
-    status: 'draft' | 'published' | 'closed' | 'archived';
+status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
     created_at: string;
     updated_at: string;
   };
@@ -184,7 +184,7 @@ export async function getRecruiterJobs(params?: {
   page?: number;
   limit?: number;
   offset?: number;
-  status?: 'draft' | 'published' | 'closed' | 'archived';
+  status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
 }): Promise<JobsListResponse> {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());

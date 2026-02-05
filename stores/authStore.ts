@@ -5,6 +5,7 @@ import { devtools } from 'zustand/middleware';
 import { axiosInstance } from '@/stores/api/api-client';
 import { ENDPOINTS } from '@/stores/api/api-endpoints';
 import { formatPhoneToE164 } from '@/utils/phone';  // ✅ ADDED E.164 import
+import { updateRecruiterProfile as apiUpdateProfile } from '@/stores/api/recruiter-api';
 
 interface OtpCredential {
   target: string;
@@ -49,6 +50,7 @@ interface AuthActions {
   verifyOtp: (otp: string, loadProfile?: boolean) => Promise<{ ok: boolean; message?: string }>;
   loadRecruiterProfile: () => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (formData: FormData) => Promise<{ ok: boolean; message?: string; data?: any; errors?: Array<{ field: string; message: string }>; }>;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -231,6 +233,44 @@ export const useAuthStore = create<AuthStore>()(
           console.log('Failed to load recruiter profile:', error.response?.data || error);
         }
       },
+
+      updateProfile: async (formData) => {
+  try {
+    const result = await apiUpdateProfile(formData);
+    
+    if (result.success) {
+      // Update Zustand state with new profile data
+      set({
+        recruiterProfile: result.data.profile,
+        recruiterDocuments: result.data.documents,
+      });
+      
+      return { 
+        ok: true, 
+        message: result.message || 'Profile updated successfully',
+        data: result.data 
+      };
+    }
+    
+    return { 
+      ok: false, 
+      message: result.message || 'Failed to update profile' 
+    };
+  } catch (error: any) {
+    console.error('updateProfile error:', error.response?.data);
+    
+    // Extract validation errors if available
+    const errors = error.response?.data?.errors || [];
+    const message = error.response?.data?.message || error.message || 'Failed to update profile';
+    
+    return { 
+      ok: false, 
+      message,
+      errors 
+    };
+  }
+},
+
 
       logout: async () => {
         try {
