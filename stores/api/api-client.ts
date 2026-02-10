@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
-const HOST = 'http://localhost:4000'; // One URL for all browsers
+const HOST = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export const BASE_URL = `${HOST}/api/v1`;
 

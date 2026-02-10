@@ -70,7 +70,7 @@ export default function SmartFormPage() {
 
       // Log FormData contents for debugging
       console.log("FormData contents:");
-      for (let [key, value] of formData.entries()) {
+      for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
           console.log(key, "=>", value.name, value.size, "bytes");
         } else {
@@ -100,10 +100,13 @@ export default function SmartFormPage() {
           });
         }
       }
-    } catch (error: any) {
-      console.error("Submission error:", error);
-      toast.error(error.message || "Failed to submit form");
-    } finally {
+    }catch (error: unknown) {
+  console.error("Submission error:", error);
+  const errorMessage = error instanceof Error 
+    ? error.message 
+    : "Failed to submit form";
+  toast.error(errorMessage);
+} finally {
       setIsSubmitting(false);
     }
   };

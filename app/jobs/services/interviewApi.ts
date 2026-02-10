@@ -23,6 +23,11 @@ export interface InterviewRequest {
   created_at: string;
   updated_at: string;
 }
+interface FetchInterviewParams {
+  page: number;
+  limit: number;
+  status?: InterviewRequestStatus;
+}
 
 interface InterviewRequestsResponse {
   data: {
@@ -43,8 +48,18 @@ export async function fetchRecruiterInterviewRequests(
   status?: InterviewRequestStatus,
   page = 1,
   limit = 10
-) {
-  const params: any = { page, limit };
+): Promise<{
+  interviewRequests: InterviewRequest[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}> {
+  const params: FetchInterviewParams = { page, limit };
   if (status) params.status = status;
 
   const res = await apiRequest<InterviewRequestsResponse>(
@@ -54,6 +69,7 @@ export async function fetchRecruiterInterviewRequests(
 
   return res.data;
 }
+
 
 // POST /recruiter/interview-requests
 export async function createRecruiterInterviewRequest(input: {

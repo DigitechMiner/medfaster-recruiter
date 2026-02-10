@@ -44,6 +44,7 @@ status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
   end_date?: string | null;
   check_in_time?: string | null;
   check_out_time?: string | null;
+  urgency?: string;
 }
 
 export interface JobUpdatePayload extends Partial<JobCreatePayload> {}
@@ -60,6 +61,7 @@ export interface JobsListResponse {
       job_type: string | null;
       specializations: string[] | null;
       qualifications: string[] | null;
+      status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
       created_at: string;
       updated_at: string;
       application_count: number;

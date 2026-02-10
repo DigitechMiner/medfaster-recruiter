@@ -50,15 +50,15 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
         setIsCheckingRequest(true);
         const response = await fetchRecruiterInterviewRequests(undefined, 1, 100);
         
-        // Check if there's an existing request for this candidate and job application
+        // TypeScript now infers req type automatically from the function return type
         const existingRequest = response.interviewRequests?.find(
-          (req: any) => 
+          (req) => 
             req.candidate_id === candidateId && 
             req.job_application_id === jobApplicationId
         );
 
         setHasExistingRequest(!!existingRequest);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to check existing interview requests:", error);
       } finally {
         setIsCheckingRequest(false);
@@ -110,11 +110,19 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
       setHasExistingRequest(true);
       setIsSuccessOpen(true);
       
-    } catch (error: any) {
-      const errorMessage = 
-        error?.response?.data?.message || 
-        error?.message || 
-        "Failed to send interview request. Please try again.";
+    } catch (error: unknown) {
+      // Fixed: Use type guards to safely access error properties
+      let errorMessage = "Failed to send interview request. Please try again.";
+      
+      if (error && typeof error === 'object') {
+        if ('response' in error && error.response && typeof error.response === 'object' && 
+            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
+            'message' in error.response.data) {
+          errorMessage = String((error.response.data as { message: unknown }).message);
+        } else if ('message' in error && typeof (error as { message: unknown }).message === 'string') {
+          errorMessage = (error as { message: string }).message;
+        }
+      }
       
       console.error("Failed to send interview request:", errorMessage);
       
@@ -125,7 +133,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     } finally {
       setIsSending(false);
     }
-  };
+  }
 
   return (
     <>

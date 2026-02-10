@@ -38,7 +38,7 @@ export default function JobDetailPageRoute() {
 
     setIsClosing(true);
     try {
-      const res = await updateJob(jobId, { status: "closed" });
+      const res = await updateJob(jobId, { status: "CLOSED" });
       if (res.success) {
         setShowCloseModal(false);
         router.push("/jobs");

@@ -14,13 +14,29 @@ import {
 } from "@/components/ui/select";
 import { CustomCalendar } from "../../components/custom-calendar";
 
+// Define the formData type
+interface InstantJobFormData {
+  numberOfHires?: string;
+  amountPerHire?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  neighborhoodName?: string;
+  neighborhoodType?: string;
+  directNumber?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  province?: string;
+  city?: string;
+  country?: string;
+}
+
 interface InstantJobFieldsProps {
-  formData: any;
+  formData: InstantJobFormData;
   startDate?: Date;
   endDate?: Date;
   onStartDateChange: (date: Date) => void;
   onEndDateChange: (date: Date) => void;
-  updateFormData: (updates: any) => void;
+  updateFormData: (updates: Partial<InstantJobFormData>) => void;
 }
 
 export function InstantJobFields({

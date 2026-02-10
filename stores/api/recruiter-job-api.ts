@@ -10,7 +10,7 @@ export interface JobApplicationListResponse {
     id: string;
     job_id: string;
     candidate_id: string;
-    status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
+    status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | 'INTERVIEWING';
     created_at: string;
     updated_at: string;
     job: {

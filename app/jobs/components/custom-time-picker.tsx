@@ -1,10 +1,10 @@
 // app/jobs/components/custom-time-picker.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 interface CustomTimePickerProps {
-  selectedTime?: string; // Format: "HH:MM" (24-hour)
+  selectedTime?: string;
   onSelect: (time: string) => void;
   onCancel: () => void;
   onSelectTime: () => void;
@@ -28,10 +28,26 @@ export function CustomTimePicker({
   );
 
   // Convert to 12-hour format for display
-  const display12Hour = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+  const display12Hour = useMemo(() => {
+    const hour12 = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+    return hour12;
+  }, [hours]);
+
+  const getClockPosition = (index: number, total: number) => {
+    const angle = (index * 360) / total - 90; // Start from 12 o'clock (top)
+    const radius = 100;
+    const x = radius * Math.cos((angle * Math.PI) / 180);
+    const y = radius * Math.sin((angle * Math.PI) / 180);
+    return { x, y };
+  };
 
   const handleHourClick = (hour: number) => {
-    const adjustedHour = period === "PM" && hour !== 12 ? hour + 12 : hour === 12 && period === "AM" ? 0 : hour;
+    const adjustedHour =
+      period === "PM" && hour !== 12
+        ? hour + 12
+        : hour === 12 && period === "AM"
+        ? 0
+        : hour;
     setHours(adjustedHour);
     setMode("minutes");
   };
@@ -50,18 +66,19 @@ export function CustomTimePicker({
   };
 
   const handleSelectTime = () => {
-    const formattedTime = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    const formattedTime = `${String(hours).padStart(2, "0")}:${String(
+      minutes
+    ).padStart(2, "0")}`;
     onSelect(formattedTime);
     onSelectTime();
   };
 
-  const getClockPosition = (index: number, total: number) => {
-    const angle = (index * 360) / total - 90;
-    const radius = 100;
-    const x = radius * Math.cos((angle * Math.PI) / 180);
-    const y = radius * Math.sin((angle * Math.PI) / 180);
-    return { x, y };
-  };
+  // ✅ FIXED: Only calculate angles, removed unused position variables
+  const hourIndex = display12Hour === 12 ? 0 : display12Hour;
+  const hourHandAngle = hourIndex * 30; // 30 degrees per hour
+  
+  const minuteIndex = minutes / 5;
+  const minuteHandAngle = minuteIndex * 30; // 30 degrees per 5 minutes
 
   return (
     <div className="w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-200 p-6">
@@ -94,7 +111,7 @@ export function CustomTimePicker({
           onClick={() => setMode("minutes")}
           className={`w-20 h-20 text-4xl font-semibold rounded-lg transition-all ${
             mode === "minutes"
-              ? "bg-gray-200 text-gray-900 border-2 border-[#F4781B]"
+              ? "bg-[#F4781B]/10 text-[#F4781B] border-2 border-[#F4781B]"
               : "bg-gray-100 text-gray-700 border-2 border-transparent"
           }`}
         >
@@ -137,7 +154,7 @@ export function CustomTimePicker({
         {mode === "hours" ? (
           // Hours (1-12)
           Array.from({ length: 12 }, (_, i) => {
-            const hour = i + 1;
+            const hour = i === 0 ? 12 : i;
             const pos = getClockPosition(i, 12);
             const isSelected = display12Hour === hour;
 
@@ -146,9 +163,9 @@ export function CustomTimePicker({
                 key={hour}
                 type="button"
                 onClick={() => handleHourClick(hour)}
-                className={`absolute w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-all ${
+                className={`absolute w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-all z-20 ${
                   isSelected
-                    ? "bg-[#F4781B] text-white scale-110"
+                    ? "bg-[#F4781B] text-white scale-110 shadow-lg"
                     : "text-gray-700 hover:bg-gray-200"
                 }`}
                 style={{
@@ -172,9 +189,9 @@ export function CustomTimePicker({
                 key={minute}
                 type="button"
                 onClick={() => handleMinuteClick(minute)}
-                className={`absolute w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-all ${
+                className={`absolute w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-all z-20 ${
                   isSelected
-                    ? "bg-[#F4781B] text-white scale-110"
+                    ? "bg-[#F4781B] text-white scale-110 shadow-lg"
                     : "text-gray-700 hover:bg-gray-200"
                 }`}
                 style={{
@@ -188,27 +205,37 @@ export function CustomTimePicker({
           })
         )}
 
-        {/* Center Dot & Hand */}
+        {/* Clock Hands */}
         {mode === "hours" && (
           <>
-            <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-[#F4781B] rounded-full -translate-x-1/2 -translate-y-1/2 z-10" />
+            {/* Hour hand line */}
             <div
-              className="absolute top-1/2 left-1/2 w-1 bg-[#F4781B] origin-bottom -translate-x-1/2"
+              className="absolute top-1/2 left-1/2 w-1 bg-[#F4781B] origin-bottom transition-transform duration-300 z-10"
               style={{
-                height: "80px",
-                transform: `translate(-50%, -100%) rotate(${
-                  ((display12Hour % 12) * 30 - 90)
-                }deg)`,
-                transformOrigin: "bottom center",
+                height: "70px",
+                transform: `translate(-50%, -100%) rotate(${hourHandAngle}deg)`,
               }}
             />
+            
+            {/* Center dot */}
+            <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-[#F4781B] rounded-full -translate-x-1/2 -translate-y-1/2 z-30" />
+          </>
+        )}
+
+        {/* Minute hand */}
+        {mode === "minutes" && (
+          <>
+            {/* Minute hand line */}
             <div
-              className="absolute w-10 h-10 bg-[#F4781B] rounded-full"
+              className="absolute top-1/2 left-1/2 w-1 bg-[#F4781B] origin-bottom transition-transform duration-300 z-10"
               style={{
-                left: `calc(50% + ${getClockPosition((display12Hour % 12) - 1, 12).x}px - 20px)`,
-                top: `calc(50% + ${getClockPosition((display12Hour % 12) - 1, 12).y}px - 20px)`,
+                height: "85px",
+                transform: `translate(-50%, -100%) rotate(${minuteHandAngle}deg)`,
               }}
             />
+            
+            {/* Center dot */}
+            <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-[#F4781B] rounded-full -translate-x-1/2 -translate-y-1/2 z-30" />
           </>
         )}
       </div>

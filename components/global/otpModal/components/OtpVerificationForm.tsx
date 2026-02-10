@@ -219,7 +219,7 @@ export default function OtpVerificationForm({
       </form>
 
       <p className="mt-4 text-center text-sm text-[#717680]">
-        Didn't receive the code?{" "}
+          Didn&apos;t receive the code?{" "}
         <button
           type="button"
           onClick={handleResendClick}

@@ -61,10 +61,13 @@ export default function RecruiterConversationPage() {
         if (!mounted) return;
         setMessages(data.messages || []);
         console.log("📥 Loaded", data.messages?.length || 0, "messages");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load messages:", err);
         if (mounted) {
-          setError(err?.message || "Failed to load messages");
+          const errorMessage = err instanceof Error 
+            ? err.message 
+            : "Failed to load messages";
+          setError(errorMessage);
         }
       } finally {
         if (mounted) {
@@ -168,9 +171,12 @@ export default function RecruiterConversationPage() {
         console.log("✏️ Edit saved");
         setEditingId(null);
         setEditingText("");
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Edit failed:", err);
-        alert(err?.message || "Failed to edit message");
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : "Failed to edit message";
+        alert(errorMessage);
       }
       return;
     }
@@ -181,10 +187,13 @@ export default function RecruiterConversationPage() {
     try {
       await sendChatMessage(conversationId, trimmed);
       console.log("📤 Message sent successfully");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("❌ Send failed:", err);
       setInput(trimmed);
-      alert(err?.message || "Failed to send message");
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : "Failed to send message";
+      alert(errorMessage);
     } finally {
       setSending(false);
     }
@@ -206,9 +215,12 @@ export default function RecruiterConversationPage() {
     try {
       await deleteChatMessage(messageId);
       console.log("🗑️ Delete requested");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Delete failed:", err);
-      alert(err?.message || "Failed to delete message");
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : "Failed to delete message";
+      alert(errorMessage);
     }
   };
 

@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
 import type { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
@@ -16,7 +15,6 @@ interface Props {
 }
 
 export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
-  const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
   
   const [formData, setFormData] = useState<JobFormData>({
@@ -60,13 +58,6 @@ const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
   };
 };
 
-
-  const formatDateForBackend = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

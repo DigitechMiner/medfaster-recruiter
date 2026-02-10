@@ -66,10 +66,14 @@ export default function MessagesPage() {
         if (mounted) {
           setConversations(data || []);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to load conversations:', err);
         if (mounted) {
-          setError(err?.message || 'Failed to load conversations');
+          // Type guard for error message
+          const errorMessage = err instanceof Error 
+            ? err.message 
+            : 'Failed to load conversations';
+          setError(errorMessage);
         }
       } finally {
         if (mounted) {
@@ -93,9 +97,13 @@ export default function MessagesPage() {
     try {
       const conversation = await createOrGetChatConversation(candidateId.trim());
       router.push(`/messages/${conversation.id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create conversation:', err);
-      alert('Failed to start conversation. Please check the Candidate ID.');
+      // Type guard for error message
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to start conversation. Please check the Candidate ID.';
+      alert(errorMessage);
     } finally {
       setCreatingChat(false);
     }

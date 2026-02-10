@@ -5,7 +5,7 @@
 export const JOB_TYPES: Record<string, string> = {
   "Part Time": "parttime",
   "Full Time": "fulltime",
-  "Freelancer": "freelancer",
+  "Casual": "casual",
 };
 
 /**

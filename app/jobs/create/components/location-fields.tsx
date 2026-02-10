@@ -19,7 +19,7 @@ interface LocationFieldsProps {
     city?: string;
     country?: string;
   };
-  updateFormData: (updates: any) => void;
+  updateFormData: (updates: Partial<LocationFieldsProps['formData']>) => void;
 }
 
 export function LocationFields({ formData, updateFormData }: LocationFieldsProps) {

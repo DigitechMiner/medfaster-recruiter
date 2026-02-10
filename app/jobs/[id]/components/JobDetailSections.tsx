@@ -91,16 +91,17 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
           <div className="flex items-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-xs font-medium ${
-                job.status === "published"
+                job.status === "OPEN"
                   ? "bg-green-100 text-green-700"
-                  : job.status === "draft"
+                  : job.status === "DRAFT"
                   ? "bg-gray-100 text-gray-700"
-                  : job.status === "closed"
+                  : job.status === "CLOSED"
                   ? "bg-red-100 text-red-700"
                   : "bg-blue-100 text-blue-700"
               }`}
             >
-              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+              {job.status?.charAt(0).toUpperCase() + (job.status?.slice(1).toLowerCase() || "") || "Unknown"}
+
             </span>
           </div>
         </div>

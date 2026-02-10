@@ -5,16 +5,10 @@ import { AppLayout } from "@/components/global/app-layout";
 
 type CalendarView = "day" | "week" | "month";
 
-const weekdays = ["Mon 06", "Tue 07", "Wed 08", "Thu 09", "Fri 10", "Sat 11", "Sun 12"];
 const monthWeekdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
 const timeslots = [
-  "09:00 AM",
-  "09:30 AM",
-  "10:00 AM",
-  "10:30 PM",
-  "11:00 PM",
-  "11:30 PM",
+  "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
 ];
 
 interface EventItem {
@@ -29,55 +23,91 @@ interface EventItem {
 const sampleEvents: EventItem[] = [
   { title: "Dr. Noah Liam", experience: "5+ yrs", type: "Part-Time", dateIdx: 0, slotIdx: 0, time: "09:00 AM - 09:30 AM" },
   { title: "Dr. Noah Liam", experience: "2.5+ yrs", type: "Part-Time", dateIdx: 0, slotIdx: 1, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 1, slotIdx: 1, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 1, slotIdx: 2, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Noah Liam", experience: "2+ yrs", type: "Part-Time", dateIdx: 0, slotIdx: 3, time: "10:30 AM - 11:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 3, slotIdx: 0, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 3, slotIdx: 1, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 5, slotIdx: 0, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 2, slotIdx: 4, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Jane Cooper", experience: "5+ yrs", type: "Part-Time", dateIdx: 6, slotIdx: 3, time: "09:30 AM - 10:00 AM" },
-  { title: "Dr. Noah Liam", experience: "4+ yrs", type: "Part-Time", dateIdx: 0, slotIdx: 5, time: "11:30 AM - 12:00 PM" },
+  // ... rest of your events
 ];
 
-// Month calendar data
-const monthData = [
-  { day: 28, month: "prev", events: ["Dr. Noah Liam"] },
-  { day: 29, month: "prev", events: [] },
-  { day: 30, month: "prev", events: [] },
-  { day: 1, month: "current", label: "1 Oct", events: [] },
-  { day: 2, month: "current", events: [] },
-  { day: 3, month: "current", events: [] },
-  { day: 4, month: "current", events: [] },
-  { day: 5, month: "current", events: ["Dr. Noah Liam"] },
-  { day: 6, month: "current", events: [] },
-  { day: 7, month: "current", events: [] },
-  { day: 8, month: "current", events: [] },
-  { day: 9, month: "current", events: ["Dr. Noah Liam", "Dr. Noah Liam", "Dr. Noah Liam"] },
-  { day: 10, month: "current", events: [] },
-  { day: 11, month: "current", events: [] },
-  { day: 12, month: "current", events: [] },
-  { day: 13, month: "current", events: [] },
-  { day: 14, month: "current", events: ["Dr. Noah Liam", "Dr. Noah Liam"] },
-  { day: 15, month: "current", events: [] },
-  { day: 16, month: "current", events: [] },
-  { day: 17, month: "current", events: [] },
-  { day: 18, month: "current", events: [] },
-  { day: 19, month: "current", events: [] },
-  { day: 20, month: "current", events: [] },
-  { day: 21, month: "current", events: [] },
-  { day: 22, month: "current", events: [] },
-  { day: 23, month: "current", events: ["Dr. Noah Liam", "Dr. Noah Liam"] },
-  { day: 24, month: "current", events: [] },
-  { day: 25, month: "current", events: [] },
-  { day: 26, month: "current", events: ["Dr. Noah Liam", "Dr. Noah Liam", "Dr. Noah Liam"] },
-  { day: 27, month: "current", events: [] },
-  { day: 28, month: "current", events: [] },
-  { day: 29, month: "current", events: [] },
-  { day: 30, month: "current", events: [] },
-  { day: 31, month: "current", events: [] },
-  { day: 1, month: "next", label: "1 Nov", events: [] },
-];
+// Helper functions for date manipulation
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 1).getDay();
+}
+
+function generateMonthData(year: number, month: number) {
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+  const daysInPrevMonth = getDaysInMonth(year, month - 1);
+  
+  const monthData = [];
+  
+  // Previous month days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    monthData.push({
+      day: daysInPrevMonth - i,
+      month: "prev" as const,
+      events: [],
+    });
+  }
+  
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    monthData.push({
+      day,
+      month: "current" as const,
+      label: day === 1 ? `1 ${getMonthName(month)}` : undefined,
+      events: [], // You can add logic to fetch events for specific dates
+    });
+  }
+  
+  // Next month days to fill the grid
+  const remainingDays = 35 - monthData.length;
+  for (let day = 1; day <= remainingDays; day++) {
+    monthData.push({
+      day,
+      month: "next" as const,
+      label: day === 1 ? `1 ${getMonthName((month + 1) % 12)}` : undefined,
+      events: [],
+    });
+  }
+  
+  return monthData;
+}
+
+function getMonthName(month: number): string {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return months[month];
+}
+
+function getMonthFullName(month: number): string {
+  const months = ["January", "February", "March", "April", "May", "June", 
+                  "July", "August", "September", "October", "November", "December"];
+  return months[month];
+}
+
+function formatDate(date: Date): string {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = getMonthFullName(date.getMonth());
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+function getWeekDays(date: Date): string[] {
+  const days = [];
+  const currentDay = date.getDay();
+  const diff = date.getDate() - currentDay + (currentDay === 0 ? -6 : 1); // Adjust to Monday
+  
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(date);
+    day.setDate(diff + i);
+    const dayName = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i];
+    const dayNum = day.getDate().toString().padStart(2, '0');
+    days.push(`${dayName} ${dayNum}`);
+  }
+  
+  return days;
+}
 
 function EventCard({ event }: { event: EventItem }) {
   return (
@@ -96,12 +126,13 @@ function EventCard({ event }: { event: EventItem }) {
   );
 }
 
-function CalendarWeekView() {
+function CalendarWeekView({ currentDate }: { currentDate: Date }) {
+  const weekdays = getWeekDays(currentDate);
+  
   return (
     <div className="bg-white rounded-xl border border-[#E9EAEB] overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[1100px]">
-          {/* Header */}
           <div className="grid grid-cols-[100px_repeat(7,1fr)] border-b border-[#E9EAEB]">
             <div className="p-4"></div>
             {weekdays.map((day, idx) => (
@@ -111,7 +142,6 @@ function CalendarWeekView() {
             ))}
           </div>
 
-          {/* Time slots */}
           {timeslots.map((slot, slotIdx) => (
             <div key={slotIdx} className="grid grid-cols-[100px_repeat(7,1fr)] border-b border-[#E9EAEB] last:border-b-0">
               <div className="p-4 text-right pr-3 text-[11px] text-[#8E8E93]">
@@ -135,8 +165,17 @@ function CalendarWeekView() {
   );
 }
 
-function CalendarDayView() {
-  const dayEvents = sampleEvents.filter((e) => e.dateIdx === 0);
+function CalendarDayView({ currentDate }: { currentDate: Date }) {
+  // Calculate the dateIdx based on currentDate
+  // Assuming dateIdx 0 is today, 1 is tomorrow, etc.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(currentDate);
+  targetDate.setHours(0, 0, 0, 0);
+  
+  const dateIdx = Math.floor((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  
+  const dayEvents = sampleEvents.filter((e) => e.dateIdx === dateIdx);
 
   return (
     <div className="bg-white rounded-xl border border-[#E9EAEB] overflow-hidden">
@@ -157,10 +196,12 @@ function CalendarDayView() {
   );
 }
 
-function CalendarMonthView() {
+
+function CalendarMonthView({ currentDate }: { currentDate: Date }) {
+  const monthData = generateMonthData(currentDate.getFullYear(), currentDate.getMonth());
+  
   return (
     <div className="bg-white rounded-xl border border-[#E9EAEB] overflow-hidden p-4">
-      {/* Weekday headers */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {monthWeekdays.map((day) => (
           <div key={day} className="text-center text-[11px] font-semibold text-[#8E8E93] py-2">
@@ -169,12 +210,10 @@ function CalendarMonthView() {
         ))}
       </div>
 
-      {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-2">
         {monthData.map((item, index) => {
           const isPrevMonth = item.month === "prev";
           const isNextMonth = item.month === "next";
-          const isCurrentMonth = item.month === "current";
 
           return (
             <div
@@ -212,38 +251,64 @@ function CalendarMonthView() {
 
 export default function CalendarPage() {
   const [view, setView] = useState<CalendarView>("day");
-  const [selectedDate, setSelectedDate] = useState("06 October 2025");
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    
+    if (view === 'day') {
+      newDate.setDate(currentDate.getDate() + (direction === 'next' ? 1 : -1));
+    } else if (view === 'week') {
+      newDate.setDate(currentDate.getDate() + (direction === 'next' ? 7 : -7));
+    } else if (view === 'month') {
+      newDate.setMonth(currentDate.getMonth() + (direction === 'next' ? 1 : -1));
+    }
+    
+    setCurrentDate(newDate);
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
 
   const getTitle = () => {
-    if (view === "month") return "October 2025";
-    return selectedDate;
+    if (view === "month") {
+      return `${getMonthFullName(currentDate.getMonth())} ${currentDate.getFullYear()}`;
+    }
+    return formatDate(currentDate);
   };
 
   return (
-    <>
-      <AppLayout padding="none">
+    <AppLayout padding="none">
       <div className="w-full min-h-screen bg-[#F9F8F6] px-6 py-6">
         <div className="max-w-[1400px] mx-auto">
-          {/* Toolbar */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <button className="bg-white border border-[#D1D5DB] text-[#374151] font-medium px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
+              <button 
+                onClick={goToToday}
+                className="bg-white border border-[#D1D5DB] text-[#374151] font-medium px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition"
+              >
                 Today
               </button>
               <div className="flex items-center gap-2">
-                <button className="p-1 hover:bg-gray-100 rounded transition">
+                <button 
+                  onClick={() => navigateDate('prev')}
+                  className="p-1 hover:bg-gray-100 rounded transition"
+                >
                   <ChevronLeft className="w-5 h-5 text-[#374151]" />
                 </button>
-                <span className="font-medium text-[15px] text-[#252B37] min-w-[160px] text-center">
+                <span className="font-medium text-[15px] text-[#252B37] min-w-[200px] text-center">
                   {getTitle()}
                 </span>
-                <button className="p-1 hover:bg-gray-100 rounded transition">
+                <button 
+                  onClick={() => navigateDate('next')}
+                  className="p-1 hover:bg-gray-100 rounded transition"
+                >
                   <ChevronRight className="w-5 h-5 text-[#374151]" />
                 </button>
               </div>
             </div>
 
-            {/* View selector */}
             <div className="relative">
               <select
                 value={view}
@@ -265,13 +330,11 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* Calendar content */}
-          {view === "day" && <CalendarDayView />}
-          {view === "week" && <CalendarWeekView />}
-          {view === "month" && <CalendarMonthView />}
+          {view === "day" && <CalendarDayView currentDate={currentDate} />}
+          {view === "week" && <CalendarWeekView currentDate={currentDate} />}
+          {view === "month" && <CalendarMonthView currentDate={currentDate} />}
         </div>
       </div>
-      </AppLayout>
-    </>
+    </AppLayout>
   );
 }

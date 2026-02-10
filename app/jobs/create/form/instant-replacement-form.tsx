@@ -1,10 +1,9 @@
-// app/jobs/instant-replacement/form/instant-replacement-form.tsx
+// app/jobs/create/form/instant-replacement-form.tsx
 "use client";
 
 import { useState } from "react";
 import { useJobsStore } from "@/stores/jobs-store";
 import { JobCreatePayload, JobFormData } from "@/Interface/job.types";
-import { BUTTON_LABELS } from "../../constants/messages";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
 
@@ -14,7 +13,8 @@ interface Props {
   onBack?: () => void;
 }
 
-export function InstantReplacementForm({ urgencyMode, onNext, onBack }: Props) {
+// Fix: Remove unused urgencyMode or prefix with underscore
+export function InstantReplacementForm({ urgencyMode: _urgencyMode, onNext, onBack }: Props) {
   const createJob = useJobsStore((state) => state.createJob);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +22,23 @@ export function InstantReplacementForm({ urgencyMode, onNext, onBack }: Props) {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
-  const [formData, setFormData] = useState<JobFormData & any>({
+  // Fix: Define interface for instant-specific fields
+  interface InstantJobFormData extends JobFormData {
+    numberOfHires?: string;
+    amountPerHire?: string;
+    checkInTime?: string;
+    checkOutTime?: string;
+    neighborhoodName?: string;
+    neighborhoodType?: string;
+    directNumber?: string;
+    streetAddress?: string;
+    postalCode?: string;
+    province?: string;
+    city?: string;
+    country?: string;
+  }
+
+  const [formData, setFormData] = useState<InstantJobFormData>({
     jobTitle: "",
     department: "",
     jobType: "Full Time",
@@ -50,8 +66,9 @@ export function InstantReplacementForm({ urgencyMode, onNext, onBack }: Props) {
     country: "Canada",
   });
 
-  const updateFormData = (updates: any) => {
-    setFormData((prev: any) => ({ ...prev, ...updates }));
+  // Fix: Type the updates parameter properly
+  const updateFormData = (updates: Partial<InstantJobFormData>) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   const formatDateForBackend = (date?: Date): string | null => {
@@ -62,64 +79,62 @@ export function InstantReplacementForm({ urgencyMode, onNext, onBack }: Props) {
     return `${year}-${month}-${day}`;
   };
 
-// app/jobs/instant-replacement/form/instant-replacement-form.tsx
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!startDate || !endDate) {
-    setError("Start and end dates are required");
-    return;
-  }
-  
-  if (endDate < startDate) {
-    setError("End date must be after start date");
-    return;
-  }
-
-  setIsSubmitting(true);
-  setError(null);
-
-  try {
-    const backendData: JobCreatePayload = {
-      job_title: formData.jobTitle,
-      department: formData.department || null,
-      job_type: "fulltime",
-      location: `${formData.streetAddress}, ${formData.city}, ${formData.province}`,
-      pay_range_min: Number(formData.amountPerHire.replace(/\D/g, "")) || null,
-      pay_range_max: Number(formData.amountPerHire.replace(/\D/g, "")) || null,
-      years_of_experience: null,
-      qualifications: null,
-      specializations: null,
-      job_urgency: "instant",
-      ai_interview: true, // REQUIRED - set to true for instant jobs
-      in_person_interview: true,
-      physical_interview: true,
-      description: formData.description || null,
-      questions: null,
-      status: "DRAFT",
-      numberOfHires: formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
-      start_date: formatDateForBackend(startDate),
-      end_date: formatDateForBackend(endDate),
-      check_in_time: formData.checkInTime, // Use check_in_time
-      check_out_time: formData.checkOutTime, // Use check_out_time
-    };
-
-    const response = await createJob(backendData);
-
-    if (response.success) {
-      sessionStorage.setItem("createdJobId", response.data.job.id);
-      if (onNext) onNext();
-    } else {
-      setError(response.message || "Failed to create instant replacement");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!startDate || !endDate) {
+      setError("Start and end dates are required");
+      return;
     }
-  } catch (err) {
-    const error = err as Error;
-    setError(error.message || "An error occurred");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    
+    if (endDate < startDate) {
+      setError("End date must be after start date");
+      return;
+    }
 
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const backendData: JobCreatePayload = {
+        job_title: formData.jobTitle,
+        department: formData.department || null,
+        job_type: "fulltime",
+        location: `${formData.streetAddress}, ${formData.city}, ${formData.province}`,
+        pay_range_min: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
+        pay_range_max: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
+        years_of_experience: null,
+        qualifications: null,
+        specializations: null,
+        job_urgency: "instant",
+        ai_interview: true,
+        in_person_interview: true,
+        physical_interview: true,
+        description: formData.description || null,
+        questions: null,
+        status: "DRAFT",
+        numberOfHires: formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
+        start_date: formatDateForBackend(startDate),
+        end_date: formatDateForBackend(endDate),
+        check_in_time: formData.checkInTime,
+        check_out_time: formData.checkOutTime,
+      };
+
+      const response = await createJob(backendData);
+
+      if (response.success) {
+        sessionStorage.setItem("createdJobId", response.data.job.id);
+        if (onNext) onNext();
+      } else {
+        setError(response.message || "Failed to create instant replacement");
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || "An error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <>
