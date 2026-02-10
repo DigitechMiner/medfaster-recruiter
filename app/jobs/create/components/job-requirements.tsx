@@ -1,4 +1,3 @@
-// app/jobs/create/components/job-requirements.tsx
 "use client";
 
 import { useState } from "react";
@@ -8,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import metadata from "@/utils/constant/metadata";
+import type { JobFormData } from "@/Interface/job.types"; // ADD THIS IMPORT
 
 const PAY_RANGE_MIN = metadata.pay_range.min;
 const PAY_RANGE_MAX = metadata.pay_range.max;
@@ -15,16 +15,9 @@ const PAY_RANGE_STEP = metadata.pay_range.step;
 const EXPERIENCE_MIN = 0;
 const EXPERIENCE_MAX = 20;
 
-interface FormData {
-  payRange: [number, number];
-  experience: string;
-  qualification: string[];
-  specialization: string[];
-}
-
 interface JobRequirementsProps {
-  formData: FormData;
-  updateFormData: (updates: Partial<FormData>) => void;
+  formData: JobFormData; // CHANGE from FormData to JobFormData
+  updateFormData: (updates: Partial<JobFormData>) => void; // CHANGE from FormData to JobFormData
 }
 
 export function JobRequirements({
@@ -41,9 +34,14 @@ export function JobRequirements({
 
   const addTag = (field: "qualification" | "specialization", value: string) => {
     if (value.trim() && !formData[field].includes(value.trim())) {
+      console.log(`➕ Adding ${field}:`, value.trim());
+      console.log(`📋 Current ${field}:`, formData[field]);
+      
       updateFormData({
         [field]: [...formData[field], value.trim()],
       });
+      
+      console.log(`✅ Updated ${field}:`, [...formData[field], value.trim()]);
     }
   };
 
@@ -51,6 +49,8 @@ export function JobRequirements({
     field: "qualification" | "specialization",
     tagToRemove: string
   ) => {
+    console.log(`➖ Removing ${field}:`, tagToRemove);
+    
     updateFormData({
       [field]: formData[field].filter((tag) => tag !== tagToRemove),
     });
@@ -68,6 +68,14 @@ export function JobRequirements({
       setInputValue("");
     }
   };
+
+  // Add debug info
+  console.log('🔍 JobRequirements render:', {
+    qualifications: formData.qualification,
+    qualificationsLength: formData.qualification?.length,
+    specializations: formData.specialization,
+    specializationsLength: formData.specialization?.length,
+  });
 
   return (
     <div className="space-y-6 mb-6">
@@ -123,7 +131,7 @@ export function JobRequirements({
         {/* Additional Qualification */}
         <div className="space-y-3">
           <Label htmlFor="qualification" className="text-sm font-medium text-gray-700">
-            Additional Qualification
+            Additional Qualification <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -140,34 +148,38 @@ export function JobRequirements({
                   setQualificationInput
                 )
               }
-              placeholder="Neurol"
+              placeholder="Type and press Enter to add"
               className="pl-10 h-11 border-[#F4781B] focus:ring-[#F4781B]"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {formData.qualification.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 text-sm rounded-md"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag("qualification", tag)}
-                  className="ml-2 hover:text-gray-900"
+            {formData.qualification && formData.qualification.length > 0 ? (
+              formData.qualification.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 text-sm rounded-md"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag("qualification", tag)}
+                    className="ml-2 hover:text-gray-900"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))
+            ) : (
+              <p className="text-xs text-gray-500">No qualifications added yet. Press Enter to add.</p>
+            )}
           </div>
         </div>
 
         {/* Specialization */}
         <div className="space-y-3">
           <Label htmlFor="specialization" className="text-sm font-medium text-gray-700">
-            Specialization
+            Specialization <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -184,27 +196,31 @@ export function JobRequirements({
                   setSpecializationInput
                 )
               }
-              placeholder="Neurol"
+              placeholder="Type and press Enter to add"
               className="pl-10 h-11"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {formData.specialization.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 text-sm rounded-md"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag("specialization", tag)}
-                  className="ml-2 hover:text-gray-900"
+            {formData.specialization && formData.specialization.length > 0 ? (
+              formData.specialization.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 text-sm rounded-md"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag("specialization", tag)}
+                    className="ml-2 hover:text-gray-900"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))
+            ) : (
+              <p className="text-xs text-gray-500">No specializations added yet. Press Enter to add.</p>
+            )}
           </div>
         </div>
       </div>

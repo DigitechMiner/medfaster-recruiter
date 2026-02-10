@@ -1,4 +1,3 @@
-// app/jobs/components/JobForm.tsx
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -12,35 +11,11 @@ import { TopActionBar } from "@/components/custom/top-action-bar";
 import { Topic } from "../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS } from "../constants/messages";
 import { LocationFields } from "../create/components/location-fields";
-
-export interface JobFormData {
-  jobTitle: string;
-  department: string;
-  jobType: string;
-  location: string;
-  payRange: [number, number];
-  experience: string;
-  qualification: string[];
-  specialization: string[];
-  urgency: string;
-  inPersonInterview: string;
-  physicalInterview: string;
-  description: string;
-  streetAddress?: string;
-  postalCode?: string;
-  province?: string;
-  city?: string;
-  country?: string;
-  numberOfHires?: string;
-  tillDate1?: Date;
-  tillDate2?: Date;
-  fromTime?: string;
-  toTime?: string;
-}
+import type { JobFormData } from "@/Interface/job.types";
 
 interface JobFormProps {
   mode: "create" | "edit";
-  formData: JobFormData;
+  formData: JobFormData; // This now uses the imported type
   updateFormData: (updates: Partial<JobFormData>) => void;
   topics?: Topic[];
   onAddQuestion?: (topicId: string) => void;
@@ -58,7 +33,6 @@ interface JobFormProps {
   backLabel?: string;
   nextLabel?: string;
   wrapperClassName?: string;
-  // NEW: Allow custom sections
   customSections?: React.ReactNode;
   hideRequirements?: boolean;
   hideInterviewSettings?: boolean;
@@ -131,7 +105,6 @@ export function JobForm({
 
           <JobBasicInfo formData={formData} updateFormData={updateFormData} />
 
-          {/* Render custom sections (for instant replacement fields) */}
           {customSections}
 
           {!hideRequirements && (
@@ -147,10 +120,11 @@ export function JobForm({
               updateFormData={updateFormData}
             />
           )}
+          
           <LocationFields
-  formData={formData}
-  updateFormData={updateFormData}
-/>
+            formData={formData}
+            updateFormData={updateFormData}
+          />
 
           <JobDescription
             formData={formData}
@@ -222,3 +196,6 @@ export function JobForm({
     </div>
   );
 }
+
+// Export the type for other files that might import from here
+export type { JobFormData };

@@ -58,59 +58,52 @@ export default function EditJobPage() {
   };
 
   // Convert backend job data to frontend form data
-  const convertBackendToFormData = useCallback(
-    (job: JobBackendResponse): JobFormData => {
-      // Convert job_type from backend value to frontend display value
-      const jobType = convertToFrontendValue(job.job_type);
+const convertBackendToFormData = useCallback(
+  (job: JobBackendResponse): JobFormData => {
+    const jobType = convertToFrontendValue(job.job_type);
 
-      // Map urgency: backend uses lowercase, frontend uses capitalized
-      let urgency = "High";
-      if (job.urgency) {
-        const urgencyLower = job.urgency.toLowerCase();
-        if (urgencyLower === "high") urgency = "High";
-        else if (urgencyLower === "medium") urgency = "Medium";
-        else if (urgencyLower === "low") urgency = "Low";
-      }
+    const jobTitle = findMatchingDropdownValue(job.job_title, JOB_TITLES);
+    const department = findMatchingDropdownValue(job.department, DEPARTMENTS);
+    const experience = findMatchingDropdownValue(job.years_of_experience, EXPERIENCES);
 
-      // Map job title to dropdown options
-      const jobTitle = findMatchingDropdownValue(
-        job.job_title,
-        JOB_TITLES
-      );
-
-      // Map department to dropdown options
-      const department = findMatchingDropdownValue(
-        job.department,
-        DEPARTMENTS
-      );
-
-      // Map experience to dropdown options
-      const experience = findMatchingDropdownValue(
-        job.years_of_experience,
-        EXPERIENCES
-      );
-
-      return {
-        jobTitle,
-        department,
-        jobType,
-        location: job.location || "",
-        payRange: [
-          job.pay_range_min || 0,
-          job.pay_range_max || 0,
-        ] as [number, number],
-        experience,
-        qualification: job.qualifications || [],
-        specialization: job.specializations || [],
-        urgency,
-        inPersonInterview: job.in_person_interview ? "Yes" : "No",
-        physicalInterview: job.physical_interview ? "Yes" : "No",
-        description: job.description || "",
-      };
-    },
-    []
-  );
-
+    return {
+      jobTitle,
+      department,
+      jobType,
+      location: job.location || "",
+      payRange: [
+        job.pay_range_min || 0,
+        job.pay_range_max || 0,
+      ] as [number, number],
+      experience,
+      qualification: job.qualifications || [],
+      specialization: job.specializations || [],
+      urgency: job.job_urgency || "normal",
+      inPersonInterview: job.in_person_interview ? "Yes" : "No",
+      physicalInterview: job.physical_interview ? "Yes" : "No",
+      aiInterview: job.ai_interview ? "Yes" : "No",
+      description: job.description || "",
+      status: job.status || 'DRAFT',
+      
+      // Location details
+      streetAddress: job.street || undefined,
+      postalCode: job.postal_code || undefined,
+      province: job.province || undefined,
+      city: job.city || undefined,
+      country: undefined, // Not in backend
+      
+      // Date and time fields
+      fromDate: job.start_date ? new Date(job.start_date) : undefined,
+      tillDate: job.end_date ? new Date(job.end_date) : undefined,
+      fromTime: job.check_in_time || undefined,
+      toTime: job.check_out_time || undefined,
+      
+      // Other fields
+      numberOfHires: job.no_of_hires?.toString() || undefined,
+    };
+  },
+  []
+);
   // Convert backend questions to topics format
   const convertQuestionsToTopics = (
     questions: Record<string, { title: string; questions: string[] }> | null
@@ -145,32 +138,111 @@ export default function EditJobPage() {
   };
 
   // Convert frontend format to backend format
-  const convertToBackendFormat = (
-    data: JobFormData,
-    questionsData: Record<string, { title: string; questions: string[] }>
-  ): JobUpdatePayload => {
-    // Convert frontend job type value to backend value
-    const jobType = convertToBackendValue(data.jobType);
+const convertToBackendFormat = (
+  data: JobFormData,
+  questionsData: Record<string, { title: string; questions: string[] }>
+): JobUpdatePayload => {
+  const jobType = convertToBackendValue(data.jobType);
+  const isNormalJob = data.urgency === 'normal';
 
-    return {
-      job_title: data.jobTitle,
-      department: data.department || null,
-      job_type: jobType,
-      location: data.location || null,
-      pay_range_min: data.payRange[0] || null,
-      pay_range_max: data.payRange[1] || null,
-      years_of_experience: data.experience || null,
-      qualifications:
-        data.qualification.length > 0 ? data.qualification : null,
-      specializations:
-        data.specialization.length > 0 ? data.specialization : null,
-      urgency: data.urgency.toLowerCase(),
-      in_person_interview: data.inPersonInterview === "Yes",
-      physical_interview: data.physicalInterview === "Yes",
-      description: data.description || null,
-      questions: questionsData,
-    };
+  console.log('🔍 CONVERSION START:', {
+    urgency: data.urgency,
+    isNormalJob,
+    qualification: data.qualification,
+    specialization: data.specialization,
+  });
+
+  // Build the base payload
+  const payload: Record<string, any> = {
+    job_title: data.jobTitle,
+    department: data.department || null,
+    job_type: jobType,
+    street: data.streetAddress || null,
+    postal_code: data.postalCode || null,
+    province: data.province || null,
+    city: data.city || null,
+    pay_range_min: data.payRange[0] || null,
+    pay_range_max: data.payRange[1] || null,
+    job_urgency: data.urgency,
+    in_person_interview: data.inPersonInterview === "Yes",
+    physical_interview: data.physicalInterview === "Yes",
+    description: data.description || null,
+    questions: questionsData,
+    status: data.status,
   };
+
+  // Add number of hires if provided
+  if (data.numberOfHires && data.numberOfHires.trim() !== '') {
+    const parsed = parseInt(data.numberOfHires);
+    if (!isNaN(parsed)) {
+      payload.no_of_hires = parsed;
+    }
+  }
+
+  if (isNormalJob) {
+    console.log('📝 Processing NORMAL job');
+    
+    // Years of experience
+    if (data.experience && data.experience.trim() !== '') {
+      payload.years_of_experience = data.experience;
+    }
+
+    // Qualifications - filter and only add if has valid items
+    if (Array.isArray(data.qualification)) {
+      const validQualifications = data.qualification.filter(
+        q => q && typeof q === 'string' && q.trim() !== ''
+      );
+      
+      if (validQualifications.length > 0) {
+        payload.qualifications = validQualifications;
+        console.log('✅ Added qualifications:', validQualifications);
+      } else {
+        console.log('⚠️ No valid qualifications, field will be omitted');
+      }
+    }
+
+    // Specializations - filter and only add if has valid items
+    if (Array.isArray(data.specialization)) {
+      const validSpecializations = data.specialization.filter(
+        s => s && typeof s === 'string' && s.trim() !== ''
+      );
+      
+      if (validSpecializations.length > 0) {
+        payload.specializations = validSpecializations;
+        console.log('✅ Added specializations:', validSpecializations);
+      } else {
+        console.log('⚠️ No valid specializations, field will be omitted');
+      }
+    }
+
+    // AI interview - required for normal jobs
+    payload.ai_interview = data.aiInterview === "Yes";
+
+  } else {
+    console.log('⚡ Processing INSTANT job');
+    
+    // Instant job fields
+    if (data.fromDate) {
+      payload.start_date = data.fromDate.toISOString();
+    }
+    if (data.tillDate) {
+      payload.end_date = data.tillDate.toISOString();
+    }
+    if (data.fromTime) {
+      payload.check_in_time = data.fromTime;
+    }
+    if (data.toTime) {
+      payload.check_out_time = data.toTime;
+    }
+  }
+
+  console.log('📤 FINAL PAYLOAD:', JSON.stringify(payload, null, 2));
+  console.log('📋 Has qualifications?', 'qualifications' in payload);
+  console.log('📋 Has specializations?', 'specializations' in payload);
+
+  return payload as JobUpdatePayload;
+};
+
 
   // Convert topics to backend questions format
   const convertTopicsToBackendFormat = (
@@ -194,35 +266,52 @@ export default function EditJobPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!jobId) {
-      setSubmitError("Job ID not found");
+  e.preventDefault();
+  if (!jobId) {
+    setSubmitError("Job ID not found");
+    return;
+  }
+
+  // Validate normal job requirements
+  if (formData.urgency === 'normal') {
+    const validQualifications = formData.qualification?.filter(q => q && q.trim() !== '') || [];
+    const validSpecializations = formData.specialization?.filter(s => s && s.trim() !== '') || [];
+    
+    if (validQualifications.length === 0) {
+      setSubmitError("Please add at least one qualification for normal jobs");
       return;
     }
-
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const questionsData = convertTopicsToBackendFormat(topics);
-      const backendData = convertToBackendFormat(formData, questionsData);
-      const response = await updateJob(jobId, backendData);
-
-      if (response.success) {
-        setShowSuccessModal(true);
-      } else {
-        setSubmitError(response.message || "Failed to update job");
-      }
-    } catch (err) {
-      const error = err as Error;
-      console.error("Error updating job:", error);
-      setSubmitError(
-        error.message || "An error occurred while updating the job"
-      );
-    } finally {
-      setIsSubmitting(false);
+    
+    if (validSpecializations.length === 0) {
+      setSubmitError("Please add at least one specialization for normal jobs");
+      return;
     }
-  };
+  }
+
+  setIsSubmitting(true);
+  setSubmitError(null);
+
+  try {
+    const questionsData = convertTopicsToBackendFormat(topics);
+    const backendData = convertToBackendFormat(formData, questionsData);
+    const response = await updateJob(jobId, backendData);
+
+    if (response.success) {
+      setShowSuccessModal(true);
+    } else {
+      setSubmitError(response.message || "Failed to update job");
+    }
+  } catch (err) {
+    const error = err as Error;
+    console.error("Error updating job:", error);
+    setSubmitError(
+      error.message || "An error occurred while updating the job"
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const handleCancel = () => {
     router.push(`/jobs/${jobId}`);

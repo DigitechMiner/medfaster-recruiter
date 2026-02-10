@@ -7,25 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import { JobDescriptionInput } from "@/stores/api/job-description.api";
+import type { JobFormData } from "@/Interface/job.types"; // ADD THIS
 
-interface FormData {
-  description: string;
-  jobTitle: string;
-  department: string;
-  jobType: string;
-  location?: string;
-  payRange: [number, number];
-  experience: string;
-  qualification: string[];
-  specialization: string[];
-  urgency: string;
-  inPersonInterview: string;
-  physicalInterview: string;
-}
+// REMOVE local FormData interface - DELETE THIS
+// interface FormData { ... }
 
 interface JobDescriptionProps {
-  formData: FormData;
-  updateFormData: (updates: Partial<FormData>) => void;
+  formData: JobFormData; // CHANGE from FormData
+  updateFormData: (updates: Partial<JobFormData>) => void; // CHANGE from FormData
 }
 
 export function JobDescription({

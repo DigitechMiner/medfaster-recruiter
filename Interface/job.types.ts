@@ -5,49 +5,96 @@ export interface JobBackendResponse {
   job_title: string;
   department: string | null;
   job_type: string | null;
-  location: string | null;
+  
+  // Location fields
+  street?: string | null;
+  postal_code?: string | null;
+  province?: string | null;
+  city?: string | null;
+  neighborhood_name?: string | null;
+  neighborhood_type?: string | null;
+  direct_number?: string | null;
+  
+  location: string | null; // Combined location string
+  
+  // Pay range
   pay_range_min: number | null;
   pay_range_max: number | null;
+  
+  // Experience and qualifications (for normal jobs)
   years_of_experience: string | null;
   qualifications: string[] | null;
   specializations: string[] | null;
-  urgency: string | null;
+  
+  // Job urgency and related fields
+  job_urgency: 'instant' | 'normal';
+  
+  // Instant job fields
+  start_date?: string | null;
+  end_date?: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  
+  // Interview settings
+  ai_interview?: boolean | null;
   in_person_interview: boolean | null;
   physical_interview: boolean | null;
+  
+  // Other fields
   description: string | null;
   questions: Record<string, any> | null;
-  status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+  no_of_hires?: number | null;
+  status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+  
+  // Metadata
   createdAt: string;
   updatedAt: string;
   application_count?: number;
 }
 
+
 export interface JobCreatePayload {
   job_title: string;
   department?: string | null;
   job_type?: string | null;
+  
+  // Location fields - ADD these based on backend validation
+  street?: string | null;
+  postal_code?: string | null;
+  province?: string | null;
+  city?: string | null;
+  neighborhood_name?: string | null;
+  neighborhood_type?: string | null;
+  direct_number?: string | null;
   location?: string | null;
+  
   pay_range_min?: number | null;
   pay_range_max?: number | null;
   years_of_experience?: string | null;
   qualifications?: string[] | null;
   specializations?: string[] | null;
-  job_urgency?: string | null;
-  numberOfHires?: number | null;
-  ai_interview: boolean;
+  
+  job_urgency?: 'instant' | 'normal'; // Use correct type instead of string
+  
+  no_of_hires?: number | null; // Backend uses 'no_of_hires', not 'numberOfHires'
+  
+  ai_interview?: boolean; // Make optional since it's only for normal jobs
   in_person_interview?: boolean | null;
   physical_interview?: boolean | null;
+  
   description?: string | null;
   questions?: Record<string, any> | null;
-status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+  
+  status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+  
   start_date?: string | null;
   end_date?: string | null;
   check_in_time?: string | null;
   check_out_time?: string | null;
-  urgency?: string;
 }
 
 export interface JobUpdatePayload extends Partial<JobCreatePayload> {}
+
 
 export interface JobsListResponse {
   success: boolean;
@@ -118,7 +165,7 @@ export interface JobFormData {
   experience: string;
   qualification: string[];
   specialization: string[];
-  urgency: string;
+  urgency: 'instant' | 'normal'; // Only these two values
   inPersonInterview: string;
   physicalInterview: string;
   aiInterview?: string;
@@ -129,11 +176,14 @@ export interface JobFormData {
   city?: string;
   country?: string;
   numberOfHires?: string;
-  tillDate1?: Date;
-  tillDate2?: Date;
+  fromDate?: Date;
+  tillDate?: Date;
   fromTime?: string;
   toTime?: string;
+  status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
 }
+
+
 
 // ============ LEGACY TYPES (Keep for other components) ============
 export interface TopJob {

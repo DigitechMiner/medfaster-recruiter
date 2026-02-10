@@ -3,17 +3,11 @@
 
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-interface FormData {
-  urgency: string;
-  inPersonInterview: string;
-  physicalInterview: string;
-  aiInterview?: string; // New field
-}
+import { JobFormData } from "@/Interface/job.types";
 
 interface JobInterviewSettingsProps {
-  formData: FormData;
-  updateFormData: (updates: Partial<FormData>) => void;
+  formData: JobFormData;
+  updateFormData: (updates: Partial<JobFormData>) => void;
 }
 
 export function JobInterviewSettings({

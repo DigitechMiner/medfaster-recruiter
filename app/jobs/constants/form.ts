@@ -18,10 +18,11 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   description:
     "Lorem ipsum dolor sit amet consectetur. Ornare in neque varius neque. Donec quam aliquam donec morbi vel vulputate tristique quis semper. Nulla vitae sed purus enim. Dui metus tortor sit elit accumsan eu. In molestie aliquam dictum accumsan id. Sit libero nec gravida scelerisque vulputate est vitae.",
   numberOfHires: "5",
-  tillDate1: undefined,
-  tillDate2: undefined,
+  fromDate: undefined,
+  tillDate: undefined,
   fromTime: "07:30",
   toTime: "07:30",
+  status: 'DRAFT',
 };
 
 export const DEFAULT_JOB_DESCRIPTION =

@@ -1,4 +1,3 @@
-// app/jobs/create/form/create-job-form.tsx
 "use client";
 
 import { useState } from "react";
@@ -20,7 +19,8 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   const [formData, setFormData] = useState<JobFormData>({
     ...DEFAULT_JOB_FORM_DATA,
     urgency: urgencyMode,
-    aiInterview: "Yes", // Add default value
+    aiInterview: "Yes",
+    status: 'DRAFT', // Add default status
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,34 +30,85 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
-  // app/jobs/create/form/create-job-form.tsx
-const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
-  let jobType = data.jobType.toLowerCase().replace(/\s+/g, "");
-  if (jobType === "fulltime") jobType = "fulltime";
-  else if (jobType === "parttime") jobType = "parttime";
-  else if (jobType === "freelancer") jobType = "freelancer";
-  else if (jobType === "casual") jobType = "casual";
+  const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
+    let jobType = data.jobType.toLowerCase().replace(/\s+/g, "");
+    if (jobType === "fulltime") jobType = "fulltime";
+    else if (jobType === "parttime") jobType = "parttime";
+    else if (jobType === "freelancer") jobType = "freelancer";
+    else if (jobType === "casual") jobType = "casual";
 
-  return {
-    job_title: data.jobTitle,
-    department: data.department || null,
-    job_type: jobType,
-    location: data.location || null,
-    pay_range_min: data.payRange[0] || null,
-    pay_range_max: data.payRange[1] || null,
-    years_of_experience: data.experience || null,
-    qualifications: data.qualification.length > 0 ? data.qualification : null,
-    specializations: data.specialization.length > 0 ? data.specialization : null,
-    job_urgency: urgencyMode,
-    ai_interview: data.aiInterview === "Yes", // REQUIRED - must be boolean
-    in_person_interview: data.inPersonInterview === "Yes",
-    physical_interview: data.physicalInterview === "Yes",
-    description: data.description || null,
-    questions: null,
-    status: "DRAFT",
+    const isNormalJob = urgencyMode === 'normal';
+    
+    // Build base payload
+    const payload: any = {
+      job_title: data.jobTitle,
+      department: data.department || null,
+      job_type: jobType,
+      location: data.location || null,
+      
+      // Location details
+      street: data.streetAddress || null,
+      postal_code: data.postalCode || null,
+      province: data.province || null,
+      city: data.city || null,
+      
+      // Pay range
+      pay_range_min: data.payRange[0] || null,
+      pay_range_max: data.payRange[1] || null,
+      
+      // Job urgency
+      job_urgency: urgencyMode,
+      
+      // Interview settings
+      in_person_interview: data.inPersonInterview === "Yes",
+      physical_interview: data.physicalInterview === "Yes",
+      
+      // Other fields
+      description: data.description || null,
+      questions: null,
+      status: data.status || 'DRAFT',
+      no_of_hires: data.numberOfHires ? parseInt(data.numberOfHires) : null,
+    };
+
+    // Add fields specific to job urgency type
+    if (isNormalJob) {
+      // Normal job fields - only add if they exist
+      if (data.experience) {
+        payload.years_of_experience = data.experience;
+      }
+      
+      // Only add qualifications if array has items
+      if (data.qualification && data.qualification.length > 0) {
+        const validQualifications = data.qualification.filter(q => q.trim() !== '');
+        if (validQualifications.length > 0) {
+          payload.qualifications = validQualifications;
+        }
+      }
+      
+      // Only add specializations if array has items
+      if (data.specialization && data.specialization.length > 0) {
+        const validSpecializations = data.specialization.filter(s => s.trim() !== '');
+        if (validSpecializations.length > 0) {
+          payload.specializations = validSpecializations;
+        }
+      }
+      
+      // AI interview is required for normal jobs
+      payload.ai_interview = data.aiInterview === "Yes";
+    } else {
+      // Instant job fields - required for instant jobs
+      if (data.fromDate) {
+        payload.start_date = data.fromDate.toISOString();
+      }
+      if (data.tillDate) {
+        payload.end_date = data.tillDate.toISOString();
+      }
+      payload.check_in_time = data.fromTime || null;
+      payload.check_out_time = data.toTime || null;
+    }
+
+    return payload as JobCreatePayload;
   };
-};
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +117,12 @@ const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
 
     try {
       const backendData = convertToBackendFormat(formData);
-      console.log("📤 Sending to backend:", backendData); // Debug log
+      
+      // Debug logs
+      console.log("📤 Sending to backend:", JSON.stringify(backendData, null, 2));
+      console.log("Job urgency:", backendData.job_urgency);
+      console.log("Qualifications:", backendData.qualifications);
+      console.log("Specializations:", backendData.specializations);
       
       const response = await createJob(backendData);
 

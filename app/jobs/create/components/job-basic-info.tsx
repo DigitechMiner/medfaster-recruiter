@@ -127,7 +127,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
               onClick={() => setShowCalendar1(true)}
               className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
             >
-              <span className="text-gray-600">{formatDate(formData.tillDate1)}</span>
+              <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
               <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
           </div>
@@ -139,7 +139,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
               onClick={() => setShowCalendar2(true)}
               className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
             >
-              <span className="text-gray-600">{formatDate(formData.tillDate2)}</span>
+              <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
               <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
           </div>
@@ -225,8 +225,8 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
       {showCalendar1 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
-            selectedDate={formData.tillDate1}
-            onSelect={(date) => updateFormData({ tillDate1: date })}
+            selectedDate={formData.fromDate}
+            onSelect={(date) => updateFormData({ fromDate: date })}
             onCancel={() => setShowCalendar1(false)}
             onSchedule={() => setShowCalendar1(false)}
           />
@@ -236,8 +236,8 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
       {showCalendar2 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
-            selectedDate={formData.tillDate2}
-            onSelect={(date) => updateFormData({ tillDate2: date })}
+            selectedDate={formData.tillDate}
+            onSelect={(date) => updateFormData({ tillDate: date })}
             onCancel={() => setShowCalendar2(false)}
             onSchedule={() => setShowCalendar2(false)}
           />

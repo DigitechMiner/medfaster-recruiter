@@ -1,4 +1,3 @@
-// app/jobs/create/components/location-fields.tsx
 "use client";
 
 import { Label } from "@/components/ui/label";
@@ -10,16 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { JobFormData } from "@/Interface/job.types"; // ADD THIS
 
 interface LocationFieldsProps {
-  formData: {
-    streetAddress?: string;
-    postalCode?: string;
-    province?: string;
-    city?: string;
-    country?: string;
-  };
-  updateFormData: (updates: Partial<LocationFieldsProps['formData']>) => void;
+  formData: JobFormData; // CHANGE to use full JobFormData
+  updateFormData: (updates: Partial<JobFormData>) => void; // CHANGE
 }
 
 export function LocationFields({ formData, updateFormData }: LocationFieldsProps) {
