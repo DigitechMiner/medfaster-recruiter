@@ -15,6 +15,7 @@ import { useQuestions } from "@/hooks/useQuestions";
 import { useJobsStore } from "@/stores/jobs-store";
 import type {
   JobBackendResponse,
+  JobCreatePayload,
   JobUpdatePayload,
 } from "@/Interface/job.types";
 import metadata from "@/utils/constant/metadata";
@@ -153,7 +154,7 @@ const convertToBackendFormat = (
   });
 
   // Build the base payload
-  const payload: Record<string, any> = {
+  const payload: Partial<JobCreatePayload> = {
     job_title: data.jobTitle,
     department: data.department || null,
     job_type: jobType,

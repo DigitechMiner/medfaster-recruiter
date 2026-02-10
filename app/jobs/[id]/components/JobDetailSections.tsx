@@ -294,7 +294,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
               Urgency
             </Paragraph>
             <Paragraph size="sm" weight="semibold" className="text-gray-900 capitalize">
-              {job.urgency || "Not specified"}
+              {job.job_urgency || "Not specified"}
             </Paragraph>
           </div>
           <div>

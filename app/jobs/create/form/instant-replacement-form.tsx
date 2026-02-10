@@ -1,4 +1,3 @@
-// app/jobs/create/form/instant-replacement-form.tsx
 "use client";
 
 import { useState } from "react";
@@ -13,8 +12,8 @@ interface Props {
   onBack?: () => void;
 }
 
-// Fix: Remove unused urgencyMode or prefix with underscore
-export function InstantReplacementForm({ urgencyMode: _urgencyMode, onNext, onBack }: Props) {
+// FIX: Remove urgencyMode from destructuring since it's not used
+export function InstantReplacementForm({ onNext, onBack }: Props) {
   const createJob = useJobsStore((state) => state.createJob);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +21,7 @@ export function InstantReplacementForm({ urgencyMode: _urgencyMode, onNext, onBa
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
-  // Fix: Define interface for instant-specific fields
+  // Define interface for instant-specific fields
   interface InstantJobFormData extends JobFormData {
     numberOfHires?: string;
     amountPerHire?: string;
@@ -51,6 +50,7 @@ export function InstantReplacementForm({ urgencyMode: _urgencyMode, onNext, onBa
     inPersonInterview: "Yes",
     physicalInterview: "Yes",
     description: "",
+    status: "DRAFT", // Add this
     // Instant-specific
     numberOfHires: "5",
     amountPerHire: "50$",
@@ -66,7 +66,6 @@ export function InstantReplacementForm({ urgencyMode: _urgencyMode, onNext, onBa
     country: "Canada",
   });
 
-  // Fix: Type the updates parameter properly
   const updateFormData = (updates: Partial<InstantJobFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
@@ -107,13 +106,13 @@ export function InstantReplacementForm({ urgencyMode: _urgencyMode, onNext, onBa
         qualifications: null,
         specializations: null,
         job_urgency: "instant",
-        ai_interview: true,
+        ai_interview: false, // Changed to false since instant jobs don't need AI interview
         in_person_interview: true,
         physical_interview: true,
         description: formData.description || null,
         questions: null,
         status: "DRAFT",
-        numberOfHires: formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
+        no_of_hires: formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
         start_date: formatDateForBackend(startDate),
         end_date: formatDateForBackend(endDate),
         check_in_time: formData.checkInTime,

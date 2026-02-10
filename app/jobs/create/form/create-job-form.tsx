@@ -40,7 +40,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     const isNormalJob = urgencyMode === 'normal';
     
     // Build base payload
-    const payload: any = {
+    const payload: Partial<JobCreatePayload> = {
       job_title: data.jobTitle,
       department: data.department || null,
       job_type: jobType,
