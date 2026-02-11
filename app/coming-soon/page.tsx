@@ -1,20 +1,43 @@
-import { Metadata } from "next";
-import LandingHeader from "@/components/global/landing-header";
-import { LandingFooter } from "@/components/global/landing-footer";
-import { ComingSoon } from "@/components/global/comming-soon";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Coming Soon | MedFaster",
-  description: "Something exciting is coming to MedFaster. Stay tuned for updates!",
-};
+import { useState, useEffect } from "react";
+import { ComingSoon } from "@/components/global/comming-soon";
+import Image from "next/image";
 
 export default function ComingSoonPage() {
-  return (
-    <div className="min-h-screen bg-neutral-100 p-2 md:p-4 lg:p-6 xl:p-8 gap-2 md:gap-4 lg:gap-6 xl:gap-8 flex flex-col">
-    <LandingHeader>
-      <ComingSoon />
-    </LandingHeader>
-    <LandingFooter />
-  </div>
-  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000); // 2 second preloader
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative w-48 h-16 animate-pulse">
+            <Image
+              src="/img/brand/new_logo.svg"
+              alt="MedFaster"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="w-3 h-3 bg-[#F4781B] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+            <div className="w-3 h-3 bg-[#EB001B] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+            <div className="w-3 h-3 bg-[#F4781B] rounded-full animate-bounce"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <ComingSoon />;
 }

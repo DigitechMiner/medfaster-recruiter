@@ -48,7 +48,7 @@ export function LandingHeader({ children }: { children: React.ReactNode }) {
 
           <div className="flex-shrink-0 w-40 md:w-48 lg:w-[200px] flex items-center">
             <Image
-              src="/img/brand/medfaster-logo.png"
+              src="/img/brand/new_logo.svg"
               height={50}
               width={200}
               alt="MeDFaster"
