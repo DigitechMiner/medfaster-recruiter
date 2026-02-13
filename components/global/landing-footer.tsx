@@ -102,7 +102,7 @@ export function LandingFooter() {
                     Email Address
                   </ResponsiveParagraph>
                   <ResponsiveParagraph size="sm" className="whitespace-nowrap">
-                    info@medfaster.com
+                    info@KeRaeva.com
                   </ResponsiveParagraph>
                 </div>
                 <div className="space-y-1 mt-4 sm:mt-0">
@@ -151,7 +151,7 @@ export function LandingFooter() {
                 size="xs"
                 className="text-muted-foreground order-2 sm:order-1"
               >
-                Copyright © 2025 MeDFaster, All Rights Reserved.
+                Copyright © 2025 KeRaeva, All Rights Reserved.
               </ResponsiveParagraph>
 
               <div className="flex gap-3 sm:gap-4 order-1 sm:order-2">

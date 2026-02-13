@@ -270,7 +270,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
                       height={20}
                     />
                     <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
-                      Medfaster
+                      KeRaeva
                     </h3>
                   </div>
                   <p className="text-xs sm:text-sm text-gray-600 font-medium">

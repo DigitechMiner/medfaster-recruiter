@@ -1,7 +1,7 @@
 export type NavLink = { label: string; href: string };
 export const landingNavLinks: NavLink[] = [
   { label: 'Home', href: '/' },
-  { label: 'Why Medfaster?', href: '/coming-soon' },
+  { label: 'Why KeRaeva?', href: '/coming-soon' },
   { label: 'Post a Job', href: '/jobs' },
   { label: 'Our Subscriptions', href: '/coming-soon' },
   { label: 'Hiring Blog', href: '/coming-soon' },
@@ -33,7 +33,7 @@ export const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "MedFaster cut our hiring time from 6 weeks to just 10 days. The AI matching is incredibly accurate and saves us countless hours of screening.",
+      "KeRaeva cut our hiring time from 6 weeks to just 10 days. The AI matching is incredibly accurate and saves us countless hours of screening.",
     name: "Dr. James Chen",
     role: "Chief Medical Officer",
     avatar: "/img/testimonials/sarah.png",
@@ -104,7 +104,7 @@ export const landingFooterColumns: FooterColumn[] = [
   {
     title: 'Company',
     links: [
-      { label: 'About MedFaster', href: '#about' },
+      { label: 'About KeRaeva', href: '#about' },
       { label: 'Mission & Vision', href: '#mission-vision' },
       { label: 'Our Team', href: '#team' },
       { label: 'Careers', href: '#careers' },

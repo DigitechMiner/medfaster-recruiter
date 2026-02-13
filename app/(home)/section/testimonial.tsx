@@ -32,7 +32,7 @@ export default function TestimonialsSlider() {
       <div className="mb-8 md:mb-12 lg:mb-16">
         <Heading className="text-[#252B37] mb-4">
           Why Leading Hospitals Trust{" "}
-          <span className="text-[#F4781B] font-semibold">MedFaster</span>
+          <span className="text-[#F4781B] font-semibold">KeRaeva</span>
         </Heading>
         <Paragraph className="text-[#717680] max-w-3xl">
           Real results from healthcare partners who have transformed their

@@ -19,8 +19,8 @@ export default function Sidebar({ step, onStepChange }: { step: number; onStepCh
       <div>
         <div className="px-4 sm:px-6 mb-6 sm:mb-8 lg:mb-12">
           <Image
-            src="/img/brand/medfaster-logo.png"
-            alt="MedFaster"
+            src="/img/brand/new_logo.svg"
+            alt="KeRaeva"
             width={220}
             height={70}
             className="w-full h-auto max-w-[180px] lg:max-w-[200px] xl:max-w-[220px] object-contain mx-auto lg:mx-0"
@@ -121,7 +121,7 @@ export default function Sidebar({ step, onStepChange }: { step: number; onStepCh
       </div>
       <div className="hidden lg:flex px-4 sm:px-6 mt-4 sm:mt-6 lg:mt-8 items-center justify-center lg:justify-start gap-2 text-gray-400 text-xs sm:text-sm">
         <Mail className="w-4 h-4" />
-        <a href="mailto:help@medfaster.com" className="truncate">help@medfaster.com</a>
+        <a href="mailto:help@KeRaeva.com" className="truncate">help@KeRaeva.com</a>
       </div>
     </aside>
   );

@@ -51,7 +51,7 @@ export function LandingHeader({ children }: { children: React.ReactNode }) {
               src="/img/brand/new_logo.svg"
               height={50}
               width={200}
-              alt="MeDFaster"
+              alt="KeRaeva"
               objectFit="contain"
               priority
             />

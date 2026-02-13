@@ -35,7 +35,7 @@ export function Navbar() {
 
             <div className="flex-shrink-0 w-40 md:w-48 lg:w-[200px] flex items-center cursor-pointer" onClick={() => router.push("/")}>
               <Image
-                src="/img/brand/medfaster-logo.png"
+                src="/img/brand/new_logo.svg"
                 height={50}
                 width={200}
                 alt="MeDFaster"
@@ -226,10 +226,10 @@ export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
               onClick={() => router.push("/")}
             >
               <Image
-                src="/img/brand/medfaster-logo.png"
+                src="/img/brand/new_logo.svg"
                 height={32}
                 width={120}
-                alt="MeDFaster"
+                alt="KeRaeva"
                 className="object-contain"
                 priority
               />
@@ -377,7 +377,7 @@ export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
                     Nidhi Gohil
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    nidhi@medfaster.com
+                    nidhi@KeRaeva.com
                   </p>
                 </div>
               )}

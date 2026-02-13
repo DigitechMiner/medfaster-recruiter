@@ -23,7 +23,7 @@ export default function ComingSoonPage() {
           <div className="relative w-48 h-16 animate-pulse">
             <Image
               src="/img/brand/new_logo.svg"
-              alt="MedFaster"
+              alt="KeRaeva"
               fill
               className="object-contain"
               priority

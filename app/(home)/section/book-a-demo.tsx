@@ -26,10 +26,10 @@ export default function BookADemo() {
           {/* Logo */}
           <div className="flex-shrink-0 w-56 md:w-64 lg:w-80 flex items-center">
             <Image
-              src="/img/brand/medfaster-logo.png"
+              src="/img/brand/new_logo.svg"
               height={50}
               width={300}
-              alt="MeDFaster"
+              alt="KeRaeva"
               objectFit="contain"
               priority
             />

@@ -133,8 +133,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
         <div className="mb-6 flex justify-center">
           <Image
-            src="/img/brand/medfaster-logo.png"
-            alt="MedFaster"
+            src="/img/brand/new_logo.svg"
+            alt="KeRaeva"
             width={150}
             height={40}
           />
@@ -357,8 +357,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <div className="w-full max-w-md bg.white rounded-2xl border-2 border-gray-200 p-8">
             <div className="mb-6 flex justify-center">
               <Image
-                src="/img/brand/medfaster-logo.png"
-                alt="MedFaster"
+                src="/img/brand/new_logo.svg"
+                alt="KeRaeva"
                 width={150}
                 height={40}
               />

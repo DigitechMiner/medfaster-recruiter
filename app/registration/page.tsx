@@ -187,7 +187,7 @@ export default function SmartFormPage() {
       {/* Mobile/Tablet footer email display*/}
       <div className="lg:hidden w-full py-3 px-4 flex items-center justify-center gap-2 text-gray-500 text-xs bg-[#F8FAFC]">
         <Mail className="w-4 h-4" />
-        <a href="mailto:help@medfaster.com" className="truncate">help@medfaster.com</a>
+        <a href="mailto:help@KeRaeva.com" className="truncate">help@KeRaeva.com</a>
       </div>
     </div>
   );

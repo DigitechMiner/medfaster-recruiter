@@ -67,7 +67,7 @@ export function ComingSoon() {
 
         {/* Description */}
         <p className="text-sm md:text-base lg:text-lg text-[#717680] max-w-2xl leading-relaxed px-4">
-          Get the latest updates on the Medfaster platform, exclusive invites, and early access for
+          Get the latest updates on the KeRaeva platform, exclusive invites, and early access for
           healthcare professionals and recruiters in Canada.
         </p>
 
