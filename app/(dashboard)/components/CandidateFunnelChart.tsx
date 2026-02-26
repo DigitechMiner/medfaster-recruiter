@@ -8,7 +8,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Dot,
 } from "recharts";
 
 const data = [
@@ -21,10 +20,17 @@ const data = [
   { day: "Sun", value: 310 },
 ];
 
-// Custom dot — only renders the open circle on "Thu"
-const CustomDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (payload.day !== "Thu") return null;
+interface DotProps {
+  cx?: number
+  cy?: number
+  value?: number
+  index?: number
+  payload?: { day: string } // ← was missing, causes "payload" error
+}
+
+const CustomDot = (props: DotProps) => {
+  const { cx, cy, payload } = props
+  if (payload?.day !== "Thu") return null  // ← optional chain since payload is optional
   return (
     <circle
       cx={cx}
@@ -34,11 +40,17 @@ const CustomDot = (props: any) => {
       stroke="#f97316"
       strokeWidth={2}
     />
-  );
-};
+  )
+}
+
+interface TooltipProps {
+  active?: boolean
+  payload?: { value: number }[]
+  label?: string
+}
 
 // Custom tooltip — orange pill
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-orange-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md">

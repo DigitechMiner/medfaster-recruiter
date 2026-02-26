@@ -19,7 +19,7 @@ export const OtpGate = ({ children }: OtpGateProps) => {
       setIsChecking(false);
     }, 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [recruiterProfile]);
 
   useEffect(() => {
     if (recruiterProfile) setIsAuthenticated(true);

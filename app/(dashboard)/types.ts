@@ -53,7 +53,7 @@ export interface DashboardMetrics {
 
 export interface MetricCardProps {
   title: string;
-  value: number;
+  value: number | string;
   percentChange: number;
   isPositive: boolean;
   isActive: boolean;

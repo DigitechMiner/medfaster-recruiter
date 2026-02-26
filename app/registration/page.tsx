@@ -4,7 +4,6 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, ChevronLeft } from "lucide-react";
 import { useForm, FormProvider } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import Sidebar from "./components/sidebar";
 import { steps, allDefaultValues, schemas } from "./const";
@@ -16,6 +15,7 @@ import {
 } from "./form";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "react-toastify";
+import { ZodIssue } from "zod";
 
 type FormValues = typeof allDefaultValues[number];
 
@@ -44,7 +44,7 @@ export default function SmartFormPage() {
 
     if (!result.success) {
       // Set errors on the form so fields show red
-      result.error.issues.forEach((err : any) => {
+      result.error.issues.forEach((err : ZodIssue) => {
         const field = err.path[0] as string;
         if (field) {
           methods.setError(field as keyof FormValues, {
