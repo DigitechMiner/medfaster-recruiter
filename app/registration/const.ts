@@ -71,6 +71,8 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
 ];
 
 export const complianceFields = [
-  { label: "Business Registration Certificate", name: "businessRegistrationCertificate" },
-  { label: "Operating License", name: "operatingLicense" },
+  { label: "Operating License",            name: "operatingLicense" },
+  { label: "Accreditation Certificate",    name: "accreditationCertificate" },
+  { label: "Provincial Health License",    name: "provincialLicense" },
+  { label: "Accreditation Canada Certificate", name: "canadaCertificate" },
 ];

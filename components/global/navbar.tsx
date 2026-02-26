@@ -395,7 +395,7 @@ export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
         {/* Welcome Text - Left Side */}
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-gray-900">
-            Welcome, <span className="text-gray-700">Jay</span>
+            Welcome  <span className="text-gray-700"></span>
           </h2>
         </div>
 

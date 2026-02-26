@@ -58,4 +58,5 @@ export interface MetricCardProps {
   isPositive: boolean;
   isActive: boolean;
   onClick: () => void;
+  icon?: React.ReactNode;
 }

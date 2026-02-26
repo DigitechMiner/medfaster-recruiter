@@ -11,25 +11,25 @@ import { Logo, CloseButton } from './components';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void; // ← add this
+  forceOpen?: boolean;    // ← add this
 }
 
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = false }: LoginModalProps) {
   const [contactValue, setContactValue] = useState('');
   const [countryCode, setCountryCode] = useState('+1');
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '']);
 
-  // Zustand store
   const { 
     sendOtp, 
     verifyOtp, 
     loadRecruiterProfile,
     otpSending, 
-    otpError , 
+    otpError,
     setOtpError
   } = useAuthStore();
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setContactValue('');
@@ -39,7 +39,6 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setOtpError(null);
     }
   }, [isOpen, setOtpError]);
-
 
   if (!isOpen) return null;
 
@@ -52,13 +51,8 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       return;
     }
 
-    // Extract country code number (remove + sign)
     const countryCodeNumber = countryCode.replace('+', '');
-
-    const result = await sendOtp({
-      target: contactValue,
-      countryCode: countryCodeNumber,
-    });
+    const result = await sendOtp({ target: contactValue, countryCode: countryCodeNumber });
 
     if (result.ok) {
       setShowOTP(true);
@@ -68,10 +62,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    // Google Sign In is handled in SignInForm component
-    // This callback can be used for any additional logic after Google sign in
-  };
+  const handleGoogleSignIn = () => {};
 
   const handleOtpChange = (index: number, value: string) => {
     setOtpError(null);
@@ -80,49 +71,38 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setOtp(newOtp);
   };
 
-  const handleOtpKeyDown = () => {
-    // Focus handling is now done in OtpVerificationForm component
-    // This handler is kept for any additional key handling if needed
+  const handleOtpKeyDown = () => {};
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError(null);
+
+    const otpCode = otp.join('');
+    if (otpCode.length !== 4) {
+      setOtpError('Please enter a 4-digit OTP');
+      return;
+    }
+
+    const result = await verifyOtp(otpCode, true);
+
+    if (result.ok) {
+      await loadRecruiterProfile();
+      toast.success('Login successful!');
+      onSuccess?.();  // ← notify OtpGate
+      onClose();
+    } else {
+      setOtpError(result.message ?? 'Failed to verify OTP');
+      setOtp(['', '', '', '']);
+    }
   };
-
- const handleVerifyOTP = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setOtpError(null);
-
-  const otpCode = otp.join('');
-  if (otpCode.length !== 4) {
-    setOtpError('Please enter a 4-digit OTP');
-    return;
-  }
-
-  const result = await verifyOtp(otpCode, true); // Load profile after successful verification
-
-  if (result.ok) {
-    // Ensure profile is loaded
-    await loadRecruiterProfile();
-    toast.success('OTP verified successfully!');
-    // Close the modal
-    onClose();
-  } else {
-    setOtpError(result.message ?? 'Failed to verify OTP');
-    setOtp(['', '', '', '']);
-  }
-};
 
   const handleResendOTP = async () => {
     setOtpError(null);
     setOtp(['', '', '', '']);
-
-    const result = await sendOtp({
-      target: contactValue,
-    });
-
-    if (result.ok) {
-      toast.success('OTP resent successfully!');
-    }
+    const result = await sendOtp({ target: contactValue });
+    if (result.ok) toast.success('OTP resent successfully!');
   };
 
-  // Shared form content with conditional rendering
   const formContent = !showOTP ? (
     <SignInForm
       contactValue={contactValue}
@@ -135,9 +115,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       onGoogleSignIn={handleGoogleSignIn}
       setOtpError={setOtpError}
       sendOtp={sendOtp}
-      onOtpSent={() => {
-        setShowOTP(true);
-      }}
+      onOtpSent={() => setShowOTP(true)}
     />
   ) : (
     <OtpVerificationForm
@@ -153,36 +131,42 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     />
   );
 
-
   return (
-    <div 
+    <div
+      // ← if forceOpen, clicking backdrop does nothing
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-100/80 md:bg-black/50 p-4 md:p-0"
-      onClick={onClose}
+      onClick={forceOpen ? undefined : onClose}
     >
-      {/* Mobile View - Centered Modal Box */}
-      <div 
+      {/* Mobile View */}
+      <div
         className="md:hidden relative w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <CloseButton 
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" 
-          onClose={onClose}
-        />
+        {/* Hide close button when forceOpen */}
+        {!forceOpen && (
+          <CloseButton
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            onClose={onClose}
+          />
+        )}
         <Logo />
         {formContent}
       </div>
 
-      {/* Desktop View - Full Screen Split Layout */}
-      <div 
+      {/* Desktop View */}
+      <div
         className="hidden md:flex fixed inset-0 w-full h-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <CloseButton 
-          className="absolute top-6 right-6 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-2 shadow-md" 
-          onClose={onClose}
-        />
+        {/* Hide close button when forceOpen */}
+        {!forceOpen && (
+          <CloseButton
+            className="absolute top-6 right-6 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-2 shadow-md"
+            onClose={onClose}
+          />
+        )}
 
-        {/* Image Section - Left Side */}
+        {/* Left image */}
         <div className="w-[45%] h-full bg-white p-8">
           <div className="relative w-full h-full rounded-2xl overflow-hidden">
             <Image
@@ -195,9 +179,10 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </div>
         </div>
 
-        {/* Right Side Container */}
-       <div className="w-[55%] h-full flex items-center justify-center bg-white p-8 overflow-y-auto">
-  <div className="w-full max-w-md bg-white rounded-2xl border-[1.5px] border-gray-200 p-8 overflow-visible">            <Logo />
+        {/* Right form */}
+        <div className="w-[55%] h-full flex items-center justify-center bg-white p-8 overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-2xl border-[1.5px] border-gray-200 p-8 overflow-visible">
+            <Logo />
             {formContent}
           </div>
         </div>

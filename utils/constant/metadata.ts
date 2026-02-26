@@ -10,21 +10,19 @@ const metadata = {
   // ============================================================================
 
   job_title: [
-    "Nurse",
-    "Orthopaedics",
-    "Dermatology",
-    "Neurology",
-    "Cardiology",
-    "Pediatrics",
+    "Registered Nurse",
+    "Licensed Practical Nurse",
+    "Home Care Aid",
   ],
 
+  job_title_mapping: {
+    "Registered Nurse":         "registered_nurse",
+    "Licensed Practical Nurse": "licensed_practical_nurse",
+    "Home Care Aid":            "home_care_aide",
+  },
+
   department: [
-    "Cardiology",
-    "Neurology",
-    "Orthopaedics",
-    "Dermatology",
-    "Pediatrics",
-    "Emergency",
+    "Nursing",
   ],
 
   experience: [
@@ -37,30 +35,29 @@ const metadata = {
     "10+ Yrs",
   ],
 
+  // ✅ Matches backend validator: ['full_time', 'part_time', 'casual']
   job_type: [
     "Full Time",
     "Part Time",
-    "Contract",
-    "Temporary",
-    "Internship",
-    "Remote",
+    "Casual",
   ],
 
   job_type_mapping: {
-    "Full Time": "fulltime",
-    "Part Time": "parttime",
-    "Contract": "contract",
-    "Temporary": "temporary",
-    "Internship": "internship",
-    "Remote": "remote",
+    "Full Time": "full_time",
+    "Part Time": "part_time",
+    "Casual":    "casual",
   },
 
+  // ✅ Matches backend validator: ['instant', 'normal'] only
   urgency: [
-    "Low",
-    "Medium",
-    "High",
-    "Immediate",
+    "Normal",
+    "Instant",
   ],
+
+  urgency_mapping: {
+    "Normal":  "normal",
+    "Instant": "instant",
+  },
 
   qualification: [
     "Cardiology",
@@ -75,56 +72,61 @@ const metadata = {
     "Radiology",
   ],
 
+  // ✅ Matches backend specialization enum values
   specialization: [
-    "Cardiology",
-    "Orthopedics",
-    "Neurology",
-    "Dermatology",
-    "Pediatrics",
-    "Emergency Medicine",
-    "Internal Medicine",
-    "Surgery",
-    "General Practice",
-    "Critical Care",
-  ],
-
-  // ============================================================================
-  // ORGANIZATION-RELATED METADATA (UPDATED FOR FILE UPLOAD API)
-  // ============================================================================
-
-  // ✅ UPDATED: Complete list matching backend ORGANIZATION_TYPES
-  organization_type: [
-    "Hospital",
-    "Clinic",
+    "Geriatric Care",
     "Long Term Care",
-    "Home Care",
-    "Pharmacy",
-    "Diagnostic Lab",
-    "Nursing Home",
-    "Rehabilitation Center",
-    "Hospice",
-    "Mental Health Facility",
-    "Public Health",
-    "Other",
+    "Dementia Care / Alzheimer Care",
+    "Complex Dementia Care",
+    "Palliative Care / End of Life Care",
+    "Continuing Care / Residential Care",
+    "Rehabilitation Care",
+    "Chronic Disease Care",
+    "Wound Care",
+    "Medication Management",
+    "Mental Health & Behavioral Health Care",
+    "Adult Mental Health",
   ],
 
-  // ✅ UPDATED: Complete mapping for backend API
-  organization_type_mapping: {
-    "Hospital": "hospital",
-    "Clinic": "clinic",
-    "Long Term Care": "long_term_care",
-    "Home Care": "home_care",
-    "Pharmacy": "pharmacy",
-    "Diagnostic Lab": "diagnostic_lab",
-    "Nursing Home": "nursing_home",
-    "Rehabilitation Center": "rehabilitation_center",
-    "Hospice": "hospice",
-    "Mental Health Facility": "mental_health_facility",
-    "Public Health": "public_health",
-    "Other": "other",
+  specialization_mapping: {
+    "Geriatric Care":                         "geriatric_care",
+    "Long Term Care":                         "long_term_care",
+    "Dementia Care / Alzheimer Care":         "dementia_care",
+    "Complex Dementia Care":                  "complex_dementia_care",
+    "Palliative Care / End of Life Care":     "palliative_care / end_of_life_care",
+    "Continuing Care / Residential Care":     "continuing_care / residential_care",
+    "Rehabilitation Care":                    "rehabilitation_care",
+    "Chronic Disease Care":                   "chronic_disease_care",
+    "Wound Care":                             "wound_care",
+    "Medication Management":                  "medication_management",
+    "Mental Health & Behavioral Health Care": "mental_health & behavioral_health_care",
+    "Adult Mental Health":                    "adult_mental_health",
   },
 
-  // ✅ Canadian provinces (display format)
+  // ============================================================================
+  // ORGANIZATION-RELATED METADATA
+  // ============================================================================
+
+  // ✅ Matches backend ORGANIZATION_TYPES constant
+  organization_type: [
+    "Hospital",
+    "Continuing Care Facility",
+    "Medical Clinic",
+    "Community Health Care Center",
+    "Home Care Agency",
+    "Staffing Agency",
+  ],
+
+  organization_type_mapping: {
+    "Hospital":                      "hospital",
+    "Continuing Care Facility":      "continuing_care_facility",
+    "Medical Clinic":                "medical_clinic",
+    "Community Health Care Center":  "community_health_care_center",
+    "Home Care Agency":              "home_care_agency",
+    "Staffing Agency":               "staffing_agency",
+  },
+
+  // ✅ Canadian provinces display format
   province: [
     "Alberta (AB)",
     "British Columbia (BC)",
@@ -145,6 +147,7 @@ const metadata = {
   // PERSONAL INFORMATION METADATA
   // ============================================================================
 
+  // ✅ Matches backend gender enum
   gender: [
     "Male",
     "Female",
@@ -152,19 +155,29 @@ const metadata = {
   ],
 
   gender_mapping: {
-    "Male": "male",
+    "Male":   "male",
     "Female": "female",
-    "Other": "other",
+    "Other":  "other",
+  },
+
+  // ✅ Matches backend work_eligibility enum
+  work_eligibility: [
+    "Canadian Citizen",
+    "Permanent Resident",
+    "Work Permit Holder",
+  ],
+
+  work_eligibility_mapping: {
+    "Canadian Citizen":   "canadian_citizen",
+    "Permanent Resident": "permanent_resident",
+    "Work Permit Holder": "work_permit_holder",
   },
 
   // ============================================================================
-  // INTERVIEW/HIRING METADATA
+  // INTERVIEW / HIRING METADATA
   // ============================================================================
 
-  yes_no: [
-    "Yes",
-    "No",
-  ],
+  yes_no: ["Yes", "No"],
 
   interview_type: [
     "In-Person",
@@ -173,136 +186,130 @@ const metadata = {
     "Hybrid",
   ],
 
+  // ✅ Matches backend: DRAFT, OPEN, PAUSED, CLOSED
+  job_status: [
+    "Draft",
+    "Open",
+    "Paused",
+    "Closed",
+  ],
+
+  job_status_mapping: {
+    "Draft":  "DRAFT",
+    "Open":   "OPEN",
+    "Paused": "PAUSED",
+    "Closed": "CLOSED",
+  },
+
   // ============================================================================
   // PAY RANGE CONFIGURATION
   // ============================================================================
 
   pay_range: {
-    min: 1000,
-    max: 10000,
-    step: 100,
+    min:         1000,
+    max:         10000,
+    step:        100,
     default_min: 2300,
     default_max: 2800,
   },
 };
 
 // ============================================================================
-// HELPER FUNCTIONS
+// CONVERTER FUNCTIONS
 // ============================================================================
 
-/**
- * Convert frontend job type value to backend API value
- * @param frontendValue - "Full Time", "Part Time", etc.
- * @returns Backend API value - "fulltime", "parttime", etc.
- */
-export function convertJobTypeToBackend(frontendValue: string): string {
-  return metadata.job_type_mapping[frontendValue as keyof typeof metadata.job_type_mapping] 
-    || "fulltime";
+export function convertJobTitleToBackend(frontendValue: string): string {
+  return metadata.job_title_mapping[frontendValue as keyof typeof metadata.job_title_mapping]
+    ?? "registered_nurse";
 }
 
-/**
- * Convert backend API value to frontend display value
- * @param backendValue - "fulltime", "parttime", etc.
- * @returns Frontend display value - "Full Time", "Part Time", etc.
- */
+export function convertJobTitleToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.job_title[0];
+  const entry = Object.entries(metadata.job_title_mapping).find(([_, v]) => v === backendValue);
+  return entry ? entry[0] : metadata.job_title[0];
+}
+
+export function convertJobTypeToBackend(frontendValue: string): string {
+  return metadata.job_type_mapping[frontendValue as keyof typeof metadata.job_type_mapping]
+    ?? "full_time";
+}
+
 export function convertJobTypeToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.job_type[0];
-
-  const normalized = backendValue.toLowerCase();
-  const entry = Object.entries(metadata.job_type_mapping).find(
-    ([_, value]) => value === normalized
-  );
+  const entry = Object.entries(metadata.job_type_mapping).find(([_, v]) => v === backendValue);
   return entry ? entry[0] : metadata.job_type[0];
 }
 
-/**
- * @param frontendValue - "Hospital", "Long Term Care", etc.
- * @returns Backend API value - "hospital", "long_term_care", etc.
- * @example convertOrganizationTypeToBackend("Long Term Care") => "long_term_care"
- */
-export function convertOrganizationTypeToBackend(frontendValue: string): string {
-  return metadata.organization_type_mapping[frontendValue as keyof typeof metadata.organization_type_mapping] 
-    || "other";
+export function convertUrgencyToBackend(frontendValue: string): string {
+  return metadata.urgency_mapping[frontendValue as keyof typeof metadata.urgency_mapping]
+    ?? "normal";
 }
 
-/**
- * @param backendValue - "hospital", "long_term_care", etc.
- * @returns Frontend display value - "Hospital", "Long Term Care", etc.
- * @example convertOrganizationTypeToFrontend("long_term_care") => "Long Term Care"
- */
+export function convertUrgencyToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.urgency[0];
+  const entry = Object.entries(metadata.urgency_mapping).find(([_, v]) => v === backendValue);
+  return entry ? entry[0] : metadata.urgency[0];
+}
+
+export function convertOrganizationTypeToBackend(frontendValue: string): string {
+  return metadata.organization_type_mapping[frontendValue as keyof typeof metadata.organization_type_mapping]
+    ?? "hospital";
+}
+
 export function convertOrganizationTypeToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.organization_type[0];
-
-  const normalized = backendValue.toLowerCase();
-  const entry = Object.entries(metadata.organization_type_mapping).find(
-    ([_, value]) => value === normalized
-  );
+  const entry = Object.entries(metadata.organization_type_mapping).find(([_, v]) => v === backendValue);
   return entry ? entry[0] : metadata.organization_type[0];
 }
 
-/**
- * Convert frontend gender to backend API value
- * @param frontendValue - "Male", "Female", "Other"
- * @returns Backend API value - "male", "female", "other"
- */
 export function convertGenderToBackend(frontendValue: string): string {
-  return metadata.gender_mapping[frontendValue as keyof typeof metadata.gender_mapping] 
-    || "other";
+  return metadata.gender_mapping[frontendValue as keyof typeof metadata.gender_mapping]
+    ?? "other";
 }
 
-/**
- * Convert backend gender to frontend display value
- * @param backendValue - "male", "female", "other"
- * @returns Frontend display value - "Male", "Female", "Other"
- */
 export function convertGenderToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.gender[0];
-
-  const normalized = backendValue.toLowerCase();
-  const entry = Object.entries(metadata.gender_mapping).find(
-    ([_, value]) => value === normalized
-  );
+  const entry = Object.entries(metadata.gender_mapping).find(([_, v]) => v === backendValue);
   return entry ? entry[0] : metadata.gender[0];
 }
 
-/**
- * ✅ NEW: Extract province code from display string
- * @param provinceDisplay - "Ontario (ON)" or "ON"
- * @returns Province code - "ON"
- * @example extractProvinceCode("Ontario (ON)") => "ON"
- * @example extractProvinceCode("ON") => "ON"
- */
-export function extractProvinceCode(provinceDisplay: string): string {
-  const match = provinceDisplay.match(/\(([A-Z]{2})\)/);
-  if (match) return match[1];
-  
-  // If already a code (e.g., "ON"), return as-is
-  if (provinceDisplay.length === 2 && /^[A-Z]{2}$/.test(provinceDisplay)) {
-    return provinceDisplay;
-  }
-  
-  // Fallback: try to find matching province
-  const found = provinces.find(p => 
-    provinceDisplay.includes(p.label) || provinceDisplay === p.value
-  );
-  return found?.value || "ON";
+export function convertSpecializationToBackend(frontendValue: string): string {
+  return metadata.specialization_mapping[frontendValue as keyof typeof metadata.specialization_mapping]
+    ?? frontendValue.toLowerCase().replace(/ /g, "_");
 }
 
-/**
- * Get array of frontend job type labels (for dropdowns)
- */
-export function getJobTypeLabels(): string[] {
-  return [...metadata.job_type];
+export function convertSpecializationToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.specialization[0];
+  const entry = Object.entries(metadata.specialization_mapping).find(([_, v]) => v === backendValue);
+  return entry ? entry[0] : backendValue;
+}
+
+export function convertWorkEligibilityToBackend(frontendValue: string): string {
+  return metadata.work_eligibility_mapping[frontendValue as keyof typeof metadata.work_eligibility_mapping]
+    ?? "canadian_citizen";
+}
+
+export function convertWorkEligibilityToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.work_eligibility[0];
+  const entry = Object.entries(metadata.work_eligibility_mapping).find(([_, v]) => v === backendValue);
+  return entry ? entry[0] : backendValue;
+}
+
+export function convertJobStatusToBackend(frontendValue: string): string {
+  return metadata.job_status_mapping[frontendValue as keyof typeof metadata.job_status_mapping]
+    ?? "DRAFT";
+}
+
+export function convertJobStatusToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return metadata.job_status[0];
+  const entry = Object.entries(metadata.job_status_mapping).find(([_, v]) => v === backendValue);
+  return entry ? entry[0] : backendValue;
 }
 
 // ============================================================================
-// FORMATTED ARRAYS FOR FORM COMPONENTS
+// PROVINCE HELPERS
 // ============================================================================
 
-/**
- * ✅ Provinces array for FormSelect component (value/label format)
- * Backend expects: "AB", "BC", "ON", etc.
- */
 export const provinces = [
   { value: "AB", label: "Alberta" },
   { value: "BC", label: "British Columbia" },
@@ -319,114 +326,100 @@ export const provinces = [
   { value: "YT", label: "Yukon" },
 ];
 
-/**
- * Backend expects: "hospital", "long_term_care", "nursing_home", etc.
- */
 export const orgTypes = [
-  { value: "hospital", label: "Hospital" },
-  { value: "clinic", label: "Clinic" },
-  { value: "long_term_care", label: "Long Term Care" },
-  { value: "home_care", label: "Home Care" },
-  { value: "pharmacy", label: "Pharmacy" },
-  { value: "diagnostic_lab", label: "Diagnostic Lab" },
-  { value: "nursing_home", label: "Nursing Home" },
-  { value: "rehabilitation_center", label: "Rehabilitation Center" },
-  { value: "hospice", label: "Hospice" },
-  { value: "mental_health_facility", label: "Mental Health Facility" },
-  { value: "public_health", label: "Public Health" },
-  { value: "other", label: "Other" },
+  { value: "hospital",                     label: "Hospital" },
+  { value: "continuing_care_facility",     label: "Continuing Care Facility" },
+  { value: "medical_clinic",               label: "Medical Clinic" },
+  { value: "community_health_care_center", label: "Community Health Care Center" },
+  { value: "home_care_agency",             label: "Home Care Agency" },
+  { value: "staffing_agency",              label: "Staffing Agency" },
 ];
 
+export function extractProvinceCode(provinceDisplay: string): string {
+  const match = provinceDisplay.match(/\(([A-Z]{2})\)/);
+  if (match) return match[1];
+  if (provinceDisplay.length === 2 && /^[A-Z]{2}$/.test(provinceDisplay)) return provinceDisplay;
+  const found = provinces.find(
+    (p) => provinceDisplay.includes(p.label) || provinceDisplay === p.value
+  );
+  return found?.value ?? "ON";
+}
+
+export function getJobTypeLabels(): string[] {
+  return [...metadata.job_type];
+}
+
 // ============================================================================
-// FILE VALIDATION HELPERS (ADD TO END OF metadata.ts)
+// FILE VALIDATION HELPERS
 // ============================================================================
 
-/**
- * Validate file before upload
- * @param file - File to validate
- * @param maxSizeMB - Maximum file size in MB (default: 10)
- * @param allowedExtensions - Allowed file extensions
- * @returns Validation result with error message if invalid
- */
 export function validateFile(
   file: File,
-  maxSizeMB: number = 10,
-  allowedExtensions: string[] = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx']
+  maxSizeMB = 10,
+  allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx']
 ): { valid: boolean; error?: string } {
-  // Check file size
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
   if (file.size > maxSizeBytes) {
     return {
       valid: false,
-      error: `File size must be less than ${maxSizeMB}MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+      error: `File size must be less than ${maxSizeMB}MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`,
     };
   }
-
-  // Check file extension
   const fileName = file.name.toLowerCase();
-  const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
-  
+  const hasValidExtension = allowedExtensions.some((ext) => fileName.endsWith(ext));
   if (!hasValidExtension) {
     return {
       valid: false,
-      error: `Invalid file type. Allowed: ${allowedExtensions.join(', ')}`
+      error: `Invalid file type. Allowed: ${allowedExtensions.join(', ')}`,
     };
   }
-
   return { valid: true };
 }
 
-/**
- * Validate organization photo (JPG/PNG only, max 10MB)
- */
 export function validateOrganizationPhoto(file: File) {
   return validateFile(file, 10, ['.jpg', '.jpeg', '.png']);
 }
 
-/**
- * Validate document file (PDF/DOC/Images, max 10MB)
- */
 export function validateDocumentFile(file: File) {
   return validateFile(file, 10, ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png']);
 }
 
-/**
- * Get file size in human-readable format
- */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
-
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-// Export the metadata object as default
 export default metadata;
 
-// Also export individual properties for convenience
 export const {
   job_title,
+  job_title_mapping,
   department,
   experience,
   job_type,
   job_type_mapping,
   urgency,
+  urgency_mapping,
   qualification,
   specialization,
+  specialization_mapping,
   province,
   organization_type,
   organization_type_mapping,
   gender,
   gender_mapping,
+  work_eligibility,
+  work_eligibility_mapping,
   yes_no,
   interview_type,
+  job_status,
+  job_status_mapping,
   pay_range,
 } = metadata;
