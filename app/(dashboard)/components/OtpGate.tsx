@@ -11,18 +11,20 @@ interface OtpGateProps {
 export const OtpGate = ({ children }: OtpGateProps) => {
   const { recruiterProfile } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // ← derive auth directly from store, no separate isAuthenticated state
+  const isAuthenticated = !!recruiterProfile;
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (recruiterProfile) setIsAuthenticated(true);
       setIsChecking(false);
     }, 500);
     return () => clearTimeout(timer);
-  }, [recruiterProfile]);
+  }, []); // ← run once on mount only
 
+  // Stop spinner early if profile already loaded
   useEffect(() => {
-    if (recruiterProfile) setIsAuthenticated(true);
+    if (recruiterProfile) setIsChecking(false);
   }, [recruiterProfile]);
 
   if (isChecking) {
@@ -39,7 +41,7 @@ export const OtpGate = ({ children }: OtpGateProps) => {
         <LoginModal
           isOpen={true}
           onClose={() => {}}
-          onSuccess={() => setIsAuthenticated(true)}
+          onSuccess={() => {}} // store update re-renders OtpGate automatically
           forceOpen={true}
         />
       </div>

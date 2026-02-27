@@ -162,6 +162,10 @@ import {
   X,
 } from "lucide-react";
 
+import { useAuthStore } from "@/stores/authStore";
+import { LogOut } from "lucide-react";
+
+
 interface NavbarProps {
   isExpanded: boolean;
   setIsExpanded: (value: boolean) => void;
@@ -170,10 +174,17 @@ interface NavbarProps {
 export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout, recruiterProfile } = useAuthStore()
+
+
+const handleLogout = async () => {
+    await logout();          // clears Zustand + calls API
+    router.push("/");        // redirect to home/OTP gate
+  };
+
 
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/patient-management", label: "Patient Management", icon: Users },
     { href: "/clinic-management", label: "Clinic Management", icon: Building2, badge: 8 },
     { href: "/lab-management", label: "Lab Management", icon: FlaskConical },
@@ -181,7 +192,6 @@ export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
   ];
 
   const recruitmentSubLinks = [
-    { href: "/dashboard", label: "Dashboard", badge: 18 },
     { href: "/jobs", label: "Jobs" },
     { href: "/message", label: "Message" },
     { href: "/closed-job", label: "Closed Job" },
@@ -312,11 +322,7 @@ export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
                         }`}
                       >
                         <span className="overflow-hidden text-ellipsis">{link.label}</span>
-                        {link.badge && (
-                          <span className="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded flex-shrink-0">
-                            {link.badge}
-                          </span>
-                        )}
+                        
                       </Link>
                     );
                   })}
@@ -360,29 +366,50 @@ export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
           </nav>
 
           {/* User Profile */}
-          <div className="px-3 py-3 border-t border-gray-200">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="relative w-8 h-8 flex-shrink-0">
-                <Image
-                  src="/svg/hospital-icon.svg"
-                  alt="User"
-                  fill
-                  className="object-contain rounded-full"
-                />
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
-              </div>
-              {isExpanded && (
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    Nidhi Gohil
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    nidhi@KeRaeva.com
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+<div className="px-3 py-3 border-t border-gray-200">
+  <div className="flex items-center gap-3 overflow-hidden">
+    <div className="relative w-8 h-8 flex-shrink-0">
+      <Image
+        src="/svg/hospital-icon.svg"
+        alt="User"
+        fill
+        className="object-contain rounded-full"
+      />
+      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+    </div>
+    {isExpanded && (
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <p className="text-sm font-medium text-gray-900 truncate">
+          {recruiterProfile?.contact_person ?? "Recruiter"}
+        </p>
+        <p className="text-xs text-gray-500 truncate">
+          {recruiterProfile?.company_name ?? ""}
+        </p>
+      </div>
+    )}
+  </div>
+
+  {/* Logout Button */}
+  <button
+    onClick={handleLogout}
+    className={`mt-3 flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-red-500 hover:bg-red-50 transition-colors relative group ${
+      !isExpanded ? "justify-center" : ""
+    }`}
+  >
+    <LogOut className="w-5 h-5 flex-shrink-0" />
+    {isExpanded && (
+      <span className="text-sm font-medium">Logout</span>
+    )}
+
+    {/* Tooltip when collapsed */}
+    {!isExpanded && (
+      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap pointer-events-none z-50">
+        Logout
+      </div>
+    )}
+  </button>
+</div>
+
         </div>
       </aside>
 
