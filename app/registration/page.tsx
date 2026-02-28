@@ -16,6 +16,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "react-toastify";
 import { ZodIssue } from "zod";
+import type { OrgDetailsType, ContactType, ComplianceType } from "./const"
 
 
 type FormValues = typeof allDefaultValues[number];
@@ -99,9 +100,9 @@ export default function SmartFormPage() {
     setIsSubmitting(true);
 
     try {
-      const s0 = allStepData.current[0] as any;
-      const s1 = allStepData.current[1] as any;
-      const s2 = allStepData.current[2] as any;
+      const s0 = allStepData.current[0] as OrgDetailsType;
+      const s1 = allStepData.current[1] as ContactType;
+      const s2 = allStepData.current[2] as ComplianceType;
 
       const formData = new FormData();
 
@@ -124,7 +125,7 @@ export default function SmartFormPage() {
       if (s1?.contactName)  formData.append("contact_person_name", s1.contactName);
       if (s1?.designation)  formData.append("contact_person_designation", s1.designation);
       if (s1?.contactEmail) formData.append("contact_person_email", s1.contactEmail);
-      if (s1?.phone)        formData.append("contact_person_phone", s1.phone);
+      
       if (s1?.primaryContact) {
   formData.append("primary_contact_person", s1.primaryContact);
   formData.append("contact_person_phone", s1.primaryContact);   

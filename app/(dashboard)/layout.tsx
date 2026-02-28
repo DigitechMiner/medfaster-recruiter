@@ -12,8 +12,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   const isProfileComplete = !!(
-  (recruiterProfile as any)?.organization_name &&
-  (recruiterProfile as any)?.contact_person_name
+  (recruiterProfile as { organization_name?: string; contact_person_name?: string })?.organization_name &&
+  (recruiterProfile as { organization_name?: string; contact_person_name?: string })?.contact_person_name
 );
 
   useEffect(() => {

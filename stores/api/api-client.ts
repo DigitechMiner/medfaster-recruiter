@@ -1,7 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
-const HOST = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
+const HOST = process.env.NEXT_PUBLIC_API_URL || 'https://app.keraeva.com/'
 export const BASE_URL = `${HOST}/api/v1`;
 
 // Create axios instance with default config
