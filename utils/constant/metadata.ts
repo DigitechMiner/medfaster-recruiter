@@ -89,19 +89,19 @@ const metadata = {
   ],
 
   specialization_mapping: {
-    "Geriatric Care":                         "geriatric_care",
-    "Long Term Care":                         "long_term_care",
-    "Dementia Care / Alzheimer Care":         "dementia_care",
-    "Complex Dementia Care":                  "complex_dementia_care",
-    "Palliative Care / End of Life Care":     "palliative_care / end_of_life_care",
-    "Continuing Care / Residential Care":     "continuing_care / residential_care",
-    "Rehabilitation Care":                    "rehabilitation_care",
-    "Chronic Disease Care":                   "chronic_disease_care",
-    "Wound Care":                             "wound_care",
-    "Medication Management":                  "medication_management",
-    "Mental Health & Behavioral Health Care": "mental_health & behavioral_health_care",
-    "Adult Mental Health":                    "adult_mental_health",
-  },
+  "Geriatric Care":                         "geriatric_care",
+  "Long Term Care":                         "long_term_care",
+  "Dementia Care / Alzheimer Care":         "dementia_care",
+  "Complex Dementia Care":                  "complex_dementia_care",
+  "Palliative Care / End of Life Care":     "palliative_care",       // ← fixed
+  "Continuing Care / Residential Care":     "continuing_care",       // ← fixed
+  "Rehabilitation Care":                    "rehabilitation_care",
+  "Chronic Disease Care":                   "chronic_disease_care",
+  "Wound Care":                             "wound_care",
+  "Medication Management":                  "medication_management",
+  "Mental Health & Behavioral Health Care": "mental_health",         // ← fixed
+  "Adult Mental Health":                    "adult_mental_health",
+},
 
   // ============================================================================
   // ORGANIZATION-RELATED METADATA
@@ -212,6 +212,19 @@ const metadata = {
     default_min: 2300,
     default_max: 2800,
   },
+  qualification_mapping: {
+  "Cardiology":         "cardiology",
+  "Orthopedics":        "orthopedics",
+  "Neurology":          "neurology",
+  "Dermatology":        "dermatology",
+  "Pediatrics":         "pediatrics",
+  "Emergency Medicine": "emergency_medicine",
+  "Internal Medicine":  "internal_medicine",
+  "Surgery":            "surgery",
+  "Anesthesiology":     "anesthesiology",
+  "Radiology":          "radiology",
+},
+
 };
 
 // ============================================================================
@@ -326,14 +339,14 @@ export const provinces = [
   { value: "yukon",                      label: "Yukon" },
 ];
 
+
 export const orgTypes = [
-  { value: "hospital",        label: "Hospital" },
-  { value: "clinic",          label: "Clinic" },
-  { value: "nursing_home",    label: "Nursing Home" },
-  { value: "medical_center",  label: "Medical Center" },
-  { value: "pharmacy",        label: "Pharmacy" },
-  { value: "laboratory",      label: "Laboratory" },
-  { value: "other",           label: "Other" },
+  { value: "hospital",                    label: "Hospital" },
+  { value: "continuing_care_facility",    label: "Continuing Care Facility" },
+  { value: "medical_clinic",              label: "Medical Clinic" },
+  { value: "community_health_care_center",label: "Community Health Care Center" },
+  { value: "home_care_agency",            label: "Home Care Agency" },
+  { value: "staffing_agency",             label: "Staffing Agency" },
 ];
 
 export function extractProvinceCode(provinceDisplay: string): string {

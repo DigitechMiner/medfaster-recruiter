@@ -24,6 +24,7 @@ import {
   convertToBackendValue,
 } from "@/utils/constant/jobTypes";
 import { useJob, useJobId } from "@/hooks/useJobData";
+import { ArrowLeft } from "lucide-react";
 
 const JOB_TITLES = metadata.job_title;
 const DEPARTMENTS = metadata.department;
@@ -358,10 +359,18 @@ const convertToBackendFormat = (
           <button
             onClick={handleCancel}
             disabled={isSubmitting}
-            className="flex-1 sm:flex-none px-8 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white font-medium text-sm rounded-sm disabled:opacity-50"
-          >
-            Preview
+            className="flex items-center gap-2 flex-1 sm:flex-none px-4 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white font-medium text-sm rounded-sm disabled:opacity-50"
+            >
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
+<button
+  onClick={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+  disabled={isSubmitting}
+  className="flex-1 sm:flex-none px-2 py-2 bg-[#F4781B] hover:bg-orange-600 text-white font-medium text-sm rounded-sm disabled:opacity-50"
+>
+  {isSubmitting ? "Saving..." : "Save & continue"}
+</button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}

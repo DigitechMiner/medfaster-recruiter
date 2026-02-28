@@ -151,7 +151,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
       <div className="space-y-3 sm:space-y-4">
         <TopActionBar
           title={PAGE_TITLES.CREATE_JOB}
-          onPreview={() => onBack && onBack()}
+          onBack={onBack}
           onPrimary={handleSave}
           primaryLabel={isSubmitting ? "Saving..." : BUTTON_LABELS.SAVE_AND_CONTINUE}
         />

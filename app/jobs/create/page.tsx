@@ -28,6 +28,7 @@ function CreateJobContent() {
           <CreateJobForm 
             urgencyMode="normal" 
             onNext={() => goToStep(2)} 
+             onBack={() => router.push("/jobs")}
           />
         ) : (
           <GenerateAIForm onBack={() => goToStep(1)} />

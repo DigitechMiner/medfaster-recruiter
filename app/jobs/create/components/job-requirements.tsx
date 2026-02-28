@@ -110,7 +110,7 @@ export function JobRequirements({
           <div className="space-y-4 pt-2">
             <div className="flex justify-between text-sm text-gray-600 font-medium">
               <span>{experienceValue} Years</span>
-              <span>10 Years</span>
+             
             </div>
             <Slider
               min={EXPERIENCE_MIN}

@@ -9,11 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { JobFormData } from "@/Interface/job.types"; // ADD THIS
+import type { JobFormData } from "@/Interface/job.types";
+import { provinces } from "@/utils/constant/metadata"; // ✅ ADD
 
 interface LocationFieldsProps {
-  formData: JobFormData; // CHANGE to use full JobFormData
-  updateFormData: (updates: Partial<JobFormData>) => void; // CHANGE
+  formData: JobFormData;
+  updateFormData: (updates: Partial<JobFormData>) => void;
 }
 
 export function LocationFields({ formData, updateFormData }: LocationFieldsProps) {
@@ -58,16 +59,19 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
             Province
           </Label>
           <Select
-            value={formData.province || "Ontario (ON)"}
+            value={formData.province || ""}
             onValueChange={(value) => updateFormData({ province: value })}
           >
             <SelectTrigger id="province" className="h-11 border-[#F4781B]">
-              <SelectValue placeholder="Ontario (ON)" />
+              <SelectValue placeholder="Select Province" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Ontario (ON)">Ontario (ON)</SelectItem>
-              <SelectItem value="British Columbia (BC)">British Columbia (BC)</SelectItem>
-              <SelectItem value="Alberta (AB)">Alberta (AB)</SelectItem>
+              {/* ✅ Dynamic list — values are already snake_case */}
+              {provinces.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

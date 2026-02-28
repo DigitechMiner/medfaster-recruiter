@@ -49,7 +49,6 @@ export function JobForm({
   onSubmit,
   onBack,
   onCancel,
-  onPreview,
   title,
   showInterviewQuestions = false,
   showBackButton = false,
@@ -88,7 +87,7 @@ export function JobForm({
       {isCreateMode && (
         <TopActionBar
           title={PAGE_TITLES.CREATE_JOB}
-          onPreview={onPreview}
+          onBack={onBack}
           onPrimary={handleTopActionBarPrimary}
           primaryLabel={BUTTON_LABELS.SAVE_AND_CONTINUE}
         />

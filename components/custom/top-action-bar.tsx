@@ -1,16 +1,17 @@
 import React from "react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface TopActionBarProps {
   title: string;
-  onPreview?: () => void;
+  onBack?: () => void;        // ✅ renamed from onPreview
   onPrimary: () => void;
   primaryLabel?: string;
 }
 
 export function TopActionBar({
   title,
-  onPreview,
+  onBack,                     // ✅ renamed
   onPrimary,
   primaryLabel = "Save & continue",
 }: TopActionBarProps) {
@@ -20,14 +21,15 @@ export function TopActionBar({
         {title}
       </h1>
       <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 order-1 sm:order-2">
-        {onPreview && (
+        {onBack && (
           <Button
             type="button"
             variant="ghost"
-            onClick={onPreview}
+            onClick={onBack}
             className="w-full sm:w-auto bg-white border-gray-300 border-2 hover:bg-gray-50 text-gray-700 px-4 sm:px-6 h-10 text-sm"
           >
-            Preview
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
           </Button>
         )}
         <Button
@@ -42,5 +44,3 @@ export function TopActionBar({
     </div>
   );
 }
-
-

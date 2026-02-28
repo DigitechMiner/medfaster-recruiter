@@ -144,11 +144,11 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
       )}
       <JobForm
         mode="create"
+        title="Create Instant job post"
         formData={formData}
         updateFormData={updateFormData}
         onSubmit={handleSubmit}
         onBack={onBack}
-        onPreview={() => console.log("Preview", formData)}
         showBackButton={!!onBack}
         showNextButton={!isSubmitting}
         nextLabel={isSubmitting ? "Posting..." : "Post"}

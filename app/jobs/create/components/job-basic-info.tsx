@@ -121,7 +121,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Till Date</Label>
+            <Label className="text-sm font-medium text-gray-700">From Date</Label>
             <button
               type="button"
               onClick={() => setShowCalendar1(true)}

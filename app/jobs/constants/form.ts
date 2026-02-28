@@ -3,27 +3,31 @@ import metadata from "@/utils/constant/metadata";
 
 // ============ DEFAULT FORM VALUES ============
 export const DEFAULT_JOB_FORM_DATA: JobFormData = {
-  jobTitle: "Nurse",
-  department: "Cardiology",
-  jobType: "Part Time",
-  location: "Toronto, ON",
+  jobTitle: "Registered Nurse",        // ← matches job_title array
+  department: "Nursing",               // ← matches department array
+  jobType: "Full Time",                // ← matches job_type array
+  location: "",                        // ← clear this
+  streetAddress: "",                   // ← empty
+  postalCode: "",                      // ← empty
+  province: "",                        // ← empty — this is why province fails!
+  city: "",                            // ← empty
   payRange: [metadata.pay_range.default_min, metadata.pay_range.default_max] as [number, number],
   experience: "2-3 Yrs",
-  qualification: ["Cardiology", "Orthopedics", "Neurology"],
-  specialization: ["Cardiology", "Orthopedics", "Neurology"],
+  qualification: [],                   // ← empty, user should select
+  specialization: [],                  // ← empty, user should select
   urgency: "normal",
   inPersonInterview: "Yes",
   physicalInterview: "Yes",
   aiInterview: "Yes",
-  description:
-    "Lorem ipsum dolor sit amet consectetur. Ornare in neque varius neque. Donec quam aliquam donec morbi vel vulputate tristique quis semper. Nulla vitae sed purus enim. Dui metus tortor sit elit accumsan eu. In molestie aliquam dictum accumsan id. Sit libero nec gravida scelerisque vulputate est vitae.",
-  numberOfHires: "5",
+  description: "",                     // ← empty
+  numberOfHires: "1",
   fromDate: undefined,
   tillDate: undefined,
-  fromTime: "07:30",
-  toTime: "07:30",
-  status: 'DRAFT',
+  fromTime: "",
+  toTime: "",
+  status: "DRAFT",
 };
+
 
 export const DEFAULT_JOB_DESCRIPTION =
   "Lorem ipsum dolor sit amet consectetur. Ornare in neque varius neque. Donec quam aliquam donec morbi vel vulputate tristique quis semper.";

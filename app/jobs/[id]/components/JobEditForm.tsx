@@ -5,6 +5,7 @@ import SuccessModal from "@/components/modal";
 import { Topic } from "../../constants/form";
 import { JobForm, JobFormData } from "../../components/JobForm";
 import { AppLayout } from "@/components/global/app-layout";
+import { ArrowLeft } from "lucide-react";
 
 interface JobEditFormProps {
   formData: JobFormData;
@@ -46,11 +47,13 @@ export const JobEditForm: React.FC<JobEditFormProps> = ({
           </h1>
           <div className="flex gap-3 w-full sm:w-auto">
             <button
-              onClick={onCancel}
-              className="flex-1 sm:flex-none px-4 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white font-medium text-sm rounded"
-            >
-              Preview
-            </button>
+  onClick={onCancel}
+  
+  className="flex items-center gap-2 flex-1 sm:flex-none px-4 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white font-medium text-sm rounded-sm disabled:opacity-50"
+>
+  <ArrowLeft className="w-4 h-4" />
+  Back
+</button>
             <button
               onClick={onSave}
               className="flex-1 sm:flex-none px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium text-sm rounded"

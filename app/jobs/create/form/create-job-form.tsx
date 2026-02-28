@@ -6,11 +6,12 @@ import type { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
 import { BUTTON_LABELS } from "../../constants/messages";
 import { JobForm } from "../../components/JobForm";
-import {
+import metadata, {
   convertJobTitleToBackend,
   convertJobTypeToBackend,
   convertSpecializationToBackend,
 } from "@/utils/constant/metadata";
+import { provinces } from "@/utils/constant/metadata";
 
 interface Props {
   urgencyMode: "normal" | "instant";
@@ -42,7 +43,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       // ✅ Use converter — sends "registered_nurse" not "Registered Nurse"
       job_title:  convertJobTitleToBackend(data.jobTitle),
 
-      department: data.department || null,
+      department: 'nursing',
 
       // ✅ Use converter — sends "full_time" not "Full Time"
       job_type:   convertJobTypeToBackend(data.jobType),
@@ -50,7 +51,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       // Location
       street:      data.streetAddress || null,
       postal_code: data.postalCode    || null,
-      province:    data.province      || null,
+      province: data.province || null,
       city:        data.city          || null,
 
       // Pay range
@@ -76,8 +77,11 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       }
 
       if (data.qualification?.length > 0) {
-        payload.qualifications = data.qualification.filter((q) => q.trim() !== "");
-      }
+  payload.qualifications = data.qualification
+    .filter((q) => q.trim() !== "")
+    .map((q) => metadata.qualification_mapping[q as keyof typeof metadata.qualification_mapping] ?? q.toLowerCase());
+}
+
 
       if (data.specialization?.length > 0) {
         // ✅ Use converter — sends "geriatric_care" not "Geriatric Care"
@@ -92,7 +96,10 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       if (data.tillDate) payload.end_date   = data.tillDate.toISOString();
       payload.check_in_time  = data.fromTime || null;
       payload.check_out_time = data.toTime   || null;
-    }
+    }// create-job-form.tsx — in convertToBackendFormat, just before return
+console.log("province raw:", data.province)
+console.log("province converted:", provinces.find(p => p.label === data.province)?.value ?? data.province ?? null)
+
 
     return payload as JobCreatePayload;
   };
@@ -132,11 +139,11 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       )}
       <JobForm
         mode="create"
+        title="Create Regular Job Post"
         formData={formData}
         updateFormData={updateFormData}
         onSubmit={handleSubmit}
         onBack={onBack}
-        onPreview={() => console.log("Preview:", formData)}
         showBackButton={!!onBack}
         showNextButton={!isSubmitting}
         nextLabel={isSubmitting ? "Creating..." : BUTTON_LABELS.NEXT}

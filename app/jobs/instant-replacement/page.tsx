@@ -27,8 +27,9 @@ function InstantReplacementContent() {
       <div className="py-2 md:py-4 lg:py-6">
         {step === 1 ? (
           <InstantReplacementForm 
-            urgencyMode="instant" // 👈 Always "instant"
+            urgencyMode="instant"
             onNext={() => goToStep(2)} 
+            onBack={() => router.push("/jobs")}
           />
         ) : (
           <GenerateAIForm onBack={() => goToStep(1)} />
