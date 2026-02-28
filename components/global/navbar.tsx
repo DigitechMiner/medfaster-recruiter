@@ -148,8 +148,8 @@ export function Navbar() {
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
-  LayoutDashboard,
   Briefcase,
   Home,
   Users,
@@ -160,11 +160,10 @@ import {
   Settings,
   Menu,
   X,
+  ChevronDown,
+  LogOut,
 } from "lucide-react";
-
 import { useAuthStore } from "@/stores/authStore";
-import { LogOut } from "lucide-react";
-
 
 interface NavbarProps {
   isExpanded: boolean;
@@ -174,14 +173,13 @@ interface NavbarProps {
 export function Navbar({ isExpanded, setIsExpanded }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout, recruiterProfile } = useAuthStore()
+  const { logout, recruiterProfile } = useAuthStore();
+  const [recruitmentOpen, setRecruitmentOpen] = useState(true); // open by default if active
 
-
-const handleLogout = async () => {
-    await logout();          // clears Zustand + calls API
-    router.push("/");        // redirect to home/OTP gate
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
   };
-
 
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
@@ -216,7 +214,6 @@ const handleLogout = async () => {
       >
         {/* Logo Section with Toggle Button */}
         <div className="h-16 flex items-center gap-2 px-3 flex-shrink-0">
-          {/* Toggle Button */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
@@ -229,7 +226,6 @@ const handleLogout = async () => {
             )}
           </button>
 
-          {/* Logo - Only show when expanded */}
           {isExpanded && (
             <div
               className="flex-shrink-0 flex items-center cursor-pointer overflow-hidden"
@@ -274,8 +270,6 @@ const handleLogout = async () => {
                       {link.badge}
                     </span>
                   )}
-                  
-                  {/* Tooltip for collapsed state */}
                   {!isExpanded && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap pointer-events-none z-50">
                       {link.label}
@@ -287,8 +281,12 @@ const handleLogout = async () => {
 
             {/* Recruitment Section */}
             <div className="pt-2">
-              <div
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors relative group ${
+              {/* ← now a button, click only toggles */}
+              <button
+                onClick={() => {
+                  if (isExpanded) setRecruitmentOpen((prev) => !prev);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors relative group ${
                   isRecruitmentActive
                     ? "bg-orange-50 text-[#F4781B]"
                     : "text-gray-600 hover:bg-gray-50"
@@ -296,18 +294,26 @@ const handleLogout = async () => {
               >
                 <Briefcase className="w-5 h-5 flex-shrink-0" />
                 {isExpanded && (
-                  <span className="text-sm font-medium overflow-hidden text-ellipsis">Recruitment</span>
+                  <>
+                    <span className="text-sm font-medium overflow-hidden text-ellipsis">
+                      Recruitment
+                    </span>
+                    <ChevronDown
+                      className={`ml-auto w-4 h-4 flex-shrink-0 transition-transform ${
+                        recruitmentOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </>
                 )}
-                
-                {/* Tooltip for collapsed state */}
                 {!isExpanded && (
                   <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap pointer-events-none z-50">
                     Recruitment
                   </div>
                 )}
-              </div>
+              </button>
 
-              {isExpanded && (
+              {/* Sublinks — only show when expanded AND recruitmentOpen */}
+              {isExpanded && recruitmentOpen && (
                 <div className="ml-8 mt-1 space-y-1">
                   {recruitmentSubLinks.map((link) => {
                     const isActive = pathname.startsWith(link.href);
@@ -322,7 +328,6 @@ const handleLogout = async () => {
                         }`}
                       >
                         <span className="overflow-hidden text-ellipsis">{link.label}</span>
-                        
                       </Link>
                     );
                   })}
@@ -334,7 +339,6 @@ const handleLogout = async () => {
 
         {/* Bottom Section */}
         <div className="border-t border-gray-200 flex-shrink-0">
-          {/* Bottom Navigation */}
           <nav className="px-3 py-3 space-y-1">
             {bottomLinks.map((link) => {
               const Icon = link.icon;
@@ -351,10 +355,10 @@ const handleLogout = async () => {
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   {isExpanded && (
-                    <span className="text-sm font-medium overflow-hidden text-ellipsis">{link.label}</span>
+                    <span className="text-sm font-medium overflow-hidden text-ellipsis">
+                      {link.label}
+                    </span>
                   )}
-                  
-                  {/* Tooltip for collapsed state */}
                   {!isExpanded && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap pointer-events-none z-50">
                       {link.label}
@@ -366,69 +370,61 @@ const handleLogout = async () => {
           </nav>
 
           {/* User Profile */}
-<div className="px-3 py-3 border-t border-gray-200">
-  <div className="flex items-center gap-3 overflow-hidden">
-    <div className="relative w-8 h-8 flex-shrink-0">
-      <Image
-        src="/svg/hospital-icon.svg"
-        alt="User"
-        fill
-        className="object-contain rounded-full"
-      />
-      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
-    </div>
-    {isExpanded && (
-      <div className="flex-1 min-w-0 overflow-hidden">
-        <p className="text-sm font-medium text-gray-900 truncate">
-          {recruiterProfile?.contact_person ?? "Recruiter"}
-        </p>
-        <p className="text-xs text-gray-500 truncate">
-          {recruiterProfile?.company_name ?? ""}
-        </p>
-      </div>
-    )}
-  </div>
+          <div className="px-3 py-3 border-t border-gray-200">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="relative w-8 h-8 flex-shrink-0">
+                <Image
+                  src="/svg/hospital-icon.svg"
+                  alt="User"
+                  fill
+                  className="object-contain rounded-full"
+                />
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+              </div>
+              {isExpanded && (
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {recruiterProfile?.contact_person ?? "Recruiter"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {recruiterProfile?.company_name ?? ""}
+                  </p>
+                </div>
+              )}
+            </div>
 
-  {/* Logout Button */}
-  <button
-    onClick={handleLogout}
-    className={`mt-3 flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-red-500 hover:bg-red-50 transition-colors relative group ${
-      !isExpanded ? "justify-center" : ""
-    }`}
-  >
-    <LogOut className="w-5 h-5 flex-shrink-0" />
-    {isExpanded && (
-      <span className="text-sm font-medium">Logout</span>
-    )}
-
-    {/* Tooltip when collapsed */}
-    {!isExpanded && (
-      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap pointer-events-none z-50">
-        Logout
-      </div>
-    )}
-  </button>
-</div>
-
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className={`mt-3 flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-red-500 hover:bg-red-50 transition-colors relative group ${
+                !isExpanded ? "justify-center" : ""
+              }`}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              {isExpanded && (
+                <span className="text-sm font-medium">Logout</span>
+              )}
+              {!isExpanded && (
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap pointer-events-none z-50">
+                  Logout
+                </div>
+              )}
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Top Header - Fixed positioning with proper z-index */}
-      <header 
+      {/* Top Header */}
+      <header
         className={`fixed top-0 right-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 z-40 transition-all duration-300 overflow-hidden ${
           isExpanded ? "left-64" : "left-20"
         }`}
       >
-        {/* Welcome Text - Left Side */}
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Welcome  <span className="text-gray-700"></span>
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">Welcome</h2>
         </div>
 
-        {/* Right Section */}
         <div className="flex items-center gap-4">
-          {/* Search */}
           <div className="relative hidden md:block">
             <input
               type="text"
@@ -446,8 +442,7 @@ const handleLogout = async () => {
               <path d="m21 21-4.35-4.35"></path>
             </svg>
           </div>
-          
-          {/* Notification Bell */}
+
           <div className="relative cursor-pointer p-2 border-2 border-gray-200 rounded-lg hover:border-gray-600 transition-colors">
             <Image
               src="/svg/bell-icon.svg"
