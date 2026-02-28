@@ -5,20 +5,24 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { OtpGate } from "./components/OtpGate";
 
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
   const router = useRouter();
   const pathname = usePathname();
 
+  const isProfileComplete = !!(
+  (recruiterProfile as any)?.organization_name &&
+  (recruiterProfile as any)?.contact_person_name
+);
+
   useEffect(() => {
     if (!recruiterProfile) return;
 
-    const isFirstTime = recruiterProfile.status === "pending_verification";
-
-    if (isFirstTime && pathname !== "/registration") {
+    if (!isProfileComplete && pathname !== "/registration") {
       router.replace("/registration");
     }
-  }, [recruiterProfile, pathname, router]);
+  }, [recruiterProfile, isProfileComplete, pathname, router]);
 
   return <OtpGate>{children}</OtpGate>;
 }

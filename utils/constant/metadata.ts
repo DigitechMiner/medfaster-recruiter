@@ -311,28 +311,29 @@ export function convertJobStatusToFrontend(backendValue: string | null | undefin
 // ============================================================================
 
 export const provinces = [
-  { value: "AB", label: "Alberta" },
-  { value: "BC", label: "British Columbia" },
-  { value: "MB", label: "Manitoba" },
-  { value: "NB", label: "New Brunswick" },
-  { value: "NL", label: "Newfoundland and Labrador" },
-  { value: "NT", label: "Northwest Territories" },
-  { value: "NS", label: "Nova Scotia" },
-  { value: "NU", label: "Nunavut" },
-  { value: "ON", label: "Ontario" },
-  { value: "PE", label: "Prince Edward Island" },
-  { value: "QC", label: "Quebec" },
-  { value: "SK", label: "Saskatchewan" },
-  { value: "YT", label: "Yukon" },
+  { value: "alberta",                    label: "Alberta" },
+  { value: "british_columbia",           label: "British Columbia" },
+  { value: "manitoba",                   label: "Manitoba" },
+  { value: "new_brunswick",              label: "New Brunswick" },
+  { value: "newfoundland_and_labrador",  label: "Newfoundland and Labrador" },
+  { value: "nova_scotia",                label: "Nova Scotia" },
+  { value: "ontario",                    label: "Ontario" },
+  { value: "prince_edward_island",       label: "Prince Edward Island" },
+  { value: "quebec",                     label: "Quebec" },
+  { value: "saskatchewan",               label: "Saskatchewan" },
+  { value: "northwest_territories",      label: "Northwest Territories" },
+  { value: "nunavut",                    label: "Nunavut" },
+  { value: "yukon",                      label: "Yukon" },
 ];
 
 export const orgTypes = [
-  { value: "hospital",                     label: "Hospital" },
-  { value: "continuing_care_facility",     label: "Continuing Care Facility" },
-  { value: "medical_clinic",               label: "Medical Clinic" },
-  { value: "community_health_care_center", label: "Community Health Care Center" },
-  { value: "home_care_agency",             label: "Home Care Agency" },
-  { value: "staffing_agency",              label: "Staffing Agency" },
+  { value: "hospital",        label: "Hospital" },
+  { value: "clinic",          label: "Clinic" },
+  { value: "nursing_home",    label: "Nursing Home" },
+  { value: "medical_center",  label: "Medical Center" },
+  { value: "pharmacy",        label: "Pharmacy" },
+  { value: "laboratory",      label: "Laboratory" },
+  { value: "other",           label: "Other" },
 ];
 
 export function extractProvinceCode(provinceDisplay: string): string {

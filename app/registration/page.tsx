@@ -17,7 +17,9 @@ import { useAuthStore } from "@/stores/authStore";
 import { toast } from "react-toastify";
 import { ZodIssue } from "zod";
 
+
 type FormValues = typeof allDefaultValues[number];
+
 
 export default function SmartFormPage() {
   const [step, setStep] = useState(0);
@@ -25,26 +27,19 @@ export default function SmartFormPage() {
   const router = useRouter();
   const updateProfile = useAuthStore((state) => state.updateProfile);
 
-  // ✅ Store all step data across steps — never wipe
   const allStepData = useRef<Record<number, Partial<FormValues>>>({});
 
   const methods = useForm<FormValues>({
     defaultValues: allDefaultValues[0],
     mode: "onChange",
-    // ✅ No resolver here — we validate manually per step
   });
 
-  // ✅ Validate current step using its own schema
   const validateCurrentStep = async (): Promise<boolean> => {
     const values = methods.getValues();
-    console.log("Current values:", values);        // ← see what fields RHF has
-  console.log("Current step schema:", schemas[step]); // ← see what fields schema expects
     const result = schemas[step].safeParse(values);
-    console.log("Validation result:", result); 
 
     if (!result.success) {
-      // Set errors on the form so fields show red
-      result.error.issues.forEach((err : ZodIssue) => {
+      result.error.issues.forEach((err: ZodIssue) => {
         const field = err.path[0] as string;
         if (field) {
           methods.setError(field as keyof FormValues, {
@@ -53,12 +48,9 @@ export default function SmartFormPage() {
           });
         }
       });
-
-      console.log("Validation errors:", result.error.issues);
       return false;
     }
 
-    // Clear any previous errors
     methods.clearErrors();
     return true;
   };
@@ -67,20 +59,16 @@ export default function SmartFormPage() {
     const isValid = await validateCurrentStep();
     if (!isValid) return;
 
-    // ✅ Save current step data before moving
     allStepData.current[step] = methods.getValues();
 
     if (step < steps.length - 1) {
       const nextStep = step + 1;
-
-      // ✅ Restore next step's previously filled data if it exists
       const savedData = allStepData.current[nextStep];
       if (savedData) {
         methods.reset(savedData);
       } else {
         methods.reset(allDefaultValues[nextStep]);
       }
-
       setStep(nextStep);
     }
   };
@@ -88,12 +76,9 @@ export default function SmartFormPage() {
   const goToPrevStep = () => {
     if (step <= 0) return;
 
-    // ✅ Save current step data before going back
     allStepData.current[step] = methods.getValues();
 
     const prevStep = step - 1;
-
-    // ✅ Restore previous step's filled data
     const savedData = allStepData.current[prevStep];
     if (savedData) {
       methods.reset(savedData);
@@ -105,66 +90,86 @@ export default function SmartFormPage() {
   };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const isValid = await validateCurrentStep();
-  if (!isValid) return;
+    const isValid = await validateCurrentStep();
+    if (!isValid) return;
 
-  allStepData.current[step] = methods.getValues();
+    allStepData.current[step] = methods.getValues();
+    setIsSubmitting(true);
 
-  setIsSubmitting(true);
+    try {
+      const s0 = allStepData.current[0] as any;
+      const s1 = allStepData.current[1] as any;
+      const s2 = allStepData.current[2] as any;
 
-  try {
-    // ✅ Build FormData purely from allStepData — no e.currentTarget
-    const formData = new FormData();
+      const formData = new FormData();
 
-    const allValues = {
-      ...allStepData.current[0],
-      ...allStepData.current[1],
-      ...allStepData.current[2],
-    } as Record<string, unknown>;
+      // ── Step 0: Organization Details ──────────────────────────
+      if (s0?.organization_photo instanceof File)
+        formData.append("organization_photo", s0.organization_photo);
+      if (s0?.orgName)        formData.append("organization_name", s0.orgName);
+      if (s0?.orgType)        formData.append("organization_type", s0.orgType);
+      if (s0?.email)          formData.append("official_email_address", s0.email);
+      if (s0?.contactNumber) formData.append("contact_number", s0.contactNumber);
+      if (s0?.website)        formData.append("organization_website", s0.website);
+      if (s0?.businessNumber) formData.append("canadian_business_number", s0.businessNumber);
+      if (s0?.address)        formData.append("street_address", s0.address);
+      if (s0?.postalCode)     formData.append("postal_code", s0.postalCode);
+      if (s0?.city)           formData.append("city", s0.city);
+      if (s0?.province)       formData.append("province", s0.province);
+      if (s0?.country)        formData.append("country", s0.country);
 
-    for (const [key, value] of Object.entries(allValues)) {
-      if (value instanceof File) {
-        formData.append(key, value);
-      } else if (Array.isArray(value)) {
-        value.forEach((item) => formData.append(key, String(item)));
-      } else if (value !== null && value !== undefined && value !== "") {
-        formData.append(key, String(value));
+      // ── Step 1: Contact Information ───────────────────────────
+      if (s1?.contactName)  formData.append("contact_person_name", s1.contactName);
+      if (s1?.designation)  formData.append("contact_person_designation", s1.designation);
+      if (s1?.contactEmail) formData.append("contact_person_email", s1.contactEmail);
+      if (s1?.phone)        formData.append("contact_person_phone", s1.phone);
+      if (s1?.primaryContact) {
+  formData.append("primary_contact_person", s1.primaryContact);
+  formData.append("contact_person_phone", s1.primaryContact);   
+}
+
+      // ── Step 2: Compliance Documents ──────────────────────────
+      if (s2?.operatingLicense instanceof File)
+        formData.append("operating_license", s2.operatingLicense);
+      if (s2?.accreditationCertificate instanceof File)
+        formData.append("accreditation_certificate", s2.accreditationCertificate);
+      if (s2?.provincialLicense instanceof File)
+        formData.append("provincial_health_license", s2.provincialLicense);
+      if (s2?.canadaCertificate instanceof File)
+        formData.append("accreditation_canada_certificate", s2.canadaCertificate);
+
+      // Debug log
+      console.log("📤 Submitting FormData:");
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, "=>", value.name, value.size, "bytes");
+        } else {
+          console.log(key, "=>", value);
+        }
       }
-    }
 
-    // Debug log
-    console.log("📤 Submitting FormData:");
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(key, "=>", value.name, value.size, "bytes");
+      const result = await updateProfile(formData);
+
+      if (result.ok) {
+        toast.success("Profile updated successfully!");
+        router.push("/");
       } else {
-        console.log(key, "=>", value);
+        toast.error(result.message || "Failed to update profile");
+        if (result.errors && result.errors.length > 0) {
+          result.errors.forEach((error: { field: string; message: string }) => {
+            toast.error(`${error.field}: ${error.message}`);
+          });
+        }
       }
+    } catch (error: unknown) {
+      console.error("Submission error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to submit form");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const result = await updateProfile(formData);
-
-    if (result.ok) {
-      toast.success("Profile updated successfully!");
-      router.push("/jobs");
-    } else {
-      toast.error(result.message || "Failed to update profile");
-      if (result.errors && result.errors.length > 0) {
-        result.errors.forEach((error: { field: string; message: string }) => {
-          toast.error(`${error.field}: ${error.message}`);
-        });
-      }
-    }
-  } catch (error: unknown) {
-    console.error("Submission error:", error);
-    toast.error(error instanceof Error ? error.message : "Failed to submit form");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  };
 
   const renderStepContent = () => {
     switch (step) {
@@ -193,9 +198,10 @@ export default function SmartFormPage() {
             <FormProvider {...methods}>
               <form
                 className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl border border-gray-200"
-                onSubmit={step < steps.length - 1
-                  ? (e) => { e.preventDefault(); goToNextStep(); }
-                  : onSubmit
+                onSubmit={
+                  step < steps.length - 1
+                    ? (e) => { e.preventDefault(); goToNextStep(); }
+                    : onSubmit
                 }
                 encType="multipart/form-data"
                 noValidate

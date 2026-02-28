@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Schemas
 export const orgSchema = z.object({
-  photo: z.any().optional(),
+  organization_photo: z.any().optional(),
   orgName: z.string().min(1, "Organization Name is required"),
   orgType: z.string().min(1, "Organization Type is required"),
   email: z.string().email({ message: "Invalid email" }),
@@ -21,7 +21,6 @@ export const contactSchema = z.object({
   contactName: z.string().min(1, "Contact Name is required"),
   designation: z.string().min(1, "Designation is required"),
   contactEmail: z.string().email({ message: "Invalid email" }),
-  phone: z.string().min(1, "Phone is required"),
 });
 
 export const complianceSchema = z.object({
@@ -42,7 +41,7 @@ export const schemas = [orgSchema, contactSchema, complianceSchema];
 
 export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
   {
-    photo: null,
+    organization_photo: null,
     orgName: "",
     orgType: "",
     email: "",
@@ -60,7 +59,6 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
     contactName: "",
     designation: "",
     contactEmail: "",
-    phone: "",
   },
   {
     operatingLicense: null,
@@ -71,8 +69,6 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
 ];
 
 export const complianceFields = [
-  { label: "Operating License",            name: "operatingLicense" },
-  { label: "Accreditation Certificate",    name: "accreditationCertificate" },
-  { label: "Provincial Health License",    name: "provincialLicense" },
-  { label: "Accreditation Canada Certificate", name: "canadaCertificate" },
+  { label: "Business Registration",            name: "businessRegistration" },
+  { label: "Operating License",    name: "operatingLicense" },
 ];
