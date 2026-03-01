@@ -78,11 +78,6 @@ export async function updateRecruiterProfile(
   const res = await axiosInstance.patch<UpdateProfileResponse>(
     ENDPOINTS.RECRUITER_PROFILE_UPDATE,
     formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
   );
   return res.data;
 }

@@ -118,13 +118,13 @@ const metadata = {
   ],
 
   organization_type_mapping: {
-    "Hospital":                      "hospital",
-    "Continuing Care Facility":      "continuing_care_facility",
-    "Medical Clinic":                "medical_clinic",
-    "Community Health Care Center":  "community_health_care_center",
-    "Home Care Agency":              "home_care_agency",
-    "Staffing Agency":               "staffing_agency",
-  },
+  "Hospital":                      "hospital",
+  "Continuing Care Facility":      "nursing_home",      // ← closest match
+  "Medical Clinic":                "clinic",            // ← fix
+  "Community Health Care Center":  "medical_center",    // ← fix
+  "Home Care Agency":              "other",             // ← closest match
+  "Staffing Agency":               "other",             // ← closest match
+},
 
   // ✅ Canadian provinces display format
   province: [

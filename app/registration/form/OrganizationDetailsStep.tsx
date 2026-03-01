@@ -10,8 +10,9 @@ export default function OrganizationDetailsStep() {
     <>
       <div className="mb-6">
         <FileUpload
-          name="photo"
+          name="organization_photo"
           label="Upload Organization Photo"
+          fileType="photo"
           accept="image/*"
           description="Supports images, max 5MB per file."
           required
