@@ -341,13 +341,13 @@ export const provinces = [
 
 
 export const orgTypes = [
-  { value: "hospital",                    label: "Hospital" },
-  { value: "continuing_care_facility",    label: "Continuing Care Facility" },
-  { value: "medical_clinic",              label: "Medical Clinic" },
-  { value: "community_health_care_center",label: "Community Health Care Center" },
-  { value: "home_care_agency",            label: "Home Care Agency" },
-  { value: "staffing_agency",             label: "Staffing Agency" },
+  { value: "hospital",      label: "Hospital" },
+  { value: "nursing_home",  label: "Continuing Care Facility" },
+  { value: "clinic",        label: "Medical Clinic" },
+  { value: "medical_center",label: "Community Health Care Center" },
+  { value: "other",         label: "Other" }, // covers Home Care & Staffing
 ];
+
 
 export function extractProvinceCode(provinceDisplay: string): string {
   const match = provinceDisplay.match(/\(([A-Z]{2})\)/);
