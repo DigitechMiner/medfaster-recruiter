@@ -9,6 +9,7 @@ interface CustomCalendarProps {
   onSelect: (date: Date) => void;
   onCancel: () => void;
   onSchedule: () => void;
+  minDate?: Date;
 }
 
 export function CustomCalendar({
@@ -16,6 +17,7 @@ export function CustomCalendar({
   onSelect,
   onCancel,
   onSchedule,
+  minDate,
 }: CustomCalendarProps) {
   const [currentDate, setCurrentDate] = useState(selectedDate || new Date());
   const [selected, setSelected] = useState<Date | undefined>(selectedDate);
@@ -48,6 +50,14 @@ export function CustomCalendar({
     setSelected(newDate);
     onSelect(newDate);
   };
+  const isPrevMonthDisabled = () => {
+  if (!minDate) return false;
+  // Disable if current view is already on minDate's month/year
+  return (
+    currentDate.getFullYear() === minDate.getFullYear() &&
+    currentDate.getMonth() === minDate.getMonth()
+  );
+};
 
   const renderCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentDate);
@@ -71,28 +81,46 @@ export function CustomCalendar({
       );
     }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const isSelected =
-        selected &&
-        selected.getDate() === day &&
-        selected.getMonth() === currentDate.getMonth() &&
-        selected.getFullYear() === currentDate.getFullYear();
+  for (let day = 1; day <= daysInMonth; day++) {
+  const thisDate = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    day
+  );
 
-      days.push(
-        <button
-          key={day}
-          type="button"
-          onClick={() => handleDateClick(day)}
-          className={`h-10 w-10 text-center text-sm rounded-md transition-colors ${
-            isSelected
-              ? "bg-[#F4781B] text-white font-semibold"
-              : "text-gray-900 hover:bg-gray-100"
-          }`}
-        >
-          {day}
-        </button>
-      );
-    }
+  // Strip time from minDate for clean comparison
+  const minDateOnly = minDate
+    ? new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())
+    : null;
+
+  const isDisabled = minDateOnly ? thisDate < minDateOnly : false;
+
+  const isSelected =
+    selected &&
+    selected.getDate() === day &&
+    selected.getMonth() === currentDate.getMonth() &&
+    selected.getFullYear() === currentDate.getFullYear();
+
+  days.push(
+    <button
+      key={day}
+      type="button"
+      onClick={isDisabled ? undefined : () => handleDateClick(day)} // ✅ no handler at all
+      disabled={isDisabled}
+      className={`h-10 w-10 text-center text-sm rounded-md transition-colors ${
+        isDisabled
+          ? "text-gray-200 cursor-not-allowed pointer-events-none" // ✅ pointer-events-none
+          : isSelected
+          ? "bg-[#F4781B] text-white font-semibold"
+          : "text-gray-900 hover:bg-gray-100"
+      }`}
+    >
+      {day}
+    </button>
+  );
+}
+
+
 
     const remainingDays = 42 - days.length;
     for (let day = 1; day <= remainingDays; day++) {
@@ -114,9 +142,18 @@ export function CustomCalendar({
   return (
     <div className="w-[360px] bg-white rounded-lg shadow-lg border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-4">
-        <button type="button" onClick={previousMonth} className="p-1 hover:bg-gray-100 rounded-md">
-          <ChevronLeft className="h-5 w-5 text-gray-700" />
-        </button>
+        <button
+  type="button"
+  onClick={previousMonth}
+  disabled={isPrevMonthDisabled()}
+  className={`p-1 rounded-md transition-colors ${
+    isPrevMonthDisabled()
+      ? "opacity-30 cursor-not-allowed pointer-events-none"
+      : "hover:bg-gray-100"
+  }`}
+>
+  <ChevronLeft className="h-5 w-5 text-gray-700" />
+</button>
         <h3 className="text-lg font-semibold text-gray-900">
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h3>

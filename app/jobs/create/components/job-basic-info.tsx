@@ -26,7 +26,13 @@ interface JobBasicInfoProps {
   updateFormData: (updates: Partial<JobFormData>) => void;
 }
 
+
 export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
+  
+const today = new Date();
+const fromMinDate = today;
+const tillMinDate = new Date(today);
+tillMinDate.setDate(today.getDate() + 1)
   const [showCalendar1, setShowCalendar1] = useState(false);
   const [showCalendar2, setShowCalendar2] = useState(false);
   const [showFromTimePicker, setShowFromTimePicker] = useState(false);
@@ -223,26 +229,28 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
 
       {/* Modals */}
       {showCalendar1 && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <CustomCalendar
-            selectedDate={formData.fromDate}
-            onSelect={(date) => updateFormData({ fromDate: date })}
-            onCancel={() => setShowCalendar1(false)}
-            onSchedule={() => setShowCalendar1(false)}
-          />
-        </div>
-      )}
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <CustomCalendar
+      selectedDate={formData.fromDate}
+      onSelect={(date) => updateFormData({ fromDate: date })}
+      onCancel={() => setShowCalendar1(false)}
+      onSchedule={() => setShowCalendar1(false)}
+      minDate={fromMinDate} // ✅ today + future
+    />
+  </div>
+)}
 
-      {showCalendar2 && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <CustomCalendar
-            selectedDate={formData.tillDate}
-            onSelect={(date) => updateFormData({ tillDate: date })}
-            onCancel={() => setShowCalendar2(false)}
-            onSchedule={() => setShowCalendar2(false)}
-          />
-        </div>
-      )}
+{showCalendar2 && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <CustomCalendar
+      selectedDate={formData.tillDate}
+      onSelect={(date) => updateFormData({ tillDate: date })}
+      onCancel={() => setShowCalendar2(false)}
+      onSchedule={() => setShowCalendar2(false)}
+      minDate={tillMinDate} // ✅ tomorrow + future
+    />
+  </div>
+)}
 
       {showFromTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
