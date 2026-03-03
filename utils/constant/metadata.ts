@@ -4,6 +4,7 @@
  * ============================================================================
  */
 
+
 const metadata = {
   // ============================================================================
   // JOB-RELATED METADATA
@@ -22,7 +23,7 @@ const metadata = {
   },
 
   department: [
-    "Nursing",
+    { label : "Nursing", value: "nursing"},
   ],
 
   experience: [
@@ -89,19 +90,19 @@ const metadata = {
   ],
 
   specialization_mapping: {
-  "Geriatric Care":                         "geriatric_care",
-  "Long Term Care":                         "long_term_care",
-  "Dementia Care / Alzheimer Care":         "dementia_care",
-  "Complex Dementia Care":                  "complex_dementia_care",
-  "Palliative Care / End of Life Care":     "palliative_care",       // ← fixed
-  "Continuing Care / Residential Care":     "continuing_care",       // ← fixed
-  "Rehabilitation Care":                    "rehabilitation_care",
-  "Chronic Disease Care":                   "chronic_disease_care",
-  "Wound Care":                             "wound_care",
-  "Medication Management":                  "medication_management",
-  "Mental Health & Behavioral Health Care": "mental_health",         // ← fixed
-  "Adult Mental Health":                    "adult_mental_health",
-},
+    "Geriatric Care":                         "geriatric_care",
+    "Long Term Care":                         "long_term_care",
+    "Dementia Care / Alzheimer Care":         "dementia_care",
+    "Complex Dementia Care":                  "complex_dementia_care",
+    "Palliative Care / End of Life Care":     "palliative_care",
+    "Continuing Care / Residential Care":     "continuing_care",
+    "Rehabilitation Care":                    "rehabilitation_care",
+    "Chronic Disease Care":                   "chronic_disease_care",
+    "Wound Care":                             "wound_care",
+    "Medication Management":                  "medication_management",
+    "Mental Health & Behavioral Health Care": "mental_health",
+    "Adult Mental Health":                    "adult_mental_health",
+  },
 
   // ============================================================================
   // ORGANIZATION-RELATED METADATA
@@ -118,13 +119,13 @@ const metadata = {
   ],
 
   organization_type_mapping: {
-  "Hospital":                      "hospital",
-  "Continuing Care Facility":      "nursing_home",      // ← closest match
-  "Medical Clinic":                "clinic",            // ← fix
-  "Community Health Care Center":  "medical_center",    // ← fix
-  "Home Care Agency":              "other",             // ← closest match
-  "Staffing Agency":               "other",             // ← closest match
-},
+    "Hospital":                      "hospital",
+    "Continuing Care Facility":      "nursing_home",
+    "Medical Clinic":                "clinic",
+    "Community Health Care Center":  "medical_center",
+    "Home Care Agency":              "other",
+    "Staffing Agency":               "other",
+  },
 
   // ✅ Canadian provinces display format
   province: [
@@ -212,19 +213,19 @@ const metadata = {
     default_min: 2300,
     default_max: 2800,
   },
-  qualification_mapping: {
-  "Cardiology":         "cardiology",
-  "Orthopedics":        "orthopedics",
-  "Neurology":          "neurology",
-  "Dermatology":        "dermatology",
-  "Pediatrics":         "pediatrics",
-  "Emergency Medicine": "emergency_medicine",
-  "Internal Medicine":  "internal_medicine",
-  "Surgery":            "surgery",
-  "Anesthesiology":     "anesthesiology",
-  "Radiology":          "radiology",
-},
 
+  qualification_mapping: {
+    "Cardiology":         "cardiology",
+    "Orthopedics":        "orthopedics",
+    "Neurology":          "neurology",
+    "Dermatology":        "dermatology",
+    "Pediatrics":         "pediatrics",
+    "Emergency Medicine": "emergency_medicine",
+    "Internal Medicine":  "internal_medicine",
+    "Surgery":            "surgery",
+    "Anesthesiology":     "anesthesiology",
+    "Radiology":          "radiology",
+  },
 };
 
 // ============================================================================
@@ -319,35 +320,38 @@ export function convertJobStatusToFrontend(backendValue: string | null | undefin
   return entry ? entry[0] : backendValue;
 }
 
+export function convertQualificationToBackend(frontendValue: string): string {
+  return metadata.qualification_mapping[frontendValue as keyof typeof metadata.qualification_mapping]
+    ?? frontendValue.toLowerCase().replace(/ /g, "_");
+}
+
 // ============================================================================
 // PROVINCE HELPERS
 // ============================================================================
 
 export const provinces = [
-  { value: "alberta",                    label: "Alberta" },
-  { value: "british_columbia",           label: "British Columbia" },
-  { value: "manitoba",                   label: "Manitoba" },
-  { value: "new_brunswick",              label: "New Brunswick" },
-  { value: "newfoundland_and_labrador",  label: "Newfoundland and Labrador" },
-  { value: "nova_scotia",                label: "Nova Scotia" },
-  { value: "ontario",                    label: "Ontario" },
-  { value: "prince_edward_island",       label: "Prince Edward Island" },
-  { value: "quebec",                     label: "Quebec" },
-  { value: "saskatchewan",               label: "Saskatchewan" },
-  { value: "northwest_territories",      label: "Northwest Territories" },
-  { value: "nunavut",                    label: "Nunavut" },
-  { value: "yukon",                      label: "Yukon" },
+  { value: "alberta",                   label: "Alberta" },
+  { value: "british_columbia",          label: "British Columbia" },
+  { value: "manitoba",                  label: "Manitoba" },
+  { value: "new_brunswick",             label: "New Brunswick" },
+  { value: "newfoundland_and_labrador", label: "Newfoundland and Labrador" },
+  { value: "nova_scotia",               label: "Nova Scotia" },
+  { value: "ontario",                   label: "Ontario" },
+  { value: "prince_edward_island",      label: "Prince Edward Island" },
+  { value: "quebec",                    label: "Quebec" },
+  { value: "saskatchewan",              label: "Saskatchewan" },
+  { value: "northwest_territories",     label: "Northwest Territories" },
+  { value: "nunavut",                   label: "Nunavut" },
+  { value: "yukon",                     label: "Yukon" },
 ];
-
 
 export const orgTypes = [
-  { value: "hospital",      label: "Hospital" },
-  { value: "nursing_home",  label: "Continuing Care Facility" },
-  { value: "clinic",        label: "Medical Clinic" },
-  { value: "medical_center",label: "Community Health Care Center" },
-  { value: "other",         label: "Other" }, // covers Home Care & Staffing
+  { value: "hospital",       label: "Hospital" },
+  { value: "nursing_home",   label: "Continuing Care Facility" },
+  { value: "clinic",         label: "Medical Clinic" },
+  { value: "medical_center", label: "Community Health Care Center" },
+  { value: "other",          label: "Other" },
 ];
-
 
 export function extractProvinceCode(provinceDisplay: string): string {
   const match = provinceDisplay.match(/\(([A-Z]{2})\)/);
@@ -415,13 +419,13 @@ export default metadata;
 export const {
   job_title,
   job_title_mapping,
-  department,
   experience,
   job_type,
   job_type_mapping,
   urgency,
   urgency_mapping,
   qualification,
+  qualification_mapping,
   specialization,
   specialization_mapping,
   province,

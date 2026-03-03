@@ -38,14 +38,16 @@ tillMinDate.setDate(today.getDate() + 1)
   const [showFromTimePicker, setShowFromTimePicker] = useState(false);
   const [showToTimePicker, setShowToTimePicker] = useState(false);
 
-  const formatDate = (date?: Date) => {
-    if (!date) return "DD/MM/YYYY";
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
+  const formatDate = (date?: Date | string) => {
+  if (!date) return "DD/MM/YYYY";
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return "DD/MM/YYYY";
+  return dateObj.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
 
   const formatTimeDisplay = (time?: string) => {
     if (!time) return "7:30 am";
@@ -77,10 +79,11 @@ tillMinDate.setDate(today.getDate() + 1)
               </SelectTrigger>
               <SelectContent>
                 {DEPARTMENTS.map((dept) => (
-                  <SelectItem key={dept} value={dept}>
-                    {dept}
-                  </SelectItem>
-                ))}
+  <SelectItem key={dept.value} value={dept.value}>
+    {dept.label}
+  </SelectItem>
+))}
+
               </SelectContent>
             </Select>
           </div>
