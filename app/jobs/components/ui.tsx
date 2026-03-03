@@ -154,9 +154,9 @@ const JobCardComponent: React.FC<JobCardProps> = ({
           <>
             <button
               disabled
-              className="text-xs px-3 py-2 bg-orange-100 text-orange-700 rounded-lg font-medium cursor-default"
+              className="text-xs px-3 py-2 bg-red-50 text-red-500 rounded-lg font-medium cursor-default"
             >
-              Shortlisted
+              Remove
             </button>
             <Tooltip content="On Site / Virtual Interview">
               <button
@@ -180,9 +180,9 @@ const JobCardComponent: React.FC<JobCardProps> = ({
           <>
             <button
               disabled
-              className="flex-1 text-xs px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium cursor-default"
+              className="flex-1 text-xs px-3 py-2 bg-red-50 text-red-500 rounded-lg font-medium cursor-default"
             >
-              Interviewing
+              Reject
             </button>
             <button
               onClick={(e) => e.stopPropagation()}
