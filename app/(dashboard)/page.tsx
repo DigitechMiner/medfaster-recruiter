@@ -40,54 +40,6 @@ const DashboardPage: React.FC = () => {
   const pendingApprovals = applicationsData?.applications?.filter((app) => app.status === "PENDING")?.length || 0;
   return { totalOpenJobs, totalApplicants, inInterviewStage, hiredThisMonth, pendingApprovals };
 }, [jobs, applicationsData]);
-
-
-  // ✅ searchQuery wired up + page reset dependency
-  const dashboardTableData = useMemo<DashboardJob[] | Candidate[]>(() => {
-    if (selectedDashboardMetric === "openJobs") {
-      return (
-        jobs?.filter(
-          (j) =>
-            j.status !== "CLOSED" &&
-            j.job_title.toLowerCase().includes(searchQuery.toLowerCase())
-        ) || []
-      );
-    }
-
-    const dashboardCandidates: Candidate[] =
-      applicationsData?.applications?.map((app: Application) => ({
-        id: app.id,
-        name:
-          app.candidate?.full_name ||
-          `${app.candidate?.first_name} ${app.candidate?.last_name}`,
-        initials:
-          (app.candidate?.first_name?.[0] || "") +
-            (app.candidate?.last_name?.[0] || "") || "NA",
-        skills: "Patient care, Wound care, IV administration",
-        currentEmployer: app.candidate?.current_employer || "N/A",
-        experience: `${app.candidate?.years_of_experience || 0} yrs`,
-        status: app.status,
-        assignedJob: app.job?.job_title || "N/A",
-      })) || [];
-
-    const filtered = dashboardCandidates.filter((c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    switch (selectedDashboardMetric) {
-      case "applied":
-        return filtered;
-      case "interviewing":
-        return filtered.filter((c) => c.status === "INTERVIEWING");
-      case "hired":
-        return filtered.filter((c) => c.status === "ACCEPTED");
-      case "pending":
-        return filtered.filter((c) => c.status === "PENDING");
-      default:
-        return [];
-    }
-  }, [selectedDashboardMetric, jobs, applicationsData, searchQuery]); // ✅ searchQuery in deps
-
   const itemsPerPage = 5;
 
   if (isLoadingJobs || isLoadingApps) {
