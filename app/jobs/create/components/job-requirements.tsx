@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Search, ChevronDown } from "lucide-react";
+import { X, Search} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import metadata from "@/utils/constant/metadata";
 import type { JobFormData } from "@/Interface/job.types";

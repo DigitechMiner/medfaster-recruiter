@@ -125,7 +125,13 @@ export const StatusSection: React.FC<StatusSectionPropsExtended> = ({ status, ti
 };
 
 // ============ JOB CARD (Internal) ============
-const JobCardComponent: React.FC<JobCardProps> = ({ job, status, badgeColor: _badgeColor, index: _index, onView: _onView }) => {
+const JobCardComponent: React.FC<JobCardProps> = ({
+  job,
+  status,
+  badgeColor: _badgeColor,
+  index: _index,
+  onView: _onView,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Button configurations based on status matching the screenshot

@@ -2,12 +2,10 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Briefcase, Users, Sparkles, CalendarCheck, Gift, UserCheck, Clock, XCircle } from "lucide-react";
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
 import { AppLayout } from "@/components/global/app-layout";
 import { MetricCard } from "./components/MetricCard";
-import { DashboardCandidatesTable } from "./components/DashboardCandidatesTable";
 import { CandidateFunnelChart } from "./components/CandidateFunnelChart";
 import { MiniCalendar } from "./components/MiniCalendar";
 import { HiringFunnel } from "./components/HiringFunnel";
@@ -21,7 +19,7 @@ import { useAuthStore } from "@/stores/authStore";
 const DashboardPage: React.FC = () => {
   const router = useRouter();
   const { recruiterProfile} = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDashboardMetric, setSelectedDashboardMetric] = useState<MetricType>("openJobs");
 
@@ -91,12 +89,6 @@ const DashboardPage: React.FC = () => {
   }, [selectedDashboardMetric, jobs, applicationsData, searchQuery]); // ✅ searchQuery in deps
 
   const itemsPerPage = 5;
-  const totalPages = Math.ceil(dashboardTableData.length / itemsPerPage);
-
-  const paginatedDashboardData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return dashboardTableData.slice(startIndex, startIndex + itemsPerPage);
-  }, [dashboardTableData, currentPage]);
 
   if (isLoadingJobs || isLoadingApps) {
     return (

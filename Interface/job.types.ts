@@ -200,7 +200,7 @@ export interface TopJob {
 }
 
 export interface Job {
-  id: number;
+  id: number | string;
   doctorName: string;
   experience: number;
   position: string;
