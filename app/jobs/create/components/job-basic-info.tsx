@@ -1,4 +1,3 @@
-// app/jobs/create/components/job-basic-info.tsx
 "use client";
 
 import { useState } from "react";
@@ -27,7 +26,7 @@ interface JobBasicInfoProps {
 }
 
 export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
-  const isInstant = formData.urgency === "instant"; // ✅ key flag
+  const isInstant = formData.urgency === "instant";
 
   const today = new Date();
   const fromMinDate = today;
@@ -62,6 +61,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
   return (
     <>
       <div className="space-y-6 mb-6">
+
         {/* Department & Job Title */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -107,51 +107,48 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
         </div>
 
-        {/* Number of Hires + From Date + Till Date — hide dates for instant */}
-        <div className={`grid grid-cols-1 gap-6 ${isInstant ? "md:grid-cols-1 max-w-sm" : "md:grid-cols-3"}`}>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">
-              Number of hires for this position <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              type="number"
-              value={formData.numberOfHires || "5"}
-              onChange={(e) => updateFormData({ numberOfHires: e.target.value })}
-              placeholder="5"
-              className="h-11"
-              required
-            />
+        {/* Number of Hires + From Date + Till Date — hidden entirely for instant */}
+        {!isInstant && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Number of hires for this position <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
+                value={formData.numberOfHires || "5"}
+                onChange={(e) => updateFormData({ numberOfHires: e.target.value })}
+                placeholder="5"
+                className="h-11"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">From Date</Label>
+              <button
+                type="button"
+                onClick={() => setShowCalendar1(true)}
+                className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+              >
+                <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
+                <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Till Date</Label>
+              <button
+                type="button"
+                onClick={() => setShowCalendar2(true)}
+                className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+              >
+                <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
+                <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              </button>
+            </div>
           </div>
-
-          {/* ✅ Hidden for instant jobs */}
-          {!isInstant && (
-            <>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">From Date</Label>
-                <button
-                  type="button"
-                  onClick={() => setShowCalendar1(true)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-                >
-                  <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Till Date</Label>
-                <button
-                  type="button"
-                  onClick={() => setShowCalendar2(true)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-                >
-                  <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
-                  <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        )}
 
         {/* Job Type + From Time + To Time — hide times for instant */}
         <div className={`grid grid-cols-1 gap-6 ${isInstant ? "md:grid-cols-1" : "md:grid-cols-4"}`}>
@@ -182,7 +179,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
             </RadioGroup>
           </div>
 
-          {/* ✅ Hidden for instant jobs */}
+          {/* Hidden for instant jobs */}
           {!isInstant && (
             <>
               <div className="space-y-2">
@@ -215,6 +212,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
             </>
           )}
         </div>
+
       </div>
 
       {/* Modals — only mount when not instant */}
