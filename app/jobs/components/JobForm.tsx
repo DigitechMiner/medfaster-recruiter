@@ -119,11 +119,12 @@ export function JobForm({
               updateFormData={updateFormData}
             />
           )}
-          
+          {formData.urgency !== "instant" && (
           <LocationFields
             formData={formData}
             updateFormData={updateFormData}
           />
+            )}
 
           <JobDescription
             formData={formData}

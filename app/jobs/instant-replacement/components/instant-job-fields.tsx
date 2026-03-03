@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,11 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CustomCalendar } from "../../components/custom-calendar";
+import { CustomTimePicker } from "../../components/custom-time-picker";
 
-// Define the formData type
 interface InstantJobFormData {
   numberOfHires?: string;
   amountPerHire?: string;
+  fromDate?: Date;
+  tillDate?: Date;
   checkInTime?: string;
   checkOutTime?: string;
   neighborhoodName?: string;
@@ -32,23 +34,18 @@ interface InstantJobFormData {
 
 interface InstantJobFieldsProps {
   formData: InstantJobFormData;
-  startDate?: Date;
-  endDate?: Date;
-  onStartDateChange: (date: Date) => void;
-  onEndDateChange: (date: Date) => void;
   updateFormData: (updates: Partial<InstantJobFormData>) => void;
 }
 
-export function InstantJobFields({
-  formData,
-  startDate,
-  endDate,
-  onStartDateChange,
-  onEndDateChange,
-  updateFormData,
-}: InstantJobFieldsProps) {
+export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsProps) {
   const [showCalendar1, setShowCalendar1] = useState(false);
   const [showCalendar2, setShowCalendar2] = useState(false);
+  const [showCheckInPicker, setShowCheckInPicker] = useState(false);
+  const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
+
+  const today = new Date();
+  const tillMinDate = new Date(today);
+  tillMinDate.setDate(today.getDate() + 1);
 
   const formatDate = (date?: Date) => {
     if (!date) return "DD/MM/YYYY";
@@ -57,6 +54,15 @@ export function InstantJobFields({
       month: "2-digit",
       year: "numeric",
     });
+  };
+
+  const formatTimeDisplay = (time?: string) => {
+    if (!time) return "7:30 am";
+    const [hours, minutes] = time.split(":");
+    const hour = parseInt(hours);
+    const period = hour >= 12 ? "pm" : "am";
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    return `${displayHour}:${minutes} ${period}`;
   };
 
   return (
@@ -72,6 +78,7 @@ export function InstantJobFields({
             value={formData.numberOfHires}
             onChange={(e) => updateFormData({ numberOfHires: e.target.value })}
             placeholder="5"
+            className="h-11"
             required
           />
         </div>
@@ -84,79 +91,66 @@ export function InstantJobFields({
             value={formData.amountPerHire}
             onChange={(e) => updateFormData({ amountPerHire: e.target.value })}
             placeholder="50$"
+            className="h-11"
             required
           />
         </div>
       </div>
 
-      {/* Dates & Times */}
+      {/* From Date, Till Date, Check In, Check Out */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            Start Date <span className="text-red-500">*</span>
+            From Date <span className="text-red-500">*</span>
           </Label>
           <button
             type="button"
             onClick={() => setShowCalendar1(true)}
-            className={`w-full flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-gray-50 ${
-              !startDate ? "border-red-300" : "border-gray-300"
-            }`}
+            className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
           >
-            <CalendarIcon className="h-4 w-4 text-gray-500" />
-            <span className={startDate ? "text-gray-900" : "text-gray-400"}>
-              {formatDate(startDate)}
-            </span>
+            <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
+            <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
           </button>
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            End Date <span className="text-red-500">*</span>
+            Till Date <span className="text-red-500">*</span>
           </Label>
           <button
             type="button"
             onClick={() => setShowCalendar2(true)}
-            className={`w-full flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-gray-50 ${
-              !endDate ? "border-red-300" : "border-gray-300"
-            }`}
+            className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
           >
-            <CalendarIcon className="h-4 w-4 text-gray-500" />
-            <span className={endDate ? "text-gray-900" : "text-gray-400"}>
-              {formatDate(endDate)}
-            </span>
+            <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
+            <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
           </button>
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            Check In <span className="text-red-500">*</span>
+            Check In Time <span className="text-red-500">*</span>
           </Label>
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input
-              type="time"
-              value={formData.checkInTime}
-              onChange={(e) => updateFormData({ checkInTime: e.target.value })}
-              className="pl-10"
-              required
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowCheckInPicker(true)}
+            className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+          >
+            <span className="text-gray-600">{formatTimeDisplay(formData.checkInTime)}</span>
+          </button>
         </div>
 
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            Check Out <span className="text-red-500">*</span>
+            Check Out Time <span className="text-red-500">*</span>
           </Label>
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input
-              type="time"
-              value={formData.checkOutTime}
-              onChange={(e) => updateFormData({ checkOutTime: e.target.value })}
-              className="pl-10"
-              required
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowCheckOutPicker(true)}
+            className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+          >
+            <span className="text-gray-600">{formatTimeDisplay(formData.checkOutTime)}</span>
+          </button>
         </div>
       </div>
 
@@ -168,6 +162,7 @@ export function InstantJobFields({
             value={formData.neighborhoodName}
             onChange={(e) => updateFormData({ neighborhoodName: e.target.value })}
             placeholder="Type here"
+            className="h-11"
           />
         </div>
         <div className="space-y-2">
@@ -178,7 +173,7 @@ export function InstantJobFields({
             value={formData.neighborhoodType}
             onValueChange={(value) => updateFormData({ neighborhoodType: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-11">
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
@@ -195,6 +190,7 @@ export function InstantJobFields({
             value={formData.directNumber}
             onChange={(e) => updateFormData({ directNumber: e.target.value })}
             placeholder="265536727"
+            className="h-11"
           />
         </div>
       </div>
@@ -202,17 +198,23 @@ export function InstantJobFields({
       {/* Address */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="space-y-2">
-          <Label>Street Address</Label>
+          <Label className="text-sm font-medium text-gray-700">Street Address</Label>
           <Input
             value={formData.streetAddress}
             onChange={(e) => updateFormData({ streetAddress: e.target.value })}
+            placeholder="1234 Maple Street"
+            className="h-11"
           />
         </div>
         <div className="space-y-2">
-          <Label>Postal Code <span className="text-red-500">*</span></Label>
+          <Label className="text-sm font-medium text-gray-700">
+            Postal Code <span className="text-red-500">*</span>
+          </Label>
           <Input
             value={formData.postalCode}
             onChange={(e) => updateFormData({ postalCode: e.target.value })}
+            placeholder="M5H 2N2"
+            className="h-11"
             required
           />
         </div>
@@ -220,43 +222,82 @@ export function InstantJobFields({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="space-y-2">
-          <Label>Province</Label>
-          <Select value={formData.province} onValueChange={(v) => updateFormData({ province: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Label className="text-sm font-medium text-gray-700">Province</Label>
+          <Select
+            value={formData.province}
+            onValueChange={(v) => updateFormData({ province: v })}
+          >
+            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Ontario (ON)">Ontario (ON)</SelectItem>
               <SelectItem value="British Columbia (BC)">British Columbia (BC)</SelectItem>
+              <SelectItem value="Alberta (AB)">Alberta (AB)</SelectItem>
+              <SelectItem value="Quebec (QC)">Quebec (QC)</SelectItem>
+              <SelectItem value="Saskatchewan (SK)">Saskatchewan (SK)</SelectItem>
+              <SelectItem value="Manitoba (MB)">Manitoba (MB)</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>City <span className="text-red-500">*</span></Label>
-          <Input value={formData.city} onChange={(e) => updateFormData({ city: e.target.value })} required />
+          <Label className="text-sm font-medium text-gray-700">
+            City <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            value={formData.city}
+            onChange={(e) => updateFormData({ city: e.target.value })}
+            className="h-11"
+            required
+          />
         </div>
         <div className="space-y-2">
-          <Label>Country</Label>
-          <Input value={formData.country} disabled />
+          <Label className="text-sm font-medium text-gray-700">Country</Label>
+          <Input value={formData.country} disabled className="h-11 bg-gray-50 text-gray-500" />
         </div>
       </div>
 
-      {/* Calendars */}
+      {/* Modals */}
       {showCalendar1 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
-            selectedDate={startDate}
-            onSelect={onStartDateChange}
+            selectedDate={formData.fromDate}
+            onSelect={(date) => updateFormData({ fromDate: date })}
             onCancel={() => setShowCalendar1(false)}
             onSchedule={() => setShowCalendar1(false)}
+            minDate={today}
           />
         </div>
       )}
+
       {showCalendar2 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
-            selectedDate={endDate}
-            onSelect={onEndDateChange}
+            selectedDate={formData.tillDate}
+            onSelect={(date) => updateFormData({ tillDate: date })}
             onCancel={() => setShowCalendar2(false)}
             onSchedule={() => setShowCalendar2(false)}
+            minDate={tillMinDate}
+          />
+        </div>
+      )}
+
+      {showCheckInPicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <CustomTimePicker
+            selectedTime={formData.checkInTime}
+            onSelect={(time) => updateFormData({ checkInTime: time })}
+            onCancel={() => setShowCheckInPicker(false)}
+            onSelectTime={() => setShowCheckInPicker(false)}
+          />
+        </div>
+      )}
+
+      {showCheckOutPicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <CustomTimePicker
+            selectedTime={formData.checkOutTime}
+            onSelect={(time) => updateFormData({ checkOutTime: time })}
+            onCancel={() => setShowCheckOutPicker(false)}
+            onSelectTime={() => setShowCheckOutPicker(false)}
           />
         </div>
       )}

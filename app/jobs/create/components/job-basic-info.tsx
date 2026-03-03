@@ -26,28 +26,29 @@ interface JobBasicInfoProps {
   updateFormData: (updates: Partial<JobFormData>) => void;
 }
 
-
 export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
-  
-const today = new Date();
-const fromMinDate = today;
-const tillMinDate = new Date(today);
-tillMinDate.setDate(today.getDate() + 1)
+  const isInstant = formData.urgency === "instant"; // ✅ key flag
+
+  const today = new Date();
+  const fromMinDate = today;
+  const tillMinDate = new Date(today);
+  tillMinDate.setDate(today.getDate() + 1);
+
   const [showCalendar1, setShowCalendar1] = useState(false);
   const [showCalendar2, setShowCalendar2] = useState(false);
   const [showFromTimePicker, setShowFromTimePicker] = useState(false);
   const [showToTimePicker, setShowToTimePicker] = useState(false);
 
   const formatDate = (date?: Date | string) => {
-  if (!date) return "DD/MM/YYYY";
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(dateObj.getTime())) return "DD/MM/YYYY";
-  return dateObj.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
+    if (!date) return "DD/MM/YYYY";
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return "DD/MM/YYYY";
+    return dateObj.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   const formatTimeDisplay = (time?: string) => {
     if (!time) return "7:30 am";
@@ -71,19 +72,15 @@ tillMinDate.setDate(today.getDate() + 1)
               value={formData.department}
               onValueChange={(value) => updateFormData({ department: value })}
             >
-              <SelectTrigger
-                id="department"
-                className="w-full border-[#F4781B] focus:ring-[#F4781B] h-11"
-              >
+              <SelectTrigger id="department" className="w-full border-[#F4781B] focus:ring-[#F4781B] h-11">
                 <SelectValue placeholder="Select a department" />
               </SelectTrigger>
               <SelectContent>
                 {DEPARTMENTS.map((dept) => (
-  <SelectItem key={dept.value} value={dept.value}>
-    {dept.label}
-  </SelectItem>
-))}
-
+                  <SelectItem key={dept.value} value={dept.value}>
+                    {dept.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -96,10 +93,7 @@ tillMinDate.setDate(today.getDate() + 1)
               value={formData.jobTitle}
               onValueChange={(value) => updateFormData({ jobTitle: value })}
             >
-              <SelectTrigger
-                id="job-title"
-                className="w-full border-[#F4781B] focus:ring-[#F4781B] h-11"
-              >
+              <SelectTrigger id="job-title" className="w-full border-[#F4781B] focus:ring-[#F4781B] h-11">
                 <SelectValue placeholder="Nurse" />
               </SelectTrigger>
               <SelectContent>
@@ -113,8 +107,8 @@ tillMinDate.setDate(today.getDate() + 1)
           </div>
         </div>
 
-        {/* Number of Hires, Till Date 1, Till Date 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Number of Hires + From Date + Till Date — hide dates for instant */}
+        <div className={`grid grid-cols-1 gap-6 ${isInstant ? "md:grid-cols-1 max-w-sm" : "md:grid-cols-3"}`}>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
               Number of hires for this position <span className="text-red-500">*</span>
@@ -129,34 +123,39 @@ tillMinDate.setDate(today.getDate() + 1)
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">From Date</Label>
-            <button
-              type="button"
-              onClick={() => setShowCalendar1(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-            >
-              <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
-              <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            </button>
-          </div>
+          {/* ✅ Hidden for instant jobs */}
+          {!isInstant && (
+            <>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">From Date</Label>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar1(true)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+                >
+                  <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
+                  <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                </button>
+              </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Till Date</Label>
-            <button
-              type="button"
-              onClick={() => setShowCalendar2(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-            >
-              <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
-              <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            </button>
-          </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Till Date</Label>
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar2(true)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+                >
+                  <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
+                  <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Job Type, From Time, To Time */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="space-y-2 md:col-span-2">
+        {/* Job Type + From Time + To Time — hide times for instant */}
+        <div className={`grid grid-cols-1 gap-6 ${isInstant ? "md:grid-cols-1" : "md:grid-cols-4"}`}>
+          <div className={`space-y-2 ${!isInstant ? "md:col-span-2" : ""}`}>
             <Label className="text-sm font-medium text-gray-700">
               Job Type <span className="text-red-500">*</span>
             </Label>
@@ -165,97 +164,85 @@ tillMinDate.setDate(today.getDate() + 1)
               onValueChange={(value) => updateFormData({ jobType: value })}
               className="flex gap-6 pt-1"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value="Part Time"
-                  id="part-time"
-                  className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-                />
-                <Label htmlFor="part-time" className="font-normal cursor-pointer text-sm text-gray-700">
-                  Part Time
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value="Full Time"
-                  id="full-time"
-                  className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-                />
-                <Label htmlFor="full-time" className="font-normal cursor-pointer text-sm text-gray-700">
-                  Full-Time
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value="Casual"
-                  id="casual"
-                  className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-                />
-                <Label htmlFor="casual" className="font-normal cursor-pointer text-sm text-gray-700">
-                  Casual
-                </Label>
-              </div>
+              {["Part Time", "Full Time", "Casual"].map((type) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value={type}
+                    id={type.toLowerCase().replace(" ", "-")}
+                    className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
+                  />
+                  <Label
+                    htmlFor={type.toLowerCase().replace(" ", "-")}
+                    className="font-normal cursor-pointer text-sm text-gray-700"
+                  >
+                    {type === "Full Time" ? "Full-Time" : type}
+                  </Label>
+                </div>
+              ))}
             </RadioGroup>
           </div>
 
-          {/* From Time with Clock Picker */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">
-              From Time <span className="text-red-500">*</span>
-            </Label>
-            <button
-              type="button"
-              onClick={() => setShowFromTimePicker(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-            >
-              <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
-              <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            </button>
-          </div>
+          {/* ✅ Hidden for instant jobs */}
+          {!isInstant && (
+            <>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  From Time <span className="text-red-500">*</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setShowFromTimePicker(true)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+                >
+                  <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
+                  <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                </button>
+              </div>
 
-          {/* To Time with Clock Picker */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">
-              To Time <span className="text-red-500">*</span>
-            </Label>
-            <button
-              type="button"
-              onClick={() => setShowToTimePicker(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-            >
-              <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
-              <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            </button>
-          </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  To Time <span className="text-red-500">*</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => setShowToTimePicker(true)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+                >
+                  <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
+                  <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Modals */}
-      {showCalendar1 && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <CustomCalendar
-      selectedDate={formData.fromDate}
-      onSelect={(date) => updateFormData({ fromDate: date })}
-      onCancel={() => setShowCalendar1(false)}
-      onSchedule={() => setShowCalendar1(false)}
-      minDate={fromMinDate} // ✅ today + future
-    />
-  </div>
-)}
+      {/* Modals — only mount when not instant */}
+      {!isInstant && showCalendar1 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <CustomCalendar
+            selectedDate={formData.fromDate}
+            onSelect={(date) => updateFormData({ fromDate: date })}
+            onCancel={() => setShowCalendar1(false)}
+            onSchedule={() => setShowCalendar1(false)}
+            minDate={fromMinDate}
+          />
+        </div>
+      )}
 
-{showCalendar2 && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <CustomCalendar
-      selectedDate={formData.tillDate}
-      onSelect={(date) => updateFormData({ tillDate: date })}
-      onCancel={() => setShowCalendar2(false)}
-      onSchedule={() => setShowCalendar2(false)}
-      minDate={tillMinDate} // ✅ tomorrow + future
-    />
-  </div>
-)}
+      {!isInstant && showCalendar2 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <CustomCalendar
+            selectedDate={formData.tillDate}
+            onSelect={(date) => updateFormData({ tillDate: date })}
+            onCancel={() => setShowCalendar2(false)}
+            onSchedule={() => setShowCalendar2(false)}
+            minDate={tillMinDate}
+          />
+        </div>
+      )}
 
-      {showFromTimePicker && (
+      {!isInstant && showFromTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomTimePicker
             selectedTime={formData.fromTime}
@@ -266,7 +253,7 @@ tillMinDate.setDate(today.getDate() + 1)
         </div>
       )}
 
-      {showToTimePicker && (
+      {!isInstant && showToTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomTimePicker
             selectedTime={formData.toTime}

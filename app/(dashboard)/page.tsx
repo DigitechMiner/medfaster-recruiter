@@ -117,13 +117,22 @@ const DashboardPage: React.FC = () => {
       <option>This Year</option>
     </select>
     {/* Post Job button */}
-    <button
-      onClick={() => router.push("/jobs/create")}
-      className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-    >
-      <span className="text-base leading-none">+</span>
-      Post Job
-    </button>
+<button
+  onClick={() => router.push("/jobs/create")}
+  className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+>
+  <span className="text-base leading-none">+</span>
+  Post Job
+</button>
+
+{/* ✅ Instant Replacement button */}
+<button
+  onClick={() => router.push("/jobs/instant-replacement")}
+  className="flex items-center gap-2 px-4 py-2 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 text-sm font-medium rounded-lg transition-colors shadow-sm"
+>
+  <span className="text-base leading-none">⚡</span>
+  Instant Replacement
+</button>
   </div>
 </div>
 

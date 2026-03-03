@@ -5,37 +5,42 @@ import { useJobsStore } from "@/stores/jobs-store";
 import { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
-
+import { convertJobTitleToBackend, convertJobTypeToBackend } from "@/utils/constant/metadata";
 interface Props {
   urgencyMode: "instant";
   onNext?: () => void;
   onBack?: () => void;
 }
 
-// FIX: Remove urgencyMode from destructuring since it's not used
+interface InstantJobFormData extends JobFormData {
+  numberOfHires?: string;
+  amountPerHire?: string;
+  fromDate?: Date;
+  tillDate?: Date;
+  checkInTime?: string;
+  checkOutTime?: string;
+  neighborhoodName?: string;
+  neighborhoodType?: string;
+  directNumber?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  province?: string;
+  city?: string;
+  country?: string;
+}
+
+const formatDateForBackend = (date?: Date): string | null => {
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export function InstantReplacementForm({ onNext, onBack }: Props) {
   const createJob = useJobsStore((state) => state.createJob);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-
-  // Define interface for instant-specific fields
-  interface InstantJobFormData extends JobFormData {
-    numberOfHires?: string;
-    amountPerHire?: string;
-    checkInTime?: string;
-    checkOutTime?: string;
-    neighborhoodName?: string;
-    neighborhoodType?: string;
-    directNumber?: string;
-    streetAddress?: string;
-    postalCode?: string;
-    province?: string;
-    city?: string;
-    country?: string;
-  }
 
   const [formData, setFormData] = useState<InstantJobFormData>({
     jobTitle: "",
@@ -50,19 +55,20 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
     inPersonInterview: "Yes",
     physicalInterview: "Yes",
     description: "",
-    status: "DRAFT", // Add this
-    // Instant-specific
+    status: "DRAFT",
     numberOfHires: "5",
     amountPerHire: "50$",
+    fromDate: undefined,
+    tillDate: undefined,
     checkInTime: "07:30",
     checkOutTime: "07:30",
     neighborhoodName: "",
     neighborhoodType: "",
-    directNumber: "265536727",
-    streetAddress: "1234 Maple Street",
-    postalCode: "M5H 2N2",
+    directNumber: "",
+    streetAddress: "",
+    postalCode: "",
     province: "Ontario (ON)",
-    city: "Ontario",
+    city: "",
     country: "Canada",
   });
 
@@ -70,24 +76,16 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
-  const formatDateForBackend = (date?: Date): string | null => {
-    if (!date) return null;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!startDate || !endDate) {
-      setError("Start and end dates are required");
+
+    if (!formData.fromDate || !formData.tillDate) {
+      setError("From Date and Till Date are required");
       return;
     }
-    
-    if (endDate < startDate) {
-      setError("End date must be after start date");
+
+    if (formData.tillDate < formData.fromDate) {
+      setError("Till Date must be after From Date");
       return;
     }
 
@@ -96,9 +94,9 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
 
     try {
       const backendData: JobCreatePayload = {
-        job_title: formData.jobTitle,
+        job_title: convertJobTitleToBackend(formData.jobTitle),
+job_type: convertJobTypeToBackend(formData.jobType),
         department: formData.department || null,
-        job_type: "fulltime",
         location: `${formData.streetAddress}, ${formData.city}, ${formData.province}`,
         pay_range_min: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
         pay_range_max: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
@@ -106,17 +104,17 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
         qualifications: null,
         specializations: null,
         job_urgency: "instant",
-        ai_interview: false, // Changed to false since instant jobs don't need AI interview
+        ai_interview: false,
         in_person_interview: true,
         physical_interview: true,
         description: formData.description || null,
         questions: null,
         status: "DRAFT",
         no_of_hires: formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
-        start_date: formatDateForBackend(startDate),
-        end_date: formatDateForBackend(endDate),
-        check_in_time: formData.checkInTime,
-        check_out_time: formData.checkOutTime,
+        start_date: formatDateForBackend(formData.fromDate),
+        end_date: formatDateForBackend(formData.tillDate),
+        check_in_time: formData.checkInTime ?? null,
+        check_out_time: formData.checkOutTime ?? null,
       };
 
       const response = await createJob(backendData);
@@ -157,10 +155,6 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
         customSections={
           <InstantJobFields
             formData={formData}
-            startDate={startDate}
-            endDate={endDate}
-            onStartDateChange={setStartDate}
-            onEndDateChange={setEndDate}
             updateFormData={updateFormData}
           />
         }
