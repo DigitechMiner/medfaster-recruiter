@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
 import { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
 import { convertJobTitleToBackend, convertJobTypeToBackend } from "@/utils/constant/metadata";
+import { SuccessModal } from "@/components/modal";
+
 interface Props {
   urgencyMode: "instant";
   onNext?: () => void;
@@ -38,9 +41,12 @@ const formatDateForBackend = (date?: Date): string | null => {
 };
 
 export function InstantReplacementForm({ onNext, onBack }: Props) {
+  const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false); // ✅ new
 
   const [formData, setFormData] = useState<InstantJobFormData>({
     jobTitle: "",
@@ -95,7 +101,7 @@ export function InstantReplacementForm({ onNext, onBack }: Props) {
     try {
       const backendData: JobCreatePayload = {
         job_title: convertJobTitleToBackend(formData.jobTitle),
-job_type: convertJobTypeToBackend(formData.jobType),
+        job_type: convertJobTypeToBackend(formData.jobType),
         department: formData.department || null,
         location: `${formData.streetAddress}, ${formData.city}, ${formData.province}`,
         pay_range_min: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
@@ -121,7 +127,7 @@ job_type: convertJobTypeToBackend(formData.jobType),
 
       if (response.success) {
         sessionStorage.setItem("createdJobId", response.data.job.id);
-        if (onNext) onNext();
+        setShowSuccessModal(true); // ✅ show modal instead of immediately routing
       } else {
         setError(response.message || "Failed to create instant replacement");
       }
@@ -135,11 +141,24 @@ job_type: convertJobTypeToBackend(formData.jobType),
 
   return (
     <>
+      {/* ✅ Success Modal */}
+      <SuccessModal
+        visible={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          router.push("/jobs");
+        }}
+        title="Job Posted!"
+        message="Your instant job post has been created successfully."
+        buttonText="Done"
+      />
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
           {error}
         </div>
       )}
+
       <JobForm
         mode="create"
         title="Create Instant job post"

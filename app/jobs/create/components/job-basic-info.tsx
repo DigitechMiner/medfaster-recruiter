@@ -150,68 +150,57 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
         )}
 
-        {/* Job Type + From Time + To Time — hide times for instant */}
-        <div className={`grid grid-cols-1 gap-6 ${isInstant ? "md:grid-cols-1" : "md:grid-cols-4"}`}>
-          <div className={`space-y-2 ${!isInstant ? "md:col-span-2" : ""}`}>
-            <Label className="text-sm font-medium text-gray-700">
-              Job Type <span className="text-red-500">*</span>
-            </Label>
-            <RadioGroup
-              value={formData.jobType}
-              onValueChange={(value) => updateFormData({ jobType: value })}
-              className="flex gap-6 pt-1"
+        {/* Job Type + From Time + To Time — hidden entirely for instant */}
+{!isInstant && (
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div className="space-y-2 md:col-span-2">
+      <Label className="text-sm font-medium text-gray-700">
+        Job Type <span className="text-red-500">*</span>
+      </Label>
+      <RadioGroup
+        value={formData.jobType}
+        onValueChange={(value) => updateFormData({ jobType: value })}
+        className="flex gap-6 pt-1"
+      >
+        {["Part Time", "Full Time", "Casual"].map((type) => (
+          <div key={type} className="flex items-center space-x-2">
+            <RadioGroupItem
+              value={type}
+              id={type.toLowerCase().replace(" ", "-")}
+              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
+            />
+            <Label
+              htmlFor={type.toLowerCase().replace(" ", "-")}
+              className="font-normal cursor-pointer text-sm text-gray-700"
             >
-              {["Part Time", "Full Time", "Casual"].map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value={type}
-                    id={type.toLowerCase().replace(" ", "-")}
-                    className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-                  />
-                  <Label
-                    htmlFor={type.toLowerCase().replace(" ", "-")}
-                    className="font-normal cursor-pointer text-sm text-gray-700"
-                  >
-                    {type === "Full Time" ? "Full-Time" : type}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+              {type === "Full Time" ? "Full-Time" : type}
+            </Label>
           </div>
+        ))}
+      </RadioGroup>
+    </div>
 
-          {/* Hidden for instant jobs */}
-          {!isInstant && (
-            <>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  From Time <span className="text-red-500">*</span>
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => setShowFromTimePicker(true)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-                >
-                  <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
-                  <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </button>
-              </div>
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-gray-700">
+        From Time <span className="text-red-500">*</span>
+      </Label>
+      <button type="button" onClick={() => setShowFromTimePicker(true)} className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
+        <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
+        <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+      </button>
+    </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  To Time <span className="text-red-500">*</span>
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => setShowToTimePicker(true)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-                >
-                  <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
-                  <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-gray-700">
+        To Time <span className="text-red-500">*</span>
+      </Label>
+      <button type="button" onClick={() => setShowToTimePicker(true)} className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
+        <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
+        <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+      </button>
+    </div>
+  </div>
+)}
 
       </div>
 
