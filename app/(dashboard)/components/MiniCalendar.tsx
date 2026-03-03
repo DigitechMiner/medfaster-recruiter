@@ -6,11 +6,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const DAYS = ["Sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 const appointments = [
-  { name: "Dr. Noah Liam", date: "8 Oct, 2024" },
-  { name: "Dr. Noah Liam", date: "8 Oct, 2024" },
-  { name: "Dr. Noah Liam", date: "8 Oct, 2024" },
-  { name: "Dr. Noah Liam", date: "8 Oct, 2024" },
-  { name: "Dr. Noah Liam", date: "8 Oct, 2024" },
+  { name: "Dr. Emily Carter", date: "3 Jan, 2025" },
+  { name: "Dr. James Patel", date: "17 Feb, 2025" },
+  { name: "Dr. Sofia Nguyen", date: "5 Mar, 2025" },
+  { name: "Dr. Marcus Reid", date: "22 Apr, 2025" },
+  { name: "Dr. Priya Sharma", date: "11 Jun, 2025" },
 ];
 
 export const MiniCalendar = () => {

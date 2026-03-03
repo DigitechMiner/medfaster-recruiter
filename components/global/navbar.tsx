@@ -14,7 +14,6 @@ export function Navbar() {
     { href: "/", label: "Dashboard" },
     { href: "/jobs", label: "Jobs" },
     { href: "/messages", label: "Message" },
-    { href: "/closed-job", label: "Closed Job" },
   ];
   const isActive = (href: string) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);

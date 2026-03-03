@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Paperclip, Send } from "lucide-react";
 import {
   fetchChatMessages,
   sendChatMessage,
@@ -12,6 +13,7 @@ import {
   getRecruiterChatSocket,
   initRecruiterChatSocket,
 } from "@/lib/chatSocket";
+import { Navbar } from "@/components/global/navbar";
 
 interface Message {
   id: string;
@@ -34,8 +36,6 @@ export default function RecruiterConversationPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [socketReady, setSocketReady] = useState(false);
-
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
@@ -45,9 +45,7 @@ export default function RecruiterConversationPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -58,76 +56,36 @@ export default function RecruiterConversationPage() {
         setLoading(true);
         setError(null);
         const data = await fetchChatMessages(conversationId);
-        if (!mounted) return;
-        setMessages(data.messages || []);
-        console.log("📥 Loaded", data.messages?.length || 0, "messages");
+        if (mounted) setMessages(data.messages || []);
       } catch (err: unknown) {
-        console.error("Failed to load messages:", err);
-        if (mounted) {
-          const errorMessage = err instanceof Error 
-            ? err.message 
-            : "Failed to load messages";
-          setError(errorMessage);
-        }
+        if (mounted) setError(err instanceof Error ? err.message : "Failed to load messages");
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 
     async function setupSocket() {
       try {
         let socket = getRecruiterChatSocket();
-
-        if (!socket?.connected) {
-          console.log("Socket not connected, initializing...");
-          socket = await initRecruiterChatSocket();
-        }
-
-        if (!socket) {
-          console.warn("⚠️ Socket unavailable - real-time updates disabled");
-          return;
-        }
-
-        console.log("✅ Recruiter socket ready");
-        setSocketReady(true);
+        if (!socket?.connected) socket = await initRecruiterChatSocket();
+        if (!socket) return;
 
         socket.emit("join_conversation", conversationId);
-        console.log("🔌 Joined conversation:", conversationId);
 
         const onReceived = (msg: Message) => {
-          console.log("📩 New message:", {
-            id: msg.id?.slice(0, 8),
-            sender_type: msg.sender_type,
-            message: msg.message?.slice(0, 20),
-          });
-
           if (msg.conversation_id === conversationId) {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === msg.id)) {
-                console.log("⚠️ Duplicate detected, skipping");
-                return prev;
-              }
-              return [...prev, msg];
-            });
+            setMessages((prev) =>
+              prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+            );
           }
         };
-
         const onUpdated = (msg: Message) => {
-          console.log("✏️ Message updated");
-          setMessages((prev) =>
-            prev.map((m) => (m.id === msg.id ? { ...m, ...msg } : m)),
-          );
+          setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, ...msg } : m)));
         };
-
         const onDeleted = (payload: { messageId: string; conversationId: string }) => {
-          console.log("🗑️ Message deleted");
           if (payload.conversationId === conversationId) {
             setMessages((prev) =>
-              prev.map((m) =>
-                m.id === payload.messageId ? { ...m, is_deleted: true } : m,
-              ),
+              prev.map((m) => m.id === payload.messageId ? { ...m, is_deleted: true } : m)
             );
           }
         };
@@ -142,7 +100,6 @@ export default function RecruiterConversationPage() {
             socket.off("message_received", onReceived);
             socket.off("message_updated", onUpdated);
             socket.off("message_deleted", onDeleted);
-            console.log("👋 Left conversation");
           }
         };
       } catch (err) {
@@ -152,15 +109,11 @@ export default function RecruiterConversationPage() {
 
     load();
     setupSocket();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [conversationId]);
 
   const handleSend = async () => {
     if (!conversationId || sending) return;
-
     const text = editingId ? editingText : input;
     if (!text.trim()) return;
     const trimmed = text.trim();
@@ -168,32 +121,21 @@ export default function RecruiterConversationPage() {
     if (editingId) {
       try {
         await editChatMessage(editingId, trimmed);
-        console.log("✏️ Edit saved");
         setEditingId(null);
         setEditingText("");
       } catch (err: unknown) {
-        console.error("Edit failed:", err);
-        const errorMessage = err instanceof Error 
-          ? err.message 
-          : "Failed to edit message";
-        alert(errorMessage);
+        alert(err instanceof Error ? err.message : "Failed to edit message");
       }
       return;
     }
 
     setInput("");
     setSending(true);
-
     try {
       await sendChatMessage(conversationId, trimmed);
-      console.log("📤 Message sent successfully");
     } catch (err: unknown) {
-      console.error("❌ Send failed:", err);
       setInput(trimmed);
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : "Failed to send message";
-      alert(errorMessage);
+      alert(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setSending(false);
     }
@@ -205,36 +147,50 @@ export default function RecruiterConversationPage() {
     setEditingText(msg.message);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingText("");
-  };
+  const cancelEdit = () => { setEditingId(null); setEditingText(""); };
 
   const handleDelete = async (messageId: string) => {
     if (!confirm("Delete this message?")) return;
     try {
       await deleteChatMessage(messageId);
-      console.log("🗑️ Delete requested");
     } catch (err: unknown) {
-      console.error("Delete failed:", err);
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : "Failed to delete message";
-      alert(errorMessage);
+      alert(err instanceof Error ? err.message : "Failed to delete message");
     }
   };
 
+  const formatTime = (dateStr: string) =>
+    new Date(dateStr).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+  const groupedMessages = messages.reduce<{ date: string; msgs: Message[] }[]>((acc, msg) => {
+    const date = new Date(msg.created_at).toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "short", day: "numeric",
+    });
+    const today = new Date().toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "short", day: "numeric",
+    });
+    const label = date === today ? "Today" : date;
+    const existing = acc.find((g) => g.date === label);
+    if (existing) existing.msgs.push(msg);
+    else acc.push({ date: label, msgs: [msg] });
+    return acc;
+  }, []);
+
+  const currentText = editingId ? editingText : input;
+
   if (!conversationId) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">No conversation selected</p>
-          <button
-            onClick={() => router.push("/messages")}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            Back to Messages
-          </button>
+      <div className="flex flex-col h-full">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center bg-[#F5F5F5]">
+          <div className="text-center">
+            <p className="text-gray-500">No conversation selected</p>
+            <button
+              onClick={() => router.push("/messages")}
+              className="mt-4 px-4 py-2 bg-[#F4781B] text-white rounded-xl text-sm"
+            >
+              Back to Messages
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -242,10 +198,10 @@ export default function RecruiterConversationPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading conversation...</p>
+      <div className="flex flex-col h-full">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center bg-[#F5F5F5]">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#F4781B]" />
         </div>
       </div>
     );
@@ -253,185 +209,150 @@ export default function RecruiterConversationPage() {
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <p className="font-semibold text-red-800">Error loading conversation</p>
-          <p className="text-sm text-red-600 mt-2">{error}</p>
-          <button
-            onClick={() => router.push("/messages")}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
-            Back to Messages
-          </button>
+      <div className="flex flex-col h-full">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-4 bg-[#F5F5F5]">
+          <div className="bg-white rounded-2xl p-6 shadow text-center max-w-sm">
+            <p className="font-semibold text-gray-800">Error</p>
+            <p className="text-sm text-gray-500 mt-1">{error}</p>
+            <button
+              onClick={() => router.push("/messages")}
+              className="mt-4 px-4 py-2 bg-[#F4781B] text-white rounded-xl text-sm"
+            >
+              Back
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const currentText = editingId ? editingText : input;
-
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm px-6 py-4">
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-full">
+      <Navbar />
+      <div className="flex flex-col bg-[#F5F5F5] flex-1 overflow-hidden">
+
+        {/* Chat Header */}
+        <div className="bg-[#F5F5F5] px-5 pt-5 pb-4 flex items-center gap-3 flex-shrink-0">
           <button
             onClick={() => router.push("/messages")}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ArrowLeft className="w-5 h-5 text-gray-800" />
           </button>
-          <div className="flex-1">
-            <h2 className="font-semibold text-gray-900">Conversation</h2>
-            <p className="text-xs text-gray-500">
-              {messages.length} messages {socketReady && "• Connected"}
-            </p>
-          </div>
+          <h2 className="flex-1 text-center font-bold text-lg text-gray-900 -ml-8">
+            Conversation
+          </h2>
         </div>
-      </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500 text-center">
-              No messages yet.
-              <br />
-              <span className="text-sm">Start the conversation!</span>
-            </p>
-          </div>
-        ) : (
-          messages.map((m) => {
-            const isOutgoing = m.sender_type === "recruiter";
-            const isEditing = editingId === m.id;
-
-            return (
-              <div
-                key={m.id}
-                className={`flex w-full ${
-                  isOutgoing ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div className="relative max-w-[75%]">
-                  <div
-                    className={`
-                      rounded-2xl px-4 py-3 shadow-sm text-sm
-                      ${
-                        isOutgoing
-                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white rounded-br-sm"
-                          : "bg-white text-gray-900 rounded-bl-sm border border-gray-200"
-                      }
-                      ${m.is_deleted ? "opacity-60 line-through" : ""}
-                    `}
-                  >
-                    <div className="whitespace-pre-wrap break-words">
-                      {m.is_deleted ? (
-                        <span className="italic text-xs opacity-75">
-                          Message deleted
-                        </span>
-                      ) : (
-                        m.message
-                      )}
-                    </div>
-                    <div
-                      className={`text-xs mt-1 ${
-                        isOutgoing ? "text-green-100" : "text-gray-500"
-                      }`}
-                    >
-                      {new Date(m.created_at).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {isEditing && !m.is_deleted && (
-                        <span className="ml-2 italic opacity-80">editing…</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {isOutgoing && !m.is_deleted && (
-                    <div className="absolute -top-4 right-1 flex gap-2 text-[10px] text-gray-500">
-                      <button
-                        className="hover:underline"
-                        onClick={() => startEdit(m)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="hover:underline"
-                        onClick={() => handleDelete(m.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-400 text-sm text-center">
+                No messages yet.<br />Start the conversation!
+              </p>
+            </div>
+          ) : (
+            groupedMessages.map((group) => (
+              <div key={group.date}>
+                <div className="flex justify-center my-4">
+                  <span className="bg-white text-gray-400 text-xs px-4 py-1.5 rounded-full shadow-sm">
+                    {group.date}
+                  </span>
                 </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Input */}
-      <div className="bg-white border-t shadow-lg p-4">
-        <div className="flex gap-3 max-w-4xl mx-auto">
-          <input
-            className="flex-1 rounded-xl border-2 border-gray-200 px-4 py-3 text-base focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
-            value={currentText}
-            onChange={(e) =>
-              editingId ? setEditingText(e.target.value) : setInput(e.target.value)
-            }
-            placeholder={editingId ? "Edit message..." : "Type your message..."}
-            onKeyDown={(e) => {
-              if (e.key === "Escape" && editingId) {
-                cancelEdit();
-              }
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            disabled={sending}
-            maxLength={1000}
-          />
+                {group.msgs.map((m) => {
+                  const isOutgoing = m.sender_type === "recruiter";
+
+                  return (
+                    <div
+                      key={m.id}
+                      className={`flex w-full mb-2 ${isOutgoing ? "justify-end" : "justify-start"} items-end gap-2`}
+                    >
+                      {!isOutgoing && (
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0 flex items-center justify-center text-xs font-semibold text-gray-600 mb-1">
+                          C
+                        </div>
+                      )}
+
+                      <div className="relative max-w-[72%]">
+                        {isOutgoing && !m.is_deleted && (
+                          <div className="flex justify-end gap-2 mb-1">
+                            <button onClick={() => startEdit(m)} className="text-[10px] text-gray-400 hover:text-gray-600">
+                              Edit
+                            </button>
+                            <button onClick={() => handleDelete(m.id)} className="text-[10px] text-gray-400 hover:text-red-500">
+                              Delete
+                            </button>
+                          </div>
+                        )}
+
+                        <div
+                          className={`px-4 py-3 text-sm leading-relaxed shadow-sm
+                            ${isOutgoing
+                              ? "bg-[#FDEEDE] text-gray-900 rounded-2xl rounded-br-sm"
+                              : "bg-white text-gray-900 rounded-2xl rounded-bl-sm"
+                            }
+                            ${m.is_deleted ? "opacity-50" : ""}
+                          `}
+                        >
+                          {m.is_deleted ? (
+                            <span className="italic text-xs text-gray-400">Message deleted</span>
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words">{m.message}</p>
+                          )}
+                        </div>
+
+                        {!m.is_deleted && (
+                          <div className={`flex mt-1 ${isOutgoing ? "justify-end" : "justify-start"}`}>
+                            <span className="text-[10px] text-gray-400">{formatTime(m.created_at)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="px-4 pb-6 pt-3 flex items-center gap-3 flex-shrink-0">
+          <div className="flex-1 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm">
+            <Paperclip className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              value={currentText}
+              onChange={(e) => editingId ? setEditingText(e.target.value) : setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && editingId) cancelEdit();
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+              }}
+              placeholder={editingId ? "Edit message..." : "Type Here"}
+              className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 outline-none bg-transparent"
+              disabled={sending}
+              maxLength={1000}
+            />
+          </div>
           <button
-            className={`
-              rounded-xl px-6 py-3 font-medium transition-all shadow-lg
-              ${
-                sending || !currentText.trim()
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:-translate-y-0.5"
-              }
-            `}
             onClick={handleSend}
             disabled={sending || !currentText.trim()}
+            className="w-12 h-12 bg-[#F4781B] rounded-2xl flex items-center justify-center flex-shrink-0 disabled:opacity-40 hover:bg-[#d5650e] transition-colors shadow-md"
           >
-            {editingId ? "Save" : sending ? "Sending..." : "Send"}
+            <Send className="w-5 h-5 text-white" />
           </button>
         </div>
-        <div className="text-xs text-gray-500 text-center mt-2">
-          {currentText.length}/1000 characters
-          {editingId && (
-            <>
-              {" "}
-              • <button onClick={cancelEdit} className="underline">
-                Cancel edit
-              </button>
-            </>
-          )}
-        </div>
+
+        {editingId && (
+          <div className="px-4 pb-3 text-center text-xs text-gray-400 flex-shrink-0">
+            Editing message •{" "}
+            <button onClick={cancelEdit} className="underline text-[#F4781B]">Cancel</button>
+          </div>
+        )}
+
       </div>
     </div>
   );

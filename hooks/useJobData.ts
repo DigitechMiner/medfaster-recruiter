@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useJobsStore } from '@/stores/jobs-store';
 import type { JobBackendResponse, JobsListResponse } from '@/Interface/job.types';
@@ -46,7 +46,9 @@ status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
 }
 
 export function useJob(jobId: string | null) {
-  const getJob = useJobsStore((state) => state.getJob);
+  const getJob = useJobsStore(useCallback((state) => state.getJob, []));
+  // ✅ useCallback prevents new reference on every render
+  
   const [job, setJob] = useState<JobBackendResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,29 +59,37 @@ export function useJob(jobId: string | null) {
       return;
     }
 
+    let mounted = true;
+
     const fetchJob = async () => {
       try {
         setIsLoading(true);
         setError(null);
         const response = await getJob(jobId);
         
-        if (response.success) {
-          setJob(response.data.job);
-        } else {
-          setError(response.message);
+        if (mounted) {
+          if (response.success) {
+            setJob(response.data.job);
+          } else {
+            setError(response.message);
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch job');
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch job');
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     fetchJob();
+    return () => { mounted = false; };
   }, [jobId, getJob]);
 
   return { job, isLoading, error };
 }
+
 
 export function useDeleteJob() {
   const deleteJobFromStore = useJobsStore((state) => state.deleteJob);

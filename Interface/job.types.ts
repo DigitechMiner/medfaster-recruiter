@@ -5,52 +5,55 @@ export interface JobBackendResponse {
   job_title: string;
   department: string | null;
   job_type: string | null;
-  
+
   // Location fields
   street?: string | null;
   postal_code?: string | null;
   province?: string | null;
   city?: string | null;
-  neighborhood_name?: string | null;
-  neighborhood_type?: string | null;
-  direct_number?: string | null;
-  
-  location: string | null; // Combined location string
-  
-  // Pay range
-  pay_range_min: number | null;
-  pay_range_max: number | null;
-  
-  // Experience and qualifications (for normal jobs)
-  years_of_experience: string | null;
-  qualifications: string[] | null;
-  specializations: string[] | null;
-  
-  // Job urgency and related fields
-  job_urgency: 'instant' | 'normal';
-  
-  // Instant job fields
-  start_date?: string | null;
-  end_date?: string | null;
-  check_in_time?: string | null;
-  check_out_time?: string | null;
-  
-  // Interview settings
-  ai_interview?: boolean | null;
-  in_person_interview: boolean | null;
-  physical_interview: boolean | null;
-  
+
+  // Pay range — comes as string "2300.00" from DECIMAL type
+  pay_range_min: string | number | null;
+  pay_range_max: string | number | null;
+
+  // Job urgency
+  job_urgency: 'instant' | 'normal' | null;
+
   // Other fields
   description: string | null;
-  questions: Record<string, any> | null;
-  no_of_hires?: number | null;
+  no_of_hires: number | null;
   status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
-  
-  // Metadata
-  createdAt: string;
-  updatedAt: string;
-  application_count?: number;
+  closed_reason: string | null;
+  application_count: number;
+  created_at: string;
+  updated_at: string;
+
+  // ✅ Nested relations — actual structure from API
+  normalJob: {
+    id: string;
+    job_id: string;
+    years_of_experience: string;
+    qualifications: string[];
+    specializations: string[];
+    ai_interview: boolean;
+    questions: Record<string, { title: string; questions: string[] }> | null;
+    created_at: string;
+    updated_at: string;
+  } | null;
+
+  instantJob: {
+    id: string;
+    job_id: string;
+    start_date: string;
+    end_date: string;
+    check_in_time: string;
+    check_out_time: string;
+  } | null;
+
+  // Extra labels from API
+  specialization_labels?: string[];
 }
+
 
 
 export interface JobCreatePayload {

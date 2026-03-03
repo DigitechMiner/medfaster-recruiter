@@ -7,7 +7,6 @@ import { Briefcase, Users, Sparkles, CalendarCheck, Gift, UserCheck, Clock, XCir
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
 import { AppLayout } from "@/components/global/app-layout";
 import { MetricCard } from "./components/MetricCard";
-import { DashboardJobsTable } from "./components/DashboardJobsTable";
 import { DashboardCandidatesTable } from "./components/DashboardCandidatesTable";
 import { CandidateFunnelChart } from "./components/CandidateFunnelChart";
 import { MiniCalendar } from "./components/MiniCalendar";
@@ -233,80 +232,6 @@ const DashboardPage: React.FC = () => {
 
         {/* ── Location Insights ── */}
         <LocationInsights />
-
-        {/* ── Jobs / Candidates Table ── */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            {/* Search */}
-            <div className="relative sm:w-80">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1); // reset page on search
-                }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
-              />
-            </div>
-
-            {/* Filter button */}
-            <button className="px-4 py-2 hover:bg-gray-50 rounded-lg text-sm font-medium border border-gray-300 inline-flex items-center gap-2 sm:ml-auto">
-              <Image src="/svg/Filter.svg" alt="filter" width={16} height={16} />
-              Filters
-            </button>
-          </div>
-
-          {/* Table */}
-          {selectedDashboardMetric === "openJobs" ? (
-            <DashboardJobsTable
-              jobs={paginatedDashboardData as DashboardJob[]}
-              router={router}
-            />
-          ) : (
-            <DashboardCandidatesTable
-              candidates={paginatedDashboardData as Candidate[]}
-              showStatus={selectedDashboardMetric === "interviewing"}
-              showAssignedJob={selectedDashboardMetric === "hired"}
-              showCurrentEmployer={selectedDashboardMetric === "pending"}
-              router={router}
-            />
-          )}
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages || 1}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* ── Bottom Widgets ── */}
         <BottomWidgets />

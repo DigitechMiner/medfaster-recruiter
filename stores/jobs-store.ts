@@ -105,17 +105,14 @@ export const useJobsStore = create<JobsStore>()(
       },
 
       getJob: async (jobId) => {
-        set({ isLoading: true, error: null });
-        try {
-          const response = await axiosInstance.get<JobDetailResponse>(ENDPOINTS.JOBS_DETAIL(jobId));
-          return response.data;
-        } catch (error) {
-          const err = error as Error;
-          set({ error: err.message });
-          throw err;
-        } finally {
-          set({ isLoading: false });
-        }
+       try {
+    const response = await axiosInstance.get<JobDetailResponse>(ENDPOINTS.JOBS_DETAIL(jobId));
+    return response.data;
+  } catch (error) {
+    const err = error as Error;
+    set({ error: err.message });
+    throw err;
+  }
       },
 
       createJob: async (jobData) => {

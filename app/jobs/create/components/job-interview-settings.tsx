@@ -1,4 +1,3 @@
-// app/jobs/create/components/job-interview-settings.tsx
 "use client";
 
 import { Label } from "@/components/ui/label";
@@ -16,13 +15,12 @@ export function JobInterviewSettings({
 }: JobInterviewSettingsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-      {/* Turn on AI interview */}
       <div className="space-y-3">
         <Label className="text-sm font-medium text-gray-700">
           Turn on AI interview <span className="text-red-500">*</span>
         </Label>
         <RadioGroup
-          value={formData.aiInterview || "Yes"}
+          value={formData.aiInterview ?? "No"} // ✅ ?? not || so "No" is never overridden
           onValueChange={(value) => updateFormData({ aiInterview: value })}
           className="flex gap-4 pt-2"
         >
@@ -48,9 +46,7 @@ export function JobInterviewSettings({
           </div>
         </RadioGroup>
       </div>
-
-      {/* Empty spacer */}
-      <div className="hidden sm:block"></div>
+      <div className="hidden sm:block" />
     </div>
   );
 }

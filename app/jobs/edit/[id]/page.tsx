@@ -10,7 +10,6 @@ import {
   Topic,
 } from "../../constants/form";
 import SuccessModal from "@/components/modal";
-
 import { useQuestions } from "@/hooks/useQuestions";
 import { useJobsStore } from "@/stores/jobs-store";
 import type {
@@ -25,10 +24,72 @@ import {
 } from "@/utils/constant/jobTypes";
 import { useJob, useJobId } from "@/hooks/useJobData";
 import { ArrowLeft } from "lucide-react";
+import {
+  convertJobTitleToBackend,
+  convertQualificationToBackend,
+  convertSpecializationToBackend,
+  convertSpecializationToFrontend,
+  provinces,
+} from "@/utils/constant/metadata";
 
-const JOB_TITLES = metadata.job_title;
-const DEPARTMENTS = metadata.department;
-const EXPERIENCES = metadata.experience;
+const PROVINCE_CODE_MAP: Record<string, string> = {
+  alberta: "alberta",
+  british_columbia: "british_columbia",
+  manitoba: "manitoba",
+  new_brunswick: "new_brunswick",
+  newfoundland_and_labrador: "newfoundland_and_labrador",
+  northwest_territories: "northwest_territories",
+  nova_scotia: "nova_scotia",
+  nunavut: "nunavut",
+  ontario: "ontario",
+  prince_edward_island: "prince_edward_island",
+  quebec: "quebec",
+  saskatchewan: "saskatchewan",
+  yukon: "yukon",
+  AB: "alberta",
+  BC: "british_columbia",
+  MB: "manitoba",
+  NB: "new_brunswick",
+  NL: "newfoundland_and_labrador",
+  NT: "northwest_territories",
+  NS: "nova_scotia",
+  NU: "nunavut",
+  ON: "ontario",
+  PE: "prince_edward_island",
+  QC: "quebec",
+  SK: "saskatchewan",
+  YT: "yukon",
+};
+
+const convertProvinceToFrontend = (val: string | null | undefined): string | undefined => {
+  if (!val) return undefined;
+  if (provinces.find((p) => p.value === val)) return val;
+  if (PROVINCE_CODE_MAP[val]) return PROVINCE_CODE_MAP[val];
+  const byLabel = provinces.find((p) => p.label.toLowerCase() === val.toLowerCase());
+  if (byLabel) return byLabel.value;
+  return undefined;
+};
+
+// Reverse qualification mapping: "cardiology" → "Cardiology"
+const QUALIFICATION_REVERSE_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(metadata.qualification_mapping).map(([label, val]) => [val, label])
+);
+
+const convertQualificationsToFrontend = (backendValues: string[]): string[] =>
+  backendValues.map((v) => QUALIFICATION_REVERSE_MAP[v] || v);
+
+// job_title: backend stores full display name like "Licensed Practical Nurse (LPN)"
+// Strip parenthetical suffix to match dropdown options e.g. "Licensed Practical Nurse"
+const normalizeJobTitle = (backendTitle: string | null | undefined): string => {
+  if (!backendTitle) return metadata.job_title[0];
+  const stripped = backendTitle.replace(/\s*\(.*?\)\s*$/, "").trim();
+  // Check if stripped value exists in dropdown options
+  if (metadata.job_title.includes(stripped)) return stripped;
+  // Check if original value exists (e.g. already clean "Registered Nurse")
+  if (metadata.job_title.includes(backendTitle)) return backendTitle;
+  // Fallback to first option
+  return metadata.job_title[0];
+};
 
 export default function EditJobPage() {
   const router = useRouter();
@@ -36,110 +97,88 @@ export default function EditJobPage() {
   const { job, isLoading, error } = useJob(jobId);
   const updateJob = useJobsStore((state) => state.updateJob);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [formData, setFormData] =
-    useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
+  const [formData, setFormData] = useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
+  const [formReady, setFormReady] = useState(false); // ✅ gate flag
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { topics, setTopics, addQuestion, removeQuestion, updateQuestion } =
     useQuestions(DEFAULT_TOPICS);
 
-  // Helper function to find matching dropdown value or return first option as fallback
-  const findMatchingDropdownValue = (
-  value: string | null,
-  options: string[] | { label: string; value: string }[]
-): string => {
-  if (!value) return "";
+  const convertBackendToFormData = useCallback(
+    (job: JobBackendResponse): JobFormData => {
+      const normalJob = job.normalJob;
+      const instantJob = job.instantJob;
 
-  // Handle { label, value }[] shape
-  if (options.length > 0 && typeof options[0] === "object") {
-    const opts = options as { label: string; value: string }[];
-    const match = opts.find(
-      (opt) => opt.value === value || opt.value.toLowerCase() === value.toLowerCase()
-    );
-    return match ? match.value : (opts[0]?.value ?? "");
-  }
+      return {
+        // ✅ Strip "(LPN)" etc. then match dropdown option
+        jobTitle: normalizeJobTitle(job.job_title),
 
-  // Handle string[] shape
-  const opts = options as string[];
-  if (opts.includes(value)) return value;
-  const match = opts.find((opt) => opt.toLowerCase() === value.toLowerCase());
-  return match ?? opts[0] ?? "";
-};
+        department: job.department || "",
+        jobType: convertToFrontendValue(job.job_type),
+        location: job.city || "",
+        payRange: [
+          parseFloat(String(job.pay_range_min)) || 0,
+          parseFloat(String(job.pay_range_max)) || 0,
+        ] as [number, number],
+        urgency: job.job_urgency || "normal",
+        description: job.description || "",
+        status: job.status || "DRAFT",
+        numberOfHires: job.no_of_hires?.toString() || undefined,
+        streetAddress: job.street || undefined,
+        postalCode: job.postal_code || undefined,
+        province: convertProvinceToFrontend(job.province),
+        city: job.city || undefined,
+        country: undefined,
+        experience: normalJob?.years_of_experience || "",
 
+        // ✅ Convert ["cardiology"] → ["Cardiology"]
+        qualification: Array.isArray(normalJob?.qualifications)
+          ? convertQualificationsToFrontend(normalJob.qualifications)
+          : [],
 
-  // Convert backend job data to frontend form data
-const convertBackendToFormData = useCallback(
-  (job: JobBackendResponse): JobFormData => {
-    const jobType = convertToFrontendValue(job.job_type);
+        // ✅ Convert ["long_term_care"] → ["Long Term Care"] using existing converter
+        specialization: Array.isArray(normalJob?.specializations)
+          ? normalJob.specializations.map((s) => convertSpecializationToFrontend(s))
+          : [],
 
-    const jobTitle = findMatchingDropdownValue(job.job_title, JOB_TITLES);
-    const department = findMatchingDropdownValue(job.department, DEPARTMENTS);
-    const experience = findMatchingDropdownValue(job.years_of_experience, EXPERIENCES);
+        // ✅ Explicit boolean check — don't use || "Yes" fallback
+        aiInterview: normalJob?.ai_interview === true ? "Yes" : "No",
 
-    return {
-      jobTitle,
-      department,
-      jobType,
-      location: job.location || "",
-      payRange: [
-        job.pay_range_min || 0,
-        job.pay_range_max || 0,
-      ] as [number, number],
-      experience,
-      qualification: job.qualifications || [],
-      specialization: job.specializations || [],
-      urgency: job.job_urgency || "normal",
-      inPersonInterview: job.in_person_interview ? "Yes" : "No",
-      physicalInterview: job.physical_interview ? "Yes" : "No",
-      aiInterview: job.ai_interview ? "Yes" : "No",
-      description: job.description || "",
-      status: job.status || 'DRAFT',
-      
-      // Location details
-      streetAddress: job.street || undefined,
-      postalCode: job.postal_code || undefined,
-      province: job.province || undefined,
-      city: job.city || undefined,
-      country: undefined, // Not in backend
-      
-      // Date and time fields
-      fromDate: job.start_date ? new Date(job.start_date) : undefined,
-      tillDate: job.end_date ? new Date(job.end_date) : undefined,
-      fromTime: job.check_in_time || undefined,
-      toTime: job.check_out_time || undefined,
-      
-      // Other fields
-      numberOfHires: job.no_of_hires?.toString() || undefined,
-    };
-  },
-  []
-);
-  // Convert backend questions to topics format
+        inPersonInterview: "No",
+        physicalInterview: "No",
+        fromDate: instantJob?.start_date ? new Date(instantJob.start_date) : undefined,
+        tillDate: instantJob?.end_date ? new Date(instantJob.end_date) : undefined,
+        fromTime: instantJob?.check_in_time || undefined,
+        toTime: instantJob?.check_out_time || undefined,
+      };
+    },
+    []
+  );
+
   const convertQuestionsToTopics = (
     questions: Record<string, { title: string; questions: string[] }> | null
   ): Topic[] => {
     if (!questions) return DEFAULT_TOPICS;
-
-    return Object.entries(questions).map(([topicId, topicData], index) => {
-      return {
-        id: topicId || String(index + 1),
-        title: topicData.title || `Questions Topic ${index + 1}`,
-        questions: topicData.questions.map((q, qIndex) => ({
-          id: `${topicId}-${qIndex + 1}`,
-          text: q,
-        })),
-      };
-    });
+    return Object.entries(questions).map(([topicId, topicData], index) => ({
+      id: topicId || String(index + 1),
+      title: topicData.title || `Questions Topic ${index + 1}`,
+      questions: topicData.questions.map((q, qIndex) => ({
+        id: `${topicId}-${qIndex + 1}`,
+        text: q,
+      })),
+    }));
   };
 
-  // Populate form when job loads
   useEffect(() => {
     if (job) {
-      setFormData(convertBackendToFormData(job));
-      if (job.questions) {
-        const convertedTopics = convertQuestionsToTopics(job.questions);
-        setTopics(convertedTopics);
+      console.log("🔍 RAW JOB FROM BACKEND:", JSON.stringify(job, null, 2));
+      const converted = convertBackendToFormData(job);
+      console.log("✅ CONVERTED FORM DATA:", JSON.stringify(converted, null, 2));
+      setFormData(converted);
+      if (job.normalJob?.questions) {
+        setTopics(convertQuestionsToTopics(job.normalJob.questions));
       }
+      setFormReady(true); // ✅ only flip after data is fully set
     }
   }, [job, setTopics, convertBackendToFormData]);
 
@@ -147,122 +186,72 @@ const convertBackendToFormData = useCallback(
     setFormData((prev: JobFormData) => ({ ...prev, ...updates }));
   };
 
-  // Convert frontend format to backend format
-const convertToBackendFormat = (
-  data: JobFormData,
-  questionsData: Record<string, { title: string; questions: string[] }>
-): JobUpdatePayload => {
-  const jobType = convertToBackendValue(data.jobType);
-  const isNormalJob = data.urgency === 'normal';
+  const convertToBackendFormat = (
+    data: JobFormData,
+    questionsData: Record<string, { title: string; questions: string[] }>
+  ): JobUpdatePayload => {
+    const jobType = convertToBackendValue(data.jobType);
+    const isNormalJob = data.urgency === "normal";
 
-  console.log('🔍 CONVERSION START:', {
-    urgency: data.urgency,
-    isNormalJob,
-    qualification: data.qualification,
-    specialization: data.specialization,
-  });
+    const payload: Partial<JobCreatePayload> = {
+      job_title: convertJobTitleToBackend(data.jobTitle),
+      department: data.department || null,
+      job_type: jobType,
+      street: data.streetAddress || null,
+      postal_code: data.postalCode || null,
+      province: data.province || null,
+      city: data.city || null,
+      pay_range_min: data.payRange[0] || null,
+      pay_range_max: data.payRange[1] || null,
+      job_urgency: data.urgency,
+      description: data.description || null,
+      questions: questionsData,
+      status: data.status,
+    };
 
-  // Build the base payload
-  const payload: Partial<JobCreatePayload> = {
-    job_title: data.jobTitle,
-    department: data.department || null,
-    job_type: jobType,
-    street: data.streetAddress || null,
-    postal_code: data.postalCode || null,
-    province: data.province || null,
-    city: data.city || null,
-    pay_range_min: data.payRange[0] || null,
-    pay_range_max: data.payRange[1] || null,
-    job_urgency: data.urgency,
-    in_person_interview: data.inPersonInterview === "Yes",
-    physical_interview: data.physicalInterview === "Yes",
-    description: data.description || null,
-    questions: questionsData,
-    status: data.status,
+    if (data.numberOfHires && data.numberOfHires.trim() !== "") {
+      const parsed = parseInt(data.numberOfHires);
+      if (!isNaN(parsed)) payload.no_of_hires = parsed;
+    }
+
+    if (isNormalJob) {
+      if (data.experience && data.experience.trim() !== "") {
+        payload.years_of_experience = data.experience;
+      }
+      if (Array.isArray(data.qualification)) {
+        // ✅ Convert "Cardiology" → "cardiology" before sending
+        const validQualifications = data.qualification
+          .filter((q) => q && typeof q === "string" && q.trim() !== "")
+          .map((q) => convertQualificationToBackend(q));
+        if (validQualifications.length > 0) {
+          payload.qualifications = validQualifications;
+        }
+      }
+      if (Array.isArray(data.specialization)) {
+        // ✅ Convert "Long Term Care" → "long_term_care" before sending
+        const validSpecializations = data.specialization
+          .filter((s) => s && typeof s === "string" && s.trim() !== "")
+          .map((s) => convertSpecializationToBackend(s));
+        if (validSpecializations.length > 0) {
+          payload.specializations = validSpecializations;
+        }
+      }
+      payload.ai_interview = data.aiInterview === "Yes";
+    } else {
+      if (data.fromDate) payload.start_date = data.fromDate.toISOString();
+      if (data.tillDate) payload.end_date = data.tillDate.toISOString();
+      if (data.fromTime) payload.check_in_time = data.fromTime;
+      if (data.toTime) payload.check_out_time = data.toTime;
+    }
+
+    console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
+    return payload as JobUpdatePayload;
   };
 
-  // Add number of hires if provided
-  if (data.numberOfHires && data.numberOfHires.trim() !== '') {
-    const parsed = parseInt(data.numberOfHires);
-    if (!isNaN(parsed)) {
-      payload.no_of_hires = parsed;
-    }
-  }
-
-  if (isNormalJob) {
-    console.log('📝 Processing NORMAL job');
-    
-    // Years of experience
-    if (data.experience && data.experience.trim() !== '') {
-      payload.years_of_experience = data.experience;
-    }
-
-    // Qualifications - filter and only add if has valid items
-    if (Array.isArray(data.qualification)) {
-      const validQualifications = data.qualification.filter(
-        q => q && typeof q === 'string' && q.trim() !== ''
-      );
-      
-      if (validQualifications.length > 0) {
-        payload.qualifications = validQualifications;
-        console.log('✅ Added qualifications:', validQualifications);
-      } else {
-        console.log('⚠️ No valid qualifications, field will be omitted');
-      }
-    }
-
-    // Specializations - filter and only add if has valid items
-    if (Array.isArray(data.specialization)) {
-      const validSpecializations = data.specialization.filter(
-        s => s && typeof s === 'string' && s.trim() !== ''
-      );
-      
-      if (validSpecializations.length > 0) {
-        payload.specializations = validSpecializations;
-        console.log('✅ Added specializations:', validSpecializations);
-      } else {
-        console.log('⚠️ No valid specializations, field will be omitted');
-      }
-    }
-
-    // AI interview - required for normal jobs
-    payload.ai_interview = data.aiInterview === "Yes";
-
-  } else {
-    console.log('⚡ Processing INSTANT job');
-    
-    // Instant job fields
-    if (data.fromDate) {
-      payload.start_date = data.fromDate.toISOString();
-    }
-    if (data.tillDate) {
-      payload.end_date = data.tillDate.toISOString();
-    }
-    if (data.fromTime) {
-      payload.check_in_time = data.fromTime;
-    }
-    if (data.toTime) {
-      payload.check_out_time = data.toTime;
-    }
-  }
-
-  console.log('📤 FINAL PAYLOAD:', JSON.stringify(payload, null, 2));
-  console.log('📋 Has qualifications?', 'qualifications' in payload);
-  console.log('📋 Has specializations?', 'specializations' in payload);
-
-  return payload as JobUpdatePayload;
-};
-
-
-  // Convert topics to backend questions format
   const convertTopicsToBackendFormat = (
     topics: Topic[]
   ): Record<string, { title: string; questions: string[] }> => {
-    const questionsObject: Record<
-      string,
-      { title: string; questions: string[] }
-    > = {};
-
+    const questionsObject: Record<string, { title: string; questions: string[] }> = {};
     topics.forEach((topic) => {
       questionsObject[topic.id] = {
         title: topic.title,
@@ -271,61 +260,55 @@ const convertToBackendFormat = (
           .filter((text) => text.trim() !== ""),
       };
     });
-
     return questionsObject;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!jobId) {
-    setSubmitError("Job ID not found");
-    return;
-  }
-
-  // Validate normal job requirements
-  if (formData.urgency === 'normal') {
-    const validQualifications = formData.qualification?.filter(q => q && q.trim() !== '') || [];
-    const validSpecializations = formData.specialization?.filter(s => s && s.trim() !== '') || [];
-    
-    if (validQualifications.length === 0) {
-      setSubmitError("Please add at least one qualification for normal jobs");
+    e.preventDefault();
+    if (!jobId) {
+      setSubmitError("Job ID not found");
       return;
     }
-    
-    if (validSpecializations.length === 0) {
-      setSubmitError("Please add at least one specialization for normal jobs");
-      return;
+
+    if (formData.urgency === "normal") {
+      const validQualifications =
+        formData.qualification?.filter((q) => q && q.trim() !== "") || [];
+      const validSpecializations =
+        formData.specialization?.filter((s) => s && s.trim() !== "") || [];
+
+      if (validQualifications.length === 0) {
+        setSubmitError("Please add at least one qualification for normal jobs");
+        return;
+      }
+      if (validSpecializations.length === 0) {
+        setSubmitError("Please add at least one specialization for normal jobs");
+        return;
+      }
     }
-  }
 
-  setIsSubmitting(true);
-  setSubmitError(null);
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-  try {
-    const questionsData = convertTopicsToBackendFormat(topics);
-    const backendData = convertToBackendFormat(formData, questionsData);
-    const response = await updateJob(jobId, backendData);
+    try {
+      const questionsData = convertTopicsToBackendFormat(topics);
+      const backendData = convertToBackendFormat(formData, questionsData);
+      const response = await updateJob(jobId, backendData);
 
-    if (response.success) {
-      setShowSuccessModal(true);
-    } else {
-      setSubmitError(response.message || "Failed to update job");
+      if (response.success) {
+        setShowSuccessModal(true);
+      } else {
+        setSubmitError(response.message || "Failed to update job");
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error("Error updating job:", error);
+      setSubmitError(error.message || "An error occurred while updating the job");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (err) {
-    const error = err as Error;
-    console.error("Error updating job:", error);
-    setSubmitError(
-      error.message || "An error occurred while updating the job"
-    );
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-
-  const handleCancel = () => {
-    router.push(`/jobs/${jobId}`);
   };
+
+  const handleCancel = () => router.push(`/jobs/${jobId}`);
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
@@ -336,7 +319,7 @@ const convertToBackendFormat = (
     return (
       <AppLayout>
         <div className="min-h-screen bg-white flex items-center justify-center">
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#F4781B]" />
         </div>
       </AppLayout>
     );
@@ -359,50 +342,52 @@ const convertToBackendFormat = (
           {submitError}
         </div>
       )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-          Edit Job post
-        </h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Edit Job post</h1>
         <div className="flex gap-3 w-full sm:w-auto">
           <button
             onClick={handleCancel}
             disabled={isSubmitting}
             className="flex items-center gap-2 flex-1 sm:flex-none px-4 py-2 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white font-medium text-sm rounded-sm disabled:opacity-50"
-            >
+          >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-<button
-  onClick={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
-  disabled={isSubmitting}
-  className="flex-1 sm:flex-none px-2 py-2 bg-[#F4781B] hover:bg-orange-600 text-white font-medium text-sm rounded-sm disabled:opacity-50"
->
-  {isSubmitting ? "Saving..." : "Save & continue"}
-</button>
           <button
-            onClick={handleSubmit}
+            onClick={() =>
+              handleSubmit({ preventDefault: () => {} } as React.FormEvent)
+            }
             disabled={isSubmitting}
-            className="flex-1 sm:flex-none px-2 py-2 bg-[#F4781B] hover:bg-orange-600 text-white font-medium text-sm rounded-sm disabled:opacity-50"
+            className="flex-1 sm:flex-none px-6 py-2 bg-[#F4781B] hover:bg-orange-600 text-white font-medium text-sm rounded-sm disabled:opacity-50"
           >
             {isSubmitting ? "Saving..." : "Save & continue"}
           </button>
         </div>
       </div>
 
-      <JobForm
-        mode="edit"
-        formData={formData}
-        updateFormData={updateFormData}
-        topics={topics}
-        onAddQuestion={addQuestion}
-        onRemoveQuestion={removeQuestion}
-        onUpdateQuestion={updateQuestion}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        showInterviewQuestions={true}
-        showBackButton={true}
-        submitLabel={isSubmitting ? "Saving..." : "Save"}
-      />
+      {/* ✅ Only render form after formData is fully populated */}
+      {!formReady ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#F4781B]" />
+        </div>
+      ) : (
+        <JobForm
+          key={job.id}
+          mode="edit"
+          formData={formData}
+          updateFormData={updateFormData}
+          topics={topics}
+          onAddQuestion={addQuestion}
+          onRemoveQuestion={removeQuestion}
+          onUpdateQuestion={updateQuestion}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          showInterviewQuestions={true}
+          showBackButton={true}
+          submitLabel={isSubmitting ? "Saving..." : "Save"}
+        />
+      )}
 
       <SuccessModal
         visible={showSuccessModal}
