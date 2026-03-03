@@ -45,19 +45,27 @@ export default function EditJobPage() {
 
   // Helper function to find matching dropdown value or return first option as fallback
   const findMatchingDropdownValue = (
-    value: string | null,
-    options: string[]
-  ): string => {
-    if (!value) return options[0] || "";
-    // Try exact match first
-    if (options.includes(value)) return value;
-    // Try case-insensitive match
-    const lowerValue = value.toLowerCase();
-    const match = options.find((opt) => opt.toLowerCase() === lowerValue);
-    if (match) return match;
-    // Return first option as fallback
-    return options[0] || "";
-  };
+  value: string | null,
+  options: string[] | { label: string; value: string }[]
+): string => {
+  if (!value) return "";
+
+  // Handle { label, value }[] shape
+  if (options.length > 0 && typeof options[0] === "object") {
+    const opts = options as { label: string; value: string }[];
+    const match = opts.find(
+      (opt) => opt.value === value || opt.value.toLowerCase() === value.toLowerCase()
+    );
+    return match ? match.value : (opts[0]?.value ?? "");
+  }
+
+  // Handle string[] shape
+  const opts = options as string[];
+  if (opts.includes(value)) return value;
+  const match = opts.find((opt) => opt.toLowerCase() === value.toLowerCase());
+  return match ?? opts[0] ?? "";
+};
+
 
   // Convert backend job data to frontend form data
 const convertBackendToFormData = useCallback(
