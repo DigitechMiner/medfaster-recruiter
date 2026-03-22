@@ -173,34 +173,25 @@ export function useJobApplications(params?: {
       try {
         setIsLoading(true);
         setError(null);
-        
         const data = await getJobApplications(params || {});
-        
+        if (isMounted) setApplications(data);
+      } catch (err: unknown) {
         if (isMounted) {
-          console.log('✅ Fetched applications:', data.applications.length);
-          setApplications(data);
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          console.error('❌ Failed to fetch applications:', err);
-          setError(err.response?.data?.message || 'Failed to load applications');
+          const e = err as { response?: { data?: { message?: string } }; message?: string };
+          setError(e.response?.data?.message || 'Failed to load applications');
         }
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     }
 
     fetchApplications();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [params?.job_id, params?.status, params?.page, params?.limit]);
+    return () => { isMounted = false; };
+  }, [params?.job_id, params?.status, params?.page, params?.limit]); // ✅ already correct
 
   return { applications, isLoading, error };
 }
+
 
 export function useJobId(): string | null {
   const params = useParams();

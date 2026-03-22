@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
@@ -10,10 +10,6 @@ import { STATUS_SECTIONS } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { BUTTON_LABELS } from "../constants/messages";
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
-import type { JobApplicationListResponse } from "@/stores/api/recruiter-job-api";
-
-// ✅ Proper type instead of any
-type RawApplication = JobApplicationListResponse["applications"][number];
 
 interface CandidatesData {
   applied: Job[];
@@ -40,67 +36,26 @@ const HIRED_DUMMY: Job[] = [
   { id: 302, candidateId: "cand-302", doctorName: "Dr. Maria Garcia", experience: 6, position: "Dermatologist", score: 89, specialization: ["Dermatology", "Cosmetic Dermatology"], currentCompany: "Skin & Beauty Clinic" },
 ];
 
-// ✅ Typed job list item
-type JobListItem = { id: string; job_title: string; department?: string; status?: string; [key: string]: unknown };
+type JobListItem = {
+  id: string;
+  job_title: string;
+  department?: string;
+  status?: string;
+  [key: string]: unknown;
+};
 
 const JobsPage: React.FC = () => {
   const router = useRouter();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("kanban");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
   const { jobs, isLoading: isLoadingJobs } = useJobs();
-  const { applications: applicationsData, isLoading: isLoadingApps } = useJobApplications();
 
-  const candidatesData = useMemo<CandidatesData>(() => {
-    const rawApplications = applicationsData?.applications;
-
-    if (!Array.isArray(rawApplications) || rawApplications.length === 0) {
-      return { applied: [], shortlisted: SHORTLISTED_DUMMY, interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
-    }
-
-    const applied: Job[] = rawApplications.map((app: RawApplication) => {
-      // ✅ Use unknown + type assertion instead of any
-      const appRecord = app as Record<string, unknown>;
-      const candidate = (appRecord.candidate ?? appRecord.candidateProfile ?? {}) as Record<string, unknown>;
-      const workExps = (candidate.work_experiences ?? candidate.workExperiences ?? []) as Record<string, unknown>[];
-      const latestWork = Array.isArray(workExps) ? workExps[0] : null;
-
-      const firstName = String(candidate.first_name ?? candidate.firstName ?? "");
-      const lastName = String(candidate.last_name ?? candidate.lastName ?? "");
-      const fullName =
-        String(candidate.full_name ?? candidate.fullName ?? "").trim() ||
-        `${firstName} ${lastName}`.trim() ||
-        "Unknown Candidate";
-
-      const specialty = candidate.specialty ?? [];
-      const specializations: string[] = Array.isArray(specialty)
-        ? (specialty as string[])
-        : typeof specialty === "string"
-        ? [specialty]
-        : ["General Medicine"];
-
-      return {
-        id: appRecord.id as string,
-        candidateId: String(appRecord.candidate_id ?? appRecord.candidateId ?? (candidate.id as string) ?? ""),
-        jobApplicationId: appRecord.id as string,
-        doctorName: fullName,
-        experience: (latestWork?.years ?? latestWork?.duration ?? 3) as number,
-        position: String(latestWork?.title ?? latestWork?.job_title ?? "Healthcare Professional"),
-        score: (appRecord.score ?? Math.floor(Math.random() * 25) + 75) as number,
-        specialization: specializations,
-        currentCompany: String(latestWork?.company ?? latestWork?.organization ?? "Health Network"),
-      };
-    });
-
-    return { applied, shortlisted: SHORTLISTED_DUMMY, interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
-  }, [applicationsData]);
-
-  const handleCandidateClick = (job: Job) => {
-    if (!job.candidateId || !job.id) return;
-    router.push(`/candidates/${job.candidateId}?job_application_id=${job.id}`);
-  };
-
+  // ✅ Deduplicated unique job cards (max 4)
   const filteredJobs = useMemo(() => {
     if (!Array.isArray(jobs)) return [];
+
     const source = searchQuery
       ? (jobs as JobListItem[]).filter((job) => {
           const q = searchQuery.toLowerCase();
@@ -110,13 +65,83 @@ const JobsPage: React.FC = () => {
           );
         })
       : (jobs as JobListItem[]);
-    return source.slice(0, 4);
+
+    // Deduplicate by job_title
+    const seen = new Set<string>();
+    return source.filter((job) => {
+      const title = String(job.job_title).toLowerCase().trim();
+      if (seen.has(title)) return false;
+      seen.add(title);
+      return true;
+    }).slice(0, 4);
   }, [jobs, searchQuery]);
 
-  if (isLoadingJobs || isLoadingApps) {
+  // ✅ Auto-select first card when jobs load
+  useEffect(() => {
+    if (filteredJobs.length > 0 && !selectedJobId) {
+      setSelectedJobId(filteredJobs[0].id);
+    }
+  }, [filteredJobs]);
+
+  // ✅ Fetch applications scoped to selected job via API param
+  const appParams = useMemo(
+    () => (selectedJobId ? { job_id: selectedJobId } : {}),
+    [selectedJobId]
+  );
+  const { applications: applicationsData, isLoading: isLoadingApps } = useJobApplications(appParams);
+
+  // ✅ No client-side filtering needed — API already scoped to job
+  const candidatesData = useMemo<CandidatesData>(() => {
+    const rawApplications = applicationsData?.applications;
+
+    if (!Array.isArray(rawApplications) || rawApplications.length === 0) {
+      return {
+        applied: [],
+        shortlisted: SHORTLISTED_DUMMY,
+        interviewing: INTERVIEWING_DUMMY,
+        hired: HIRED_DUMMY,
+      };
+    }
+
+    const applied: Job[] = rawApplications.map((app) => {
+      const candidate = app.candidate;
+      const fullName =
+        candidate?.full_name?.trim() ||
+        `${candidate?.first_name ?? ""} ${candidate?.last_name ?? ""}`.trim() ||
+        "Unknown Candidate";
+
+      return {
+        id: app.id,
+        candidateId: app.candidate_id,
+        jobApplicationId: app.id,
+        doctorName: fullName,
+        experience: 3,
+        position: app.job?.job_title ?? "Healthcare Professional",
+        score: Math.floor(Math.random() * 25) + 75,
+        specialization: candidate?.skill
+          ? [String(candidate.skill)]
+          : ["General Medicine"],
+        currentCompany: candidate?.city ?? "Health Network",
+      };
+    });
+
+    return {
+      applied,
+      shortlisted: SHORTLISTED_DUMMY,
+      interviewing: INTERVIEWING_DUMMY,
+      hired: HIRED_DUMMY,
+    };
+  }, [applicationsData]);
+
+  const handleCandidateClick = (job: Job) => {
+    if (!job.candidateId || !job.id) return;
+    router.push(`/candidates/${job.candidateId}?job_application_id=${job.id}`);
+  };
+
+  if (isLoadingJobs) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-600">Loading jobs and applications...</p>
+        <p className="text-gray-600">Loading jobs...</p>
       </div>
     );
   }
@@ -127,14 +152,6 @@ const JobsPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 w-full">
             <h1 className="text-2xl font-bold text-gray-800">Jobs</h1>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-3">
-              <button onClick={() => router.push("/jobs/all")} className="text-black underline font-semibold text-sm hover:text-gray-600 transition-colors">
-                {BUTTON_LABELS.SEE_ALL}
-              </button>
-              <button onClick={() => router.push("/jobs/create")} className="bg-orange-500 text-white px-7 py-2 rounded-lg hover:bg-orange-600 font-medium text-sm">
-                {BUTTON_LABELS.POST_JOB}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -143,8 +160,20 @@ const JobsPage: React.FC = () => {
         <div className="mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {filteredJobs.map((job) => (
-              <div key={job.id as string} onClick={() => router.push(`/jobs/${job.id}`)} className="cursor-pointer">
-                <JobListingCard job={job as Parameters<typeof JobListingCard>[0]["job"]} />
+              <div
+                key={job.id}
+                onClick={() => setSelectedJobId(job.id)}
+                className="cursor-pointer relative"
+              >
+                <JobListingCard
+                  job={job as Parameters<typeof JobListingCard>[0]["job"]}
+                />
+                <button
+                  onClick={(e) => { e.stopPropagation(); router.push(`/jobs/${job.id}`); }}
+                  className="absolute bottom-[52px] right-3 text-xs text-[#F4781B] hover:underline font-medium"
+                >
+                  View Details →
+                </button>
               </div>
             ))}
           </div>
@@ -172,10 +201,16 @@ const JobsPage: React.FC = () => {
                   Filter
                 </button>
                 <div className="flex gap-2">
-                  <button onClick={() => setLayoutMode("kanban")} className={`px-4 py-3 inline-flex items-center gap-2 text-base font-medium transition-colors rounded-lg ${layoutMode === "kanban" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                  <button
+                    onClick={() => setLayoutMode("kanban")}
+                    className={`px-4 py-3 inline-flex items-center gap-2 text-base font-medium transition-colors rounded-lg ${layoutMode === "kanban" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                  >
                     <Image src="/svg/Kanban.svg" alt="kanban" width={20} height={20} />
                   </button>
-                  <button onClick={() => setLayoutMode("table")} className={`px-4 py-3 inline-flex items-center gap-2 text-base font-medium transition-colors rounded-lg ${layoutMode === "table" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+                  <button
+                    onClick={() => setLayoutMode("table")}
+                    className={`px-4 py-3 inline-flex items-center gap-2 text-base font-medium transition-colors rounded-lg ${layoutMode === "table" ? "bg-gray-200 text-gray-800" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                  >
                     <Image src="/svg/Table.svg" alt="table" width={20} height={20} />
                   </button>
                 </div>
@@ -183,19 +218,43 @@ const JobsPage: React.FC = () => {
             </div>
           </div>
 
-          {layoutMode === "kanban" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
-                <StatusSection key={status} status={status} title={title} count={candidatesData[status as keyof CandidatesData]?.length || 0} jobs={candidatesData[status as keyof CandidatesData] || []} badgeColor={badgeColor} onCandidateClick={handleCandidateClick} />
-              ))}
+          {/* ✅ Show loading spinner only for kanban section, not whole page */}
+          {isLoadingApps ? (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-gray-500 text-sm">Loading candidates...</p>
             </div>
-          )}
-          {layoutMode === "table" && (
-            <div className="space-y-4">
-              {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
-                <StatusTable key={status} status={status} title={title} count={candidatesData[status as keyof CandidatesData]?.length || 0} jobs={candidatesData[status as keyof CandidatesData] || []} badgeColor={badgeColor} />
-              ))}
-            </div>
+          ) : (
+            <>
+              {layoutMode === "kanban" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
+                    <StatusSection
+                      key={status}
+                      status={status}
+                      title={title}
+                      count={candidatesData[status as keyof CandidatesData]?.length || 0}
+                      jobs={candidatesData[status as keyof CandidatesData] || []}
+                      badgeColor={badgeColor}
+                      onCandidateClick={handleCandidateClick}
+                    />
+                  ))}
+                </div>
+              )}
+              {layoutMode === "table" && (
+                <div className="space-y-4">
+                  {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
+                    <StatusTable
+                      key={status}
+                      status={status}
+                      title={title}
+                      count={candidatesData[status as keyof CandidatesData]?.length || 0}
+                      jobs={candidatesData[status as keyof CandidatesData] || []}
+                      badgeColor={badgeColor}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

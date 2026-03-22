@@ -1,4 +1,4 @@
-import { TopJob, JobsData } from '@/Interface/job.types';
+import { TopJob, JobsData, Job } from '@/Interface/job.types';
 
 export const ALL_TOP_JOB_LISTINGS: TopJob[] = [
   { id: 1, title: 'Job Title', experience: '5-7 yrs', position: 'Cardiology Part-time', specializations: ['Cardiology', 'Orthopaedics', 'Cardiology'], postedDaysAgo: 15, applicantCount: 60 },
@@ -45,3 +45,18 @@ export const STATUS_SECTIONS = [
   { status: 'hired' as const, title: 'Hired', badgeColor: 'green' as const }
 ];
 
+export const SHORTLISTED_DUMMY: Job[] = [
+  { id: 101, candidateId: "cand-101", doctorName: "Dr. Sarah Mitchell",   experience: 5, position: "Senior Cardiologist",        score: 92, specialization: ["Cardiology", "Internal Medicine"], currentCompany: "City General Hospital" },
+  { id: 102, candidateId: "cand-102", doctorName: "Dr. James Chen",       experience: 7, position: "Orthopedic Surgeon",          score: 88, specialization: ["Orthopedics", "Sports Medicine"],  currentCompany: "Regional Medical Center" },
+  { id: 103, candidateId: "cand-103", doctorName: "Dr. Emily Rodriguez",  experience: 4, position: "Pediatrician",                score: 85, specialization: ["Pediatrics"],                      currentCompany: "Children's Healthcare" },
+];
+
+export const INTERVIEWING_DUMMY: Job[] = [
+  { id: 201, candidateId: "cand-201", doctorName: "Dr. Michael Thompson", experience: 6, position: "Emergency Medicine Physician", score: 90, specialization: ["Emergency Medicine", "Trauma Care"], currentCompany: "Metro Hospital" },
+  { id: 202, candidateId: "cand-202", doctorName: "Dr. Priya Sharma",     experience: 8, position: "Neurologist",                 score: 94, specialization: ["Neurology", "Neurosurgery"],         currentCompany: "Brain & Spine Institute" },
+];
+
+export const HIRED_DUMMY: Job[] = [
+  { id: 301, candidateId: "cand-301", doctorName: "Dr. Robert Williams",  experience: 10, position: "Chief of Surgery",           score: 96, specialization: ["General Surgery", "Laparoscopic Surgery"], currentCompany: "Premier Healthcare System" },
+  { id: 302, candidateId: "cand-302", doctorName: "Dr. Maria Garcia",     experience: 6,  position: "Dermatologist",              score: 89, specialization: ["Dermatology"],                           currentCompany: "Skin & Beauty Clinic" },
+];
