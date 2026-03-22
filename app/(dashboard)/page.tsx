@@ -1,8 +1,9 @@
 "use client";
-
 import React, { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Briefcase, Users, Sparkles, CalendarCheck, Gift, UserCheck, Clock, XCircle } from "lucide-react";
+import {
+  BriefcaseBusiness, Users, Sparkles, Layers,
+  Gift, UserCheck, LogOut
+} from "lucide-react";
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
 import { AppLayout } from "@/components/global/app-layout";
 import { MetricCard } from "./components/MetricCard";
@@ -12,179 +13,85 @@ import { HiringFunnel } from "./components/HiringFunnel";
 import { LocationInsights } from "./components/LocationInsights";
 import { BottomWidgets } from "./components/BottomWidgets";
 import { AiMatchedCandidates } from "./components/AiMatchedCandidates";
-import { MetricType, DashboardJob, Candidate, Application, DashboardMetrics } from "./types";
+import { BottomCandidateCards } from "./components/BottomCandidateCards";
+import { MetricType, DashboardMetrics } from "./types";
 import { useAuthStore } from "@/stores/authStore";
 
-
 const DashboardPage: React.FC = () => {
-  const router = useRouter();
-  const { recruiterProfile} = useAuthStore();
-  const [searchQuery] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { recruiterProfile } = useAuthStore();
+  const [selectedPeriod, setSelectedPeriod] = useState("This Month");
   const [selectedDashboardMetric, setSelectedDashboardMetric] = useState<MetricType>("openJobs");
 
-  const { jobs, isLoading: isLoadingJobs } = useJobs();
-  const { applications: applicationsData, isLoading: isLoadingApps } = useJobApplications();
+  const { jobs } = useJobs();
+  const { applications: applicationsData } = useJobApplications();
 
-  // ✅ Reset page when switching metrics
-  const handleMetricChange = (metric: MetricType) => {
-    setSelectedDashboardMetric(metric);
-    setCurrentPage(1);
-  };
-
-  const dashboardMetrics = useMemo<DashboardMetrics>(() => {
-  const totalOpenJobs = jobs?.filter((j) => j.status !== "CLOSED")?.length || 250;      // ← demo fallback
-  const totalApplicants = applicationsData?.applications?.length || 124;
-  const inInterviewStage = applicationsData?.applications?.filter((app) => app.status === "INTERVIEWING")?.length || 16;
-  const hiredThisMonth = applicationsData?.applications?.filter((app) => app.status === "ACCEPTED")?.length || 40;
-  const pendingApprovals = applicationsData?.applications?.filter((app) => app.status === "PENDING")?.length || 0;
-  return { totalOpenJobs, totalApplicants, inInterviewStage, hiredThisMonth, pendingApprovals };
-}, [jobs, applicationsData]);
-  const itemsPerPage = 5;
-
-  if (isLoadingJobs || isLoadingApps) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-gray-600">Loading dashboard data...</p>
-        </div>
-      </AppLayout>
-    );
-  }
+  const dashboardMetrics = useMemo<DashboardMetrics>(() => ({
+    totalOpenJobs:    jobs?.filter((j) => j.status !== "CLOSED")?.length || 250,
+    totalApplicants:  applicationsData?.applications?.length || 124,
+    inInterviewStage: applicationsData?.applications?.filter((a) => a.status === "INTERVIEWING")?.length || 16,
+    hiredThisMonth:   applicationsData?.applications?.filter((a) => a.status === "ACCEPTED")?.length || 40,
+    pendingApprovals: applicationsData?.applications?.filter((a) => a.status === "PENDING")?.length || 0,
+  }), [jobs, applicationsData]);
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        {/* ── Header Row ── */}
-<div className="flex items-center justify-between">
-  <h1 className="text-xl font-semibold text-gray-900">
-    Hello, {recruiterProfile?.company_name || recruiterProfile?.organization_type || "Toronto Hospital"} 👋
-  </h1>
-  <div className="flex items-center gap-3">
-    {/* This Month dropdown */}
-    <select className="text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 bg-white shadow-sm focus:outline-none focus:border-orange-400">
-      <option>This Month</option>
-      <option>Last Month</option>
-      <option>Last 3 Months</option>
-      <option>This Year</option>
-    </select>
-    {/* Post Job button */}
-<button
-  onClick={() => router.push("/jobs/create")}
-  className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
->
-  <span className="text-base leading-none">+</span>
-  Post Job
-</button>
+      <div className="space-y-5 p-4 md:p-6">
 
-{/* ✅ Instant Replacement button */}
-<button
-  onClick={() => router.push("/jobs/instant-replacement")}
-  className="flex items-center gap-2 px-4 py-2 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 text-sm font-medium rounded-lg transition-colors shadow-sm"
->
-  <span className="text-base leading-none">⚡</span>
-  Instant Replacement
-</button>
-  </div>
-</div>
-
-        {/* ── Metric Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            icon={<Briefcase className="w-5 h-5 text-gray-600" />}
-            title="Total Active Jobs"
-            value={dashboardMetrics.totalOpenJobs}
-            percentChange={0.10}
-            isPositive={false}
-            isActive={selectedDashboardMetric === "openJobs"}
-            onClick={() => handleMetricChange("openJobs")}
-          />
-          <MetricCard
-            icon={<Users className="w-5 h-5 text-gray-600" />}
-            title="Total Candidates"
-            value={dashboardMetrics.totalApplicants}
-            percentChange={1.10}
-            isPositive={true}
-            isActive={selectedDashboardMetric === "applied"}
-            onClick={() => handleMetricChange("applied")}
-          />
-          <MetricCard
-            icon={<Sparkles className="w-5 h-5 text-gray-600" />}
-            title="New AI-Matched"
-            value={30}
-            percentChange={1.10}
-            isPositive={true}
-            isActive={false}
-            onClick={() => {}}
-          />
-          <MetricCard
-            icon={<CalendarCheck className="w-5 h-5 text-gray-600" />}
-            title="Interviews Scheduled"
-            value={16}
-            percentChange={2.10}
-            isPositive={false}
-            isActive={selectedDashboardMetric === "interviewing"}
-            onClick={() => handleMetricChange("interviewing")}
-          />
-          <MetricCard
-            icon={<Gift className="w-5 h-5 text-gray-600" />}
-            title="Total Offers Made"
-            value={32}
-            percentChange={1.10}
-            isPositive={true}
-            isActive={false}
-            onClick={() => {}}
-          />
-          <MetricCard
-            icon={<UserCheck className="w-5 h-5 text-gray-600" />}
-            title="Total Hired"
-            value={dashboardMetrics.hiredThisMonth}
-            percentChange={1.10}
-            isPositive={true}
-            isActive={selectedDashboardMetric === "hired"}
-            onClick={() => handleMetricChange("hired")}
-          />
-          <MetricCard
-            icon={<Clock className="w-5 h-5 text-gray-600" />}
-            title="Time to Hire"
-            value={"2 Days"}
-            percentChange={0.10}
-            isPositive={false}
-            isActive={false}
-            onClick={() => {}}
-          />
-          <MetricCard
-            icon={<XCircle className="w-5 h-5 text-gray-600" />}
-            title="Rejected"
-            value={16}
-            percentChange={2.10}
-            isPositive={false}
-            isActive={false}
-            onClick={() => {}}
-          />
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-gray-900">
+            Hello, {recruiterProfile?.company_name || "Narayan Hospital"} 👋
+          </h1>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 bg-white shadow-sm focus:outline-none focus:border-orange-400"
+          >
+            <option>This Month</option>
+            <option>Last Month</option>
+            <option>Last 3 Months</option>
+            <option>This Year</option>
+          </select>
         </div>
 
-       {/* ── Funnel Chart + Calendar + AI Matched ── */}
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ── Metric Cards Row 1: 4 cards ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard icon={<BriefcaseBusiness className="w-4 h-4 text-orange-500" />} title="Active Jobs Openings"         value={dashboardMetrics.totalOpenJobs}   percentChange={0.10} isPositive={false} isActive={selectedDashboardMetric === "openJobs"}    onClick={() => setSelectedDashboardMetric("openJobs")} />
+          <MetricCard icon={<Users className="w-4 h-4 text-orange-500" />}             title="Total Candidates in Pipeline" value={dashboardMetrics.totalApplicants} percentChange={1.10} isPositive={true}  isActive={selectedDashboardMetric === "applied"}     onClick={() => setSelectedDashboardMetric("applied")} />
+          <MetricCard icon={<Sparkles className="w-4 h-4 text-orange-500" />}          title="Positions Filled"             value={30}                               percentChange={1.10} isPositive={true}  isActive={false}                                     onClick={() => {}} />
+          <MetricCard icon={<Layers className="w-4 h-4 text-orange-500" />}            title="Urgent Staffings"             value={16}                               percentChange={2.10} isPositive={false} isActive={selectedDashboardMetric === "interviewing"} onClick={() => setSelectedDashboardMetric("interviewing")} />
+        </div>
 
-  {/* Left 2/3: Chart stacked above AI Matched table */}
-  <div className="lg:col-span-2 flex flex-col gap-4">
+        {/* ── Metric Cards Row 2: 3 cards, equal width ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <MetricCard icon={<Gift className="w-4 h-4 text-orange-500" />}      title="Total Job Invites Made to Candidates" value={32}                             percentChange={1.10} isPositive={true}  isActive={false}                               onClick={() => {}} />
+          <MetricCard icon={<UserCheck className="w-4 h-4 text-orange-500" />} title="Total Hired"                          value={dashboardMetrics.hiredThisMonth} percentChange={1.10} isPositive={true}  isActive={selectedDashboardMetric === "hired"} onClick={() => setSelectedDashboardMetric("hired")} />
+          <MetricCard icon={<LogOut className="w-4 h-4 text-orange-500" />}    title="Rejected"                             value={16}                             percentChange={2.10} isPositive={false} isActive={false}                               onClick={() => {}} />
+        </div>
+
+        {/* ── Chart + Calendar ── */}
+<div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
+  {/* Left — chart + AI table */}
+  <div className="lg:col-span-3 flex flex-col gap-4">
     <CandidateFunnelChart />
     <AiMatchedCandidates />
   </div>
 
-  {/* Right 1/3: Calendar (full height) */}
-  <div className="lg:col-span-1">
+  {/* Right — calendar, narrower */}
+  <div className="lg:col-span-1 flex flex-col">
     <MiniCalendar />
   </div>
-
 </div>
 
-        {/* ── Hiring Funnel ── */}
-        <HiringFunnel />
 
-        {/* ── Location Insights ── */}
-        <LocationInsights />
+        {/* ── Bottom Candidate Cards ── */}
+        <BottomCandidateCards />
+
+        {/* ── Recruiting Funnel + Location Insights ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <HiringFunnel />
+          <LocationInsights />
+        </div>
 
         {/* ── Bottom Widgets ── */}
         <BottomWidgets />
