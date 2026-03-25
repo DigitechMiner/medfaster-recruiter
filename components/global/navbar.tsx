@@ -22,7 +22,7 @@ export function Navbar() {
     { href: "/", label: "Dashboard" },
     { href: "/jobs", label: "Jobs" },
     { href: "/candidates", label: "Candidates" },
-    { href: "/schedules", label: "Schedules" },
+    { href: "/calendar", label: "Schedules" },
   ];
 
   const isActive = (href: string) =>
@@ -68,7 +68,7 @@ export function Navbar() {
             ))}
 
             <button
-              onClick={() => router.push("/instant-replace")}
+              onClick={() => router.push("/instant-replacement")}
               className="ml-3 flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 rounded-lg px-5 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
             >
               <Sparkles size={14} /> Instant Replace
