@@ -244,3 +244,75 @@ export async function generateJobDescription(payload: Partial<JobCreatePayload>)
   const res = await axiosInstance.post(ENDPOINTS.GENERATE_JOB_DESCRIPTION, payload);
   return res.data.data;
 }
+
+// ============================================================================
+// CANDIDATES LIST
+// ============================================================================
+export interface CandidateListItem {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+  full_name: string;
+  profile_image_url: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  medical_industry: string | null;
+  specialty: string[];          // ← array, not string
+  role: string[];
+  availability: string[];
+  work_permit: string | null;
+  job_titles: string[];
+  preferred_shift: string[];
+  work_eligibility: string | null;
+  status: string;
+  completion_percentage: string; // ← string "70.00", not number
+  email: string | null;
+  phone_number: string;
+  highest_interview_score: number | null;
+  highest_job_interview_score: number | null;
+}
+
+export interface CandidatesListResponse {
+  candidates: CandidateListItem[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    offset: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+export async function getCandidatesList(params?: {
+  role?: string[];
+  specialty?: string[];
+  availability?: string[];
+  work_permit?: string[];
+  job_id?: string;
+  interview?: 'SELF' | 'JOB';
+  page?: number;
+  limit?: number;
+}): Promise<CandidatesListResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.CANDIDATES_LIST, { params });
+  return res.data.data;
+}
+
+// ============================================================================
+// JOB APPLICATION STATUS UPDATE
+// ============================================================================
+export type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED';
+
+export async function updateApplicationStatus(
+  applicationId: string,
+  status: ApplicationStatus
+): Promise<{ id: string; job_id: string; candidate_id: string; status: ApplicationStatus; updated_at: string }> {
+  const res = await axiosInstance.patch(
+    ENDPOINTS.JOB_APPLICATION_STATUS(applicationId),
+    { status }
+  );
+  return res.data.data;
+}
+

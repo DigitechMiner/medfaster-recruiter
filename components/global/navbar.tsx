@@ -112,6 +112,7 @@ export function Navbar() {
             <button
               className="hidden md:flex p-2 rounded-lg hover:bg-gray-100 transition-colors"
               title="Billing"
+              onClick={() => router.push("/wallet")}
             >
               <Image src="/icon/icon-dollar.svg" width={22} height={22} alt="Billing" />
             </button>

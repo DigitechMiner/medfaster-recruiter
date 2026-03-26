@@ -2,38 +2,58 @@
 import Image from "next/image";
 import { MapPin, Briefcase, Zap, CalendarDays, BadgeCheck } from "lucide-react";
 import { useState } from "react";
+import { useCandidatesList } from "@/hooks/useCandidate";
+import { CandidateListItem } from "@/stores/api/recruiter-job-api";
 
-const available = [
-  { name: "Michael Liam", role: "Registered Nurse",     exp: "5+ yrs", type: "Part-Time", dist: "0.5 km", score: 95, verified: true,  badge: "Hire Instantly", badge2: "Available Today",  img: "/img/candidates/1.png" },
-  { name: "Tom Hardy",    role: "Health Assistant",     exp: "2 yrs",  type: "Full-Time", dist: "35 km",  score: 56, verified: false, badge: null,             badge2: "Available Today",  img: "/img/candidates/2.png" },
-  { name: "Varun Kapur",  role: "Health Care Assistant",exp: "5+ yrs", type: "Part-Time", dist: "26 km",  score: 40, verified: false, badge: null,             badge2: null,               img: "/img/candidates/3.png" },
-];
+interface CardData {
+  name: string;
+  role: string;
+  exp: string;
+  type: string;
+  dist: string;
+  score: number;
+  verified: boolean;
+  badge: string | null;
+  badge2: string | null;
+  img: string;
+}
 
-const nearby = [
-  { name: "Michael Liam", role: "Registered Nurse",     exp: "5+ yrs",  type: "Part-Time", dist: "0.5 km", score: 95, verified: true,  badge: "Hire Instantly", badge2: "Available Today",       img: "/img/candidates/1.png" },
-  { name: "Rajiv Bhatia", role: "Registered Nurse",     exp: "10+ yrs", type: "Freelance", dist: "3 km",   score: 80, verified: true,  badge: null,             badge2: "Available For Weekends", img: "/img/candidates/4.png" },
-  { name: "Jack Kirby",   role: "Health Care Assistant",exp: "5+ yrs",  type: "Part-Time", dist: "2.2 km", score: 80, verified: false, badge: null,             badge2: null,                    img: "/img/candidates/3.png" },
-];
+const toCardData = (c: CandidateListItem): CardData => {
+  const score      = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
+  const shift      = c.preferred_shift?.[0] ?? c.availability?.[0] ?? null;
+  const shiftLabel = shift ? shift.charAt(0).toUpperCase() + shift.slice(1).toLowerCase() : null;
+  const specialty  = c.specialty?.[0]
+    ? c.specialty[0].replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+    : c.medical_industry?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+    ?? "Healthcare Professional";
 
-const urgent = [
-  { name: "Michael Liam", role: "Registered Nurse",         exp: "5+ yrs", type: "Part-Time", dist: "0.5 km", score: 95,  verified: true,  badge: "Hire Instantly", badge2: null, img: "/img/candidates/1.png" },
-  { name: "Rajiv Bhatia", role: "Licensed Practical Nurse", exp: "4+ yrs", type: "Part-Time", dist: "23 km",  score: 100, verified: true,  badge: null,             badge2: null, img: "/img/candidates/4.png" },
-  { name: "Donald Falua", role: "Health Care Assistant",    exp: "5+ yrs", type: "Part-Time", dist: "27 km",  score: 95,  verified: false, badge: null,             badge2: null, img: "/img/candidates/5.png" },
-];
+  return {
+    name:     c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim(),
+    role:     specialty,
+    exp:      "—",
+    type:     shiftLabel ?? "—",
+    dist:     [c.city, c.state].filter(Boolean).join(", ") || "N/A",
+    score,
+    verified: Number(c.completion_percentage) >= 80,
+    badge:    score >= 90 ? "Hire Instantly" : null,
+    badge2:   c.availability?.length > 0 ? `Available ${shiftLabel ?? ""}` : null,
+    img:      c.profile_image_url ?? "/svg/Photo.svg",
+  };
+};
 
 // ── Only CSS changed: flex-row, arc SVG added, colors updated ──
 const ScoreBadge = ({ score }: { score: number }) => {
   const isGreen  = score >= 80;
   const isOrange = score >= 60 && score < 80;
-  const arcColor   = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
-  const textColor  = isGreen ? "text-green-600" : isOrange ? "text-orange-500" : "text-red-500";
+  const arcColor    = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
+  const textColor   = isGreen ? "text-green-600" : isOrange ? "text-orange-500" : "text-red-500";
   const borderColor = isGreen ? "border-green-500" : isOrange ? "border-orange-400" : "border-red-400";
 
-  const size = 32;
+  const size        = 32;
   const strokeWidth = 3;
-  const radius = (size - strokeWidth) / 2;
+  const radius      = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = (score / 100) * circumference;
+  const progress    = (score / 100) * circumference;
 
   return (
     <div className={`flex flex-row items-center gap-1.5 px-2 py-1.5 rounded-xl border-2 ${borderColor} shrink-0`}>
@@ -52,7 +72,7 @@ const ScoreBadge = ({ score }: { score: number }) => {
   );
 };
 
-const CandidateCard = ({ c }: { c: typeof available[0] }) => (
+const CandidateCard = ({ c }: { c: CardData }) => (
   <div className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-orange-200 hover:bg-orange-50/30 transition-colors">
     {/* Photo: rounded-xl + bg-orange-50 instead of rounded-full + bg-gray-100 */}
     <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0">
@@ -98,6 +118,12 @@ const CandidateCard = ({ c }: { c: typeof available[0] }) => (
 export const BottomCandidateCards = () => {
   const [radius, setRadius] = useState("Within 5km");
 
+  const { data, isLoading } = useCandidatesList({ page: 1, limit: 9 });
+  const all       = (data?.candidates ?? []).map(toCardData);
+  const available = all.slice(0, 3);
+  const nearby    = all.slice(3, 6);
+  const urgent    = all.slice(6, 9);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -105,7 +131,10 @@ export const BottomCandidateCards = () => {
           <h2 className="text-base font-semibold text-gray-900">Currently Available</h2>
         </div>
         <div className="flex flex-col gap-3">
-          {available.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
+          {isLoading
+            ? [...Array(3)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)
+            : available.map((c) => <CandidateCard key={c.name + c.role} c={c} />)
+          }
         </div>
       </div>
 
@@ -120,7 +149,10 @@ export const BottomCandidateCards = () => {
           </select>
         </div>
         <div className="flex flex-col gap-3">
-          {nearby.map((c) => <CandidateCard key={c.name + c.role} c={c as typeof available[0]} />)}
+          {isLoading
+            ? [...Array(3)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)
+            : nearby.map((c) => <CandidateCard key={c.name + c.role} c={c} />)
+          }
         </div>
       </div>
 
@@ -129,7 +161,10 @@ export const BottomCandidateCards = () => {
           <h2 className="text-base font-semibold text-gray-900">Urgent Hire (Pre-Verified)</h2>
         </div>
         <div className="flex flex-col gap-3">
-          {urgent.map((c) => <CandidateCard key={c.name + c.role} c={c as typeof available[0]} />)}
+          {isLoading
+            ? [...Array(3)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)
+            : urgent.map((c) => <CandidateCard key={c.name + c.role} c={c} />)
+          }
         </div>
       </div>
     </div>

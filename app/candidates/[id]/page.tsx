@@ -5,7 +5,7 @@ import React from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
 import { AppLayout } from "@/components/global/app-layout";
-import { useCandidate } from "@/hooks/useJobData";
+import { useCandidateDetails } from "@/hooks/useCandidate";
 
 export default function CandidateDetailPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function CandidateDetailPage() {
   const candidateId = params?.id as string;
   const jobApplicationId = searchParams.get('job_application_id') || undefined;
   
-  const { candidate, isLoading, error } = useCandidate(candidateId);
+const { candidate, isLoading, error } = useCandidateDetails(candidateId)
 
   const handleBack = () => {
     router.push("/jobs");

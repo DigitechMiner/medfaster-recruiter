@@ -1,0 +1,64 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  getCandidatesList,
+  getCandidateDetails,
+  updateApplicationStatus,
+  CandidatesListResponse,
+  CandidateDetailsResponse,
+  ApplicationStatus,
+} from '@/stores/api/recruiter-job-api';
+
+export function useCandidatesList(params?: Parameters<typeof getCandidatesList>[0]) {
+  const [data, setData] = useState<CandidatesListResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getCandidatesList(params)
+      .then(setData)
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
+  }, [params?.job_id, params?.page, params?.interview]);
+
+  return { data, isLoading, error };
+}
+
+export function useCandidateDetails(candidateId: string | null) {
+  const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!candidateId) { setIsLoading(false); return; }
+    setIsLoading(true);
+    getCandidateDetails(candidateId)
+      .then(setCandidate)
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
+  }, [candidateId]);
+
+  return { candidate, isLoading, error };
+}
+
+export function useUpdateApplicationStatus() {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const update = async (applicationId: string, status: ApplicationStatus) => {
+    try {
+      setIsUpdating(true);
+      setError(null);
+      return await updateApplicationStatus(applicationId, status);
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return { update, isUpdating, error };
+}

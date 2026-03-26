@@ -35,4 +35,19 @@ export const ENDPOINTS = {
   CHAT_CONVERSATION_MESSAGES: (conversationId: string) => `/chat/conversation/${conversationId}/messages`,
   CHAT_SEND_MESSAGE: '/chat/message',
   CHAT_CREATE_OR_GET: '/chat/conversation',
+
+  RECRUITER_DASHBOARD:            '/recruiter/dashboard',
+
+  CANDIDATES_LIST:                '/recruiter/candidates',
+  JOB_APPLICATION_STATUS:         (id: string) => `/recruiter/job-applications/${id}/status`,
+
+
+  WALLET:                         '/recruiter/wallet',
+  WALLET_PAY:                     '/recruiter/wallet/pay',
+  WALLET_TOPUPS:                  '/recruiter/wallet/topups',
+  WALLET_TRANSACTIONS:            '/recruiter/wallet/transactions',
+
+  
+  VERIFY_CREDENTIAL_SEND_OTP:     '/recruiter/verify-credential/send-otp',
+  VERIFY_CREDENTIAL_VALIDATE_OTP: '/recruiter/verify-credential/validate-otp',
 } as const;
