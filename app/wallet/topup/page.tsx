@@ -39,8 +39,8 @@ const displayAmount = (() => {
       setError(null);
       const { client_secret, topup_id } = await initiateWalletTopup(numAmount);
       router.push(`/wallet/topup/confirm?secret=${client_secret}&topup_id=${topup_id}&amount=${numAmount}`);
-    } catch (e: any) {
-      setError(e.message || 'Failed to initiate topup');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to initiate topup');
     } finally {
       setIsLoading(false);
     }

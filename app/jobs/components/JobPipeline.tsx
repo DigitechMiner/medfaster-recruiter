@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import ScoreCard from "@/components/card/scorecard";
 import { StatusSection, StatusTable } from "./ui";
 import { STATUS_SECTIONS } from "../constants/jobs";
 import { Job } from "@/Interface/job.types";

@@ -36,7 +36,6 @@ const ScoreBadge = ({ score }: { score: number }) => {
 // ── Action Buttons ─────────────────────────────────────────────
 const ActionButtons = ({
   actionType,
-  candidateId,
   onNavigate,
 }: {
   actionType: ActionType;

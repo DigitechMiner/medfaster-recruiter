@@ -7,6 +7,8 @@ import {
   getWalletTransactions,
   initiateWalletTopup,
   WalletData,
+  WalletTransaction,
+  WalletTopup,
   PaginatedItems,
 } from '@/stores/api/recruiter-wallet-api';
 
@@ -19,13 +21,12 @@ export function useWallet() {
     setIsLoading(true);
     getWallet()
       .then(setWallet)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load wallet'))
       .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  // available_balance is in cents as string
   const balanceCAD = wallet ? Number(wallet.available_balance) / 100 : 0;
 
   return { wallet, balanceCAD, isLoading, error, refetch };
@@ -36,7 +37,7 @@ export function useWalletTransactions(params?: {
   limit?: number;
   offset?: number;
 }) {
-  const [data, setData] = useState<PaginatedItems<any> | null>(null);
+  const [data, setData] = useState<PaginatedItems<WalletTransaction> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +45,7 @@ export function useWalletTransactions(params?: {
     setIsLoading(true);
     getWalletTransactions(params)
       .then(setData)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load transactions'))
       .finally(() => setIsLoading(false));
   }, [params?.page, params?.limit]);
 
@@ -56,7 +57,7 @@ export function useWalletTopups(params?: {
   limit?: number;
   offset?: number;
 }) {
-  const [data, setData] = useState<PaginatedItems<any> | null>(null);
+  const [data, setData] = useState<PaginatedItems<WalletTopup> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +65,7 @@ export function useWalletTopups(params?: {
     setIsLoading(true);
     getWalletTopups(params)
       .then(setData)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load topups'))
       .finally(() => setIsLoading(false));
   }, [params?.page, params?.limit]);
 
@@ -80,8 +81,9 @@ export function useInitiateTopup() {
       setIsLoading(true);
       setError(null);
       return await initiateWalletTopup(amount, idempotencyKey);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to initiate topup';
+      setError(message);
       throw e;
     } finally {
       setIsLoading(false);

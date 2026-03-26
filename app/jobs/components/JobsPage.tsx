@@ -8,7 +8,6 @@ import { StatusSection, StatusTable } from "./ui";
 import { Job } from "@/Interface/job.types";
 import { STATUS_SECTIONS } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
-import { BUTTON_LABELS } from "../constants/messages";
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
 
 interface CandidatesData {

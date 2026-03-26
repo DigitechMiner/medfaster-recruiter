@@ -41,9 +41,9 @@ const DashboardPage: React.FC = () => {
   const dashboardMetrics = useMemo<DashboardMetrics>(() => ({
     // Use pagination.total for accurate full count, not just current page length
     totalOpenJobs:    jobs?.filter((j) => j.status !== "CLOSED")?.length ?? 0,
-    totalApplicants:  (applicationsData as any)?.pagination?.total
-                      ?? applicationsData?.applications?.length
-                      ?? 0,
+    totalApplicants: (applicationsData as { pagination?: { total?: number } })?.pagination?.total
+  ?? applicationsData?.applications?.length
+  ?? 0,
     inInterviewStage: applicationsData?.applications?.filter((a) => a.status === "INTERVIEWING")?.length ?? 0,
     hiredThisMonth:   applicationsData?.applications?.filter((a) => a.status === "ACCEPTED")?.length ?? 0,
     pendingApprovals: applicationsData?.applications?.filter((a) => a.status === "PENDING")?.length ?? 0,

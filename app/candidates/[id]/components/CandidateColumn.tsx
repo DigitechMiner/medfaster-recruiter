@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { BoardCandidateCard } from "./BoardCandidateCard";
-import { CandidateEntry } from "../../data/candidates";
 import { CandidateListItem } from "@/stores/api/recruiter-job-api";
 
 type AccentColor = "orange" | "green" | "red" | "neutral";

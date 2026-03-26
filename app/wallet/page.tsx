@@ -5,12 +5,17 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import WalletBalanceCard from '@/components/wallet/WalletBalancedCard';
 import TransactionItem from '@/components/wallet/TransactionItem';
-import { getWallet, getWalletTransactions, WalletData } from '@/stores/api/recruiter-wallet-api';
+import {
+  getWallet,
+  getWalletTransactions,
+  WalletData,
+  WalletTransaction,
+} from '@/stores/api/recruiter-wallet-api';
 
 export default function WalletPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +29,8 @@ export default function WalletPage() {
         ]);
         setWallet(walletData);
         setTransactions(txData.items);
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load wallet');
       } finally {
         setIsLoading(false);
       }
@@ -37,21 +42,18 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-     {/* Header */}
-<div className="bg-white border-b border-gray-100">
-  <div className="relative px-4 py-4 flex items-center">
-    {/* Back button — pinned to page left */}
-    <button onClick={() => router.back()} className="p-1">
-      <ArrowLeft size={22} className="text-gray-800" />
-    </button>
-    {/* Title — centered within max-w-md column */}
-    <div className="flex-1 flex justify-center">
-      <h1 className="text-lg font-semibold text-gray-900">Wallet</h1>
-    </div>
-    {/* Spacer to balance the back button width */}
-    <div className="w-8" />
-  </div>
-</div>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="relative px-4 py-4 flex items-center">
+          <button onClick={() => router.back()} className="p-1">
+            <ArrowLeft size={22} className="text-gray-800" />
+          </button>
+          <div className="flex-1 flex justify-center">
+            <h1 className="text-lg font-semibold text-gray-900">Wallet</h1>
+          </div>
+          <div className="w-8" />
+        </div>
+      </div>
 
       {/* Content */}
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">

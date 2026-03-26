@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { fetchRecruiterInterviewRequests } from '@/app/jobs/services/interviewApi';
 
+
+interface InterviewRequest {
+  slot?: { start_time: string };
+  valid_until?: string;
+  candidate?: { full_name?: string; first_name?: string };
+}
+
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface Appointment {
@@ -29,52 +36,53 @@ export const MiniCalendar = () => {
   const daysInPrev   = new Date(year, month, 0).getDate();
   const trailingCount = (7 - ((firstDay + daysInMonth) % 7)) % 7;
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetchRecruiterInterviewRequests(undefined, 1, 100);
-        const requests = response.interviewRequests ?? [];
+useEffect(() => {
+  const today = new Date(); // ← moved inside, no longer a dependency
 
-        const days: number[] = [];
-        const apts: Appointment[] = [];
+  const load = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetchRecruiterInterviewRequests(undefined, 1, 100);
+      const requests = response.interviewRequests ?? [];
 
-        requests.forEach((req: any) => {
-          // Use slot date if accepted, otherwise valid_until date
-          const dateStr = req.slot?.start_time ?? req.valid_until;
-          if (!dateStr) return;
+      const days: number[] = [];
+      const apts: Appointment[] = [];
 
-          const d = new Date(dateStr);
-          if (d.getFullYear() === year && d.getMonth() === month) {
-            days.push(d.getDate());
-            apts.push({
-              name: req.candidate?.full_name ?? req.candidate?.first_name ?? 'Candidate',
-              date: d.toLocaleDateString('en-CA', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              }),
-              rawDate: d,
-            });
-          }
-        });
+      requests.forEach((req: InterviewRequest) => {
+        const dateStr = req.slot?.start_time ?? req.valid_until;
+        if (!dateStr) return;
 
-        setScheduledDays([...new Set(days)]);
-        // Show only upcoming 4
-        setAppointments(
-          apts
-            .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
-            .filter((a) => a.rawDate >= today)
-            .slice(0, 4)
-        );
-      } catch {
-        // Silently fail — calendar still works without data
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, [year, month]); // ← refetch when month changes
+        const d = new Date(dateStr);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          days.push(d.getDate());
+          apts.push({
+            name: req.candidate?.full_name ?? req.candidate?.first_name ?? 'Candidate',
+            date: d.toLocaleDateString('en-CA', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            }),
+            rawDate: d,
+          });
+        }
+      });
+
+      setScheduledDays([...new Set(days)]);
+      setAppointments(
+        apts
+          .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
+          .filter((a) => a.rawDate >= today)
+          .slice(0, 4)
+      );
+    } catch {
+      // Silently fail — calendar still works without data
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  load();
+}, [year, month]); // ✅ no warning — today is local to this effect now
+
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));

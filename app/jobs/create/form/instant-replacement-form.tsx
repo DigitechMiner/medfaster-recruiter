@@ -40,7 +40,7 @@ const formatDateForBackend = (date?: Date): string | null => {
   return `${year}-${month}-${day}`;
 };
 
-export function InstantReplacementForm({ onNext, onBack }: Props) {
+export function InstantReplacementForm({ onBack }: Props) {
   const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
 
