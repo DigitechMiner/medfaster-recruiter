@@ -75,7 +75,7 @@ export function Navbar() {
             </button>
 
             <button
-              onClick={() => router.push("/jobs/post")}
+              onClick={() => router.push("/jobs/create")}
               className="ml-2 flex items-center gap-1.5 bg-[#F4781B] hover:bg-[#e06a10] text-white rounded-lg px-6 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
             >
               <Plus size={14} /> Post a Job
