@@ -68,7 +68,7 @@ export function Navbar() {
             ))}
 
             <button
-              onClick={() => router.push("/instant-replacement")}
+              onClick={() => router.push("/jobs/instant-replacement")}
               className="ml-3 flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 rounded-lg px-5 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
             >
               <Sparkles size={14} /> Instant Replace
