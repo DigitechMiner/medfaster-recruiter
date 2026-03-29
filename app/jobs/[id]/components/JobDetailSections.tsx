@@ -2,17 +2,15 @@
 
 import React from "react";
 import type { JobBackendResponse } from "@/Interface/job.types";
-import {
-  Clock,
-  MapPin,
-  Briefcase,
-  Timer,
-  DollarSign,
-  Building2,
-} from "lucide-react";
+import { Clock, MapPin, Briefcase, Timer, DollarSign, Building2 } from "lucide-react";
 import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
 import { Heading } from "@/components/custom/heading";
 import { getTimeAgo } from "@/utils/getTimePeriod";
+import {
+  convertJobTypeToFrontend,
+  convertSpecializationToFrontend,
+  convertQualificationToFrontend,
+} from "@/utils/constant/metadata";
 
 interface JobDetailSectionsProps {
   job: JobBackendResponse;
@@ -27,21 +25,19 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
   const normalJob = job.normalJob;
   const instantJob = job.instantJob;
 
-  const formatJobType = (type: string | null) => {
-    if (!type) return "Not specified";
-    const typeMap: Record<string, string> = {
-      full_time: "Full Time",
-      part_time: "Part Time",
-      freelancer: "Freelancer",
-      contract: "Contract",
-    };
-    return typeMap[type.toLowerCase()] || type;
-  };
-
+  // ✅ Bug 3 fix — fixed+additional format, handles instant same-value case
   const formatSalary = () => {
     const min = parseFloat(String(job.pay_range_min));
     const max = parseFloat(String(job.pay_range_max));
-    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+
+    if (job.job_urgency === "instant") {
+      const amount = max || min;
+      return amount ? `$${amount.toLocaleString()} (Fixed)` : "Negotiable";
+    }
+
+    if (min && max && min !== max)
+  return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+    if (min && max) return `$${min.toLocaleString()}`;
     if (min) return `$${min.toLocaleString()}+`;
     if (max) return `$${max.toLocaleString()}`;
     return "Negotiable";
@@ -51,7 +47,10 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
     {
       icon: MapPin,
       label: "Location",
-      value: [job.city, job.province].filter(Boolean).join(", ") || "Not specified",
+      value:
+        [job.city, job.province].filter(Boolean).join(", ") ||
+        job.street ||
+        "Not specified",
     },
     {
       icon: Briefcase,
@@ -61,7 +60,11 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
     {
       icon: Timer,
       label: "Job Type",
-      value: formatJobType(job.job_type),
+      // ✅ Bug 4 fix — urgency-based label using converter
+      value:
+        job.job_urgency === "instant"
+          ? "Instant Replacement"
+          : convertJobTypeToFrontend(job.job_type),
     },
     {
       icon: DollarSign,
@@ -110,10 +113,10 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
             {getTimeAgo(job.created_at || "")}
           </Paragraph>
           <ResponsiveParagraph size="base" className="font-semibold text-gray-900 mb-0.5">
-            Job Title : {job.job_title}
+            {job.job_title}
           </ResponsiveParagraph>
           {job.department && (
-            <ResponsiveParagraph size="xs" className="text-gray-600">
+            <ResponsiveParagraph size="xs" className="text-gray-600 capitalize">
               {job.department}
             </ResponsiveParagraph>
           )}
@@ -137,9 +140,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
               <div className="flex flex-col items-start gap-2">
                 <item.icon className="w-5 h-5 text-[#F4781B]" />
                 <div>
-                  <Paragraph size="xs" className="text-gray-500">
-                    {item.label}
-                  </Paragraph>
+                  <Paragraph size="xs" className="text-gray-500">{item.label}</Paragraph>
                   <Paragraph size="lg" weight="semibold" className="text-xl text-gray-900">
                     {item.value}
                   </Paragraph>
@@ -150,9 +151,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
                 <div className="flex flex-col items-start gap-2 mb-2">
                   <item.icon className="w-5 h-5 text-[#F4781B]" />
                 </div>
-                <Paragraph size="xs" className="text-gray-500 mb-1">
-                  {item.label}
-                </Paragraph>
+                <Paragraph size="xs" className="text-gray-500 mb-1">{item.label}</Paragraph>
                 <Paragraph size="lg" weight="semibold" className="text-xl text-gray-900">
                   {item.value}
                 </Paragraph>
@@ -162,8 +161,8 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
         ))}
       </div>
 
-      {/* Description */}
-      {job.description && (
+      {/* ✅ Bug 5 fix — .trim() so empty string doesn't silently skip */}
+      {job.description?.trim() ? (
         <div className="mb-5 pb-5 border-b border-gray-200">
           <Heading as="h3" size="xs" weight="semibold" className="text-sm text-[#F4781B] mb-3">
             Description :
@@ -172,34 +171,38 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
             {job.description}
           </ResponsiveParagraph>
         </div>
-      )}
+      ) : null}
 
-      {/* Specializations */}
       {normalJob?.specializations && normalJob.specializations.length > 0 && (
         <div className="mb-5 pb-5 border-b border-gray-200">
           <Heading as="h3" size="xs" weight="semibold" className="text-sm text-orange-600 mb-3">
             Specialization :
           </Heading>
           <div className="flex flex-wrap gap-2">
-            {normalJob.specializations.map((spec, idx) => (
-              <span key={idx} className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium">
-                {spec}
+            {normalJob.specializations.map((spec) => (
+              <span
+                key={spec}
+                className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium"
+              >
+                {convertSpecializationToFrontend(spec)}
               </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Qualifications */}
       {normalJob?.qualifications && normalJob.qualifications.length > 0 && (
         <div className="mb-5 pb-5 border-b border-gray-200">
           <Heading as="h3" size="xs" weight="semibold" className="text-sm text-orange-600 mb-3">
             Qualification :
           </Heading>
           <div className="flex flex-wrap gap-2">
-            {normalJob.qualifications.map((qual, idx) => (
-              <span key={idx} className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium">
-                {qual}
+            {normalJob.qualifications.map((qual) => (
+              <span
+                key={qual}
+                className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium"
+              >
+                {convertQualificationToFrontend(qual)}
               </span>
             ))}
           </div>
@@ -239,7 +242,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
         </div>
       )}
 
-      {/* Instant Job Fields */}
+      {/* Instant Job Schedule */}
       {instantJob && (
         <div className="mb-5 pb-5 border-b border-gray-200">
           <Heading as="h3" size="xs" weight="semibold" className="text-sm text-orange-600 mb-3">
@@ -258,7 +261,12 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
               <div>
                 <Paragraph size="xs" className="text-gray-500 mb-1">Till Date</Paragraph>
                 <Paragraph size="sm" weight="semibold" className="text-gray-900">
-                  {new Date(instantJob.end_date).toLocaleDateString()}
+                  {/* ✅ Bug 1 display — show "Same Day" for same-day shifts */}
+                  {instantJob.start_date &&
+                  new Date(instantJob.end_date).toDateString() ===
+                    new Date(instantJob.start_date).toDateString()
+                    ? `Same Day (${new Date(instantJob.end_date).toLocaleDateString()})`
+                    : new Date(instantJob.end_date).toLocaleDateString()}
                 </Paragraph>
               </div>
             )}
@@ -283,38 +291,43 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
       )}
 
       {/* Additional Info */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <Paragraph size="xs" className="text-gray-500 mb-1">Urgency</Paragraph>
-            <Paragraph size="sm" weight="semibold" className="text-gray-900 capitalize">
-              {job.job_urgency || "Not specified"}
-            </Paragraph>
-          </div>
-          <div>
-            <Paragraph size="xs" className="text-gray-500 mb-1">AI Interview</Paragraph>
-            <Paragraph size="sm" weight="semibold" className="text-gray-900">
-              {normalJob?.ai_interview === true
-                ? "Yes"
-                : normalJob?.ai_interview === false
-                ? "No"
-                : "Not specified"}
-            </Paragraph>
-          </div>
-          <div>
-            <Paragraph size="xs" className="text-gray-500 mb-1">Number of Hires</Paragraph>
-            <Paragraph size="sm" weight="semibold" className="text-gray-900">
-              {job.no_of_hires || "Not specified"}
-            </Paragraph>
-          </div>
-          <div>
-            <Paragraph size="xs" className="text-gray-500 mb-1">Last Updated</Paragraph>
-            <Paragraph size="sm" weight="semibold" className="text-gray-900">
-              {getTimeAgo(job.updated_at || "")}
-            </Paragraph>
-          </div>
-        </div>
+<div className="mt-6 pt-6 border-t border-gray-200">
+  <div className="grid grid-cols-2 gap-4 text-sm">
+    <div>
+      <Paragraph size="xs" className="text-gray-500 mb-1">Urgency</Paragraph>
+      <Paragraph size="sm" weight="semibold" className="text-gray-900 capitalize">
+        {job.job_urgency === "instant" ? "Instant" : job.job_urgency || "Not specified"}
+      </Paragraph>
+    </div>
+
+    {/* ✅ Hide AI Interview for instant jobs */}
+    {job.job_urgency !== "instant" && (
+      <div>
+        <Paragraph size="xs" className="text-gray-500 mb-1">AI Interview</Paragraph>
+        <Paragraph size="sm" weight="semibold" className="text-gray-900">
+          {normalJob?.ai_interview === true
+            ? "Yes"
+            : normalJob?.ai_interview === false
+            ? "No"
+            : "Not specified"}
+        </Paragraph>
       </div>
+    )}
+
+    <div>
+      <Paragraph size="xs" className="text-gray-500 mb-1">Number of Hires</Paragraph>
+      <Paragraph size="sm" weight="semibold" className="text-gray-900">
+        {job.no_of_hires || "Not specified"}
+      </Paragraph>
+    </div>
+    <div>
+      <Paragraph size="xs" className="text-gray-500 mb-1">Last Updated</Paragraph>
+      <Paragraph size="sm" weight="semibold" className="text-gray-900">
+        {getTimeAgo(job.updated_at || "")}
+      </Paragraph>
+    </div>
+  </div>
+</div>
     </>
   );
 };

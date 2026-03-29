@@ -46,7 +46,7 @@ export function InstantReplacementForm({ onBack }: Props) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // ✅ new
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [formData, setFormData] = useState<InstantJobFormData>({
     jobTitle: "",
@@ -73,7 +73,7 @@ export function InstantReplacementForm({ onBack }: Props) {
     directNumber: "",
     streetAddress: "",
     postalCode: "",
-    province: "Ontario (ON)",
+    province: "ontario",
     city: "",
     country: "Canada",
   });
@@ -90,8 +90,11 @@ export function InstantReplacementForm({ onBack }: Props) {
       return;
     }
 
-    if (formData.tillDate < formData.fromDate) {
-      setError("Till Date must be after From Date");
+    // ✅ Bug 1 fix — compare date parts only, same day is allowed
+    const fromDay = new Date(formData.fromDate).setHours(0, 0, 0, 0);
+    const tillDay = new Date(formData.tillDate).setHours(0, 0, 0, 0);
+    if (tillDay < fromDay) {
+      setError("Till Date cannot be before From Date");
       return;
     }
 
@@ -101,9 +104,13 @@ export function InstantReplacementForm({ onBack }: Props) {
     try {
       const backendData: JobCreatePayload = {
         job_title: convertJobTitleToBackend(formData.jobTitle),
+        // ✅ Bug 4 fix — keep job_type (backend requires it), label overridden on frontend
         job_type: convertJobTypeToBackend(formData.jobType),
         department: formData.department || null,
-        location: `${formData.streetAddress}, ${formData.city}, ${formData.province}`,
+        street: formData.streetAddress || null,
+        postal_code: formData.postalCode || null,
+        province: formData.province || null,
+        city: formData.city || null,
         pay_range_min: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
         pay_range_max: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
         years_of_experience: null,
@@ -127,7 +134,7 @@ export function InstantReplacementForm({ onBack }: Props) {
 
       if (response.success) {
         sessionStorage.setItem("createdJobId", response.data.job.id);
-        setShowSuccessModal(true); // ✅ show modal instead of immediately routing
+        setShowSuccessModal(true);
       } else {
         setError(response.message || "Failed to create instant replacement");
       }
@@ -141,7 +148,6 @@ export function InstantReplacementForm({ onBack }: Props) {
 
   return (
     <>
-      {/* ✅ Success Modal */}
       <SuccessModal
         visible={showSuccessModal}
         onClose={() => {

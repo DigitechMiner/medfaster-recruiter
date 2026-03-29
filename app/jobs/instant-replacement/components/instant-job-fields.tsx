@@ -1,4 +1,3 @@
-// app/jobs/instant-replacement/components/instant-job-fields.tsx
 "use client";
 
 import { useState } from "react";
@@ -44,8 +43,15 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
   const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
 
   const today = new Date();
-  const tillMinDate = new Date(today);
-  tillMinDate.setDate(today.getDate() + 1);
+
+  // ✅ Bug 1 fix — same day allowed; min is fromDate not tomorrow
+  const tillMinDate = formData.fromDate
+    ? new Date(
+        formData.fromDate.getFullYear(),
+        formData.fromDate.getMonth(),
+        formData.fromDate.getDate()
+      )
+    : today;
 
   const formatDate = (date?: Date) => {
     if (!date) return "DD/MM/YYYY";
@@ -63,6 +69,19 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
     const period = hour >= 12 ? "pm" : "am";
     const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${displayHour}:${minutes} ${period}`;
+  };
+
+  // ✅ Bug 1 fix — auto-set tillDate = fromDate for short shifts (≤4 hrs)
+  const handleCheckOutSelect = (time: string) => {
+    updateFormData({ checkOutTime: time });
+    if (formData.checkInTime && formData.fromDate) {
+      const [inH, inM] = formData.checkInTime.split(":").map(Number);
+      const [outH, outM] = time.split(":").map(Number);
+      const durationHrs = (outH * 60 + outM - inH * 60 - inM) / 60;
+      if (durationHrs > 0 && durationHrs <= 4) {
+        updateFormData({ tillDate: formData.fromDate });
+      }
+    }
   };
 
   return (
@@ -97,7 +116,7 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
         </div>
       </div>
 
-      {/* From Date, Till Date, Check In, Check Out */}
+      {/* Dates & Times */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
@@ -227,14 +246,23 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
             value={formData.province}
             onValueChange={(v) => updateFormData({ province: v })}
           >
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Ontario (ON)">Ontario (ON)</SelectItem>
-              <SelectItem value="British Columbia (BC)">British Columbia (BC)</SelectItem>
-              <SelectItem value="Alberta (AB)">Alberta (AB)</SelectItem>
-              <SelectItem value="Quebec (QC)">Quebec (QC)</SelectItem>
-              <SelectItem value="Saskatchewan (SK)">Saskatchewan (SK)</SelectItem>
-              <SelectItem value="Manitoba (MB)">Manitoba (MB)</SelectItem>
+              <SelectItem value="ontario">Ontario (ON)</SelectItem>
+              <SelectItem value="british_columbia">British Columbia (BC)</SelectItem>
+              <SelectItem value="alberta">Alberta (AB)</SelectItem>
+              <SelectItem value="quebec">Quebec (QC)</SelectItem>
+              <SelectItem value="saskatchewan">Saskatchewan (SK)</SelectItem>
+              <SelectItem value="manitoba">Manitoba (MB)</SelectItem>
+              <SelectItem value="nova_scotia">Nova Scotia (NS)</SelectItem>
+              <SelectItem value="new_brunswick">New Brunswick (NB)</SelectItem>
+              <SelectItem value="newfoundland_and_labrador">Newfoundland and Labrador (NL)</SelectItem>
+              <SelectItem value="prince_edward_island">Prince Edward Island (PE)</SelectItem>
+              <SelectItem value="northwest_territories">Northwest Territories (NT)</SelectItem>
+              <SelectItem value="nunavut">Nunavut (NU)</SelectItem>
+              <SelectItem value="yukon">Yukon (YT)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -251,7 +279,11 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
         </div>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">Country</Label>
-          <Input value={formData.country} disabled className="h-11 bg-gray-50 text-gray-500" />
+          <Input
+            value={formData.country}
+            disabled
+            className="h-11 bg-gray-50 text-gray-500"
+          />
         </div>
       </div>
 
@@ -260,7 +292,13 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
             selectedDate={formData.fromDate}
-            onSelect={(date) => updateFormData({ fromDate: date })}
+            onSelect={(date) => {
+              updateFormData({ fromDate: date });
+              // ✅ Reset tillDate if it's now before the new fromDate
+              if (formData.tillDate && date > formData.tillDate) {
+                updateFormData({ tillDate: date });
+              }
+            }}
             onCancel={() => setShowCalendar1(false)}
             onSchedule={() => setShowCalendar1(false)}
             minDate={today}
@@ -270,6 +308,7 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
 
       {showCalendar2 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          {/* ✅ Bug 1 fix — tillMinDate allows same day */}
           <CustomCalendar
             selectedDate={formData.tillDate}
             onSelect={(date) => updateFormData({ tillDate: date })}
@@ -293,9 +332,10 @@ export function InstantJobFields({ formData, updateFormData }: InstantJobFieldsP
 
       {showCheckOutPicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          {/* ✅ Bug 1 fix — uses handleCheckOutSelect for auto same-day logic */}
           <CustomTimePicker
             selectedTime={formData.checkOutTime}
-            onSelect={(time) => updateFormData({ checkOutTime: time })}
+            onSelect={handleCheckOutSelect}
             onCancel={() => setShowCheckOutPicker(false)}
             onSelectTime={() => setShowCheckOutPicker(false)}
           />

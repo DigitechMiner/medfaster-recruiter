@@ -6,20 +6,16 @@ export interface JobBackendResponse {
   department: string | null;
   job_type: string | null;
 
-  // Location fields
   street?: string | null;
   postal_code?: string | null;
   province?: string | null;
   city?: string | null;
 
-  // Pay range — comes as string "2300.00" from DECIMAL type
   pay_range_min: string | number | null;
   pay_range_max: string | number | null;
 
-  // Job urgency
   job_urgency: 'instant' | 'normal' | null;
 
-  // Other fields
   description: string | null;
   no_of_hires: number | null;
   status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
@@ -28,7 +24,6 @@ export interface JobBackendResponse {
   created_at: string;
   updated_at: string;
 
-  // ✅ Nested relations — actual structure from API
   normalJob: {
     id: string;
     job_id: string;
@@ -50,18 +45,13 @@ export interface JobBackendResponse {
     check_out_time: string;
   } | null;
 
-  // Extra labels from API
   specialization_labels?: string[];
 }
-
-
 
 export interface JobCreatePayload {
   job_title: string;
   department?: string | null;
   job_type?: string | null;
-  
-  // Location fields - ADD these based on backend validation
   street?: string | null;
   postal_code?: string | null;
   province?: string | null;
@@ -70,26 +60,19 @@ export interface JobCreatePayload {
   neighborhood_type?: string | null;
   direct_number?: string | null;
   location?: string | null;
-  
   pay_range_min?: number | null;
   pay_range_max?: number | null;
   years_of_experience?: string | null;
   qualifications?: string[] | null;
   specializations?: string[] | null;
-  
-  job_urgency?: 'instant' | 'normal'; // Use correct type instead of string
-  
-  no_of_hires?: number | null; // Backend uses 'no_of_hires', not 'numberOfHires'
-  
-  ai_interview?: boolean; // Make optional since it's only for normal jobs
+  job_urgency?: 'instant' | 'normal';
+  no_of_hires?: number | null;
+  ai_interview?: boolean;
   in_person_interview?: boolean | null;
   physical_interview?: boolean | null;
-  
   description?: string | null;
   questions?: Record<string, any> | null;
-  
   status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
-  
   start_date?: string | null;
   end_date?: string | null;
   check_in_time?: string | null;
@@ -97,7 +80,6 @@ export interface JobCreatePayload {
 }
 
 export interface JobUpdatePayload extends Partial<JobCreatePayload> {}
-
 
 export interface JobsListResponse {
   success: boolean;
@@ -109,6 +91,12 @@ export interface JobsListResponse {
       years_of_experience: string | null;
       department: string | null;
       job_type: string | null;
+      job_urgency: 'instant' | 'normal' | null; // ✅ added
+      city?: string | null;                      // ✅ added
+      province?: string | null;                  // ✅ added
+      street?: string | null;                    // ✅ added
+      pay_range_min?: string | number | null;    // ✅ added
+      pay_range_max?: string | number | null;    // ✅ added
       specializations: string[] | null;
       qualifications: string[] | null;
       status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
@@ -132,25 +120,19 @@ export interface JobsListResponse {
 export interface JobDetailResponse {
   success: boolean;
   message: string;
-  data: {
-    job: JobBackendResponse;
-  };
+  data: { job: JobBackendResponse };
 }
 
 export interface JobCreateResponse {
   success: boolean;
   message: string;
-  data: {
-    job: JobBackendResponse;
-  };
+  data: { job: JobBackendResponse };
 }
 
 export interface JobUpdateResponse {
   success: boolean;
   message: string;
-  data: {
-    job: JobBackendResponse;
-  };
+  data: { job: JobBackendResponse };
 }
 
 export interface JobDeleteResponse {
@@ -168,7 +150,7 @@ export interface JobFormData {
   experience: string;
   qualification: string[];
   specialization: string[];
-  urgency: 'instant' | 'normal'; // Only these two values
+  urgency: 'instant' | 'normal';
   inPersonInterview: string;
   physicalInterview: string;
   aiInterview?: string;
@@ -186,9 +168,7 @@ export interface JobFormData {
   status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
 }
 
-
-
-// ============ LEGACY TYPES (Keep for other components) ============
+// ============ LEGACY TYPES ============
 export interface TopJob {
   id: number;
   title: string;
@@ -208,6 +188,7 @@ export interface Job {
   specialization: string[];
   currentCompany?: string;
   candidateId?: string;
+  jobApplicationId?: string;
 }
 
 export type StatusType = 'applied' | 'shortlisted' | 'interviewing' | 'hired';

@@ -119,7 +119,7 @@ export function useDeleteJob() {
   return { deleteJob, isDeleting, error };
 }
 
-// ============ NEW: CANDIDATE HOOKS (Kevin's Real APIs) ============
+// ============ NEW: CANDIDATE HOOKS (Real APIs) ============
 // ✅ REAL API - Get full candidate details
 export function useCandidate(candidateId: string | null) {
   const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);
@@ -137,7 +137,6 @@ export function useCandidate(candidateId: string | null) {
         setIsLoading(true);
         setError(null);
         
-        // ✅ Kevin's REAL API
         const data = await getCandidateDetails(candidateId);
         setCandidate(data);
       } catch (err: any) {

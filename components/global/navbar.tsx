@@ -124,7 +124,7 @@ export function Navbar() {
                 onClick={() => setProfileOpen((o) => !o)}
                 title="Profile"
               >
-                <Image src="/img/profile/avatar.png" alt="Profile" width={32} height={32} className="object-cover w-full h-full" />
+                <Image src="/svg/Photo.svg" alt="Profile" width={32} height={32} className="object-cover w-full h-full" />
               </button>
 
               {profileOpen && (
@@ -132,7 +132,7 @@ export function Navbar() {
                   <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
                     <div className="relative flex-shrink-0">
                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#F4781B]">
-                        <Image src="/img/profile/avatar.png" alt="Profile" width={40} height={40} className="object-cover w-full h-full" />
+                        <Image src="/svg/Photo.svg" alt="Profile" width={40} height={40} className="object-cover w-full h-full" />
                       </div>
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-white" />
                     </div>

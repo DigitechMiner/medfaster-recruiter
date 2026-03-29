@@ -7,37 +7,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import { JobDescriptionInput } from "@/stores/api/job-description.api";
-import type { JobFormData } from "@/Interface/job.types"; // ADD THIS
-
-// REMOVE local FormData interface - DELETE THIS
-// interface FormData { ... }
+import type { JobFormData } from "@/Interface/job.types";
 
 interface JobDescriptionProps {
-  formData: JobFormData; // CHANGE from FormData
-  updateFormData: (updates: Partial<JobFormData>) => void; // CHANGE from FormData
+  formData: JobFormData;
+  updateFormData: (updates: Partial<JobFormData>) => void;
 }
 
-export function JobDescription({
-  formData,
-  updateFormData,
-}: JobDescriptionProps) {
+export function JobDescription({ formData, updateFormData }: JobDescriptionProps) {
   const [showModal, setShowModal] = useState(false);
   const { description, loading, error, generateDescription, reset } = useGenerateDescription();
 
   const handleGenerateWithAI = async () => {
-    // Validate required fields
-    if (!formData.jobTitle || !formData.department || !formData.jobType) {
-      alert("Please fill in Job Title, Department, and Job Type before generating with AI");
+    // ✅ Bug 5 fix — removed jobType from required check (instant jobs don't show it)
+    if (!formData.jobTitle || !formData.department) {
+      alert("Please fill in Job Title and Department before generating with AI");
       return;
     }
 
     setShowModal(true);
 
-    // Map job type format
-    let jobType = formData.jobType.toLowerCase().replace(/\s+/g, '');
-    if (jobType === 'fulltime') jobType = 'Full Time';
-    else if (jobType === 'parttime') jobType = 'Part Time';
-    else jobType = formData.jobType;
+    let jobType = formData.jobType?.toLowerCase().replace(/\s+/g, "");
+    if (jobType === "fulltime") jobType = "Full Time";
+    else if (jobType === "parttime") jobType = "Part Time";
+    else jobType = formData.jobType || "Full Time";
 
     const input: JobDescriptionInput = {
       jobTitle: formData.jobTitle,
@@ -46,11 +39,11 @@ export function JobDescription({
       location: formData.location || undefined,
       payRange: `$${formData.payRange[0]} - $${formData.payRange[1]}`,
       experienceRequired: formData.experience || undefined,
-      qualification: formData.qualification.join(', ') || undefined,
-      specialization: formData.specialization.join(', ') || undefined,
+      qualification: formData.qualification?.join(", ") || undefined,
+      specialization: formData.specialization?.join(", ") || undefined,
       urgency: formData.urgency || undefined,
-      inPersonInterview: formData.inPersonInterview === 'Yes',
-      physicalInterview: formData.physicalInterview === 'Yes',
+      inPersonInterview: formData.inPersonInterview === "Yes",
+      physicalInterview: formData.physicalInterview === "Yes",
     };
 
     await generateDescription(input);
@@ -63,7 +56,11 @@ export function JobDescription({
     }
   };
 
+  // ✅ Bug 5 fix — auto-save description if user closes without clicking "Use"
   const handleClose = () => {
+    if (description && !formData.description?.trim()) {
+      updateFormData({ description });
+    }
     setShowModal(false);
     reset();
   };
@@ -130,9 +127,7 @@ export function JobDescription({
                   <p className="text-gray-600 text-center">
                     Generating job description with AI...
                   </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    This may take a few seconds
-                  </p>
+                  <p className="text-sm text-gray-500 mt-2">This may take a few seconds</p>
                 </div>
               )}
 
@@ -165,7 +160,7 @@ export function JobDescription({
               )}
             </div>
 
-            {/* Footer Actions */}
+            {/* Footer */}
             {description && !loading && (
               <div className="flex flex-col sm:flex-row gap-3 p-4 sm:p-6 border-t border-gray-200">
                 <Button

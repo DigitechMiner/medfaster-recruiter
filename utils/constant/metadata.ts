@@ -4,12 +4,7 @@
  * ============================================================================
  */
 
-
 const metadata = {
-  // ============================================================================
-  // JOB-RELATED METADATA
-  // ============================================================================
-
   job_title: [
     "Registered Nurse",
     "Licensed Practical Nurse",
@@ -23,7 +18,7 @@ const metadata = {
   },
 
   department: [
-    { label : "Nursing", value: "nursing"},
+    { label: "Nursing", value: "nursing" },
   ],
 
   experience: [
@@ -36,7 +31,6 @@ const metadata = {
     "10+ Yrs",
   ],
 
-  // ✅ Matches backend validator: ['full_time', 'part_time', 'casual']
   job_type: [
     "Full Time",
     "Part Time",
@@ -49,7 +43,6 @@ const metadata = {
     "Casual":    "casual",
   },
 
-  // ✅ Matches backend validator: ['instant', 'normal'] only
   urgency: [
     "Normal",
     "Instant",
@@ -73,7 +66,6 @@ const metadata = {
     "Radiology",
   ],
 
-  // ✅ Matches backend specialization enum values
   specialization: [
     "Geriatric Care",
     "Long Term Care",
@@ -104,11 +96,6 @@ const metadata = {
     "Adult Mental Health":                    "adult_mental_health",
   },
 
-  // ============================================================================
-  // ORGANIZATION-RELATED METADATA
-  // ============================================================================
-
-  // ✅ Matches backend ORGANIZATION_TYPES constant
   organization_type: [
     "Hospital",
     "Continuing Care Facility",
@@ -127,7 +114,6 @@ const metadata = {
     "Staffing Agency":               "other",
   },
 
-  // ✅ Canadian provinces display format
   province: [
     "Alberta (AB)",
     "British Columbia (BC)",
@@ -144,11 +130,6 @@ const metadata = {
     "Yukon (YT)",
   ],
 
-  // ============================================================================
-  // PERSONAL INFORMATION METADATA
-  // ============================================================================
-
-  // ✅ Matches backend gender enum
   gender: [
     "Male",
     "Female",
@@ -161,7 +142,6 @@ const metadata = {
     "Other":  "other",
   },
 
-  // ✅ Matches backend work_eligibility enum
   work_eligibility: [
     "Canadian Citizen",
     "Permanent Resident",
@@ -174,10 +154,6 @@ const metadata = {
     "Work Permit Holder": "work_permit_holder",
   },
 
-  // ============================================================================
-  // INTERVIEW / HIRING METADATA
-  // ============================================================================
-
   yes_no: ["Yes", "No"],
 
   interview_type: [
@@ -187,7 +163,6 @@ const metadata = {
     "Hybrid",
   ],
 
-  // ✅ Matches backend: DRAFT, OPEN, PAUSED, CLOSED
   job_status: [
     "Draft",
     "Open",
@@ -201,10 +176,6 @@ const metadata = {
     "Paused": "PAUSED",
     "Closed": "CLOSED",
   },
-
-  // ============================================================================
-  // PAY RANGE CONFIGURATION
-  // ============================================================================
 
   pay_range: {
     min:         1000,
@@ -249,9 +220,9 @@ export function convertJobTypeToBackend(frontendValue: string): string {
 }
 
 export function convertJobTypeToFrontend(backendValue: string | null | undefined): string {
-  if (!backendValue) return metadata.job_type[0];
+  if (!backendValue) return "Not specified";
   const entry = Object.entries(metadata.job_type_mapping).find(([_, v]) => v === backendValue);
-  return entry ? entry[0] : metadata.job_type[0];
+  return entry ? entry[0] : backendValue;
 }
 
 export function convertUrgencyToBackend(frontendValue: string): string {
@@ -262,7 +233,7 @@ export function convertUrgencyToBackend(frontendValue: string): string {
 export function convertUrgencyToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.urgency[0];
   const entry = Object.entries(metadata.urgency_mapping).find(([_, v]) => v === backendValue);
-  return entry ? entry[0] : metadata.urgency[0];
+  return entry ? entry[0] : backendValue;
 }
 
 export function convertOrganizationTypeToBackend(frontendValue: string): string {
@@ -273,7 +244,7 @@ export function convertOrganizationTypeToBackend(frontendValue: string): string 
 export function convertOrganizationTypeToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.organization_type[0];
   const entry = Object.entries(metadata.organization_type_mapping).find(([_, v]) => v === backendValue);
-  return entry ? entry[0] : metadata.organization_type[0];
+  return entry ? entry[0] : backendValue;
 }
 
 export function convertGenderToBackend(frontendValue: string): string {
@@ -284,7 +255,7 @@ export function convertGenderToBackend(frontendValue: string): string {
 export function convertGenderToFrontend(backendValue: string | null | undefined): string {
   if (!backendValue) return metadata.gender[0];
   const entry = Object.entries(metadata.gender_mapping).find(([_, v]) => v === backendValue);
-  return entry ? entry[0] : metadata.gender[0];
+  return entry ? entry[0] : backendValue;
 }
 
 export function convertSpecializationToBackend(frontendValue: string): string {
@@ -293,9 +264,12 @@ export function convertSpecializationToBackend(frontendValue: string): string {
 }
 
 export function convertSpecializationToFrontend(backendValue: string | null | undefined): string {
-  if (!backendValue) return metadata.specialization[0];
+  if (!backendValue) return "";
   const entry = Object.entries(metadata.specialization_mapping).find(([_, v]) => v === backendValue);
-  return entry ? entry[0] : backendValue;
+  return entry ? entry[0] : backendValue
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 export function convertWorkEligibilityToBackend(frontendValue: string): string {
@@ -323,6 +297,17 @@ export function convertJobStatusToFrontend(backendValue: string | null | undefin
 export function convertQualificationToBackend(frontendValue: string): string {
   return metadata.qualification_mapping[frontendValue as keyof typeof metadata.qualification_mapping]
     ?? frontendValue.toLowerCase().replace(/ /g, "_");
+}
+
+// ✅ NEW — converts "cardiology" → "Cardiology"
+export function convertQualificationToFrontend(backendValue: string | null | undefined): string {
+  if (!backendValue) return "";
+  const entry = Object.entries(metadata.qualification_mapping)
+    .find(([_, v]) => v === backendValue);
+  return entry ? entry[0] : backendValue
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 // ============================================================================
