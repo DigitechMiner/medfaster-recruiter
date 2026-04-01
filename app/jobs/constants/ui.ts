@@ -3,7 +3,6 @@ import { BadgeColor, StatusType } from '@/Interface/job.types';
 // ============ STATUS COLORS ============
 export const STATUS_COLORS: Record<string, string> = {
   applied: 'text-blue-600',
-  shortlisted: 'text-orange-600',
   interviewing: 'text-red-600',
   hired: 'text-green-600'
 };
@@ -24,7 +23,6 @@ export const STATUS_TABLE_COLORS: Record<BadgeColor, { border: string; bg: strin
 
 export const STATUS_CONFIG: Record<StatusType, { textColor: string; statusLabel: string }> = {
   applied: { textColor: 'text-blue-600', statusLabel: 'Applied' },
-  shortlisted: { textColor: 'text-orange-600', statusLabel: 'Shortlisted' },
   interviewing: { textColor: 'text-red-600', statusLabel: 'Interviewing' },
   hired: { textColor: 'text-green-600', statusLabel: 'Hired' }
 };
@@ -41,11 +39,6 @@ export const JOB_CARD_BUTTON_CONFIGS: Record<StatusType, { label: string; style:
     { label: 'Schedule', style: 'text-gray-700 bg-gray-100 rounded border border-gray-300 hover:bg-gray-200' },
     { label: 'Hire', style: 'bg-orange-500 text-white rounded hover:bg-orange-600' }
   ],
-  shortlisted: [
-    { label: 'Shortlisted', style: 'bg-[#FEF1E8] text-[#F4781B] rounded' },
-    { label: 'Schedule', style: 'bg-white text-black rounded hover:bg-orange-600 border' },
-    { label: 'Hire', style: 'bg-orange-500 text-white rounded hover:bg-orange-600' }
-  ],
   interviewing: [
     { label: 'Interviewing', style: 'text-red-600 rounded border border-red-300 bg-red-50 hover:bg-red-100' },
     { label: 'Hire', style: 'bg-orange-500 text-white rounded hover:bg-orange-600' }
@@ -57,11 +50,6 @@ export const JOB_CARD_BUTTON_CONFIGS: Record<StatusType, { label: string; style:
 
 export const CANDIDATE_DETAIL_BUTTON_CONFIGS: Record<StatusType, ButtonConfig[]> = {
   applied: [
-    { label: 'Reject', style: 'border-2 border-red-500 text-red-500 px-6 py-2 hover:bg-red-50 rounded', action: 'reject' },
-    { label: 'Schedule', style: 'border border-gray-300 text-gray-700 px-6 py-2 hover:bg-gray-50 rounded bg-white', action: 'schedule' },
-    { label: 'Hire', style: 'bg-orange-500 text-white px-6 py-2 hover:bg-orange-600 rounded', action: 'hire' }
-  ],
-  shortlisted: [
     { label: 'Reject', style: 'border-2 border-red-500 text-red-500 px-6 py-2 hover:bg-red-50 rounded', action: 'reject' },
     { label: 'Schedule', style: 'border border-gray-300 text-gray-700 px-6 py-2 hover:bg-gray-50 rounded bg-white', action: 'schedule' },
     { label: 'Hire', style: 'bg-orange-500 text-white px-6 py-2 hover:bg-orange-600 rounded', action: 'hire' }
@@ -82,11 +70,6 @@ export const CANDIDATE_HERO_BUTTON_CONFIGS: Record<StatusType, { label: string; 
     { label: 'Reject', style: 'border-2 border-red-500 text-red-500 hover:bg-red-50' },
     { label: 'Schedule', style: 'bg-gray-100 text-gray-700 hover:bg-gray-200' },
     { label: 'Shortlist', style: 'bg-orange-500 text-white hover:bg-orange-600' }
-  ],
-  shortlisted: [
-    { label: 'Reject', style: 'border-2 border-red-500 text-red-500 hover:bg-red-50' },
-    { label: 'Schedule', style: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },
-    { label: 'Move to Interview', style: 'bg-orange-500 text-white hover:bg-orange-600' }
   ],
   interviewing: [
     { label: 'Reject', style: 'border-2 border-red-500 text-red-500 hover:bg-red-50' },

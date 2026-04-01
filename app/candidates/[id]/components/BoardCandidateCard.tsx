@@ -8,31 +8,6 @@ import ScoreCard from "@/components/card/scorecard";
 type ActionType = "shortlist" | "hire" | "schedule" | "invite";
 
 // ── Score Badge ────────────────────────────────────────────────
-const ScoreBadge = ({ score }: { score: number }) => {
-  const isGreen  = score >= 80;
-  const isOrange = score >= 60 && score < 80;
-  const arcColor    = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
-  const textColor   = isGreen ? "text-green-500"  : isOrange ? "text-orange-500" : "text-red-500";
-  const borderColor = isGreen ? "border-green-400" : isOrange ? "border-orange-400" : "border-red-400";
-  const size = 32, sw = 3, r = (size - sw) / 2;
-  const circ = 2 * Math.PI * r;
-  const prog = (score / 100) * circ;
-
-  return (
-    <div className={`flex items-center gap-1 px-2 py-1 rounded-xl border-2 ${borderColor} bg-white shrink-0`}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f3f4f6" strokeWidth={sw} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={arcColor} strokeWidth={sw}
-          strokeDasharray={`${prog} ${circ}`} strokeLinecap="round" />
-      </svg>
-      <div className="flex flex-col items-start leading-none">
-        <span className={`text-[11px] font-bold ${textColor}`}>{score}/100</span>
-        <span className="text-[9px] text-gray-400 mt-0.5">Score</span>
-      </div>
-    </div>
-  );
-};
-
 // ── Left Activity Pill ─────────────────────────────────────────
 const LeftPill = ({ text }: { text: string }) => {
   const isOnline = text.toLowerCase() === "online";
@@ -56,7 +31,7 @@ const RightPill = ({ text }: { text: string }) => {
   if (t.includes("night shift"))
     return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full bg-gray-900 text-white">{text}</span>;
   if (t.includes("high demand"))
-    return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full border border-red-500 text-red-500 bg-red-50">{text}</span>;
+    return <span className="inline-flex items-center text-[10px] font-semibold px-1 py-0.5 rounded-full border border-red-500 text-red-500 bg-red-50 tracking-tight">{text}</span>;
   // Orange availability tags
   return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full border border-[#F4781B] text-[#F4781B] bg-orange-50">{text}</span>;
 };
@@ -168,7 +143,9 @@ export const BoardCandidateCard = ({
   const role   = c.specialty?.[0] ?? c.medical_industry ?? "Healthcare Professional";
   const skills = c.specialty?.slice(0, 2).join(" | ") ?? "General Medicine";
   const city   = c.city ?? "Nearby";
-  const score  = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
+  const rawScore = c.highest_job_interview_score ?? c.highest_interview_score;
+  const score    = rawScore ?? 0;           // used for ActionButtons logic
+  const hasScore = rawScore !== null && rawScore !== undefined;
   const isVerified = !!c.full_name;
 
   const defaultLeft  = c.work_eligibility ?? "Active";
@@ -213,8 +190,10 @@ export const BoardCandidateCard = ({
             Skills : <span className="text-gray-600">{skills}</span>
           </p>
         </div>
-        {score > 0 && <ScoreCard category="good" score={score} maxScore={100} />}
-      </div>
+          {hasScore
+    ? <ScoreCard category="good" score={score} maxScore={100} />
+    : <ScoreCard category="none" score={0} maxScore={100} noBackground />
+  } </div>
 
       {/* Stats row */}
       <div className="flex items-center gap-2 text-[10px] text-gray-500 flex-wrap">

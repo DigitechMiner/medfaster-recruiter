@@ -39,9 +39,9 @@ const getScoreColorClasses = (color: ScoreColor): { border: string; text: string
   switch (color) {
     case 'green':
       return {
-        border: 'border-green-200',
-        text: 'text-green-600',
-        bg: 'bg-green-50',
+        border: 'border-[#17B26A]',
+        text: 'text-[#17B26A]',
+        bg: 'bg-[#17B26A]',
       };
     case 'orange':
       return {
@@ -80,15 +80,15 @@ const CircularProgress = ({
   color: ScoreColor;
 }) => {
   const percentage = (score / maxScore) * 100;
-  const radius = 8; // 24px container - 8px stroke = 16px diameter, so radius = 8px
+  const radius = 10; // 24px container - 8px stroke = 16px diameter, so radius = 8px
   const backgroundStrokeWidth = 4; // Inner circle (background) - thinner
-  const progressStrokeWidth = 4; // Outer circle (progress) - thicker, creates layered effect
+  const progressStrokeWidth = 3; // Outer circle (progress) - thicker, creates layered effect
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <div className="w-6 h-6 flex items-center justify-center">
-      <svg width={24} height={24} style={{ transform: 'rotate(-90deg)' }}>
+      <svg width={24} height={24} style={{ transform: 'rotate(-30deg)' }}>
         {/* Background circle */}
         <circle
           cx={12}
@@ -116,38 +116,36 @@ const CircularProgress = ({
   );
 };
 
-export default function ScoreCard({ 
-  score, 
-  maxScore, 
-  className = '', 
-  noBackground = false 
-}: ScoreCardProps) {
-  const scoreColor = getScoreColor(score, maxScore);
-  const colorClasses = getScoreColorClasses(scoreColor);
-  
-  const containerClasses = noBackground 
-    ? className 
-    : cn('bg-white rounded-lg p-2 border', colorClasses.border, className);
+const COLOR_VALUES: Record<ScoreColor, string> = {
+  green:  '#17B26A',
+  orange: '#F59E0B',
+  red:    '#EF4444',
+};
+
+export default function ScoreCard({ score, maxScore, className = '', noBackground = false }: ScoreCardProps) {
+  const scoreColor  = getScoreColor(score, maxScore);
+  const colorValue  = COLOR_VALUES[scoreColor];
+
+  // Text colors stay as Tailwind (these ARE static — safe)
+  const textClass = scoreColor === 'green'
+    ? 'text-[#17B26A]'
+    : scoreColor === 'orange'
+    ? 'text-orange-600'
+    : 'text-red-600';
 
   return (
-    <div className={containerClasses}>
+    <div
+      className={cn('bg-white rounded-lg p-2', !noBackground && 'border-2', className)}
+      style={!noBackground ? { borderColor: colorValue } : undefined}  // ✅ inline — always works
+    >
       <div className="flex flex-row items-center justify-between gap-2">
-        {/* Left side - Circular progress */}
         <CircularProgress score={score} maxScore={maxScore} color={scoreColor} />
-
-        {/* Right side - Score text */}
         <div className="flex flex-col items-end">
           <div className="flex flex-row items-baseline">
-            <span className={cn('text-xs font-normal mb-1', colorClasses.text)}>
-              {score}
-            </span>
-            <span className="text-xs font-normal text-gray-900 mb-1">
-              /{maxScore}
-            </span>
+            <span className={cn('text-xs font-normal mb-1', textClass)}>{score}</span>
+            <span className="text-xs font-normal text-gray-900 mb-1">/{maxScore}</span>
           </div>
-          <Paragraph size="xs" weight="semibold" className="text-gray-600">
-            Score
-          </Paragraph>
+          <Paragraph size="xs" weight="semibold" className="text-gray-600">Score</Paragraph>
         </div>
       </div>
     </div>

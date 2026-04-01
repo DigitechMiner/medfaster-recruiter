@@ -303,7 +303,7 @@ export async function getCandidatesList(params?: {
 // ============================================================================
 // JOB APPLICATION STATUS UPDATE
 // ============================================================================
-export type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED';
+export type ApplicationStatus = 'APPLIED' |'INTERVIEW' | 'HIRE' | 'REJECTED';
 
 export async function updateApplicationStatus(
   applicationId: string,
