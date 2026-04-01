@@ -20,12 +20,13 @@ import { useAuthStore } from "@/stores/authStore";
 const MetricSkeleton = ({ count }: { count: number }) => (
   <>
     {[...Array(count)].map((_, i) => (
-      <div
-        key={i}
-        className="bg-white rounded-xl p-4 border-2 border-gray-100 h-28 animate-pulse"
-      />
+      <div key={i} className="bg-white rounded-xl p-4 border-2 border-gray-100 h-28 animate-pulse" />
     ))}
   </>
+);
+
+const SectionSkeleton = ({ className = "" }: { className?: string }) => (
+  <div className={`bg-white rounded-xl border-2 border-gray-100 animate-pulse ${className}`} />
 );
 
 const DashboardPage: React.FC = () => {
@@ -39,33 +40,31 @@ const DashboardPage: React.FC = () => {
   const isLoading = jobsLoading || appsLoading;
 
   const dashboardMetrics = useMemo<DashboardMetrics>(() => ({
-    // Use pagination.total for accurate full count, not just current page length
     totalOpenJobs:    jobs?.filter((j) => j.status !== "CLOSED")?.length ?? 0,
-    totalApplicants: (applicationsData as { pagination?: { total?: number } })?.pagination?.total
-  ?? applicationsData?.applications?.length
-  ?? 0,
+    totalApplicants:
+      (applicationsData as { pagination?: { total?: number } })?.pagination?.total ??
+      applicationsData?.applications?.length ?? 0,
     inInterviewStage: applicationsData?.applications?.filter((a) => a.status === "INTERVIEWING")?.length ?? 0,
     hiredThisMonth:   applicationsData?.applications?.filter((a) => a.status === "ACCEPTED")?.length ?? 0,
     pendingApprovals: applicationsData?.applications?.filter((a) => a.status === "PENDING")?.length ?? 0,
   }), [jobs, applicationsData]);
 
   return (
-    <AppLayout>
-      <div className="space-y-5 p-4 md:p-6">
+    <AppLayout padding="none">
+      {/* ✅ max-w-[1440px] keeps layout tight at 1280-1440px */}
+      <div className="space-y-4 md:space-y-5 p-3 sm:p-4 md:p-5 xl:p-6 max-w-[1440px] mx-auto w-full">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-base sm:text-lg xl:text-xl font-semibold text-gray-900 truncate">
             Hello, {recruiterProfile?.company_name ?? "Your Hospital"} 👋
           </h1>
-
-          {/* Period selector — disabled until backend supports filtering */}
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
             disabled
             title="Period filter coming soon"
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-400 bg-white shadow-sm focus:outline-none opacity-60 cursor-not-allowed"
+            className="shrink-0 text-xs sm:text-sm border border-gray-200 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-gray-400 bg-white shadow-sm focus:outline-none opacity-60 cursor-not-allowed"
           >
             <option>This Month</option>
             <option>Last Month</option>
@@ -75,7 +74,8 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* ── Metric Cards Row 1 ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Mobile: 2-col | Desktop: 4-col */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
           {isLoading ? (
             <MetricSkeleton count={4} />
           ) : (
@@ -121,7 +121,8 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* ── Metric Cards Row 2 ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Mobile: 1-col | sm+: 3-col */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           {isLoading ? (
             <MetricSkeleton count={3} />
           ) : (
@@ -158,16 +159,28 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* ── Chart + Calendar ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
-          {/* Left — chart + AI table */}
-          <div className="lg:col-span-3 flex flex-col gap-4">
-            <CandidateFunnelChart />
-            <AiMatchedCandidates />
+        {/* ✅ stacked on mobile, side-by-side from md+ */}
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+          <div className="flex-1 flex flex-col gap-3 md:gap-4 min-w-0">
+            {isLoading ? (
+              <>
+                <SectionSkeleton className="h-64 md:h-72" />
+                <SectionSkeleton className="h-48 md:h-56" />
+              </>
+            ) : (
+              <>
+                <CandidateFunnelChart />
+                <AiMatchedCandidates />
+              </>
+            )}
           </div>
-
-          {/* Right — calendar */}
-          <div className="lg:col-span-1 flex flex-col">
-            <MiniCalendar />
+          {/* ✅ fixed width calendar — consistent across all screen sizes */}
+          <div className="w-full md:w-72 xl:w-80 flex-shrink-0 flex flex-col">
+            {isLoading ? (
+              <SectionSkeleton className="h-full min-h-[480px]" />
+            ) : (
+              <MiniCalendar />
+            )}
           </div>
         </div>
 
@@ -175,9 +188,19 @@ const DashboardPage: React.FC = () => {
         <BottomCandidateCards />
 
         {/* ── Recruiting Funnel + Location Insights ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <HiringFunnel />
-          <LocationInsights />
+        {/* ✅ stacked on mobile, side-by-side from md+ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          {isLoading ? (
+            <>
+              <SectionSkeleton className="h-64" />
+              <SectionSkeleton className="h-64" />
+            </>
+          ) : (
+            <>
+              <HiringFunnel />
+              <LocationInsights />
+            </>
+          )}
         </div>
 
         {/* ── Bottom Widgets ── */}

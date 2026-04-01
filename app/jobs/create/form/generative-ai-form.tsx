@@ -148,7 +148,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
           {error}
         </div>
       )}
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-3 sm:space-y-4 w-full overflow-x-hidden">
         <TopActionBar
           title={PAGE_TITLES.CREATE_JOB}
           onBack={onBack}
@@ -156,13 +156,13 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
           primaryLabel={isSubmitting ? "Saving..." : BUTTON_LABELS.SAVE_AND_CONTINUE}
         />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-w-0">
           <div className="p-4 sm:p-6 lg:p-8">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-6 sm:mb-8">
               {PAGE_TITLES.GENERATE_WITH_AI}
             </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 min-w-0">
               {topics.map((topic) => (
                 <QuestionsTopic
                   key={topic.id}

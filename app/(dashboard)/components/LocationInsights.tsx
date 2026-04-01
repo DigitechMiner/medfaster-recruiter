@@ -22,7 +22,7 @@ export const LocationInsights = () => (
   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
     {/* Header */}
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-      <h2 className="text-2xl font-bold text-gray-900">Location-Based Hiring Insights</h2>
+     <h2 className="text-sm md:text-2xl font-bold text-gray-900 truncate">Location-Based Hiring Insights</h2>
       <select className="text-sm border border-gray-200 rounded-xl px-4 py-2 text-gray-700 bg-white focus:outline-none">
         <option>Lowest Hires</option>
         <option>Highest Hires</option>

@@ -2,7 +2,6 @@
 export const JOB_TYPES: Record<string, string> = {
   "Full Time": "full_time",  // ✅ was "fulltime"
   "Part Time": "part_time",  // ✅ was "parttime"
-  "Casual":    "casual",
 };
 
 export const convertToBackendValue = (frontendValue: string): string => {

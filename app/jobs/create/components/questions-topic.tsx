@@ -30,7 +30,7 @@ export function QuestionsTopic({
   onUpdateQuestion,
 }: QuestionsTopicProps) {
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-3 sm:space-y-4 min-w-0 w-full">
       <div className="flex items-center justify-between">
         <Heading size="xs" className="text-sm sm:text-base font-semibold text-gray-900">
           {topic.title}
@@ -67,7 +67,7 @@ export function QuestionsTopic({
               value={question.text}
               onChange={(e) => onUpdateQuestion(question.id, e.target.value)}
               placeholder="Enter question text..."
-              className="w-full min-h-[60px] sm:min-h-[70px] resize-none text-xs sm:text-sm border-gray-200 focus:border-[#F4781B] focus:ring-[#F4781B]"
+             className="w-full max-w-full min-h-[60px] sm:min-h-[70px] resize-none text-xs sm:text-sm border-gray-200 focus:border-[#F4781B] focus:ring-[#F4781B]"
               rows={2}
             />
           </div>

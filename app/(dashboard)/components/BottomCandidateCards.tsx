@@ -24,8 +24,7 @@ const toCardData = (c: CandidateListItem): CardData => {
   const shiftLabel = shift ? shift.charAt(0).toUpperCase() + shift.slice(1).toLowerCase() : null;
   const specialty  = c.specialty?.[0]
     ? c.specialty[0].replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-    : c.medical_industry?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-    ?? "Healthcare Professional";
+    : c.medical_industry?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) ?? "Healthcare Professional";
 
   return {
     name:     c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim(),
@@ -41,14 +40,12 @@ const toCardData = (c: CandidateListItem): CardData => {
   };
 };
 
-// ── Only CSS changed: flex-row, arc SVG added, colors updated ──
 const ScoreBadge = ({ score }: { score: number }) => {
-  const isGreen  = score >= 80;
-  const isOrange = score >= 60 && score < 80;
+  const isGreen     = score >= 80;
+  const isOrange    = score >= 60 && score < 80;
   const arcColor    = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
   const textColor   = isGreen ? "text-green-600" : isOrange ? "text-orange-500" : "text-red-500";
   const borderColor = isGreen ? "border-green-500" : isOrange ? "border-orange-400" : "border-red-400";
-
   const size        = 32;
   const strokeWidth = 3;
   const radius      = (size - strokeWidth) / 2;
@@ -57,13 +54,11 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
   return (
     <div className={`flex flex-row items-center gap-1.5 px-2 py-1.5 rounded-xl border-2 ${borderColor} shrink-0`}>
-      {/* Arc SVG */}
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} className="shrink-0">
         <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#f3f4f6" strokeWidth={strokeWidth} />
         <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={arcColor} strokeWidth={strokeWidth}
           strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round" />
       </svg>
-      {/* Text */}
       <div className="flex flex-col items-start">
         <span className={`text-sm font-bold leading-none ${textColor}`}>{score}/100</span>
         <span className="text-[10px] text-gray-400 leading-tight">Score</span>
@@ -74,35 +69,27 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 const CandidateCard = ({ c }: { c: CardData }) => (
   <div className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-orange-200 hover:bg-orange-50/30 transition-colors">
-    {/* Photo: rounded-xl + bg-orange-50 instead of rounded-full + bg-gray-100 */}
     <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0">
       <Image src={c.img} alt={c.name} width={40} height={40} className="object-cover w-full h-full" />
     </div>
-
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-1">
         <span className="text-sm font-semibold text-gray-900">{c.name}</span>
-        {/* BadgeCheck instead of ✔ text */}
         {c.verified && <BadgeCheck className="w-4 h-4 shrink-0" fill="#22c55e" color="white" />}
       </div>
       <p className="text-xs text-orange-500 font-medium">{c.role}</p>
-
-      {/* | separator instead of · */}
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <span className="flex items-center gap-0.5 text-[11px] text-gray-500"><Briefcase size={10} />{c.exp}</span>
         <span className="text-[11px] text-gray-300">|</span>
         <span className="text-[11px] text-gray-500">{c.type}</span>
         <span className="flex items-center gap-0.5 text-[11px] text-gray-500"><MapPin size={10} className="text-green-500" />{c.dist}</span>
       </div>
-
       <div className="flex gap-1.5 mt-1.5 flex-wrap">
-        {/* Hire Instantly: bg-green-50, green text, orange Zap, rounded-lg */}
         {c.badge && (
           <span className="flex items-center gap-0.5 text-[10px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-lg">
             <Zap size={9} className="text-orange-500" fill="#f97316" />{c.badge}
           </span>
         )}
-        {/* Available badges: bg-orange-100, orange text, rounded-lg */}
         {c.badge2 && (
           <span className="flex items-center gap-0.5 text-[10px] font-medium text-orange-500 bg-orange-100 px-2 py-0.5 rounded-lg">
             <CalendarDays size={9} />{c.badge2}
@@ -110,62 +97,110 @@ const CandidateCard = ({ c }: { c: CardData }) => (
         )}
       </div>
     </div>
-
     <ScoreBadge score={c.score} />
   </div>
 );
 
+// ── THIS IS THE KEY CHANGE ─────────────────────────────────────────────────
 export const BottomCandidateCards = () => {
   const [radius, setRadius] = useState("Within 5km");
-
   const { data, isLoading } = useCandidatesList({ page: 1, limit: 9 });
   const all       = (data?.candidates ?? []).map(toCardData);
   const available = all.slice(0, 3);
   const nearby    = all.slice(3, 6);
   const urgent    = all.slice(6, 9);
 
+  const skeletons = [...Array(3)].map((_, i) => (
+    <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+  ));
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">Currently Available</h2>
+    // Outer wrapper: bleeds past padding on mobile so the peek works
+    <div className="-mx-4 px-4 md:-mx-5 md:px-5 lg:mx-0 lg:px-0">
+
+      {/*
+        ─ Mobile / Tablet : flex row + horizontal scroll + snap
+        ─ Desktop (lg+)   : CSS grid 3 columns, scroll disabled
+      */}
+      <div
+        className={[
+          // mobile/tablet: horizontal scroll row
+          "flex flex-row gap-3",
+          "overflow-x-auto scroll-smooth",
+          "snap-x snap-mandatory",
+          "pb-3",
+          // desktop: switch to 3-col grid
+          "lg:grid lg:grid-cols-3",
+          "lg:overflow-x-visible lg:snap-none lg:pb-0",
+        ].join(" ")}
+        // hide scrollbar cross-browser
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+      >
+
+        {/* Panel 1 — Currently Available */}
+        <div className="
+          bg-white rounded-xl border border-gray-200 p-4
+          flex-none snap-start
+          w-[85vw] sm:w-[60vw] md:w-[46vw]
+          lg:w-auto lg:flex-auto
+        ">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-900">Currently Available</h2>
+          </div>
+          <div className="flex flex-col gap-3">
+            {isLoading ? skeletons : available.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
+          </div>
         </div>
-        <div className="flex flex-col gap-3">
-          {isLoading
-            ? [...Array(3)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)
-            : available.map((c) => <CandidateCard key={c.name + c.role} c={c} />)
-          }
+
+        {/* Panel 2 — Nearby Professionals */}
+        <div className="
+          bg-white rounded-xl border border-gray-200 p-4
+          flex-none snap-start
+          w-[85vw] sm:w-[60vw] md:w-[46vw]
+          lg:w-auto lg:flex-auto
+        ">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-900">Nearby Professionals</h2>
+            <select
+              value={radius}
+              onChange={(e) => setRadius(e.target.value)}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600"
+            >
+              <option>Within 5km</option>
+              <option>Within 10km</option>
+              <option>Within 25km</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-3">
+            {isLoading ? skeletons : nearby.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
+          </div>
         </div>
+
+        {/* Panel 3 — Urgent Hire */}
+        <div className="
+          bg-white rounded-xl border border-gray-200 p-4
+          flex-none snap-start
+          w-[85vw] sm:w-[60vw] md:w-[46vw]
+          lg:w-auto lg:flex-auto
+        ">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-900">Urgent Hire (Pre-Verified)</h2>
+          </div>
+          <div className="flex flex-col gap-3">
+            {isLoading ? skeletons : urgent.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
+          </div>
+        </div>
+
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">Nearby Professionals</h2>
-          <select value={radius} onChange={(e) => setRadius(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600">
-            <option>Within 5km</option>
-            <option>Within 10km</option>
-            <option>Within 25km</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-3">
-          {isLoading
-            ? [...Array(3)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)
-            : nearby.map((c) => <CandidateCard key={c.name + c.role} c={c} />)
-          }
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">Urgent Hire (Pre-Verified)</h2>
-        </div>
-        <div className="flex flex-col gap-3">
-          {isLoading
-            ? [...Array(3)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)
-            : urgent.map((c) => <CandidateCard key={c.name + c.role} c={c} />)
-          }
-        </div>
+      {/* Scroll dots — only visible on mobile/tablet */}
+      <div className="flex justify-center gap-1.5 mt-2 lg:hidden">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={`h-1.5 rounded-full ${i === 0 ? "w-4 bg-orange-400" : "w-1.5 bg-gray-200"}`}
+          />
+        ))}
       </div>
     </div>
   );

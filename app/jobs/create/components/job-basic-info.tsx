@@ -162,7 +162,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
         onValueChange={(value) => updateFormData({ jobType: value })}
         className="flex gap-6 pt-1"
       >
-        {["Part Time", "Full Time", "Casual"].map((type) => (
+        {["Part Time", "Full Time",].map((type) => (
           <div key={type} className="flex items-center space-x-2">
             <RadioGroupItem
               value={type}

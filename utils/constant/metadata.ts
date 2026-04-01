@@ -34,13 +34,11 @@ const metadata = {
   job_type: [
     "Full Time",
     "Part Time",
-    "Casual",
   ],
 
   job_type_mapping: {
     "Full Time": "full_time",
     "Part Time": "part_time",
-    "Casual":    "casual",
   },
 
   urgency: [

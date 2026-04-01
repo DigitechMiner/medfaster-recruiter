@@ -45,13 +45,16 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="relative bg-white border-b border-gray-200">
-      <div className="mx-auto px-4 md:px-6 lg:px-15">
-        <div className="flex items-center justify-between h-14 sm:h-16">
+    // ✅ Fix 1: added w-full to prevent 2/3 width issue below 1024px
+    <header className="w-full">
+    <nav className="sticky top-0 z-30 w-full bg-white border-b border-gray-200">
+      <div className="w-full bg-white">
+      <div className="w-full px-4 xl:max-w-[1240px] xl:mx-auto xl:px-8 2xl:max-w-[1350px] 2xl:mx-auto 3xl:mx-0 3xl:px-84 min-w-0">
+        <div className="flex items-center justify-between h-14 sm:h-16 w-full">
 
           {/* ── LEFT ── */}
-          <div className="hidden md:flex items-center xl:gap-6 2xl:gap-9">
-            <div className="flex-shrink-0 cursor-pointer mr-2" onClick={() => router.push("/")}>
+          <div className="hidden xl:flex items-center xl:gap-8 2xl:gap-8 3xl:gap-7">
+            <div className="flex-shrink-0 cursor-pointer xl:mr-1 2xl:mr-2 3xl:mr-4" onClick={() => router.push("/")}>
               <Image src="/img/brand/new_logo.svg" height={36} width={150} alt="KeRaeva" style={{ objectFit: "contain" }} priority />
             </div>
 
@@ -59,7 +62,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-7 py-2.5 text-sm font-medium transition-colors whitespace-nowrap rounded-lg ${
+                className={`xl:px-3 2xl:px-5 3xl:px-7 xl:py-2 2xl:py-2.5 text-sm font-medium transition-colors whitespace-nowrap rounded-lg ${
                   isActive(link.href) ? "bg-[#F4781B] text-white" : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
@@ -69,37 +72,45 @@ export function Navbar() {
 
             <button
               onClick={() => router.push("/jobs/instant-replacement")}
-              className="ml-3 flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 rounded-lg px-5 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
+              className="xl:ml-1 2xl:ml-2 3xl:ml-3 flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 rounded-lg xl:px-3 2xl:px-4 3xl:px-5 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
             >
               <Sparkles size={14} /> Instant Replace
             </button>
 
             <button
               onClick={() => router.push("/jobs/create")}
-              className="ml-2 flex items-center gap-1.5 bg-[#F4781B] hover:bg-[#e06a10] text-white rounded-lg px-6 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
+              className="xl:ml-1 2xl:ml-1 3xl:ml-2 flex items-center gap-1.5 bg-[#F4781B] hover:bg-[#e06a10] text-white rounded-lg xl:px-4 2xl:px-5 3xl:px-6 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
             >
               <Plus size={14} /> Post a Job
             </button>
           </div>
 
-          {/* Mobile Logo */}
-          <div className="flex md:hidden flex-shrink-0 cursor-pointer" onClick={() => router.push("/")}>
-            <Image src="/img/brand/new_logo.svg" height={36} width={130} alt="KeRaeva" style={{ objectFit: "contain" }} priority />
+          {/* ── Mobile: Hamburger + Logo ── */}
+          <div className="flex xl:hidden items-center gap-2">
+            <button
+              className="p-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+            <div className="flex-shrink-0 cursor-pointer" onClick={() => router.push("/")}>
+              <Image src="/img/brand/new_logo.svg" height={36} width={130} alt="KeRaeva" style={{ objectFit: "contain" }} priority />
+            </div>
           </div>
 
           {/* ── RIGHT ── */}
-          <div className="flex gap-4 items-center flex-shrink-0">
+          <div className="flex gap-1 xl:gap-4 2xl:gap-4 3xl:gap-4 items-center flex-shrink-0">
 
-            {/* ── Messages ── */}
+            {/* ✅ Fix 2: removed hidden xl:flex — now always visible */}
             <button
-              className="hidden md:flex p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex p-2 rounded-lg hover:bg-gray-100 transition-colors"
               onClick={() => router.push("/messages")}
               title="Messages"
             >
               <Image src="/icon/icon-chat.svg" width={22} height={22} alt="Messages" />
             </button>
 
-            {/* ── Notifications ── */}
             <button
               className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
               title="Notifications"
@@ -108,9 +119,9 @@ export function Navbar() {
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-1 ring-white" />
             </button>
 
-            {/* ── Billing ── */}
+            {/* ✅ Fix 2: removed hidden xl:flex — now always visible */}
             <button
-              className="hidden md:flex p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex p-2 rounded-lg hover:bg-gray-100 transition-colors"
               title="Billing"
               onClick={() => router.push("/wallet")}
             >
@@ -141,7 +152,6 @@ export function Navbar() {
                       <span className="text-xs text-gray-500 truncate">admin@narayana.com</span>
                     </div>
                   </div>
-
                   <div className="py-1">
                     <button onClick={() => { router.push("/profile"); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <User size={16} className="text-gray-400 flex-shrink-0" /> View profile
@@ -156,17 +166,13 @@ export function Navbar() {
                       <Users size={16} className="text-gray-400 flex-shrink-0" /> Team
                     </button>
                   </div>
-
                   <div className="border-t border-gray-100" />
-
                   <div className="py-1">
                     <button onClick={() => { router.push("/support"); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <HelpCircle size={16} className="text-gray-400 flex-shrink-0" /> Support
                     </button>
                   </div>
-
                   <div className="border-t border-gray-100" />
-
                   <div className="py-1">
                     <button onClick={handleLogout} disabled={loggingOut} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                       <LogOut size={16} className="text-gray-400 flex-shrink-0" />
@@ -176,20 +182,12 @@ export function Navbar() {
                 </div>
               )}
             </div>
-
-            {/* Mobile Hamburger */}
-            <button
-              className="flex md:hidden p-1.5 rounded text-gray-600 hover:bg-gray-100 transition-colors"
-              onClick={() => setMobileMenuOpen((o) => !o)}
-            >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
           </div>
         </div>
 
         {/* ── Mobile Dropdown ── */}
         {mobileMenuOpen && (
-          <div className="absolute top-[calc(100%+1px)] left-0 w-full z-50 bg-white border-b shadow-lg md:hidden">
+          <div className="absolute top-[calc(100%+1px)] left-0 w-full z-50 bg-white border-b shadow-lg xl:hidden">
             <div className="flex flex-col px-4 pt-3 pb-2 gap-1">
               {navLinks.map((link) => (
                 <Link
@@ -222,20 +220,7 @@ export function Navbar() {
               </button>
             </div>
 
-            <div className="border-t border-gray-100 mx-4" />
-
-            {/* ── Mobile icon buttons ── */}
-            <div className="flex items-center gap-2 px-4 py-3">
-              <button
-                className="p-2 rounded-lg hover:bg-gray-100"
-                onClick={() => { router.push("/messages"); setMobileMenuOpen(false); }}
-              >
-                <Image src="/icon/icon-chat.svg" width={22} height={22} alt="Messages" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Image src="/icon/icon-dollar.svg" width={22} height={22} alt="Billing" />
-              </button>
-            </div>
+            {/* ✅ Fix 2: removed duplicate chat/wallet icon block — now in top bar */}
 
             <div className="border-t border-gray-100 mx-4" />
 
@@ -270,8 +255,11 @@ export function Navbar() {
               </button>
             </div>
           </div>
+          
         )}
+        </div>
       </div>
     </nav>
+    </header>
   );
 }
