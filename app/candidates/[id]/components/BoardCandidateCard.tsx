@@ -1,8 +1,9 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { MapPin, Zap, Calendar } from "lucide-react";
+import { MapPin, Briefcase, Star, Zap, Calendar } from "lucide-react";
 import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import ScoreCard from "@/components/card/scorecard";
 
 type ActionType = "shortlist" | "hire" | "schedule" | "invite";
 
@@ -11,53 +12,103 @@ const ScoreBadge = ({ score }: { score: number }) => {
   const isGreen  = score >= 80;
   const isOrange = score >= 60 && score < 80;
   const arcColor    = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
-  const textColor   = isGreen ? "text-green-600" : isOrange ? "text-orange-500" : "text-red-500";
-  const borderColor = isGreen ? "border-green-500" : isOrange ? "border-orange-400" : "border-red-400";
-
-  const size = 30, sw = 3, r = (size - sw) / 2;
+  const textColor   = isGreen ? "text-green-500"  : isOrange ? "text-orange-500" : "text-red-500";
+  const borderColor = isGreen ? "border-green-400" : isOrange ? "border-orange-400" : "border-red-400";
+  const size = 32, sw = 3, r = (size - sw) / 2;
   const circ = 2 * Math.PI * r;
   const prog = (score / 100) * circ;
 
   return (
-    <div className={`flex flex-row items-center gap-1 px-2 py-1 rounded-xl border-2 ${borderColor} shrink-0`}>
+    <div className={`flex items-center gap-1 px-2 py-1 rounded-xl border-2 ${borderColor} bg-white shrink-0`}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f3f4f6" strokeWidth={sw} />
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={arcColor} strokeWidth={sw}
           strokeDasharray={`${prog} ${circ}`} strokeLinecap="round" />
       </svg>
-      <div className="flex flex-col items-start">
-        <span className={`text-xs font-bold leading-none ${textColor}`}>{score}/100</span>
-        <span className="text-[9px] text-gray-400 leading-tight">Score</span>
+      <div className="flex flex-col items-start leading-none">
+        <span className={`text-[11px] font-bold ${textColor}`}>{score}/100</span>
+        <span className="text-[9px] text-gray-400 mt-0.5">Score</span>
       </div>
     </div>
   );
 };
 
+// ── Left Activity Pill ─────────────────────────────────────────
+const LeftPill = ({ text }: { text: string }) => {
+  const isOnline = text.toLowerCase() === "online";
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full border
+      ${isOnline
+        ? "border-green-400 text-green-600 bg-green-50"       // ✅ green tint
+        : "border-[#F4781B] text-[#F4781B] bg-orange-50"      // ✅ orange tint
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOnline ? "bg-green-500" : "bg-[#F4781B]"}`} />
+      {text}
+    </span>
+  );
+};
+
+const RightPill = ({ text }: { text: string }) => {
+  const t = text.toLowerCase();
+  if (t.includes("most") || t.includes("best choice"))
+    return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full bg-[#12B76A] text-white">{text}</span>;
+  if (t.includes("night shift"))
+    return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full bg-gray-900 text-white">{text}</span>;
+  if (t.includes("high demand"))
+    return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full border border-red-500 text-red-500 bg-red-50">{text}</span>;
+  // Orange availability tags
+  return <span className="inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-full border border-[#F4781B] text-[#F4781B] bg-orange-50">{text}</span>;
+};
+
+// ── Verified Checkmark ─────────────────────────────────────────
+const Verified = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="#3b82f6" className="shrink-0 inline-block ml-0.5">
+    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+  </svg>
+);
+
 // ── Action Buttons ─────────────────────────────────────────────
 const ActionButtons = ({
-  actionType,
-  onNavigate,
+  actionType, score, onNavigate,
 }: {
   actionType: ActionType;
-  candidateId: string;
+  score: number;
   onNavigate: (e: React.MouseEvent) => void;
 }) => {
   if (actionType === "hire") {
     return (
       <button
         onClick={(e) => e.stopPropagation()}
-        className="w-full flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-2 rounded-xl transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-green-50 border border-green-400 text-green-600 text-xs font-semibold py-2 rounded-xl hover:bg-green-100 transition-colors"
       >
-        <Zap size={12} fill="white" /> Hire Instantly
+        <Zap size={12} fill="#ef4444" stroke="#ef4444" />
+        Hire Instantly
       </button>
     );
   }
 
   if (actionType === "schedule") {
-    return (
+    const showDirect = score >= 80;
+    return showDirect ? (
+      <div className="flex gap-2">
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="flex-1 border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-medium py-2 rounded-xl transition-colors"
+        >
+          Schedule a Interview
+        </button>
+        <button
+          onClick={onNavigate}
+          className="flex-1 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 text-xs font-semibold py-2 rounded-xl transition-colors"
+        >
+          Direct Hire
+        </button>
+      </div>
+    ) : (
       <button
         onClick={(e) => e.stopPropagation()}
-        className="w-full text-xs font-medium border border-gray-200 rounded-xl py-1.5 text-gray-700 hover:bg-gray-50 transition-colors"
+        className="w-full border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-medium py-2 rounded-xl transition-colors"
       >
         Schedule a Interview
       </button>
@@ -68,110 +119,122 @@ const ActionButtons = ({
     return (
       <button
         onClick={(e) => e.stopPropagation()}
-        className="w-full flex items-center justify-center gap-1.5 border border-orange-300 text-orange-500 text-xs font-semibold py-2 rounded-xl hover:bg-orange-50 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 text-xs font-semibold py-2 rounded-xl transition-colors"
       >
-        <Calendar size={11} /> Invite For a Job
+        <Calendar size={11} />
+        Invite For a Job
       </button>
     );
   }
 
-  return (
+  // shortlist
+  const showDirect = score >= 75;
+  return showDirect ? (
     <div className="flex gap-2">
       <button
         onClick={(e) => e.stopPropagation()}
-        className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold py-2 rounded-xl transition-colors"
+        className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-2 rounded-xl transition-colors"
       >
         Shortlist
       </button>
       <button
         onClick={onNavigate}
-        className="flex-1 border border-orange-300 text-orange-500 text-xs font-semibold py-2 rounded-xl hover:bg-orange-50 transition-colors"
+        className="flex-1 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 text-xs font-semibold py-2 rounded-xl transition-colors bg-orange-50/50"
       >
         Direct Hire
       </button>
     </div>
+  ) : (
+    <button
+      onClick={(e) => e.stopPropagation()}
+      className="w-full bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-2 rounded-xl transition-colors"
+    >
+      Shortlist
+    </button>
   );
 };
 
 // ── Main Card ──────────────────────────────────────────────────
 export const BoardCandidateCard = ({
-  c,
-  actionType,
+  c, actionType, leftTag, rightTag,
 }: {
   c: CandidateListItem;
   actionType: ActionType;
+  leftTag?: string;
+  rightTag?: string;
 }) => {
   const router = useRouter();
+  const name   = c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim();
+  const role   = c.specialty?.[0] ?? c.medical_industry ?? "Healthcare Professional";
+  const skills = c.specialty?.slice(0, 2).join(" | ") ?? "General Medicine";
+  const city   = c.city ?? "Nearby";
+  const score  = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
+  const isVerified = !!c.full_name;
 
-const name = c.full_name || `${c.first_name} ${c.last_name ?? ''}`.trim();
-const role = c.specialty?.[0]
-  ?? c.medical_industry 
-  ?? 'Healthcare Professional';
-const location = [c.city, c.state].filter(Boolean).join(', ') || 'Location not set';
-const score = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
+  const defaultLeft  = c.work_eligibility ?? "Active";
+  const defaultRight = c.availability?.[0] ?? null;
+  const pillLeft  = leftTag  ?? defaultLeft;
+  const pillRight = rightTag ?? defaultRight;
 
-const shiftTag = c.availability?.[0] ?? null;
-
-
-  // ✅ both handlers were missing
   const navigateToDetail = (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/candidates/${c.id}`);
   };
 
-  const handleCardClick = () => {
-    router.push(`/candidates/${c.id}`);
-  };
-
   return (
     <div
-      onClick={handleCardClick}
-      className="flex flex-col gap-2 p-3 rounded-xl border border-gray-200 hover:border-orange-200 hover:bg-orange-50/20 transition-colors cursor-pointer"
+      onClick={() => router.push(`/candidates/${c.id}`)}
+      className="flex flex-col gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer"
     >
-      <div className="flex items-center justify-between">
-  <span className="text-[10px] text-orange-400 font-medium">
-    {c.work_eligibility ?? ''}
-  </span>
-  {shiftTag && (
-    <span className="text-[10px] font-medium text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full capitalize">
-      {shiftTag}
-    </span>
-  )}
-</div>
+      {/* Tags row */}
+      <div className="flex items-center justify-between gap-1 min-w-0">
+        <LeftPill text={pillLeft} />
+        {pillRight && <RightPill text={pillRight} />}
+      </div>
 
       {/* Identity row */}
-      <div className="flex items-start gap-2.5">
-        <div className="w-9 h-9 rounded-xl overflow-hidden bg-orange-50 shrink-0">
+      <div className="flex items-start gap-2">
+        <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
           <Image
             src={c.profile_image_url || "/svg/Photo.svg"}
             alt={name}
-            width={36}
-            height={36}
+            width={40}
+            height={40}
             className="object-cover w-full h-full"
           />
         </div>
-
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-gray-900 truncate block">
+          <p className="text-sm font-bold text-gray-900 leading-tight">
             {name}
-          </span>
-          <p className="text-[11px] text-orange-500 font-medium">{role}</p>
-          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-            <span className="flex items-center gap-0.5 text-[10px] text-gray-500">
-              <MapPin size={9} className="text-green-500" />
-              {location}
-            </span>
-          </div>
+            {isVerified && <Verified />}
+          </p>
+          <p className="text-[11px] text-[#F4781B] font-medium mt-0.5">{role}</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">
+            Skills : <span className="text-gray-600">{skills}</span>
+          </p>
         </div>
-
-        {score > 0 && <ScoreBadge score={score} />}
+        {score > 0 && <ScoreCard category="good" score={score} maxScore={100} />}
       </div>
 
-      <ActionButtons
-        actionType={actionType}
-        candidateId={c.id}
-        onNavigate={navigateToDetail}
-      />
+      {/* Stats row */}
+      <div className="flex items-center gap-2 text-[10px] text-gray-500 flex-wrap">
+        <span className="flex items-center gap-1">
+          <Briefcase size={10} className="text-gray-400" /> 5+ yrs
+        </span>
+        <span className="text-gray-300">|</span>
+        <span>Part-Time</span>
+        <span className="text-gray-300">|</span>
+        <span className="flex items-center gap-0.5">
+          <MapPin size={9} className="text-green-500" /> {city}
+        </span>
+        <span className="text-gray-300">|</span>
+        <span className="flex items-center gap-0.5">
+          <Star size={9} className="fill-yellow-400 text-yellow-400" /> 4.8/5
+        </span>
+      </div>
+
+      {/* Action */}
+      <ActionButtons actionType={actionType} score={score} onNavigate={navigateToDetail} />
     </div>
   );
 };

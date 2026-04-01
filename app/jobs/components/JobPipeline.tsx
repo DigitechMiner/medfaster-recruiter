@@ -9,7 +9,6 @@ import { Job } from "@/Interface/job.types";
 import type { JobsListResponse } from "@/Interface/job.types";
 import type { JobApplicationListResponse } from "@/stores/api/recruiter-job-api";
 import {
-  SHORTLISTED_DUMMY,
   INTERVIEWING_DUMMY,
   HIRED_DUMMY,
 } from "../constants/jobs";
@@ -31,7 +30,7 @@ export const JobPipelinePanel: React.FC<JobPipelinePanelProps> = ({ job, applica
     const rawApps = applicationsData?.applications;
 
     if (!Array.isArray(rawApps) || rawApps.length === 0) {
-      return { applied: [], shortlisted: SHORTLISTED_DUMMY, interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
+      return { applied: [], interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
     }
 
     // Filter to only applications for this job
@@ -69,7 +68,7 @@ export const JobPipelinePanel: React.FC<JobPipelinePanelProps> = ({ job, applica
       };
     });
 
-    return { applied, shortlisted: SHORTLISTED_DUMMY, interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
+    return { applied, interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
   }, [applicationsData, job.id]);
 
   const handleCandidateClick = (candidate: Job) => {

@@ -4,55 +4,96 @@ import { BoardCandidateCard } from "./BoardCandidateCard";
 import { CandidateListItem } from "@/stores/api/recruiter-job-api";
 
 type AccentColor = "orange" | "green" | "red" | "neutral";
-type ActionType = "shortlist" | "hire" | "schedule" | "invite";
+type ActionType  = "shortlist" | "hire" | "schedule" | "invite";
 
 interface Props {
   title: string;
   count: number;
   accentColor: AccentColor;
   dotColor: string;
-  candidates: CandidateListItem[]; // ← was CandidateEntry[]
+  candidates: CandidateListItem[];
   actionType: ActionType;
+  leftTags?: string[];
+  rightTags?: string[];
 }
 
-const borderMap: Record<AccentColor, string> = {
-  orange: "border-orange-300",
-  green:  "border-green-400",
-  red:    "border-red-400",
-  neutral:"border-gray-300",
-};
-
-const viewAllColorMap: Record<AccentColor, string> = {
-  orange: "text-orange-500",
-  green:  "text-green-500",
-  red:    "text-red-500",
-  neutral:"text-gray-500",
+const colStyles: Record<AccentColor, {
+  wrapper: string; headerBg: string; dot: string; viewAll: string; countPill: string;
+}> = {
+  orange: {
+    wrapper:   "border-[#F4A300] bg-[#FFF9F0]",
+    headerBg:  "bg-[#FFF9F0]",
+    dot:       "bg-[#F59E0B]",
+    viewAll:   "text-[#F4A300]",
+    countPill: "text-gray-400",
+  },
+  neutral: {
+    wrapper:   "border-[#92400E] bg-[#FFF5EE]",
+    headerBg:  "bg-[#FFF5EE]",
+    dot:       "bg-[#92400E]",
+    viewAll:   "text-[#92400E]",
+    countPill: "text-gray-400",
+  },
+  green: {
+    wrapper:   "border-[#22C55E] bg-[#F0FFF8]",
+    headerBg:  "bg-[#F0FFF8]",
+    dot:       "bg-[#22C55E]",
+    viewAll:   "text-[#16A34A]",
+    countPill: "text-gray-400",
+  },
+  red: {
+    wrapper:   "border-[#EF4444] bg-[#FFF5F5]",
+    headerBg:  "bg-[#FFF5F5]",
+    dot:       "bg-[#EF4444]",
+    viewAll:   "text-[#EF4444]",
+    countPill: "text-gray-400",
+  },
 };
 
 export const CandidateColumn = ({
-  title, count, accentColor, dotColor, candidates, actionType,
-}: Props) => (
-  <div className={`bg-white rounded-2xl border-2 ${borderMap[accentColor]} p-4 flex flex-col gap-3`}>
-    {/* Column Header */}
-    <div className="flex items-center gap-2">
-      <span className={`w-2.5 h-2.5 rounded-full ${dotColor} shrink-0`} />
-      <h2 className="text-sm font-semibold text-gray-900 flex-1">{title}</h2>
-      <span className="text-xs text-gray-400 font-medium">{count}</span>
-    </div>
+  title, count, accentColor, candidates, actionType, leftTags, rightTags,
+}: Props) => {
+  const s = colStyles[accentColor];
 
-    {/* Cards */}
-    <div className="flex flex-col gap-3">
-      {candidates.map((c, i) => (
-        <BoardCandidateCard key={i} c={c} actionType={actionType} />
-      ))}
-    </div>
+  return (
+    <div className={`rounded-2xl border-2 ${s.wrapper} flex flex-col overflow-hidden`}>
 
-    {/* View All */}
-    <Link
-      href={`/candidates?filter=${encodeURIComponent(title)}`}
-      className={`text-xs font-medium text-center pt-1 ${viewAllColorMap[accentColor]} hover:underline`}
-    >
-      View all
-    </Link>
-  </div>
-);
+      {/* ✅ Header — centered */}
+      <div className={`${s.headerBg} px-4 py-3.5 flex items-center justify-center gap-2`}>
+        <span className={`w-2.5 h-2.5 rounded-full ${s.dot} shrink-0`} />
+        <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+        {/* Count pill — gray bg bubble like the design */}
+        <span className="text-xs font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+          {count}
+        </span>
+      </div>
+
+      {/* Cards */}
+      <div className="flex flex-col gap-3 p-3">
+        {candidates.length === 0 ? (
+          <div className="text-center py-8 text-xs text-gray-400">No candidates</div>
+        ) : (
+          candidates.map((c, i) => (
+            <BoardCandidateCard
+              key={c.id ?? i}
+              c={c}
+              actionType={actionType}
+              leftTag={leftTags?.[i]}
+              rightTag={rightTags?.[i]}
+            />
+          ))
+        )}
+      </div>
+
+      {/* View All */}
+      <div className="px-4 pb-4 pt-1">
+        <Link
+          href={`/candidates?filter=${encodeURIComponent(title)}`}
+          className={`block text-xs font-semibold text-center ${s.viewAll} hover:underline`}
+        >
+          View all
+        </Link>
+      </div>
+    </div>
+  );
+};

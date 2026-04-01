@@ -191,12 +191,11 @@ export interface Job {
   jobApplicationId?: string;
 }
 
-export type StatusType = 'applied' | 'shortlisted' | 'interviewing' | 'hired';
+export type StatusType = 'applied' | 'interviewing' | 'hired';
 export type BadgeColor = 'blue' | 'orange' | 'red' | 'green';
 
 export interface JobsData {
   applied: Job[];
-  shortlisted: Job[];
   interviewing: Job[];
   hired: Job[];
 }

@@ -70,12 +70,26 @@ export function Navbar() {
               </Link>
             ))}
 
-            <button
-              onClick={() => router.push("/jobs/instant-replacement")}
-              className="xl:ml-1 2xl:ml-2 3xl:ml-3 flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 rounded-lg xl:px-3 2xl:px-4 3xl:px-5 py-1.5 text-sm font-medium h-9 transition-colors whitespace-nowrap"
-            >
-              <Sparkles size={14} /> Instant Replace
-            </button>
+            {/* Animated gradient border button */}
+<div className="relative xl:ml-1 2xl:ml-2 3xl:ml-3 rounded-lg p-[1.5px] overflow-hidden flex-shrink-0"
+  style={{
+    background: "conic-gradient(from var(--angle, 0deg), #ef4444, #f97316, #ef4444)",
+    animation: "spin-gradient 2s linear infinite",
+  }}
+>
+  <button
+    onClick={() => router.push("/jobs/instant-replacement")}
+    className="relative flex items-center gap-1.5 bg-white rounded-[8px] xl:px-3 2xl:px-4 3xl:px-5 py-1.5 text-sm font-semibold h-[34px] transition-colors whitespace-nowrap text-[#F4781B] w-full"
+  >
+    <Image
+      src="/svg/urgent-hires.svg"
+      width={18}
+      height={18}
+      alt="Urgent Hires"
+    />
+    Urgent Hires
+  </button>
+</div>
 
             <button
               onClick={() => router.push("/jobs/create")}

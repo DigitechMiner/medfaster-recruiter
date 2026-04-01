@@ -21,11 +21,6 @@ export const JOBS_DATA: JobsData = {
     { id: 2, doctorName: 'Dr. Sarah Chen', experience: 7, position: 'Full-Time', score: 92, specialization: ['Cardiology', 'Neurology', 'General'], currentCompany: 'Medical Canada' },
     { id: 3, doctorName: 'Dr. Michael Brown', experience: 6, position: 'Part-Time', score: 88, specialization: ['Cardiology', 'Orthopaedics', 'Cardiology'], currentCompany: 'Canada Health' }
   ],
-  shortlisted: [
-    { id: 4, doctorName: 'Dr. Noah Liam', experience: 5, position: 'Part-Time', score: 88, specialization: ['Cardiology', 'Orthopaedcs', 'Cardiology'], currentCompany: 'Canada Health' },
-    { id: 5, doctorName: 'Dr. Michael Smith', experience: 6, position: 'Part-Time', score: 90, specialization: ['Orthopedics', 'Surgery', 'General'], currentCompany: 'Medical Canada' },
-    { id: 6, doctorName: 'Dr. Emily Davis', experience: 4, position: 'Full-Time', score: 87, specialization: ['Cardiology', 'Pediatrics', 'General'], currentCompany: 'Canada Health' }
-  ],
   interviewing: [
     { id: 7, doctorName: 'Dr. Noah Liam', experience: 5, position: 'Part-Time', score: 87, specialization: ['Cardiology', 'Orthopaedics', 'Cardiology'], currentCompany: 'Canada Health' },
     { id: 8, doctorName: 'Dr. Emily Brown', experience: 4, position: 'Part-Time', score: 84, specialization: ['Pediatrics', 'General', 'Surgery'], currentCompany: 'Medical Canada' },
@@ -40,15 +35,8 @@ export const JOBS_DATA: JobsData = {
 
 export const STATUS_SECTIONS = [
   { status: 'applied' as const, title: 'Applied', badgeColor: 'blue' as const },
-  { status: 'shortlisted' as const, title: 'Shortlisted', badgeColor: 'orange' as const },
   { status: 'interviewing' as const, title: 'Interviewing', badgeColor: 'red' as const },
   { status: 'hired' as const, title: 'Hired', badgeColor: 'green' as const }
-];
-
-export const SHORTLISTED_DUMMY: Job[] = [
-  { id: 101, candidateId: "cand-101", doctorName: "Dr. Sarah Mitchell",   experience: 5, position: "Senior Cardiologist",        score: 92, specialization: ["Cardiology", "Internal Medicine"], currentCompany: "City General Hospital" },
-  { id: 102, candidateId: "cand-102", doctorName: "Dr. James Chen",       experience: 7, position: "Orthopedic Surgeon",          score: 88, specialization: ["Orthopedics", "Sports Medicine"],  currentCompany: "Regional Medical Center" },
-  { id: 103, candidateId: "cand-103", doctorName: "Dr. Emily Rodriguez",  experience: 4, position: "Pediatrician",                score: 85, specialization: ["Pediatrics"],                      currentCompany: "Children's Healthcare" },
 ];
 
 export const INTERVIEWING_DUMMY: Job[] = [

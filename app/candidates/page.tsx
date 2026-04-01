@@ -1,20 +1,22 @@
-// app/candidates/page.tsx
 "use client";
-
+import { AppLayout } from "@/components/global/app-layout";
 import { CandidatesBoard } from "./[id]/components/CandidatesBoard";
-import { Navbar } from "@/components/global/navbar";
+import { useRouter } from "next/navigation";
 
 export default function CandidatesPage() {
+  const router = useRouter();
   return (
-    <>
-      <Navbar />
-      <div
-        className="p-6 bg-gray-50 overflow-y-auto"
-        style={{ height: "calc(100vh - 56px)" }}
-      >
-        <h1 className="text-2xl font-bold text-gray-900 mb-5">Candidates</h1>
-        <CandidatesBoard />
+    <AppLayout padding="sm">
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
+        <button
+          onClick={() => router.push("/candidates/add")}
+          className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+        >
+          + Add Candidate
+        </button>
       </div>
-    </>
+      <CandidatesBoard />
+    </AppLayout>
   );
 }

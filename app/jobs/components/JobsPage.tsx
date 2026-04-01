@@ -12,17 +12,9 @@ import { useJobs, useJobApplications } from "@/hooks/useJobData";
 
 interface CandidatesData {
   applied: Job[];
-  shortlisted: Job[];
   interviewing: Job[];
   hired: Job[];
 }
-
-const SHORTLISTED_DUMMY: Job[] = [
-  { id: 101, candidateId: "cand-101", doctorName: "Dr. Sarah Mitchell", experience: 5, position: "Senior Cardiologist", score: 92, specialization: ["Cardiology", "Internal Medicine"], currentCompany: "City General Hospital" },
-  { id: 102, candidateId: "cand-102", doctorName: "Dr. James Chen", experience: 7, position: "Orthopedic Surgeon", score: 88, specialization: ["Orthopedics", "Sports Medicine"], currentCompany: "Regional Medical Center" },
-  { id: 103, candidateId: "cand-103", doctorName: "Dr. Emily Rodriguez", experience: 4, position: "Pediatrician", score: 85, specialization: ["Pediatrics"], currentCompany: "Children's Healthcare" },
-];
-
 const INTERVIEWING_DUMMY: Job[] = [
   { id: 201, candidateId: "cand-201", doctorName: "Dr. Michael Thompson", experience: 6, position: "Emergency Medicine Physician", score: 90, specialization: ["Emergency Medicine", "Trauma Care"], currentCompany: "Metro Hospital" },
   { id: 202, candidateId: "cand-202", doctorName: "Dr. Priya Sharma", experience: 8, position: "Neurologist", score: 94, specialization: ["Neurology", "Neurosurgery"], currentCompany: "Brain & Spine Institute" },
@@ -96,7 +88,6 @@ const JobsPage: React.FC = () => {
     if (!Array.isArray(rawApplications) || rawApplications.length === 0) {
       return {
         applied: [],
-        shortlisted: SHORTLISTED_DUMMY,
         interviewing: INTERVIEWING_DUMMY,
         hired: HIRED_DUMMY,
       };
@@ -126,7 +117,6 @@ const JobsPage: React.FC = () => {
 
     return {
       applied,
-      shortlisted: SHORTLISTED_DUMMY,
       interviewing: INTERVIEWING_DUMMY,
       hired: HIRED_DUMMY,
     };
@@ -225,34 +215,34 @@ const JobsPage: React.FC = () => {
           ) : (
             <>
               {layoutMode === "kanban" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
-                    <StatusSection
-                      key={status}
-                      status={status}
-                      title={title}
-                      count={candidatesData[status as keyof CandidatesData]?.length || 0}
-                      jobs={candidatesData[status as keyof CandidatesData] || []}
-                      badgeColor={badgeColor}
-                      onCandidateClick={handleCandidateClick}
-                    />
-                  ))}
-                </div>
-              )}
-              {layoutMode === "table" && (
-                <div className="space-y-4">
-                  {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
-                    <StatusTable
-                      key={status}
-                      status={status}
-                      title={title}
-                      count={candidatesData[status as keyof CandidatesData]?.length || 0}
-                      jobs={candidatesData[status as keyof CandidatesData] || []}
-                      badgeColor={badgeColor}
-                    />
-                  ))}
-                </div>
-              )}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
+      <StatusSection
+        key={status}
+        status={status}
+        title={title}
+        count={candidatesData[status as keyof CandidatesData]?.length || 0}
+        jobs={candidatesData[status as keyof CandidatesData] || []}
+        badgeColor={badgeColor}
+        onCandidateClick={handleCandidateClick}
+      />
+    ))}
+  </div>
+)}
+{layoutMode === "table" && (
+  <div className="space-y-4">
+    {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
+      <StatusTable
+        key={status}
+        status={status}
+        title={title}
+        count={candidatesData[status as keyof CandidatesData]?.length || 0}
+        jobs={candidatesData[status as keyof CandidatesData] || []}
+        badgeColor={badgeColor}
+      />
+    ))}
+  </div>
+)}
             </>
           )}
         </div>

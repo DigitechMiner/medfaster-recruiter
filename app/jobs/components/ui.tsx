@@ -149,32 +149,6 @@ const JobCardComponent: React.FC<JobCardProps> = ({
           </>
         );
       
-      case 'shortlisted':
-        return (
-          <>
-            <button
-              disabled
-              className="text-xs px-3 py-2 bg-red-50 text-red-500 rounded-lg font-medium cursor-default"
-            >
-              Remove
-            </button>
-            <Tooltip content="On Site / Virtual Interview">
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="w-full text-xs px-3 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-              >
-                Schedule
-              </button>
-            </Tooltip>
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 text-xs px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors"
-            >
-              Hire
-            </button>
-          </>
-        );
-      
       case 'interviewing':
         return (
           <>

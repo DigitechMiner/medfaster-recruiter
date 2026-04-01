@@ -128,3 +128,15 @@
 @theme {
   --breakpoint-3xl: 1994px;
 }
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-gradient {
+  to {
+    --angle: 360deg;
+  }
+}
