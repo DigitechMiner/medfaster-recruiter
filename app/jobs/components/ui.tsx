@@ -7,25 +7,6 @@ import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, PRIMARY_BUTT
 import { MODAL_DEFAULTS } from '../constants/messages';
 import ScoreCard from '@/components/card/scorecard';
 
-// ============ TOOLTIP COMPONENT ============
-interface TooltipProps {
-  children: React.ReactNode;
-  content: string;
-}
-
-const Tooltip: React.FC<TooltipProps> = ({ children, content }) => {
-  return (
-    <div className="relative group flex-1">
-      {children}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-900 text-xs rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap pointer-events-none z-10 shadow-lg">
-        {content}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-white"></div>
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-300"></div>
-      </div>
-    </div>
-  );
-};
-
 // ============ DETAIL CARD ============
 export const DetailedJobCard: React.FC<DetailedJobCardProps> = ({ job, status, onClose }) => {
   const statusColor = STATUS_COLORS[status] || 'text-gray-600';

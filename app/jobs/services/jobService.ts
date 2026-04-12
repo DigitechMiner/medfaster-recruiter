@@ -1,5 +1,3 @@
-// services/job.service.ts
-
 import {
   getRecruiterJobs,
   getRecruiterJob,
@@ -8,14 +6,18 @@ import {
   deleteRecruiterJob,
   getJobApplications,
   getCandidateDetails,
-  type JobCreatePayload,
-  type JobUpdatePayload,
 } from '@/stores/api/recruiter-job-api';
+
+// ✅ Import types from job.types.ts where they're actually defined
+import type {
+  JobCreatePayload,
+  JobUpdatePayload,
+} from '@/Interface/job.types';
 
 class JobService {
   static async getAllJobs(params?: {
-    page?: number;
-    limit?: number;
+    page?:   number;
+    limit?:  number;
     status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
   }) {
     return await getRecruiterJobs(params);
@@ -23,7 +25,7 @@ class JobService {
 
   static async getJobById(id: string) {
     const response = await getRecruiterJob(id);
-    return response.job;
+    return response.data.job;  // ← .data.job based on your JobDetailResponse shape
   }
 
   static async getJobDetails(id: string) {
@@ -32,31 +34,29 @@ class JobService {
 
   static async createJob(jobData: JobCreatePayload) {
     const response = await createRecruiterJob(jobData);
-    return response.job;
+    return response.data;  // ← .data based on your JobCreateResponse shape
   }
 
   static async updateJob(id: string, jobData: JobUpdatePayload) {
     const response = await updateRecruiterJob(id, jobData);
-    return response.job;
+    return response.data;  // ← .data based on your JobUpdateResponse shape
   }
 
   static async deleteJob(id: string) {
     await deleteRecruiterJob(id);
   }
 
-  // ✅ FIX: Add default empty object
   static async getCandidatesByStatus(params?: {
-    job_id?: string;
-    status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
-    page?: number;
-    limit?: number;
+    job_id?:  string;
+    status?:  'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
+    page?:    number;
+    limit?:   number;
   }) {
-    return await getJobApplications(params || {}); // ← Add || {}
+    return await getJobApplications(params ?? {});
   }
 
-  // ✅ FIX: Add default empty object
   static async getAllCandidates(job_id?: string) {
-    return await getJobApplications(job_id ? { job_id } : {}); // ← Add : {}
+    return await getJobApplications(job_id ? { job_id } : {});
   }
 
   static async getCandidateById(candidateId: string) {

@@ -23,6 +23,7 @@ export interface JobBackendResponse {
   application_count: number;
   created_at: string;
   updated_at: string;
+  pay_per_hour_cents?: number;
 
   normalJob: {
     id: string;
@@ -49,37 +50,34 @@ export interface JobBackendResponse {
 }
 
 export interface JobCreatePayload {
-  job_title: string;
+  job_title: string;                    // was jobtitle
   department?: string | null;
-  job_type?: string | null;
+  job_type?: string | null;             // was jobtype
   street?: string | null;
-  postal_code?: string | null;
+  postal_code?: string | null;          // was postalcode
   province?: string | null;
   city?: string | null;
-  neighborhood_name?: string | null;
-  neighborhood_type?: string | null;
-  direct_number?: string | null;
-  location?: string | null;
-  pay_range_min?: number | null;
-  pay_range_max?: number | null;
-  years_of_experience?: string | null;
+  neighborhood_name?: string | null;    // was neighborhoodname
+  neighborhood_type?: string | null;    // was neighborhoodtype
+  direct_number?: string | null;        // was directnumber
+  pay_range_min?: number | null;        // was payrangemin
+  pay_range_max?: number | null;        // was payrangemax
+  years_of_experience?: string | null;  // was yearsofexperience
   qualifications?: string[] | null;
   specializations?: string[] | null;
-  job_urgency?: 'instant' | 'normal';
-  no_of_hires?: number | null;
-  ai_interview?: boolean;
-  in_person_interview?: boolean | null;
-  physical_interview?: boolean | null;
+  job_urgency?: 'instant' | 'normal';   // was joburgency
+  no_of_hires?: number | null;          // was noofhires
+  ai_interview?: boolean;               // was aiinterview
   description?: string | null;
-  questions?: string[] | Record<string, any> | null;
+  questions?: string[] | Record<string, unknown> | null;
   status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
-  start_date?: string | null;
-  end_date?: string | null;
-  check_in_time?: string | null;
-  check_out_time?: string | null;
+  start_date?: string | null;           // was startdate
+  end_date?: string | null;             // was enddate
+  check_in_time?: string | null;        // was checkintime
+  check_out_time?: string | null;       // was checkouttime
 }
 
-export interface JobUpdatePayload extends Partial<JobCreatePayload> {}
+export type JobUpdatePayload = Partial<JobCreatePayload>;
 
 export interface JobsListResponse {
   success: boolean;
@@ -103,6 +101,11 @@ export interface JobsListResponse {
       created_at: string;
       updated_at: string;
       application_count: number;
+      ai_interview? : boolean | null;
+      start_date? : string | null;
+      end_date? : string | null;
+      check_in_time? : string | null;
+      check_out_time? : string | null;
     }>;
     pagination: {
       total: number;
@@ -271,3 +274,35 @@ export interface StatusTableProps {
   jobs: Job[];
   badgeColor: BadgeColor;
 }
+
+export interface GenerateDescriptionPayload {
+  jobTitle: string;
+  department: string;
+  jobType: string;
+  payRange?: string;
+  location?: string;
+  experienceRequired?: string;
+  qualification?: string;
+  specialization?: string;
+  urgency?: string;
+  inPersonInterview?: boolean;
+  physicalInterview?: boolean;
+}
+
+export type GenerateDescriptionResponse = {
+  success: boolean;
+  message: string;
+  data: { description: string };
+};
+
+export interface GenerateQuestionsPayload {
+  title: string;
+  department: string;
+  specialization?: string;
+}
+
+export type GenerateQuestionsResponse = {
+  success: boolean;
+  message: string;
+  data: { questions: string[] };
+};

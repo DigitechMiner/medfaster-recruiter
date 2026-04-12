@@ -23,7 +23,6 @@ interface QuestionsTopicProps {
 
 export function QuestionsTopic({
   topic,
-  onAddQuestion,
   onRemoveQuestion,
   onUpdateQuestion,
 }: QuestionsTopicProps) {

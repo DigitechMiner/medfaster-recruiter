@@ -58,7 +58,6 @@ export function JobForm({
   wrapperClassName,
   customSections,
   hideRequirements = false,
-  hideInterviewSettings = false,
 }: JobFormProps) {
   const isEditMode = mode === "edit";
   const isCreateMode = mode === "create";

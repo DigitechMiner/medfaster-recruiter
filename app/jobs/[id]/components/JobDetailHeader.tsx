@@ -3,7 +3,6 @@
 import React from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useParams, useRouter } from "next/navigation";
 import type { JobBackendResponse } from "@/Interface/job.types";
 
 interface JobDetailHeaderProps {
@@ -15,17 +14,7 @@ interface JobDetailHeaderProps {
 export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({
   job,
   onBack,
-  onCloseJob,
 }) => {
-  const params = useParams();
-  const router = useRouter();
-
-  const handleEdit = () => {
-    const jobId = params?.id;
-    if (jobId) {
-      router.push(`/jobs/edit/${jobId}`);
-    }
-  };
 
   return (
     <div className="pb-4 sm:pb-6 lg:pb-8">
@@ -45,24 +34,7 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({
             <span className="text-orange-500 font-semibold">{job.job_title}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={onCloseJob}
-            variant="ghost"
-            size="lg"
-            className="px-4 sm:px-6 lg:px-8 py-2 border border-red-500 text-red-500 underline rounded-lg text-xs sm:text-sm hover:bg-red-50"
-          >
-            Close This Job
-          </Button>
-          <Button
-            onClick={handleEdit}
-            variant="ghost"
-            size="lg"
-            className="px-4 sm:px-6 lg:px-8 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-xs sm:text-sm"
-          >
-            Edit Job
-          </Button>
-        </div>
+     
       </div>
     </div>
   );

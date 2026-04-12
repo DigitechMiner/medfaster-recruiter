@@ -2,8 +2,14 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { axiosInstance } from '@/stores/api/api-client';
-import { ENDPOINTS } from '@/stores/api/api-endpoints';
+import {
+  getRecruiterJobs,
+  getRecruiterJob,
+  createRecruiterJob,
+  updateRecruiterJob,
+  deleteRecruiterJob,
+} from '@/stores/api/recruiter-job-api';
+import type { GetJobsParams } from '@/stores/api/recruiter-job-api';
 import type {
   JobsListResponse,
   JobDetailResponse,
@@ -15,50 +21,25 @@ import type {
 } from '@/Interface/job.types';
 
 interface JobsState {
-  hasJobs: boolean;
+  hasJobs:   boolean;
   isLoading: boolean;
-  error: string | null;
+  error:     string | null;
 }
 
 interface JobsActions {
   setHasJobs: (hasJobs: boolean) => void;
   setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  
-  /**
-   * Get all jobs with pagination and filtering
-   * @param params - Query parameters for filtering and pagination
-   */
-  getJobs: (params?: {
-    status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
-    page?: number;
-    limit?: number;
-    offset?: number;
-  }) => Promise<JobsListResponse>;
-  
-  /**
-   * Get a single job by ID
-   * @param jobId - UUID of the job
-   */
-  getJob: (jobId: string) => Promise<JobDetailResponse>;
-  
-  /**
-   * Create a new job
-   * @param jobData - Job creation payload
-   */
+  setError:   (error: string | null) => void;
+
+  // Main fetch — sets isLoading (use for primary page loads)
+  getJobs: (params?: GetJobsParams) => Promise<JobsListResponse>;
+
+  // Silent fetch — no isLoading toggle (use for background/parallel fetches)
+  getJobsSilent: (params?: GetJobsParams) => Promise<JobsListResponse>;
+
+  getJob:    (jobId: string) => Promise<JobDetailResponse>;
   createJob: (jobData: JobCreatePayload) => Promise<JobCreateResponse>;
-  
-  /**
-   * Update an existing job
-   * @param jobId - UUID of the job
-   * @param jobData - Job update payload
-   */
   updateJob: (jobId: string, jobData: JobUpdatePayload) => Promise<JobUpdateResponse>;
-  
-  /**
-   * Delete a job
-   * @param jobId - UUID of the job
-   */
   deleteJob: (jobId: string) => Promise<JobDeleteResponse>;
 }
 
@@ -67,34 +48,22 @@ export type JobsStore = JobsState & JobsActions;
 export const useJobsStore = create<JobsStore>()(
   devtools(
     (set) => ({
-      hasJobs: false,
+      hasJobs:   false,
       isLoading: false,
-      error: null,
+      error:     null,
 
-      setHasJobs: (hasJobs) => set({ hasJobs }),
+      setHasJobs: (hasJobs)   => set({ hasJobs }),
       setLoading: (isLoading) => set({ isLoading }),
-      setError: (error) => set({ error }),
+      setError:   (error)     => set({ error }),
 
       getJobs: async (params) => {
         set({ isLoading: true, error: null });
         try {
-          const queryParams = new URLSearchParams();
-          if (params?.status) queryParams.append('status', params.status);
-          if (params?.page) queryParams.append('page', params.page.toString());
-          if (params?.limit) queryParams.append('limit', params.limit.toString());
-          if (params?.offset) queryParams.append('offset', params.offset.toString());
-
-          const endpoint = queryParams.toString()
-            ? `${ENDPOINTS.JOBS_LIST}?${queryParams.toString()}`
-            : ENDPOINTS.JOBS_LIST;
-
-          const response = await axiosInstance.get<JobsListResponse>(endpoint);
-
-          if (response.data.success && response.data.data?.jobs) {
-            set({ hasJobs: response.data.data.jobs.length > 0 });
+          const response = await getRecruiterJobs(params);
+          if (response.success && response.data?.jobs) {
+            set({ hasJobs: response.data.jobs.length > 0 });
           }
-
-          return response.data;
+          return response;
         } catch (error) {
           const err = error as Error;
           set({ error: err.message });
@@ -104,27 +73,38 @@ export const useJobsStore = create<JobsStore>()(
         }
       },
 
+      // No isLoading — safe for parallel calls, won't trigger re-renders
+      getJobsSilent: async (params) => {
+        try {
+          const response = await getRecruiterJobs(params);
+          return response;
+        } catch (error) {
+          const err = error as Error;
+          set({ error: err.message });
+          throw err;
+        }
+      },
+
       getJob: async (jobId) => {
-       try {
-    const response = await axiosInstance.get<JobDetailResponse>(ENDPOINTS.JOBS_DETAIL(jobId));
-    return response.data;
-  } catch (error) {
-    const err = error as Error;
-    set({ error: err.message });
-    throw err;
-  }
+        set({ isLoading: true, error: null });
+        try {
+          const response = await getRecruiterJob(jobId);
+          return response;
+        } catch (error) {
+          const err = error as Error;
+          set({ error: err.message });
+          throw err;
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       createJob: async (jobData) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.post<JobCreateResponse>(ENDPOINTS.JOBS_CREATE, jobData);
-          
-          if (response.data.success) {
-            set({ hasJobs: true });
-          }
-          
-          return response.data;
+          const response = await createRecruiterJob(jobData);
+          if (response.success) set({ hasJobs: true });
+          return response;
         } catch (error) {
           const err = error as Error;
           set({ error: err.message });
@@ -135,13 +115,10 @@ export const useJobsStore = create<JobsStore>()(
       },
 
       updateJob: async (jobId, jobData) => {
-        console.log("🔥 updateJob called — jobId:", jobId);  // ← add this
-  console.log("🔥 endpoint:", ENDPOINTS.JOBS_UPDATE(jobId)); // ← add this
-  set({ isLoading: true, error: null });
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.patch<JobUpdateResponse>(ENDPOINTS.JOBS_UPDATE(jobId), jobData);
-          return response.data;
+          const response = await updateRecruiterJob(jobId, jobData);
+          return response;
         } catch (error) {
           const err = error as Error;
           set({ error: err.message });
@@ -154,12 +131,8 @@ export const useJobsStore = create<JobsStore>()(
       deleteJob: async (jobId) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await axiosInstance.delete<JobDeleteResponse>(ENDPOINTS.JOBS_DELETE(jobId));
-          
-          // Note: We don't automatically update hasJobs here as we'd need to check all jobs
-          // The component should handle this by refetching the jobs list
-          
-          return response.data;
+          const response = await deleteRecruiterJob(jobId);
+          return response;
         } catch (error) {
           const err = error as Error;
           set({ error: err.message });
@@ -169,6 +142,6 @@ export const useJobsStore = create<JobsStore>()(
         }
       },
     }),
-    { name: 'JobsStore' },
-  ),
+    { name: 'JobsStore' }
+  )
 );

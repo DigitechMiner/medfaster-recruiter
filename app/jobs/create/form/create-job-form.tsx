@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useJobsStore } from "@/stores/jobs-store";
 import type { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
 import { BUTTON_LABELS } from "../../constants/messages";
@@ -61,8 +60,6 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       pay_range_min: data.payRange[0] || null,
       pay_range_max: data.payRange[1] || null,
       job_urgency: urgencyMode,
-      in_person_interview: data.inPersonInterview === "Yes",
-      physical_interview:  data.physicalInterview === "Yes",
       description: data.description || null,
       questions:   null,
       status:      "DRAFT",

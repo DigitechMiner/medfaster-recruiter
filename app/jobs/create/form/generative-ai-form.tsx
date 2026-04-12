@@ -13,7 +13,7 @@ import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/me
 import type { JobCreatePayload } from "@/Interface/job.types";
 
 interface Props {
-  pendingPayload: JobCreatePayload;   // ← full payload from step 1
+  pendingPayload?: JobCreatePayload | null;  // ← add ?
   onBack?: () => void;
 }
 
@@ -73,11 +73,12 @@ export function GenerateAIForm({ pendingPayload, onBack }: Props) {
 
       // ✅ Single POST — merge questions + status into the original payload
       const finalPayload: JobCreatePayload = {
-        ...pendingPayload,
-        questions: questionsData,
-        status: withStatusOpen ? "OPEN" : "DRAFT",
-        ai_interview: true,
-      };
+  ...(pendingPayload ?? {}),
+  job_title: pendingPayload?.job_title ?? '',  // ← satisfy required field
+  questions: questionsData,
+  status: withStatusOpen ? "OPEN" : "DRAFT",
+  ai_interview: true,
+};
 
       console.log("📤 Final payload to backend:", JSON.stringify(finalPayload, null, 2));
 

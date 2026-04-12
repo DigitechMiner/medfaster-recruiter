@@ -157,7 +157,7 @@ export function useCandidate(candidateId: string | null) {
 // ✅ NEW: Get job applications (list of applicants)
 export function useJobApplications(params?: {
   job_id?: string;
-  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
+  status?: 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED'
   page?: number;
   limit?: number;
 }) {

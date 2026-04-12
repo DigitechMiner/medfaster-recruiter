@@ -44,9 +44,9 @@ const DashboardPage: React.FC = () => {
     totalApplicants:
       (applicationsData as { pagination?: { total?: number } })?.pagination?.total ??
       applicationsData?.applications?.length ?? 0,
-    inInterviewStage: applicationsData?.applications?.filter((a) => a.status === "INTERVIEWING")?.length ?? 0,
-    hiredThisMonth:   applicationsData?.applications?.filter((a) => a.status === "ACCEPTED")?.length ?? 0,
-    pendingApprovals: applicationsData?.applications?.filter((a) => a.status === "PENDING")?.length ?? 0,
+    inInterviewStage: applicationsData?.applications?.filter((a) => a.status === 'INTERVIEW')?.length  ?? 0,
+hiredThisMonth:   applicationsData?.applications?.filter((a) => a.status === 'HIRE')?.length       ?? 0,
+pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'APPLIED')?.length    ?? 0,
   }), [jobs, applicationsData]);
 
   return (
@@ -57,7 +57,7 @@ const DashboardPage: React.FC = () => {
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-base sm:text-lg xl:text-xl font-semibold text-gray-900 truncate">
-            Hello, {recruiterProfile?.company_name ?? "Your Hospital"} 👋
+            Hello, {recruiterProfile?.organization_name ?? "Your Hospital"} 👋
           </h1>
           <select
             value={selectedPeriod}

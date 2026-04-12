@@ -30,7 +30,6 @@ import {
   convertQualificationToFrontend,   // ✅ replaces local QUALIFICATION_REVERSE_MAP
   convertSpecializationToBackend,
   convertSpecializationToFrontend,
-  convertProvinceToBackend,          // ✅ replaces raw data.province || null
   convertProvinceToFrontend,         // ✅ replaces local convertProvinceToFrontend + PROVINCE_CODE_MAP
   convertExperienceToBackend,        // ✅ converts "2-3 Yrs" → "2" before sending
   convertExperienceToFrontend,       // ✅ converts "2" → "2-3 Yrs" when loading form

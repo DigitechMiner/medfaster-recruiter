@@ -7,33 +7,47 @@ import { AppLayout } from "@/components/global/app-layout";
 import { JobsDashboard } from "./components/JobsDashboard";
 import { useJobsStore } from "@/stores/jobs-store";
 import { useAuthStore } from "@/stores/authStore";
-import { useJobs } from "@/hooks/useJobData";
 
 export default function JobsPageWrapper() {
-  const router = useRouter();
-  const hasJobs = useJobsStore((state: { hasJobs: boolean }) => state.hasJobs);
-  const { jobs, isLoading } = useJobs();
+  const router           = useRouter();
   const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const hasJobs          = useJobsStore((state) => state.hasJobs);
 
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [initialChecked, setInitialChecked] = useState(false);
+
+  // Auth check
   useEffect(() => {
-    const checkAuth = setTimeout(() => {
+    const t = setTimeout(() => {
       setIsCheckingAuth(false);
-      const currentProfile = useAuthStore.getState().recruiterProfile;
-      if (!currentProfile) router.replace("/");
+      if (!useAuthStore.getState().recruiterProfile) router.replace("/");
     }, 300);
-    return () => clearTimeout(checkAuth);
+    return () => clearTimeout(t);
   }, [router]);
 
   useEffect(() => {
     if (recruiterProfile) setIsCheckingAuth(false);
   }, [recruiterProfile]);
 
+  // One silent initial check — just to know if jobs exist for empty state
   useEffect(() => {
-    if (jobs.length > 0) useJobsStore.getState().setHasJobs(true);
-  }, [jobs]);
+    if (!recruiterProfile || initialChecked) return;
 
-  if (isCheckingAuth || isLoading) {
+    useJobsStore.getState().getJobsSilent({ page: 1, limit: 1 })
+      .then((res) => {
+        if (res.success) {
+          useJobsStore.getState().setHasJobs(res.data.pagination.total > 0);
+        }
+      })
+      .catch(() => {
+        useJobsStore.getState().setHasJobs(false);
+      })
+      .finally(() => {
+        setInitialChecked(true);
+      });
+  }, [recruiterProfile, initialChecked]);
+
+  if (isCheckingAuth || !initialChecked) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -55,7 +69,7 @@ export default function JobsPageWrapper() {
 
   return (
     <AppLayout>
-      {hasJobs ? <JobsDashboard jobs={jobs} /> : <EmptyJobState />}
+      {hasJobs ? <JobsDashboard /> : <EmptyJobState />}
     </AppLayout>
   );
 }

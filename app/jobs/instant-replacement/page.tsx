@@ -1,14 +1,12 @@
-// app/jobs/instant-replacement/page.tsx
 'use client'
 import { useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
-
-import { GenerateAIForm } from "../create/form/generative-ai-form"; // Reuse AI form
+import { GenerateAIForm } from "../create/form/generative-ai-form";
 import { InstantReplacementForm } from "../create/form/instant-replacement-form";
 
 function InstantReplacementContent() {
-  const router = useRouter();
+  const router       = useRouter();
   const searchParams = useSearchParams();
 
   const step = useMemo(() => {
@@ -26,13 +24,23 @@ function InstantReplacementContent() {
     <AppLayout>
       <div className="py-2 md:py-4 lg:py-6">
         {step === 1 ? (
-          <InstantReplacementForm 
+          <InstantReplacementForm
             urgencyMode="instant"
-            onNext={() => goToStep(2)} 
+            onNext={() => goToStep(2)}  // ← back to () => void, no payload
             onBack={() => router.push("/jobs")}
           />
         ) : (
-          <GenerateAIForm onBack={() => goToStep(1)} />
+          <GenerateAIForm
+            onBack={() => goToStep(1)}
+            pendingPayload={{             // ← read from sessionStorage
+              job_title: (() => {
+                try {
+                  const raw = sessionStorage.getItem('instant_replacement_payload');
+                  return raw ? JSON.parse(raw).job_title : '';
+                } catch { return ''; }
+              })(),
+            } as import("@/Interface/job.types").JobCreatePayload}
+          />
         )}
       </div>
     </AppLayout>

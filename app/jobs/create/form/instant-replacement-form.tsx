@@ -120,8 +120,6 @@ console.log("⏰ checkInTime:", formData.checkInTime, "checkOutTime:", formData.
         specializations:     null,
         job_urgency:         "instant",
         ai_interview:        false,
-        in_person_interview: true,
-        physical_interview:  true,
         description:         formData.description || null,
         questions:           null,
         status:              "DRAFT",

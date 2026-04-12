@@ -34,30 +34,6 @@ const getScoreColor = (score: number, maxScore: number): ScoreColor => {
   }
 };
 
-// Gets Tailwind CSS classes for score colors
-const getScoreColorClasses = (color: ScoreColor): { border: string; text: string; bg: string } => {
-  switch (color) {
-    case 'green':
-      return {
-        border: 'border-[#17B26A]',
-        text: 'text-[#17B26A]',
-        bg: 'bg-[#17B26A]',
-      };
-    case 'orange':
-      return {
-        border: 'border-orange-200',
-        text: 'text-orange-600',
-        bg: 'bg-orange-50',
-      };
-    case 'red':
-      return {
-        border: 'border-red-200',
-        text: 'text-red-600',
-        bg: 'bg-red-50',
-      };
-  }
-};
-
 // Get the actual color value for SVG
 const getColorValue = (colorType: ScoreColor): string => {
   switch (colorType) {
