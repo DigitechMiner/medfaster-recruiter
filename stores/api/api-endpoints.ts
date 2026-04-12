@@ -8,6 +8,7 @@ export const ENDPOINTS = {
   // Recruiter Profile
   RECRUITER_PROFILE: '/recruiter/profile',
   RECRUITER_PROFILE_UPDATE: '/recruiter/profile',
+  RECRUITER_REGISTER: "/recruiter/register",
 
   // Jobs CRUD
   JOBS_LIST: '/recruiter/jobs',
@@ -50,4 +51,13 @@ export const ENDPOINTS = {
   
   VERIFY_CREDENTIAL_SEND_OTP:     '/recruiter/verify-credential/send-otp',
   VERIFY_CREDENTIAL_VALIDATE_OTP: '/recruiter/verify-credential/validate-otp',
+
+
+  // Add these to ENDPOINTS
+JOBS_FEES:                '/recruiter/jobs/fees',
+GENERATE_JOB_QUESTIONS:   '/recruiter/jobs/generate-questions',
+JOB_PREVIEW:              (id: string) => `/recruiter/jobs/${id}/preview`,
+COMMON_DEPARTMENTS:       '/common/departments_job_titles',
+COMMON_SPECIALIZATIONS:   '/common/specializations',
+
 } as const;

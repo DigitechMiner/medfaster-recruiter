@@ -4,7 +4,6 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobBasicInfo } from "../create/components/job-basic-info";
 import { JobRequirements } from "../create/components/job-requirements";
-import { JobInterviewSettings } from "../create/components/job-interview-settings";
 import { JobDescription } from "../create/components/job-description";
 import { QuestionsTopic } from "../create/components/questions-topic";
 import { TopActionBar } from "@/components/custom/top-action-bar";
@@ -97,7 +96,7 @@ export function JobForm({
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow-sm border border-gray-200"
       >
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="p-4 sm:p-6 lg:p-8 ">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-6 sm:mb-8">
             {formTitle}
           </h2>
@@ -108,13 +107,6 @@ export function JobForm({
 
           {!hideRequirements && (
             <JobRequirements
-              formData={formData}
-              updateFormData={updateFormData}
-            />
-          )}
-
-          {!hideInterviewSettings && (
-            <JobInterviewSettings
               formData={formData}
               updateFormData={updateFormData}
             />

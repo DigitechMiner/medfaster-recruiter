@@ -17,7 +17,7 @@ import type {
   JobCreatePayload,
   JobUpdatePayload,
 } from "@/Interface/job.types";
-import metadata from "@/utils/constant/metadata";
+import metadata, { convertProvinceToJobBackend } from "@/utils/constant/metadata";
 import {
   convertToFrontendValue,
   convertToBackendValue,
@@ -27,69 +27,25 @@ import { ArrowLeft } from "lucide-react";
 import {
   convertJobTitleToBackend,
   convertQualificationToBackend,
+  convertQualificationToFrontend,   // ✅ replaces local QUALIFICATION_REVERSE_MAP
   convertSpecializationToBackend,
   convertSpecializationToFrontend,
-  provinces,
+  convertProvinceToBackend,          // ✅ replaces raw data.province || null
+  convertProvinceToFrontend,         // ✅ replaces local convertProvinceToFrontend + PROVINCE_CODE_MAP
+  convertExperienceToBackend,        // ✅ converts "2-3 Yrs" → "2" before sending
+  convertExperienceToFrontend,       // ✅ converts "2" → "2-3 Yrs" when loading form
 } from "@/utils/constant/metadata";
 
-const PROVINCE_CODE_MAP: Record<string, string> = {
-  alberta: "alberta",
-  british_columbia: "british_columbia",
-  manitoba: "manitoba",
-  new_brunswick: "new_brunswick",
-  newfoundland_and_labrador: "newfoundland_and_labrador",
-  northwest_territories: "northwest_territories",
-  nova_scotia: "nova_scotia",
-  nunavut: "nunavut",
-  ontario: "ontario",
-  prince_edward_island: "prince_edward_island",
-  quebec: "quebec",
-  saskatchewan: "saskatchewan",
-  yukon: "yukon",
-  AB: "alberta",
-  BC: "british_columbia",
-  MB: "manitoba",
-  NB: "new_brunswick",
-  NL: "newfoundland_and_labrador",
-  NT: "northwest_territories",
-  NS: "nova_scotia",
-  NU: "nunavut",
-  ON: "ontario",
-  PE: "prince_edward_island",
-  QC: "quebec",
-  SK: "saskatchewan",
-  YT: "yukon",
-};
 
-const convertProvinceToFrontend = (val: string | null | undefined): string | undefined => {
-  if (!val) return undefined;
-  if (provinces.find((p) => p.value === val)) return val;
-  if (PROVINCE_CODE_MAP[val]) return PROVINCE_CODE_MAP[val];
-  const byLabel = provinces.find((p) => p.label.toLowerCase() === val.toLowerCase());
-  if (byLabel) return byLabel.value;
-  return undefined;
-};
-
-// Reverse qualification mapping: "cardiology" → "Cardiology"
-const QUALIFICATION_REVERSE_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(metadata.qualification_mapping).map(([label, val]) => [val, label])
-);
-
-const convertQualificationsToFrontend = (backendValues: string[]): string[] =>
-  backendValues.map((v) => QUALIFICATION_REVERSE_MAP[v] || v);
-
-// job_title: backend stores full display name like "Licensed Practical Nurse (LPN)"
-// Strip parenthetical suffix to match dropdown options e.g. "Licensed Practical Nurse"
+// ✅ Strip parenthetical suffix: "Licensed Practical Nurse (LPN)" → "Licensed Practical Nurse"
 const normalizeJobTitle = (backendTitle: string | null | undefined): string => {
   if (!backendTitle) return metadata.job_title[0];
   const stripped = backendTitle.replace(/\s*\(.*?\)\s*$/, "").trim();
-  // Check if stripped value exists in dropdown options
   if (metadata.job_title.includes(stripped)) return stripped;
-  // Check if original value exists (e.g. already clean "Registered Nurse")
   if (metadata.job_title.includes(backendTitle)) return backendTitle;
-  // Fallback to first option
   return metadata.job_title[0];
 };
+
 
 export default function EditJobPage() {
   const router = useRouter();
@@ -98,11 +54,12 @@ export default function EditJobPage() {
   const updateJob = useJobsStore((state) => state.updateJob);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState<JobFormData>(DEFAULT_JOB_FORM_DATA);
-  const [formReady, setFormReady] = useState(false); // ✅ gate flag
+  const [formReady, setFormReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { topics, setTopics, addQuestion, removeQuestion, updateQuestion } =
     useQuestions(DEFAULT_TOPICS);
+
 
   const convertBackendToFormData = useCallback(
     (job: JobBackendResponse): JobFormData => {
@@ -126,17 +83,23 @@ export default function EditJobPage() {
         numberOfHires: job.no_of_hires?.toString() || undefined,
         streetAddress: job.street || undefined,
         postalCode: job.postal_code || undefined,
+
+        // ✅ camelCase backend → snake_case frontend
+        // "newBrunswick" → "new_brunswick"
         province: convertProvinceToFrontend(job.province),
+
         city: job.city || undefined,
         country: undefined,
-        experience: normalJob?.years_of_experience || "",
 
-        // ✅ Convert ["cardiology"] → ["Cardiology"]
+        // ✅ "2" → "2-3 Yrs"
+        experience: convertExperienceToFrontend(normalJob?.years_of_experience),
+
+        // ✅ ["cardiology"] → ["Cardiology"]
         qualification: Array.isArray(normalJob?.qualifications)
-          ? convertQualificationsToFrontend(normalJob.qualifications)
+          ? normalJob.qualifications.map((v) => convertQualificationToFrontend(v))
           : [],
 
-        // ✅ Convert ["long_term_care"] → ["Long Term Care"] using existing converter
+        // ✅ ["long_term_care"] → ["Long Term Care"]
         specialization: Array.isArray(normalJob?.specializations)
           ? normalJob.specializations.map((s) => convertSpecializationToFrontend(s))
           : [],
@@ -155,6 +118,7 @@ export default function EditJobPage() {
     []
   );
 
+
   const convertQuestionsToTopics = (
     questions: Record<string, { title: string; questions: string[] }> | null
   ): Topic[] => {
@@ -169,6 +133,7 @@ export default function EditJobPage() {
     }));
   };
 
+
   useEffect(() => {
     if (job) {
       console.log("🔍 RAW JOB FROM BACKEND:", JSON.stringify(job, null, 2));
@@ -178,13 +143,15 @@ export default function EditJobPage() {
       if (job.normalJob?.questions) {
         setTopics(convertQuestionsToTopics(job.normalJob.questions));
       }
-      setFormReady(true); // ✅ only flip after data is fully set
+      setFormReady(true);
     }
   }, [job, setTopics, convertBackendToFormData]);
+
 
   const updateFormData = (updates: Partial<JobFormData>) => {
     setFormData((prev: JobFormData) => ({ ...prev, ...updates }));
   };
+
 
   const convertToBackendFormat = (
     data: JobFormData,
@@ -194,19 +161,23 @@ export default function EditJobPage() {
     const isNormalJob = data.urgency === "normal";
 
     const payload: Partial<JobCreatePayload> = {
-      job_title: convertJobTitleToBackend(data.jobTitle),
-      department: data.department || null,
-      job_type: jobType,
-      street: data.streetAddress || null,
-      postal_code: data.postalCode || null,
-      province: data.province || null,
-      city: data.city || null,
+      job_title:    convertJobTitleToBackend(data.jobTitle),
+      department:   data.department || null,
+      job_type:     jobType,
+      street:       data.streetAddress || null,
+      postal_code:  data.postalCode || null,
+
+      // ✅ snake_case → camelCase before sending to API
+      // "new_brunswick" → "newBrunswick"
+      province: convertProvinceToJobBackend(data.province),
+
+      city:          data.city || null,
       pay_range_min: data.payRange[0] || null,
       pay_range_max: data.payRange[1] || null,
-      job_urgency: data.urgency,
-      description: data.description || null,
-      questions: questionsData,
-      status: data.status,
+      job_urgency:   data.urgency,
+      description:   data.description || null,
+      questions:     questionsData,
+      status:        data.status,
     };
 
     if (data.numberOfHires && data.numberOfHires.trim() !== "") {
@@ -215,38 +186,48 @@ export default function EditJobPage() {
     }
 
     if (isNormalJob) {
+      // ✅ "2-3 Yrs" → "2" before sending
       if (data.experience && data.experience.trim() !== "") {
-        payload.years_of_experience = data.experience;
+        payload.years_of_experience =
+          convertExperienceToBackend(data.experience) ?? data.experience;
       }
+
       if (Array.isArray(data.qualification)) {
-        // ✅ Convert "Cardiology" → "cardiology" before sending
-        const validQualifications = data.qualification
-          .filter((q) => q && typeof q === "string" && q.trim() !== "")
-          .map((q) => convertQualificationToBackend(q));
-        if (validQualifications.length > 0) {
-          payload.qualifications = validQualifications;
-        }
-      }
+  const validQualifications = data.qualification
+    .filter((q) => q && typeof q === "string" && q.trim() !== "")
+    .map((q) => convertQualificationToBackend(q))
+    // ✅ reject anything not in the official mapping
+    .filter((q) => Object.values(metadata.qualification_mapping).includes(q));
+
+  if (validQualifications.length > 0) {
+    payload.qualifications = validQualifications;
+  }
+}
+
       if (Array.isArray(data.specialization)) {
-        // ✅ Convert "Long Term Care" → "long_term_care" before sending
-        const validSpecializations = data.specialization
-          .filter((s) => s && typeof s === "string" && s.trim() !== "")
-          .map((s) => convertSpecializationToBackend(s));
-        if (validSpecializations.length > 0) {
-          payload.specializations = validSpecializations;
-        }
-      }
+  const validSpecializations = data.specialization
+    .filter((s) => s && typeof s === "string" && s.trim() !== "")
+    .map((s) => convertSpecializationToBackend(s))
+    // ✅ reject anything not in the official mapping
+    .filter((s) => Object.values(metadata.specialization_mapping).includes(s));
+
+  if (validSpecializations.length > 0) {
+    payload.specializations = validSpecializations;
+  }
+}
+
       payload.ai_interview = data.aiInterview === "Yes";
     } else {
-      if (data.fromDate) payload.start_date = data.fromDate.toISOString();
-      if (data.tillDate) payload.end_date = data.tillDate.toISOString();
-      if (data.fromTime) payload.check_in_time = data.fromTime;
-      if (data.toTime) payload.check_out_time = data.toTime;
+      if (data.fromDate) payload.start_date     = data.fromDate.toISOString();
+      if (data.tillDate) payload.end_date        = data.tillDate.toISOString();
+      if (data.fromTime) payload.check_in_time   = data.fromTime;
+      if (data.toTime)   payload.check_out_time  = data.toTime;
     }
 
     console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
     return payload as JobUpdatePayload;
   };
+
 
   const convertTopicsToBackendFormat = (
     topics: Topic[]
@@ -262,6 +243,7 @@ export default function EditJobPage() {
     });
     return questionsObject;
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,12 +290,14 @@ export default function EditJobPage() {
     }
   };
 
+
   const handleCancel = () => router.push(`/jobs/${jobId}`);
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
     router.push(`/jobs/${jobId}`);
   };
+
 
   if (isLoading) {
     return (

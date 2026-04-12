@@ -78,6 +78,23 @@ export async function updateRecruiterProfile(
   const res = await axiosInstance.patch<UpdateProfileResponse>(
     ENDPOINTS.RECRUITER_PROFILE_UPDATE,
     formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    }
+  );
+  return res.data;
+}
+
+export async function registerRecruiterStep(
+  formData: FormData,
+  step: 1 | 2 | 3
+): Promise<UpdateProfileResponse> {
+  const res = await axiosInstance.post<UpdateProfileResponse>(
+    `${ENDPOINTS.RECRUITER_REGISTER}?step=${step}`,
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    }
   );
   return res.data;
 }

@@ -20,7 +20,56 @@ import type { OrgDetailsType, ContactType, ComplianceType } from "./const";
 import { Suspense } from "react";
 import LoginModal from "@/components/global/otpModal";
 
-type FormValues = typeof allDefaultValues[number];
+type FormValues = (typeof allDefaultValues)[number];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Province camelCase map (API requires camelCase, UI stores snake_case or abbrev)
+// ─────────────────────────────────────────────────────────────────────────────
+const PROVINCE_MAP: Record<string, string> = {
+  alberta:                    "alberta",
+  AB:                         "alberta",
+  britishcolumbia:            "britishColumbia",
+  british_columbia:           "britishColumbia",
+  BC:                         "britishColumbia",
+  manitoba:                   "manitoba",
+  MB:                         "manitoba",
+  newbrunswick:               "newBrunswick",
+  new_brunswick:              "newBrunswick",
+  NB:                         "newBrunswick",
+  newfoundlandandlabrador:    "newfoundlandAndLabrador",
+  newfoundland_and_labrador:  "newfoundlandAndLabrador",
+  NL:                         "newfoundlandAndLabrador",
+  novascotia:                 "novaScotia",
+  nova_scotia:                "novaScotia",
+  NS:                         "novaScotia",
+  northwestterritories:       "northwestTerritories",
+  northwest_territories:      "northwestTerritories",
+  NT:                         "northwestTerritories",
+  nunavut:                    "nunavut",
+  NU:                         "nunavut",
+  ontario:                    "ontario",
+  ON:                         "ontario",
+  princeedwardisland:         "princeEdwardIsland",
+  prince_edward_island:       "princeEdwardIsland",
+  PE:                         "princeEdwardIsland",
+  quebec:                     "quebec",
+  QC:                         "quebec",
+  saskatchewan:               "saskatchewan",
+  SK:                         "saskatchewan",
+  yukon:                      "yukon",
+  YT:                         "yukon",
+};
+
+function toApiProvince(value: string): string {
+  if (!value) return value;
+  return (
+    PROVINCE_MAP[value] ??
+    PROVINCE_MAP[value.toLowerCase().replace(/\s/g, "")] ??
+    value
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function SmartFormInner() {
   const router = useRouter();
@@ -35,7 +84,7 @@ function SmartFormInner() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const registerStep   = useAuthStore((s) => s.registerStep);
   const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
 
   const allStepData = useRef<Record<number, Partial<FormValues>>>({});
@@ -45,28 +94,31 @@ function SmartFormInner() {
     mode: "onChange",
   });
 
-  const goToStep = useCallback((newStep: number) => {
-    router.push(`?step=${newStep}`, { scroll: false });
-  }, [router]);
+  const goToStep = useCallback(
+    (newStep: number) => router.push(`?step=${newStep}`, { scroll: false }),
+    [router]
+  );
 
-  const restoreStep = useCallback((stepIndex: number) => {
-    const savedData = allStepData.current[stepIndex];
-    const defaults = allDefaultValues[stepIndex];
-    const data = savedData ?? defaults;
-    Object.entries(data).forEach(([key, value]) => {
-      methods.setValue(
-        key as keyof FormValues,
-        value as FormValues[keyof FormValues],
-        { shouldDirty: false }
-      );
-    });
-  }, [methods]);
+  const restoreStep = useCallback(
+    (stepIndex: number) => {
+      const data = allStepData.current[stepIndex] ?? allDefaultValues[stepIndex];
+      Object.entries(data).forEach(([key, value]) => {
+        methods.setValue(key as keyof FormValues, value as FormValues[keyof FormValues], {
+          shouldDirty: false,
+        });
+      });
+    },
+    [methods]
+  );
 
-  const saveAndGoToStep = useCallback((newStep: number) => {
-    allStepData.current[step] = methods.getValues();
-    restoreStep(newStep);
-    goToStep(newStep);
-  }, [step, methods, restoreStep, goToStep]);
+  const saveAndGoToStep = useCallback(
+    (newStep: number) => {
+      allStepData.current[step] = methods.getValues();
+      restoreStep(newStep);
+      goToStep(newStep);
+    },
+    [step, methods, restoreStep, goToStep]
+  );
 
   const validateCurrentStep = async (): Promise<boolean> => {
     const values = methods.getValues();
@@ -86,7 +138,7 @@ function SmartFormInner() {
     }
 
     methods.clearErrors();
-    setCompletedSteps((prev) => new Set(prev).add(step)); // ← mark complete
+    setCompletedSteps((prev) => new Set(prev).add(step));
     return true;
   };
 
@@ -102,17 +154,14 @@ function SmartFormInner() {
   };
 
   const handleSidebarStepChange = async (newStep: number) => {
-    // Always allow going back
     if (newStep < step) {
       saveAndGoToStep(newStep);
       return;
     }
 
-    // Block forward jump if any step before newStep is incomplete
-    const allPreviousCompleted = Array.from(
-      { length: newStep },
-      (_, i) => i
-    ).every((i) => completedSteps.has(i));
+    const allPreviousCompleted = Array.from({ length: newStep }, (_, i) => i).every((i) =>
+      completedSteps.has(i)
+    );
 
     if (!allPreviousCompleted) {
       toast.warning("Please complete the current step before proceeding.");
@@ -122,6 +171,7 @@ function SmartFormInner() {
     saveAndGoToStep(newStep);
   };
 
+  // ── Core submission ────────────────────────────────────────────────────────
   const submitForm = async () => {
     setIsSubmitting(true);
     try {
@@ -129,55 +179,86 @@ function SmartFormInner() {
       const s1 = allStepData.current[1] as ContactType;
       const s2 = allStepData.current[2] as ComplianceType;
 
-      const formData = new FormData();
+      // ── STEP 1: org & address + optional photo ──────────────────────────
+      const step1 = new FormData();
 
+      // Required text fields
+      step1.append("organization_name",           s0.orgName ?? "");
+      step1.append("registered_business_name",    s0.registeredBusinessName ?? "");
+      step1.append("organization_type",           s0.orgType ?? "");
+      step1.append("official_email_address",      s0.email ?? "");
+      step1.append("contact_number",              s0.contactNumber ?? "");
+      step1.append("canadian_business_number",    s0.businessNumber ?? "");
+      step1.append("gst_no",                      s0.gstNo ?? "");
+      step1.append("street_address",              s0.address ?? "");
+      step1.append("postal_code",                 s0.postalCode ?? "");
+      step1.append("province",                    toApiProvince(s0.province ?? ""));
+      step1.append("city",                        s0.city ?? "");
+      step1.append("country",                     s0.country ?? "");
+
+      // Optional text fields
+      if (s0?.website) step1.append("organization_website", s0.website);
+
+      // Optional file — ONLY organization_photo allowed at step 1
       if (s0?.organization_photo instanceof File)
-        formData.append("organization_photo", s0.organization_photo);
-      if (s0?.orgName)        formData.append("organization_name", s0.orgName);
-      if (s0?.orgType)        formData.append("organization_type", s0.orgType);
-      if (s0?.email)          formData.append("official_email_address", s0.email);
-      if (s0?.contactNumber)  formData.append("contact_number", s0.contactNumber);
-      if (s0?.website)        formData.append("organization_website", s0.website);
-      if (s0?.businessNumber) formData.append("canadian_business_number", s0.businessNumber);
-      if (s0?.address)        formData.append("street_address", s0.address);
-      if (s0?.postalCode)     formData.append("postal_code", s0.postalCode);
-      if (s0?.city)           formData.append("city", s0.city);
-      if (s0?.province)       formData.append("province", s0.province);
-      if (s0?.country)        formData.append("country", s0.country);
+        step1.append("organization_photo", s0.organization_photo);
 
-      if (s1?.contactName)    formData.append("contact_person_name", s1.contactName);
-      if (s1?.designation)    formData.append("contact_person_designation", s1.designation);
-      if (s1?.contactEmail)   formData.append("contact_person_email", s1.contactEmail);
-      if (s1?.primaryContact) {
-        formData.append("primary_contact_person", s1.primaryContact);
-        formData.append("contact_person_phone", s1.primaryContact);
+      const r1 = await registerStep(step1, 1);
+      if (!r1.ok) {
+        toast.error(r1.message || "Step 1 failed");
+        goToStep(0); // send user back to fix errors
+        return;
       }
 
-      if (s2?.operatingLicense instanceof File)
-        formData.append("operating_license", s2.operatingLicense);
-      if (s2?.accreditationCertificate instanceof File)
-        formData.append("accreditation_certificate", s2.accreditationCertificate);
-      if (s2?.provincialLicense instanceof File)
-        formData.append("provincial_health_license", s2.provincialLicense);
-      if (s2?.canadaCertificate instanceof File)
-        formData.append("accreditation_canada_certificate", s2.canadaCertificate);
+      // ── STEP 2: contact person — NO files allowed ───────────────────────
+      const step2 = new FormData();
 
-      const result = await updateProfile(formData);
+      step2.append("contact_person_name",        s1.contactName ?? "");
+      step2.append("contact_person_designation", s1.designation ?? "");
+      step2.append("contact_person_email",       s1.contactEmail ?? "");
+      step2.append("contact_person_phone",       s1.primaryContact ?? "");
 
-      if (result.ok) {
-        toast.success("Profile updated successfully!");
-        router.push("/");
-      } else {
-        toast.error(result.message || "Failed to update profile");
-        if (result.errors && result.errors.length > 0) {
-          result.errors.forEach((error: { field: string; message: string }) => {
-            toast.error(`${error.field}: ${error.message}`);
-          });
-        }
+      const r2 = await registerStep(step2, 2);
+      if (!r2.ok) {
+        toast.error(r2.message || "Step 2 failed");
+        goToStep(1);
+        return;
       }
+
+      // ── STEP 3: documents ONLY — no text fields allowed ─────────────────
+      // Required: business_registration_certificate
+      // Optional: operating_license, certificate
+      const step3 = new FormData();
+
+      if (s2?.business_registration_certificate instanceof File)
+        step3.append("business_registration_certificate", s2.business_registration_certificate);
+      if (s2?.operating_license instanceof File)
+        step3.append("operating_license", s2.operating_license);
+      if (s2?.certificate instanceof File)
+        step3.append("certificate", s2.certificate);
+
+      // Guard: business_registration_certificate is required at step 3
+      if (!step3.has("business_registration_certificate")) {
+        toast.error("Business Registration Certificate is required.");
+        goToStep(2);
+        return;
+      }
+
+      const r3 = await registerStep(step3, 3);
+      if (!r3.ok) {
+        toast.error(r3.message || "Step 3 failed");
+        goToStep(2);
+        return;
+      }
+
+      // ── All 3 steps done ────────────────────────────────────────────────
+      toast.success("Profile registered successfully!");
+      router.push("/");
     } catch (error: unknown) {
       console.error("Submission error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to submit form");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to submit form"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -189,8 +270,10 @@ function SmartFormInner() {
     const isValid = await validateCurrentStep();
     if (!isValid) return;
 
+    // Save current step data before submitting
     allStepData.current[step] = methods.getValues();
 
+    // If not logged in, show OTP modal first, then submit after auth
     if (!recruiterProfile) {
       setShowLoginModal(true);
       return;
@@ -220,83 +303,85 @@ function SmartFormInner() {
         }}
       />
 
-      {/* min-h-screen → h-screen, add overflow-hidden to lock the page height */}
-<div className="fixed inset-0 flex flex-col lg:flex-row bg-[#F8FAFC]">
-  <Sidebar
-    step={step}
-    completedSteps={completedSteps}
-    onStepChange={handleSidebarStepChange}
-  />
+      <div className="fixed inset-0 flex flex-col lg:flex-row bg-[#F8FAFC]">
+        <Sidebar
+          step={step}
+          completedSteps={completedSteps}
+          onStepChange={handleSidebarStepChange}
+        />
 
-  <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-    {/* This is the ONLY scroll container */}
-    <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-6 bg-[#F8FAFC] lg:bg-white">
-      <div className="bg-white">
-        <div className="hidden lg:block px-0 sm:px-0 lg:px-8 pt-4 sm:pt-6 pb-4 flex-shrink-0">
-          <StepNavigation
-            currentStep={step}
-            totalSteps={steps.length}
-            onPrev={goToPrevStep}
-            onNext={goToNextStep}
-          />
-        </div>
-
-        <FormProvider {...methods}>
-          <form
-            className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl border border-gray-200"
-            onSubmit={
-              step < steps.length - 1
-                ? (e) => { e.preventDefault(); goToNextStep(); }
-                : onSubmit
-            }
-            encType="multipart/form-data"
-            noValidate
-          >
-            {step > 0 && (
-              <div className="lg:hidden mb-4">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={goToPrevStep}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 p-0 h-auto hover:bg-transparent"
-                  disabled={isSubmitting}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                  <span className="text-sm font-medium">Back</span>
-                </Button>
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Only scroll container */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-6 bg-[#F8FAFC] lg:bg-white">
+            <div className="bg-white">
+              <div className="hidden lg:block px-0 sm:px-0 lg:px-8 pt-4 sm:pt-6 pb-4 flex-shrink-0">
+                <StepNavigation
+                  currentStep={step}
+                  totalSteps={steps.length}
+                  onPrev={goToPrevStep}
+                  onNext={goToNextStep}
+                />
               </div>
-            )}
 
-            <h2 className="font-bold text-lg sm:text-xl mb-4 sm:mb-6">{steps[step]}</h2>
-            {renderStepContent()}
+              <FormProvider {...methods}>
+                <form
+                  className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl border border-gray-200"
+                  onSubmit={
+                    step < steps.length - 1
+                      ? (e) => { e.preventDefault(); goToNextStep(); }
+                      : onSubmit
+                  }
+                  encType="multipart/form-data"
+                  noValidate
+                >
+                  {step > 0 && (
+                    <div className="lg:hidden mb-4">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={goToPrevStep}
+                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 p-0 h-auto hover:bg-transparent"
+                        disabled={isSubmitting}
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                        <span className="text-sm font-medium">Back</span>
+                      </Button>
+                    </div>
+                  )}
 
-            <div className="flex mt-6 sm:mt-8 justify-end">
-              <Button
-                type="submit"
-                className="bg-[#F4781B] hover:bg-[#d5650e] text-white px-4 sm:px-6 py-2 rounded-lg w-full sm:w-auto disabled:opacity-50"
-                disabled={isSubmitting}
-              >
-                {isSubmitting
-                  ? "Uploading..."
-                  : step === steps.length - 1
-                    ? "Submit"
-                    : "Save & continue"}
-              </Button>
+                  <h2 className="font-bold text-lg sm:text-xl mb-4 sm:mb-6">
+                    {steps[step]}
+                  </h2>
+
+                  {renderStepContent()}
+
+                  <div className="flex mt-6 sm:mt-8 justify-end">
+                    <Button
+                      type="submit"
+                      className="bg-[#F4781B] hover:bg-[#d5650e] text-white px-4 sm:px-6 py-2 rounded-lg w-full sm:w-auto disabled:opacity-50"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting
+                        ? "Uploading..."
+                        : step === steps.length - 1
+                          ? "Submit"
+                          : "Save & continue"}
+                    </Button>
+                  </div>
+                </form>
+              </FormProvider>
             </div>
-          </form>
-        </FormProvider>
+          </div>
+
+          {/* Footer — pinned, never scrolls */}
+          <div className="lg:hidden w-full py-3 px-4 flex items-center justify-center gap-2 text-gray-500 text-xs bg-[#F8FAFC] flex-shrink-0">
+            <Mail className="w-4 h-4" />
+            <a href="mailto:help@KeRaeva.com" className="truncate">
+              help@KeRaeva.com
+            </a>
+          </div>
+        </main>
       </div>
-    </div>
-
-    {/* Footer pinned at bottom, never scrolls */}
-     <div className="lg:hidden w-full py-3 px-4 flex items-center justify-center gap-2 text-gray-500 text-xs bg-[#F8FAFC] flex-shrink-0">
-      <Mail className="w-4 h-4" />
-      <a href="mailto:help@KeRaeva.com" className="truncate">help@KeRaeva.com</a>
-    </div>
-  </main>
-</div>
-
     </>
   );
 }

@@ -1,37 +1,33 @@
-// app/jobs/create/page.tsx
 'use client'
-import { useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
 import { CreateJobForm } from "./form/create-job-form";
 import { GenerateAIForm } from "./form/generative-ai-form";
+import type { JobCreatePayload } from "@/Interface/job.types";
 
 function CreateJobContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const step = useMemo(() => {
-    const value = Number(searchParams.get("step") ?? "1");
-    return value === 2 ? 2 : 1;
-  }, [searchParams]);
-
-  const goToStep = (nextStep: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("step", String(nextStep));
-    router.replace(`/jobs/create?${params.toString()}`);
-  };
+  const [step, setStep] = useState<1 | 2>(1);
+  const [pendingPayload, setPendingPayload] = useState<JobCreatePayload | null>(null);
 
   return (
     <AppLayout>
       <div className="py-2 md:py-4 lg:py-6 overflow-x-hidden w-full">
         {step === 1 ? (
-          <CreateJobForm 
-            urgencyMode="normal" 
-            onNext={() => goToStep(2)} 
-             onBack={() => router.push("/jobs")}
+          <CreateJobForm
+            urgencyMode="normal"
+            onNext={(payload: JobCreatePayload) => {
+              setPendingPayload(payload);
+              setStep(2);
+            }}
+            onBack={() => router.push("/jobs")}
           />
         ) : (
-          <GenerateAIForm onBack={() => goToStep(1)} />
+          <GenerateAIForm
+            pendingPayload={pendingPayload!}
+            onBack={() => setStep(1)}
+          />
         )}
       </div>
     </AppLayout>

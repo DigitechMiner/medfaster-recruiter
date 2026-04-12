@@ -45,7 +45,7 @@ export interface JobBackendResponse {
     check_out_time: string;
   } | null;
 
-  specialization_labels?: string[];
+  specialization_labels?: number[];
 }
 
 export interface JobCreatePayload {
@@ -71,7 +71,7 @@ export interface JobCreatePayload {
   in_person_interview?: boolean | null;
   physical_interview?: boolean | null;
   description?: string | null;
-  questions?: Record<string, any> | null;
+  questions?: string[] | Record<string, any> | null;
   status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
   start_date?: string | null;
   end_date?: string | null;
@@ -120,19 +120,56 @@ export interface JobsListResponse {
 export interface JobDetailResponse {
   success: boolean;
   message: string;
-  data: { job: JobBackendResponse };
+  data: { job: JobBackendResponse }; // ← GET /jobs/:id DOES wrap under .job
 }
 
 export interface JobCreateResponse {
   success: boolean;
   message: string;
-  data: { job: JobBackendResponse };
+  data: {
+    id: string;
+    job_id: string;                  // public-facing job ID
+    recruiter_profile_id: string;
+    job_title_id: number;
+    department_id: number;
+    job_type: string;
+    street: string;
+    postal_code: string;
+    province: string;
+    city: string;
+    geolocation: {
+      type: string;
+      coordinates: [number, number];
+    } | null;
+    pay_per_hour_cents: string;
+    fee_snapshot: unknown | null;
+    shift_snapshot: unknown | null;
+    job_urgency: 'instant' | 'normal';
+    description: string;
+    no_of_hires_required: number;
+    no_of_hires_hired: number;
+    start_date: string;
+    end_date: string;
+    check_in_time: string;
+    check_out_time: string;
+    status: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+    closed_reason: string | null;
+    recruiter_close_note: string | null;
+    application_count: number;
+    years_of_experience: string;
+    qualifications: string[];
+    specializations: number[];      // ← returns IDs (numbers), not slugs
+    ai_interview: boolean;
+    questions: Record<string, any> | null;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 export interface JobUpdateResponse {
   success: boolean;
   message: string;
-  data: { job: JobBackendResponse };
+  data: JobCreateResponse['data'];   // same flat shape
 }
 
 export interface JobDeleteResponse {

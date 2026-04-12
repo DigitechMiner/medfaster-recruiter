@@ -6,7 +6,7 @@ import { useJobsStore } from "@/stores/jobs-store";
 import { JobCreatePayload, JobFormData } from "@/Interface/job.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
-import { convertJobTitleToBackend, convertJobTypeToBackend } from "@/utils/constant/metadata";
+import { convertJobTitleToBackend } from "@/utils/constant/metadata";
 import { SuccessModal } from "@/components/modal";
 
 interface Props {
@@ -62,8 +62,8 @@ export function InstantReplacementForm({ onBack }: Props) {
     physicalInterview: "Yes",
     description: "",
     status: "DRAFT",
-    numberOfHires: "5",
-    amountPerHire: "50$",
+    numberOfHires: "",
+    amountPerHire: "",
     fromDate: undefined,
     tillDate: undefined,
     checkInTime: "07:30",
@@ -86,54 +86,56 @@ export function InstantReplacementForm({ onBack }: Props) {
     e.preventDefault();
 
     if (!formData.fromDate || !formData.tillDate) {
-      setError("From Date and Till Date are required");
+      setError("Shift Start Date and Shift End Date are required");
       return;
     }
 
-    // ✅ Bug 1 fix — compare date parts only, same day is allowed
     const fromDay = new Date(formData.fromDate).setHours(0, 0, 0, 0);
     const tillDay = new Date(formData.tillDate).setHours(0, 0, 0, 0);
     if (tillDay < fromDay) {
-      setError("Till Date cannot be before From Date");
+      setError("Shift End Date cannot be before Shift Start Date");
       return;
     }
-
+console.log("⏰ checkInTime:", formData.checkInTime, "checkOutTime:", formData.checkOutTime);
     setIsSubmitting(true);
     setError(null);
 
     try {
       const backendData: JobCreatePayload = {
-        job_title: convertJobTitleToBackend(formData.jobTitle),
-        // ✅ Bug 4 fix — keep job_type (backend requires it), label overridden on frontend
-        job_type: convertJobTypeToBackend(formData.jobType),
-        department: formData.department || null,
-        street: formData.streetAddress || null,
-        postal_code: formData.postalCode || null,
-        province: formData.province || null,
-        city: formData.city || null,
-        pay_range_min: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
-        pay_range_max: Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
+        job_title:           convertJobTitleToBackend(formData.jobTitle),
+        job_type:            "casual",
+        department:          formData.department || null,
+        street:              formData.streetAddress || null,
+        postal_code:         formData.postalCode || null,
+        province:            formData.province || null,
+        city:                formData.city || null,
+        neighborhood_name:   formData.neighborhoodName || null,
+        neighborhood_type:   formData.neighborhoodType || null,
+        direct_number:       formData.directNumber || null,
+        // amountPerHire is plain text "50" — strip non-numeric chars just in case
+        pay_range_min:       Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
+        pay_range_max:       Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
         years_of_experience: null,
-        qualifications: null,
-        specializations: null,
-        job_urgency: "instant",
-        ai_interview: false,
+        qualifications:      null,
+        specializations:     null,
+        job_urgency:         "instant",
+        ai_interview:        false,
         in_person_interview: true,
-        physical_interview: true,
-        description: formData.description || null,
-        questions: null,
-        status: "DRAFT",
-        no_of_hires: formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
-        start_date: formatDateForBackend(formData.fromDate),
-        end_date: formatDateForBackend(formData.tillDate),
-        check_in_time: formData.checkInTime ?? null,
-        check_out_time: formData.checkOutTime ?? null,
+        physical_interview:  true,
+        description:         formData.description || null,
+        questions:           null,
+        status:              "DRAFT",
+        no_of_hires:         formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
+        start_date:          formatDateForBackend(formData.fromDate),
+        end_date:            formatDateForBackend(formData.tillDate),
+        check_in_time:  formData.fromTime ?? null,
+        check_out_time: formData.toTime   ?? null,
       };
 
       const response = await createJob(backendData);
 
       if (response.success) {
-        sessionStorage.setItem("createdJobId", response.data.job.id);
+        sessionStorage.setItem("createdJobId", response.data.id);
         setShowSuccessModal(true);
       } else {
         setError(response.message || "Failed to create instant replacement");
@@ -167,14 +169,14 @@ export function InstantReplacementForm({ onBack }: Props) {
 
       <JobForm
         mode="create"
-        title="Create Instant job post"
+        title="Request Immediate Staff"
         formData={formData}
         updateFormData={updateFormData}
         onSubmit={handleSubmit}
         onBack={onBack}
         showBackButton={!!onBack}
         showNextButton={!isSubmitting}
-        nextLabel={isSubmitting ? "Posting..." : "Post"}
+        nextLabel={isSubmitting ? "Submitting..." : "Submit Request"}
         hideRequirements={true}
         hideInterviewSettings={true}
         customSections={

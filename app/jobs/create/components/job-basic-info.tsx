@@ -39,12 +39,12 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
   const [showToTimePicker, setShowToTimePicker] = useState(false);
 
   const formatDate = (date?: Date | string) => {
-    if (!date) return "DD/MM/YYYY";
+    if (!date) return "MM/DD/YYYY";
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) return "DD/MM/YYYY";
-    return dateObj.toLocaleDateString("en-GB", {
-      day: "2-digit",
+    if (isNaN(dateObj.getTime())) return "MM/DD/YYYY";
+    return dateObj.toLocaleDateString("en-US", {
       month: "2-digit",
+      day: "2-digit",
       year: "numeric",
     });
   };
@@ -62,7 +62,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
     <>
       <div className="space-y-6 mb-6">
 
-        {/* Department & Job Title */}
+        {/* Row 1: Department & Job Title / Job Role */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="department" className="text-sm font-medium text-gray-700">
@@ -73,7 +73,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
               onValueChange={(value) => updateFormData({ department: value })}
             >
               <SelectTrigger id="department" className="w-full border-[#F4781B] focus:ring-[#F4781B] h-11">
-                <SelectValue placeholder="Select a department" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
                 {DEPARTMENTS.map((dept) => (
@@ -86,15 +86,15 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="job-title" className="text-sm font-medium text-gray-700">
-              Job Title <span className="text-red-500">*</span>
+            <Label className="text-sm font-medium text-gray-700">
+              {isInstant ? "Job Role" : "Job Title"} <span className="text-red-500">*</span>
             </Label>
             <Select
               value={formData.jobTitle}
               onValueChange={(value) => updateFormData({ jobTitle: value })}
             >
               <SelectTrigger id="job-title" className="w-full border-[#F4781B] focus:ring-[#F4781B] h-11">
-                <SelectValue placeholder="Nurse" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
                 {JOB_TITLES.map((title) => (
@@ -107,16 +107,16 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
         </div>
 
-        {/* Number of Hires + From Date + Till Date — hidden entirely for instant */}
+        {/* Row 2: Normal only — Requirements + Job Type & Interview */}
         {!isInstant && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
-                Number of hires for this position <span className="text-red-500">*</span>
+                Requirements For This Position <span className="text-red-500">*</span>
               </Label>
               <Input
                 type="number"
-                value={formData.numberOfHires || "5"}
+                value={formData.numberOfHires || ""}
                 onChange={(e) => updateFormData({ numberOfHires: e.target.value })}
                 placeholder="5"
                 className="h-11"
@@ -124,88 +124,129 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">From Date</Label>
-              <button
-                type="button"
-                onClick={() => setShowCalendar1(true)}
-                className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-              >
-                <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
-                <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-              </button>
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Job Type <span className="text-red-500">*</span>
+                </Label>
+                <RadioGroup
+                  value={formData.jobType}
+                  onValueChange={(value) => updateFormData({ jobType: value })}
+                  className="flex gap-4 pt-2"
+                >
+                  {["Part Time", "Full Time"].map((type) => (
+                    <div key={type} className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value={type}
+                        id={type.toLowerCase().replace(" ", "-")}
+                        className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
+                      />
+                      <Label
+                        htmlFor={type.toLowerCase().replace(" ", "-")}
+                        className="font-normal cursor-pointer text-sm text-gray-700"
+                      >
+                        {type === "Full Time" ? "Full-Time" : type}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Till Date</Label>
-              <button
-                type="button"
-                onClick={() => setShowCalendar2(true)}
-                className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
-              >
-                <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
-                <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-              </button>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">
+                  Do you admire to have Interview? <span className="text-red-500">*</span>
+                </Label>
+                <RadioGroup
+                  value={formData.inPersonInterview}
+                  onValueChange={(value) => updateFormData({ inPersonInterview: value })}
+                  className="flex gap-4 pt-2"
+                >
+                  {["Yes", "No"].map((opt) => (
+                    <div key={opt} className="flex items-center space-x-2">
+                      <RadioGroupItem
+                        value={opt}
+                        id={`interview-${opt.toLowerCase()}`}
+                        className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
+                      />
+                      <Label
+                        htmlFor={`interview-${opt.toLowerCase()}`}
+                        className="font-normal cursor-pointer text-sm text-gray-700"
+                      >
+                        {opt}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Job Type + From Time + To Time — hidden entirely for instant */}
-{!isInstant && (
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div className="space-y-2 md:col-span-2">
-      <Label className="text-sm font-medium text-gray-700">
-        Job Type <span className="text-red-500">*</span>
-      </Label>
-      <RadioGroup
-        value={formData.jobType}
-        onValueChange={(value) => updateFormData({ jobType: value })}
-        className="flex gap-6 pt-1"
-      >
-        {["Part Time", "Full Time",].map((type) => (
-          <div key={type} className="flex items-center space-x-2">
-            <RadioGroupItem
-              value={type}
-              id={type.toLowerCase().replace(" ", "-")}
-              className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
-            />
-            <Label
-              htmlFor={type.toLowerCase().replace(" ", "-")}
-              className="font-normal cursor-pointer text-sm text-gray-700"
-            >
-              {type === "Full Time" ? "Full-Time" : type}
+        {/* Row 3: Start Date & End Date — both */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {isInstant ? "Shift Start Date" : "Job Start Date"} <span className="text-red-500">*</span>
             </Label>
+            <button
+              type="button"
+              onClick={() => setShowCalendar1(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
+              <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
+              <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            </button>
           </div>
-        ))}
-      </RadioGroup>
-    </div>
 
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-gray-700">
-        From Time <span className="text-red-500">*</span>
-      </Label>
-      <button type="button" onClick={() => setShowFromTimePicker(true)} className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
-        <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
-        <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-      </button>
-    </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {isInstant ? "Shift End Date" : "Job End Date"} <span className="text-red-500">*</span>
+            </Label>
+            <button
+              type="button"
+              onClick={() => setShowCalendar2(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
+              <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
+              <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            </button>
+          </div>
+        </div>
 
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-gray-700">
-        To Time <span className="text-red-500">*</span>
-      </Label>
-      <button type="button" onClick={() => setShowToTimePicker(true)} className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
-        <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
-        <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-      </button>
-    </div>
-  </div>
-)}
+        {/* Row 4: Check-In & Check-Out Time — both */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {isInstant ? "Shift Check-In Time" : "Job Check-In Time"} <span className="text-red-500">*</span>
+            </Label>
+            <button
+              type="button"
+              onClick={() => setShowFromTimePicker(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
+              <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
+              <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {isInstant ? "Shift Check-Out Time" : "Job Check-Out Time"} <span className="text-red-500">*</span>
+            </Label>
+            <button
+              type="button"
+              onClick={() => setShowToTimePicker(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
+              <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
+              <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            </button>
+          </div>
+        </div>
 
       </div>
 
-      {/* Modals — only mount when not instant */}
-      {!isInstant && showCalendar1 && (
+      {showCalendar1 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
             selectedDate={formData.fromDate}
@@ -217,7 +258,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
         </div>
       )}
 
-      {!isInstant && showCalendar2 && (
+      {showCalendar2 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomCalendar
             selectedDate={formData.tillDate}
@@ -229,7 +270,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
         </div>
       )}
 
-      {!isInstant && showFromTimePicker && (
+      {showFromTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomTimePicker
             selectedTime={formData.fromTime}
@@ -240,7 +281,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
         </div>
       )}
 
-      {!isInstant && showToTimePicker && (
+      {showToTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <CustomTimePicker
             selectedTime={formData.toTime}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,133 +10,95 @@ import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
+import type { JobCreatePayload } from "@/Interface/job.types";
 
 interface Props {
+  pendingPayload: JobCreatePayload;   // ← full payload from step 1
   onBack?: () => void;
-  onCreate?: (topics: Topic[]) => void;
 }
 
-export function GenerateAIForm({ onBack, onCreate }: Props) {
-  const router = useRouter();
+export function GenerateAIForm({ pendingPayload, onBack }: Props) {
+  const router    = useRouter();
+  const createJob = useJobsStore((state) => state.createJob);
   const setHasJobs = useJobsStore((state) => state.setHasJobs);
-  const updateJob = useJobsStore((state) => state.updateJob);
-  const [topics, setTopics] = useState<Topic[]>(DEFAULT_TOPICS);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Get job ID from sessionStorage (created in step 1)
-  useEffect(() => {
-    const storedJobId = sessionStorage.getItem('createdJobId');
-    if (storedJobId) {
-      setJobId(storedJobId);
-    }
-  }, []);
+  const [topics, setTopics]             = useState<Topic[]>(DEFAULT_TOPICS);
+  const [showSuccess, setShowSuccess]   = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError]               = useState<string | null>(null);
 
   const addQuestion = (topicId: string) => {
-    setTopics((prevTopics) =>
-      prevTopics.map((topic) =>
+    setTopics((prev) =>
+      prev.map((topic) =>
         topic.id === topicId
-          ? {
-              ...topic,
-              questions: [
-                ...topic.questions,
-                {
-                  id: `${topicId}-${topic.questions.length + 1}`,
-                  text: "",
-                },
-              ],
-            }
+          ? { ...topic, questions: [...topic.questions, { id: `${topicId}-${topic.questions.length + 1}`, text: "" }] }
           : topic
       )
     );
   };
 
   const removeQuestion = (topicId: string, questionId: string) => {
-    setTopics((prevTopics) =>
-      prevTopics.map((topic) =>
+    setTopics((prev) =>
+      prev.map((topic) =>
         topic.id === topicId
-          ? {
-              ...topic,
-              questions: topic.questions.filter((q) => q.id !== questionId),
-            }
+          ? { ...topic, questions: topic.questions.filter((q) => q.id !== questionId) }
           : topic
       )
     );
   };
 
   const updateQuestion = (topicId: string, questionId: string, text: string) => {
-    setTopics((prevTopics) =>
-      prevTopics.map((topic) =>
+    setTopics((prev) =>
+      prev.map((topic) =>
         topic.id === topicId
-          ? {
-              ...topic,
-              questions: topic.questions.map((q) =>
-                q.id === questionId ? { ...q, text } : q
-              ),
-            }
+          ? { ...topic, questions: topic.questions.map((q) => q.id === questionId ? { ...q, text } : q) }
           : topic
       )
     );
   };
 
-  // Convert topics to backend questions format
-  const convertQuestionsToBackendFormat = (topics: Topic[]): Record<string, { title: string; questions: string[] }> => {
-  const questionsObject: Record<string, { title: string; questions: string[] }> = {};
-  
-  topics.forEach((topic) => {
-    questionsObject[topic.id] = {
-      title: topic.title,
-      questions: topic.questions.map(q => q.text).filter(text => text.trim() !== ''),
-    };
-  });
-  
-  return questionsObject;
+  const convertQuestionsToBackendFormat = (topics: Topic[]): string[] => {
+  return topics
+    .flatMap((topic) => topic.questions.map((q) => q.text))
+    .filter((text) => text.trim() !== "");
 };
 
-  const handleSave = async () => {
-    if (!jobId) {
-      setError("Job ID not found. Please go back and create the job first.");
-      return;
-    }
-
+  const handleSave = async (withStatusOpen = false) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setError(null);
 
     try {
       const questionsData = convertQuestionsToBackendFormat(topics);
-      
-      // Update job with questions and change status to published
-      const response = await updateJob(jobId, {
+
+      // ✅ Single POST — merge questions + status into the original payload
+      const finalPayload: JobCreatePayload = {
+        ...pendingPayload,
         questions: questionsData,
-        status: 'OPEN', // Publish the job {I WANNA CHECK THIS !}
-      });
+        status: withStatusOpen ? "OPEN" : "DRAFT",
+        ai_interview: true,
+      };
+
+      console.log("📤 Final payload to backend:", JSON.stringify(finalPayload, null, 2));
+
+      const response = await createJob(finalPayload);
 
       if (response.success) {
         setShowSuccess(true);
-        // Clear stored job ID
-        sessionStorage.removeItem('createdJobId');
       } else {
-        setError(response.message || "Failed to update job with questions");
+        setError(response.message || "Failed to create job");
       }
     } catch (err) {
-  const error = err as Error;
-  console.error("Error updating job:", error);
-  setError(error.message || "An error occurred while saving questions");
-} finally {
+      const error = err as Error;
+      console.error("Error creating job:", error);
+      setError(error.message || "An error occurred while saving");
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCreate = async () => {
-    if (onCreate) onCreate(topics);
-    await handleSave();
-  };
-
   const handleSuccessDone = () => {
     setShowSuccess(false);
-    // Set flag to show dashboard instead of empty state
     setHasJobs(true);
     router.push("/jobs");
   };
@@ -152,7 +114,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
         <TopActionBar
           title={PAGE_TITLES.CREATE_JOB}
           onBack={onBack}
-          onPrimary={handleSave}
+          onPrimary={() => handleSave(false)}
           primaryLabel={isSubmitting ? "Saving..." : BUTTON_LABELS.SAVE_AND_CONTINUE}
         />
 
@@ -168,12 +130,8 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
                   key={topic.id}
                   topic={topic}
                   onAddQuestion={() => addQuestion(topic.id)}
-                  onRemoveQuestion={(questionId) =>
-                    removeQuestion(topic.id, questionId)
-                  }
-                  onUpdateQuestion={(questionId, text) =>
-                    updateQuestion(topic.id, questionId, text)
-                  }
+                  onRemoveQuestion={(questionId) => removeQuestion(topic.id, questionId)}
+                  onUpdateQuestion={(questionId, text) => updateQuestion(topic.id, questionId, text)}
                 />
               ))}
             </div>
@@ -193,7 +151,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
             <Button
               type="button"
               variant="ghost"
-              onClick={handleCreate}
+              onClick={() => handleSave(true)}
               disabled={isSubmitting}
               className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm order-1 sm:order-2"
             >
@@ -202,6 +160,7 @@ export function GenerateAIForm({ onBack, onCreate }: Props) {
           </div>
         </div>
       </div>
+
       <SuccessModal
         visible={showSuccess}
         onClose={handleSuccessDone}

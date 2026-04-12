@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, Search} from "lucide-react";
+import { X } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -15,11 +13,9 @@ import {
 import metadata from "@/utils/constant/metadata";
 import type { JobFormData } from "@/Interface/job.types";
 
-const PAY_RANGE_MIN = metadata.pay_range.min;
-const PAY_RANGE_MAX = metadata.pay_range.max;
-const PAY_RANGE_STEP = metadata.pay_range.step;
 const EXPERIENCE_MIN = 0;
 const EXPERIENCE_MAX = 20;
+const QUALIFICATIONS  = metadata.qualification;   // ✅ from metadata
 const SPECIALIZATIONS = metadata.specialization;
 
 interface JobRequirementsProps {
@@ -27,23 +23,10 @@ interface JobRequirementsProps {
   updateFormData: (updates: Partial<JobFormData>) => void;
 }
 
-export function JobRequirements({
-  formData,
-  updateFormData,
-}: JobRequirementsProps) {
-  const [qualificationInput, setQualificationInput] = useState("");
-
+export function JobRequirements({ formData, updateFormData }: JobRequirementsProps) {
   const experienceValue = formData.experience
     ? parseInt(formData.experience.split("-")[0]) || 4
     : 4;
-
-  const addQualificationTag = (value: string) => {
-    if (value.trim() && !formData.qualification.includes(value.trim())) {
-      updateFormData({
-        qualification: [...formData.qualification, value.trim()],
-      });
-    }
-  };
 
   const removeTag = (
     field: "qualification" | "specialization",
@@ -54,13 +37,12 @@ export function JobRequirements({
     });
   };
 
-  const handleQualificationKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Enter" && qualificationInput.trim()) {
-      e.preventDefault();
-      addQualificationTag(qualificationInput);
-      setQualificationInput("");
+  // ✅ Add qualification from dropdown — prevent duplicates
+  const handleQualificationSelect = (value: string) => {
+    if (value && !formData.qualification.includes(value)) {
+      updateFormData({
+        qualification: [...formData.qualification, value],
+      });
     }
   };
 
@@ -79,19 +61,22 @@ export function JobRequirements({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Pay Range */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium text-gray-700">Pay Range</Label>
+          <Label className="text-sm font-medium text-gray-700">
+            Fixed Hourly Pay per Hire
+          </Label>
           <div className="space-y-4 pt-2">
-            <div className="flex justify-between text-sm text-gray-600 font-medium">
-              <span>$ {formData.payRange[0].toLocaleString()}</span>
-              <span>$ {formData.payRange[1].toLocaleString()}</span>
+            <div className="flex justify-center text-sm text-gray-600 font-medium">
+              <span className="bg-gray-100 px-3 py-1 rounded-md">
+                CAD ${formData.payRange[0]}
+              </span>
             </div>
             <Slider
-              min={PAY_RANGE_MIN}
-              max={PAY_RANGE_MAX}
-              step={PAY_RANGE_STEP}
-              value={formData.payRange}
+              min={0}
+              max={100}
+              step={1}
+              value={[formData.payRange[0]]}
               onValueChange={(value) =>
-                updateFormData({ payRange: value as [number, number] })
+                updateFormData({ payRange: [value[0], value[0]] as [number, number] })
               }
               className="w-full"
             />
@@ -113,7 +98,7 @@ export function JobRequirements({
               step={1}
               value={[experienceValue]}
               onValueChange={(value) =>
-                updateFormData({ experience: `${value[0]}-${10}` })
+                updateFormData({ experience: `${value[0]}-${value[0] + 1}` })
               }
               className="w-full"
             />
@@ -121,25 +106,44 @@ export function JobRequirements({
         </div>
       </div>
 
-      {/* Additional Qualification & Specialization */}
+      {/* Qualification & Specialization */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Additional Qualification — keep as free-text input */}
+
+        {/* ✅ Qualification — now a dropdown like specialization */}
         <div className="space-y-3">
           <Label htmlFor="qualification" className="text-sm font-medium text-gray-700">
             Additional Qualification <span className="text-red-500">*</span>
           </Label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
+
+          <Select value="" onValueChange={handleQualificationSelect}>
+            <SelectTrigger
               id="qualification"
-              type="text"
-              value={qualificationInput}
-              onChange={(e) => setQualificationInput(e.target.value)}
-              onKeyDown={handleQualificationKeyDown}
-              placeholder="Type and press Enter to add"
-              className="pl-10 h-11 border-[#F4781B] focus:ring-[#F4781B]"
-            />
-          </div>
+              className="h-11 border-[#F4781B] focus:ring-[#F4781B] w-full"
+            >
+              <div className="flex items-center gap-2 text-gray-500">
+                <span className="text-sm">Select qualification</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {QUALIFICATIONS.map((qual) => {
+                const alreadyAdded = formData.qualification.includes(qual);
+                return (
+                  <SelectItem
+                    key={qual}
+                    value={qual}
+                    disabled={alreadyAdded}
+                    className={alreadyAdded ? "opacity-40 cursor-not-allowed" : ""}
+                  >
+                    {qual}
+                    {alreadyAdded && (
+                      <span className="ml-2 text-xs text-gray-400">✓ Added</span>
+                    )}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+
           <div className="flex flex-wrap gap-2">
             {formData.qualification && formData.qualification.length > 0 ? (
               formData.qualification.map((tag) => (
@@ -160,28 +164,24 @@ export function JobRequirements({
               ))
             ) : (
               <p className="text-xs text-gray-500">
-                No qualifications added yet. Press Enter to add.
+                No qualifications added yet. Select from the dropdown.
               </p>
             )}
           </div>
         </div>
 
-        {/* Specialization — dropdown from metadata */}
+        {/* Specialization — dropdown from metadata (unchanged) */}
         <div className="space-y-3">
           <Label htmlFor="specialization" className="text-sm font-medium text-gray-700">
             Specialization <span className="text-red-500">*</span>
           </Label>
 
-          <Select
-            value=""
-            onValueChange={handleSpecializationSelect}
-          >
+          <Select value="" onValueChange={handleSpecializationSelect}>
             <SelectTrigger
               id="specialization"
               className="h-11 border-[#F4781B] focus:ring-[#F4781B] w-full"
             >
               <div className="flex items-center gap-2 text-gray-500">
-                
                 <span className="text-sm">Select specialization</span>
               </div>
             </SelectTrigger>
@@ -205,14 +205,13 @@ export function JobRequirements({
             </SelectContent>
           </Select>
 
-          {/* Selected specialization tags */}
           <div className="flex flex-wrap gap-2">
             {formData.specialization && formData.specialization.length > 0 ? (
               formData.specialization.map((tag) => (
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="  border px-3 py-1.5 text-sm rounded-md"
+                  className="border px-3 py-1.5 text-sm rounded-md"
                 >
                   {tag}
                   <button

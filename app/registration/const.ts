@@ -4,11 +4,13 @@ import { z } from "zod";
 export const orgSchema = z.object({
   organization_photo: z.any().optional(),
   orgName: z.string().min(1, "Organization Name is required"),
+  registeredBusinessName: z.string().optional(),
   orgType: z.string().min(1, "Organization Type is required"),
   email: z.string().email({ message: "Invalid email" }),
   contactNumber: z.string().min(1, "Contact Number is required"),
   website: z.string().min(1, "Website is required"),
   businessNumber: z.string().min(1, "Business Number is required"),
+  gstNo: z.string().optional(),
   address: z.string().min(1, "Street Address is required"),
   postalCode: z.string().min(1, "Postal Code is required"),
   city: z.string().min(1, "City is required"),
@@ -24,10 +26,9 @@ export const contactSchema = z.object({
 });
 
 export const complianceSchema = z.object({
-  operatingLicense: z.any().optional(),
-  accreditationCertificate: z.any().optional(),
-  provincialLicense: z.any().optional(),
-  canadaCertificate: z.any().optional(),
+  business_registration_certificate: z.any(),           // required at step 3
+  operating_license:                 z.any().optional(),
+  certificate:                       z.any().optional(),
 });
 
 // Types
@@ -43,11 +44,13 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
   {
     organization_photo: null,
     orgName: "",
+    registeredBusinessName:  "",
     orgType: "",
     email: "",
     contactNumber: "",
     website: "",
     businessNumber: "",
+    gstNo: "",
     address: "",
     postalCode: "",
     city: "",
@@ -61,14 +64,27 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
     contactEmail: "",
   },
   {
-    operatingLicense: null,
-    accreditationCertificate: null,
-    provincialLicense: null,
-    canadaCertificate: null,
-  },
+  business_registration_certificate: null,
+  operating_license:                 null,
+  certificate:                       null,
+}
+
 ];
 
 export const complianceFields = [
-  { label: "Business Registration",            name: "businessRegistration" },
-  { label: "Operating License",    name: "operatingLicense" },
+  {
+    name: "business_registration_certificate",  // ← was "businessRegistration"
+    label: "Business Registration Certificate",
+    required: true,
+  },
+  {
+    name: "operating_license",                  // ← this one was already correct
+    label: "Operating License",
+    required: false,
+  },
+  {
+    name: "certificate",                        // ← was "accreditationCertificate" / "provincialLicense" etc.
+    label: "Other Certificate",
+    required: false,
+  },
 ];

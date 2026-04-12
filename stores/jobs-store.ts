@@ -135,6 +135,9 @@ export const useJobsStore = create<JobsStore>()(
       },
 
       updateJob: async (jobId, jobData) => {
+        console.log("🔥 updateJob called — jobId:", jobId);  // ← add this
+  console.log("🔥 endpoint:", ENDPOINTS.JOBS_UPDATE(jobId)); // ← add this
+  set({ isLoading: true, error: null });
         set({ isLoading: true, error: null });
         try {
           const response = await axiosInstance.patch<JobUpdateResponse>(ENDPOINTS.JOBS_UPDATE(jobId), jobData);

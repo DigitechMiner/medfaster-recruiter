@@ -10,27 +10,38 @@ import metadata, {
   convertJobTitleToBackend,
   convertJobTypeToBackend,
   convertSpecializationToBackend,
+  convertQualificationToBackend,
+  convertExperienceToBackend,
+  convertProvinceToJobBackend,
 } from "@/utils/constant/metadata";
-import { provinces } from "@/utils/constant/metadata";
 
 interface Props {
   urgencyMode: "normal" | "instant";
-  onNext?: () => void;
+  onNext?: (payload: JobCreatePayload) => void;  // ← changed: passes payload, not jobId
   onBack?: () => void;
 }
 
-export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
-  const createJob = useJobsStore((state) => state.createJob);
+const formatDateForBackend = (date?: Date): string | null => {
+  if (!date) return null;
+  const year  = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day   = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
+export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   const [formData, setFormData] = useState<JobFormData>({
     ...DEFAULT_JOB_FORM_DATA,
-    urgency: urgencyMode,
-    aiInterview: "Yes",
-    status: "DRAFT",
+    urgency:           urgencyMode,
+    aiInterview:       "Yes",
+    inPersonInterview: "Yes",
+    status:            "DRAFT",
+    fromTime:          "07:30",
+    toTime:            "07:30",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]               = useState<string | null>(null);
 
   const updateFormData = (updates: Partial<JobFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -40,91 +51,94 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     const isNormalJob = urgencyMode === "normal";
 
     const payload: Partial<JobCreatePayload> = {
-      // ✅ Use converter — sends "registered_nurse" not "Registered Nurse"
-      job_title:  convertJobTitleToBackend(data.jobTitle),
-
-      department: 'nursing',
-
-      // ✅ Use converter — sends "full_time" not "Full Time"
-      job_type:   convertJobTypeToBackend(data.jobType),
-
-      // Location
+      job_title:   convertJobTitleToBackend(data.jobTitle),
+      department:  data.department || null,
+      job_type:    isNormalJob ? convertJobTypeToBackend(data.jobType) : "casual",
       street:      data.streetAddress || null,
       postal_code: data.postalCode    || null,
-      province: data.province || null,
-      city:        data.city          || null,
-
-      // Pay range
+      province:    convertProvinceToJobBackend(data.province),
+      city:        data.city || null,
       pay_range_min: data.payRange[0] || null,
-      pay_range_max: data.payRange[1],
-
-      // ✅ Already correct — urgencyMode comes in as "normal"/"instant"
+      pay_range_max: data.payRange[1] || null,
       job_urgency: urgencyMode,
-
-      // Interview settings
       in_person_interview: data.inPersonInterview === "Yes",
-      physical_interview:  data.physicalInterview  === "Yes",
-
+      physical_interview:  data.physicalInterview === "Yes",
       description: data.description || null,
       questions:   null,
-      status:      data.status || "DRAFT",
+      status:      "DRAFT",
       no_of_hires: data.numberOfHires ? parseInt(data.numberOfHires) : null,
+      start_date:     formatDateForBackend(data.fromDate),
+      end_date:       formatDateForBackend(data.tillDate),
+      check_in_time:  data.fromTime || null,
+      check_out_time: data.toTime   || null,
     };
 
     if (isNormalJob) {
-      if (data.experience) {
-        payload.years_of_experience = data.experience;
-      }
+      payload.years_of_experience = convertExperienceToBackend(data.experience);
 
       if (data.qualification?.length > 0) {
-  payload.qualifications = data.qualification
-    .filter((q) => q.trim() !== "")
-    .map((q) => metadata.qualification_mapping[q as keyof typeof metadata.qualification_mapping] ?? q.toLowerCase());
-}
-
-
-      if (data.specialization?.length > 0) {
-        // ✅ Use converter — sends "geriatric_care" not "Geriatric Care"
-        payload.specializations = data.specialization
-          .filter((s) => s.trim() !== "")
-          .map(convertSpecializationToBackend);
+        const mapped = data.qualification
+          .filter((q) => q && q.trim() !== "")
+          .map((q) => convertQualificationToBackend(q))
+          .filter((q) => Object.values(metadata.qualification_mapping).includes(q));
+        if (mapped.length > 0) payload.qualifications = mapped;
       }
 
-      payload.ai_interview = data.aiInterview === "Yes";
-    } else {
-      if (data.fromDate) payload.start_date = data.fromDate.toISOString();
-      if (data.tillDate) payload.end_date   = data.tillDate.toISOString();
-      payload.check_in_time  = data.fromTime || null;
-      payload.check_out_time = data.toTime   || null;
-    }// create-job-form.tsx — in convertToBackendFormat, just before return
-console.log("province raw:", data.province)
-console.log("province converted:", provinces.find(p => p.label === data.province)?.value ?? data.province ?? null)
+      if (data.specialization?.length > 0) {
+        const mapped = data.specialization
+          .filter((s) => s && s.trim() !== "")
+          .map(convertSpecializationToBackend)
+          .filter((s) => Object.values(metadata.specialization_mapping).includes(s));
+        if (mapped.length > 0) payload.specializations = mapped;
+      }
 
+      payload.ai_interview = false;
+      payload.questions    = null;
+    } else {
+      payload.years_of_experience = null;
+      payload.qualifications      = [];
+      payload.specializations     = [];
+      payload.ai_interview        = false;
+    }
 
     return payload as JobCreatePayload;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (urgencyMode === "normal") {
+      const validQuals = formData.qualification?.filter((q) => q?.trim()) ?? [];
+      const validSpecs = formData.specialization?.filter((s) => s?.trim()) ?? [];
+
+      if (validQuals.length === 0) {
+        setError("Please add at least one qualification");
+        return;
+      }
+      if (validSpecs.length === 0) {
+        setError("Please add at least one specialization");
+        return;
+      }
+
+      const invalidQuals = validQuals.filter(
+        (q) => !Object.keys(metadata.qualification_mapping).includes(q)
+      );
+      if (invalidQuals.length > 0) {
+        setError(`Invalid qualification(s): ${invalidQuals.join(", ")}. Please select from the dropdown.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
       const backendData = convertToBackendFormat(formData);
-      console.log("📤 Sending to backend:", JSON.stringify(backendData, null, 2));
-
-      const response = await createJob(backendData);
-
-      if (response.success) {
-        sessionStorage.setItem("createdJobId", response.data.job.id);
-        if (onNext) onNext();
-      } else {
-        setError(response.message || "Failed to create job");
-      }
+      // ✅ No API call here — just pass payload up to page.tsx
+      if (onNext) onNext(backendData);
     } catch (err) {
       const error = err as Error;
-      console.error("Error creating job:", error);
-      setError(error.message || "An error occurred while creating the job");
+      setError(error.message || "An error occurred");
     } finally {
       setIsSubmitting(false);
     }
@@ -139,7 +153,7 @@ console.log("province converted:", provinces.find(p => p.label === data.province
       )}
       <JobForm
         mode="create"
-        title="Create Regular Job Post"
+        title={urgencyMode === "instant" ? "Create Instant Job Post" : "Create Regular Job Post"}
         formData={formData}
         updateFormData={updateFormData}
         onSubmit={handleSubmit}

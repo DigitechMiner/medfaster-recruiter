@@ -179,13 +179,10 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
             Specialization :
           </Heading>
           <div className="flex flex-wrap gap-2">
-            {normalJob.specializations.map((spec) => (
-              <span
-                key={spec}
-                className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium"
-              >
-                {convertSpecializationToFrontend(spec)}
-              </span>
+           {normalJob.specializations.map((spec) => (
+            <span key={spec} className="px-3 py-2 bg-[#FAFAFA] text-xs rounded-sm border-2 font-medium">
+              {convertSpecializationToFrontend(String(spec))}
+            </span>
             ))}
           </div>
         </div>
