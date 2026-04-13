@@ -48,7 +48,7 @@ function CandidateGridCard({ candidate: c }: { candidate: typeof DUMMY_CANDIDATE
       <div className="flex gap-2 pb-1 -mt-2" style={{ alignItems: 'flex-start' }}>
 
         {/* Avatar */}
-        <div className="w-16 h-16 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-orange-100 mb-1">
+        <div className="relative w-16 h-16 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-orange-100 mb-1">
           {c.avatar ? (
             <Image src={c.avatar} alt={c.name} fill className="object-cover" />
           ) : (

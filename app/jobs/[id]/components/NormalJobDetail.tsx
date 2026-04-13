@@ -313,9 +313,9 @@ function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candida
             <tr key={c.id} className="border-b border-gray-50 hover:bg-orange-50/20 transition-colors">
               <td className="px-4 py-3.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 overflow-hidden flex-shrink-0">
-                    <Image src={c.avatar} alt={c.name} fill className="object-cover" />
-                  </div>
+                  <div className="relative w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 overflow-hidden flex-shrink-0">
+  <Image src={c.avatar} alt={c.name} fill className="object-cover" />
+</div>
                   <div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-gray-900">{c.name}</span>

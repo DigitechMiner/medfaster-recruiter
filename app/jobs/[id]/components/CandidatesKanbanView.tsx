@@ -209,7 +209,7 @@ function CandidateCard({ candidate: c, colKey }: { candidate: Candidate; colKey:
 
       {/* Row 2: Avatar + Name/Role */}
       <div className="flex items-center gap-2">
-        <div className="w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden border border-orange-100">
+        <div className="relative w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden border border-orange-100">
           {c.avatar
             ? <Image src={c.avatar} alt={c.name} fill className="object-cover" />
             : <span className="w-full h-full flex items-center justify-center text-orange-300 text-xl">👤</span>
