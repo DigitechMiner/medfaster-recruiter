@@ -13,11 +13,11 @@ import { provinces } from "@/utils/constant/metadata";
 import type { JobFormData } from "@/Interface/job.types";
 
 const NEIGHBOURHOOD_TYPES = [
-  { value: "residential", label: "Residential" },
-  { value: "commercial", label: "Commercial" },
-  { value: "industrial", label: "Industrial" },
-  { value: "mixed_use", label: "Mixed Use" },
-  { value: "rural", label: "Rural" },
+  { value: "independent_living", label: "Independent Living" },
+  { value: "assisted_living", label: "Assisted Living" },
+  { value: "dementia_or_memory_care", label: "Dementia / Memory Care" },
+  { value: "complex_dementia_care", label: "Complex Dementia Care" },
+  { value: "adult_mental_health", label: "Adult Mental Health" },
 ];
 
 interface InstantJobFormData extends JobFormData {
@@ -66,7 +66,7 @@ export function InstantJobFields({
             type="text"
             value={formData.amountPerHire || ""}
             onChange={(e) => updateFormData({ amountPerHire: e.target.value })}
-            placeholder="CAD $ 50"
+            placeholder="$ 50"
             className="h-11"
           />
         </div>

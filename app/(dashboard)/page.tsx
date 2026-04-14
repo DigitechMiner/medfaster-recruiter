@@ -81,7 +81,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
           ) : (
             <>
               <MetricCard
-                icon={<BriefcaseBusiness className="w-4 h-4 text-orange-500" />}
+                icon={<BriefcaseBusiness className="w-4 h-4 text-[#F4781B]" />}
                 title="Active Jobs Openings"
                 value={dashboardMetrics.totalOpenJobs}
                 percentChange={0.10}
@@ -90,7 +90,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
                 onClick={() => setSelectedDashboardMetric("openJobs")}
               />
               <MetricCard
-                icon={<Users className="w-4 h-4 text-orange-500" />}
+                icon={<Users className="w-4 h-4 text-[#F4781B]" />}
                 title="Total Candidates in Pipeline"
                 value={dashboardMetrics.totalApplicants}
                 percentChange={1.10}
@@ -99,7 +99,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
                 onClick={() => setSelectedDashboardMetric("applied")}
               />
               <MetricCard
-                icon={<Sparkles className="w-4 h-4 text-orange-500" />}
+                icon={<Sparkles className="w-4 h-4 text-[#F4781B]" />}
                 title="Positions Filled"
                 value={30}
                 percentChange={1.10}
@@ -108,7 +108,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
                 onClick={() => {}}
               />
               <MetricCard
-                icon={<Layers className="w-4 h-4 text-orange-500" />}
+                icon={<Layers className="w-4 h-4 text-[#F4781B]" />}
                 title="Urgent Staffings"
                 value={dashboardMetrics.inInterviewStage}
                 percentChange={2.10}
@@ -128,7 +128,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
           ) : (
             <>
               <MetricCard
-                icon={<Gift className="w-4 h-4 text-orange-500" />}
+                icon={<Gift className="w-4 h-4 text-[#F4781B]" />}
                 title="Total Job Invites Made to Candidates"
                 value={32}
                 percentChange={1.10}
@@ -137,7 +137,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
                 onClick={() => {}}
               />
               <MetricCard
-                icon={<UserCheck className="w-4 h-4 text-orange-500" />}
+                icon={<UserCheck className="w-4 h-4 text-[#F4781B]" />}
                 title="Total Hired"
                 value={dashboardMetrics.hiredThisMonth}
                 percentChange={1.10}
@@ -146,7 +146,7 @@ pendingApprovals: applicationsData?.applications?.filter((a) => a.status === 'AP
                 onClick={() => setSelectedDashboardMetric("hired")}
               />
               <MetricCard
-                icon={<LogOut className="w-4 h-4 text-orange-500" />}
+                icon={<LogOut className="w-4 h-4 text-[#F4781B]" />}
                 title="Rejected"
                 value={16}
                 percentChange={2.10}

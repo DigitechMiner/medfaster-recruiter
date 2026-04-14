@@ -6,18 +6,9 @@ import { ENDPOINTS } from "./api-endpoints";
 // ============================================================================
 
 export type OrganizationType =
-  | 'hospital'
-  | 'clinic'
-  | 'long_term_care'
-  | 'home_care'
-  | 'pharmacy'
-  | 'diagnostic_lab'
-  | 'nursing_home'
-  | 'rehabilitation_center'
-  | 'hospice'
-  | 'mental_health_facility'
-  | 'public_health'
-  | 'other';
+  | 'hospital' | 'clinic' | 'long_term_care' | 'home_care'
+  | 'pharmacy' | 'diagnostic_lab' | 'nursing_home' | 'rehabilitation_center'
+  | 'hospice' | 'mental_health_facility' | 'public_health' | 'other';
 
 export type CanadianProvince =
   | 'AB' | 'BC' | 'MB' | 'NB' | 'NL' | 'NS' | 'NT' | 'NU'
@@ -27,11 +18,13 @@ export interface RecruiterProfile {
   id: string;
   user_id: string;
   organization_name?: string;
+  registered_business_name?: string;
   organization_type?: string;
   official_email_address?: string;
   contact_number?: string;
   organization_website?: string;
   canadian_business_number?: string;
+  gst_no?: string;
   organization_photo_url?: string;
   street_address?: string;
   postal_code?: string;
@@ -48,12 +41,13 @@ export interface RecruiterProfile {
   updated_at: string;
 }
 
+// ✅ Single source of truth — matches actual API response fields
 export interface RecruiterDocument {
   id: string;
   recruiter_profile_id: string;
   document_type: string;
-  document_url: string;
-  verification_status: string;
+  file_url: string;        // ← actual API field
+  status: string;          // ← actual API field
   created_at?: string;
   updated_at?: string;
 }
@@ -67,9 +61,13 @@ export interface UpdateProfileResponse {
   };
 }
 
-export async function getRecruiterProfile() {
+// ============================================================================
+// API FUNCTIONS
+// ============================================================================
+
+export async function getRecruiterProfile(): Promise<RecruiterProfile> {
   const res = await axiosInstance.get(ENDPOINTS.RECRUITER_PROFILE);
-  return (res.data as any).data.profile; // Returns the profile object
+  return (res.data as any).data.profile;
 }
 
 export async function updateRecruiterProfile(
@@ -78,9 +76,7 @@ export async function updateRecruiterProfile(
   const res = await axiosInstance.patch<UpdateProfileResponse>(
     ENDPOINTS.RECRUITER_PROFILE_UPDATE,
     formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return res.data;
 }
@@ -92,9 +88,7 @@ export async function registerRecruiterStep(
   const res = await axiosInstance.post<UpdateProfileResponse>(
     `${ENDPOINTS.RECRUITER_REGISTER}?step=${step}`,
     formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return res.data;
 }

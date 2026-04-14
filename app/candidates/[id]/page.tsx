@@ -1,4 +1,3 @@
-// app/candidates/[id]/page.tsx
 'use client';
 
 import React from "react";
@@ -9,22 +8,17 @@ import { useCandidateDetails } from "@/hooks/useCandidate";
 import { STATIC_CANDIDATE } from "./constants/staticData";
 
 export default function CandidateDetailPage() {
-
-  const router = useRouter();
-  const params = useParams();
+  const router       = useRouter();
+  const params       = useParams();
   const searchParams = useSearchParams();
-  
-  const candidateId = params?.id as string;
-  const jobApplicationId = searchParams.get('job_application_id') || undefined;
-  
-const { candidate, isLoading, error } = useCandidateDetails(candidateId)
 
-  const handleBack = () => {
-    router.push("/candidates");
-  };
+  const candidateId      = params?.id as string;
+  const jobApplicationId = searchParams.get("job_application_id") || undefined;
 
+  const { candidate, isLoading, error } = useCandidateDetails(candidateId);
+  const handleBack = () => router.push("/candidates");
   const displayCandidate = candidate ?? STATIC_CANDIDATE;
-  
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -41,10 +35,7 @@ const { candidate, isLoading, error } = useCandidateDetails(candidateId)
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md mx-auto">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Candidate not found</h1>
-            <button
-              onClick={handleBack}
-              className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
-            >
+            <button onClick={handleBack} className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600">
               Back to Jobs
             </button>
           </div>
@@ -54,14 +45,21 @@ const { candidate, isLoading, error } = useCandidateDetails(candidateId)
   }
 
   return (
-  <AppLayout>
-    <CandidateDetailContent
-      candidate={displayCandidate}   // ✅ real or static fallback
-      status="applied"
-      onBack={handleBack}
-      candidateId={candidateId}
-      jobApplicationId={jobApplicationId}
-    />
-  </AppLayout>
-);
+    <AppLayout>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-xs text-gray-400 px-6 pt-4 pb-0">
+        <a href="/candidates" className="hover:text-gray-700 transition-colors">Candidates</a>
+        <span>/</span>
+        <span className="text-gray-700 font-medium">{candidateId}</span>
+      </nav>
+
+      <CandidateDetailContent
+        candidate={displayCandidate}
+        status="applied"
+        onBack={handleBack}
+        candidateId={candidateId}
+        jobApplicationId={jobApplicationId}
+      />
+    </AppLayout>
+  );
 }

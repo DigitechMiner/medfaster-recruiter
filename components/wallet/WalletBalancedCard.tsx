@@ -20,7 +20,7 @@ export default function WalletBalanceCard({ balanceCAD, isLocked, onWithdraw }: 
       ) : (
         <button
           onClick={onWithdraw}
-          className="mt-3 text-sm font-semibold text-orange-500 underline underline-offset-2"
+          className="mt-3 text-sm font-semibold text-[#F4781B] underline underline-offset-2"
         >
           Instant Withdraw
         </button>

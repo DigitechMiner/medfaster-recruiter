@@ -88,7 +88,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
       <div className="mb-6 gap-4 flex flex-col">
         <div className="flex justify-between items-start">
           <div className="w-20 h-20 rounded-lg border border-gray-200 flex items-center justify-center bg-orange-50 flex-shrink-0">
-            <Building2 className="w-10 h-10 text-orange-500" />
+            <Building2 className="w-10 h-10 text-[#F4781B]" />
           </div>
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium ${

@@ -1,47 +1,42 @@
 'use client'
-import { useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
-import { GenerateAIForm } from "../create/form/generative-ai-form";
 import { InstantReplacementForm } from "../create/form/instant-replacement-form";
+import { JobSummaryPage } from "../create/components/jobs-summary-page";
+import { useJobsStore } from "@/stores/jobs-store";
+import type { JobCreatePayload } from "@/Interface/job.types";
 
 function InstantReplacementContent() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
+  const router = useRouter();
+  const createJob = useJobsStore((s) => s.createJob);
+  const setHasJobs = useJobsStore((s) => s.setHasJobs);
 
-  const step = useMemo(() => {
-    const value = Number(searchParams.get("step") ?? "1");
-    return value === 2 ? 2 : 1;
-  }, [searchParams]);
-
-  const goToStep = (nextStep: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("step", String(nextStep));
-    router.replace(`/jobs/instant-replacement?${params.toString()}`);
-  };
+  const [step, setStep] = useState<1 | 2>(1);
+  const [pendingPayload, setPendingPayload] = useState<JobCreatePayload | null>(null);
 
   return (
     <AppLayout>
       <div className="py-2 md:py-4 lg:py-6">
-        {step === 1 ? (
+        {step === 1 && (
           <InstantReplacementForm
             urgencyMode="instant"
-            onNext={() => goToStep(2)}  // ← back to () => void, no payload
+            onNext={(payload) => { setPendingPayload(payload); setStep(2); }}
             onBack={() => router.push("/jobs")}
           />
-        ) : (
-          <GenerateAIForm
-            onBack={() => goToStep(1)}
-            pendingPayload={{             // ← read from sessionStorage
-              job_title: (() => {
-                try {
-                  const raw = sessionStorage.getItem('instant_replacement_payload');
-                  return raw ? JSON.parse(raw).job_title : '';
-                } catch { return ''; }
-              })(),
-            } as import("@/Interface/job.types").JobCreatePayload}
-          />
         )}
+        {step === 2 && pendingPayload && (
+  <JobSummaryPage
+    mode="urgent"
+    payload={pendingPayload}
+    onBack={() => setStep(1)}
+    onSubmit={async (finalPayload) => {
+      const res = await createJob(finalPayload);
+      if (res.success) setHasJobs(true);
+      return { success: res.success, message: res.message, jobId: res.data?.id };
+    }}
+  />
+)}
       </div>
     </AppLayout>
   );
@@ -49,15 +44,7 @@ function InstantReplacementContent() {
 
 export default function InstantReplacementPage() {
   return (
-    <Suspense fallback={
-      <AppLayout>
-        <div className="py-2 md:py-4 lg:py-6">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-gray-600">Loading...</p>
-          </div>
-        </div>
-      </AppLayout>
-    }>
+    <Suspense fallback={<AppLayout><div className="flex items-center justify-center min-h-[400px]"><p className="text-gray-600">Loading...</p></div></AppLayout>}>
       <InstantReplacementContent />
     </Suspense>
   );

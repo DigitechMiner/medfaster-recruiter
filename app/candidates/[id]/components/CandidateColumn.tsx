@@ -1,6 +1,8 @@
 "use client";
 import { BoardCandidateCard } from "./BoardCandidateCard";
 import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import { ColumnShell } from "@/components/candidate/ColumnShell";
+import { renderCandidateCards } from "@/components/candidate/renderers";
 
 type AccentColor = "orange" | "green" | "red" | "neutral";
 type ActionType  = "shortlist" | "hire" | "schedule" | "invite";
@@ -14,9 +16,9 @@ interface Props {
   actionType: ActionType;
   leftTags?: string[];
   rightTags?: string[];
-  onViewAll?: () => void;   // ← NEW: callback instead of Link
-  hideHeader?: boolean;     // ← NEW: hide column header when used in expanded grid
-  hideViewAll?: boolean;    // ← NEW: hide view all footer
+  onViewAll?: () => void;
+  hideHeader?: boolean;
+  hideViewAll?: boolean;
 }
 
 const colStyles: Record<AccentColor, {
@@ -35,46 +37,39 @@ export const CandidateColumn = ({
   const s = colStyles[accentColor];
 
   return (
-    <div className={`rounded-2xl border-2 ${s.wrapper} flex flex-col overflow-hidden`}>
-      {/* Header */}
-      {!hideHeader && (
+    <ColumnShell
+      containerClassName={`rounded-2xl border-2 ${s.wrapper} flex flex-col overflow-hidden`}
+      header={!hideHeader ? (
         <div className={`${s.headerBg} px-4 py-3.5 flex items-center justify-center gap-2`}>
           <span className={`w-2.5 h-2.5 rounded-full ${s.dot} shrink-0`} />
           <h2 className="text-sm font-bold text-gray-900">{title}</h2>
-          <span className="text-xs font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
-            {count}
-          </span>
+          <span className="text-xs font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">{count}</span>
         </div>
-      )}
-
-      {/* Cards */}
-      <div className="flex flex-col gap-3 p-3">
-        {candidates.length === 0 ? (
-          <div className="text-center py-8 text-xs text-gray-400">No candidates</div>
-        ) : (
-          candidates.map((c, i) => (
-            <BoardCandidateCard
-              key={c.id ?? i}
-              c={c}
-              actionType={actionType}
-              leftTag={leftTags?.[i]}
-              rightTag={rightTags?.[i]}
-            />
-          ))
-        )}
-      </div>
-
-      {/* View All */}
-      {!hideViewAll && (
+      ) : undefined}
+      content={
+        <div className="flex flex-col gap-3 p-3">
+          {candidates.length === 0 ? (
+            <div className="text-center py-8 text-xs text-gray-400">No candidates</div>
+          ) : (
+            renderCandidateCards(candidates, (c, i) => (
+              <BoardCandidateCard
+                key={c.id ?? i}
+                c={c}
+                actionType={actionType}
+                leftTag={leftTags?.[i]}
+                rightTag={rightTags?.[i]}
+              />
+            ))
+          )}
+        </div>
+      }
+      footer={!hideViewAll ? (
         <div className="px-4 pb-4 pt-1">
-          <button
-            onClick={onViewAll}
-            className={`block w-full text-xs font-semibold text-center ${s.viewAll} hover:underline`}
-          >
+          <button onClick={onViewAll} className={`block w-full text-xs font-semibold text-center ${s.viewAll} hover:underline`}>
             View all
           </button>
         </div>
-      )}
-    </div>
+      ) : undefined}
+    />
   );
 };

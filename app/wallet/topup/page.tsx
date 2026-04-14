@@ -57,7 +57,7 @@ export default function TopupPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto">
           <div className="w-full max-w-md">
             <div className="bg-white rounded-2xl w-full py-10 text-center shadow-sm mb-6">
-              <p className="text-4xl font-bold text-orange-500 tracking-tight">
+              <p className="text-4xl font-bold text-[#F4781B] tracking-tight">
                 {displayAmount}
               </p>
               {availableBalance !== null && (

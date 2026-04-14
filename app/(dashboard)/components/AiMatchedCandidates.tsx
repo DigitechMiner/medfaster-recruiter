@@ -35,7 +35,7 @@ export const AiMatchedCandidates = () => {
               ))
             ) : candidates.map((c) => {
               const score = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
-              const scoreColor = score >= 80 ? 'text-green-600' : score >= 60 ? 'text-orange-500' : 'text-red-500';
+              const scoreColor = score >= 80 ? 'text-green-600' : score >= 60 ? 'text-[#F4781B]' : 'text-red-500';
               const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase();
               const location = [c.city, c.state].filter(Boolean).join(', ') || '—';
 
@@ -52,7 +52,7 @@ export const AiMatchedCandidates = () => {
                             className="object-cover w-full h-full"
                           />
                         ) : (
-                          <span className="text-xs font-semibold text-orange-600">{initials}</span>
+                          <span className="text-xs font-semibold text-[#F4781B]">{initials}</span>
                         )}
                       </div>
                       <span className="font-medium text-gray-800 whitespace-nowrap">{c.full_name}</span>
@@ -73,7 +73,7 @@ export const AiMatchedCandidates = () => {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => router.push(`/candidates/${c.id}`)}
-                      className="hover:text-orange-600 font-semibold text-xs text-gray-500"
+                      className="hover:text-[#F4781B] font-semibold text-xs text-gray-500"
                     >
                       View
                     </button>

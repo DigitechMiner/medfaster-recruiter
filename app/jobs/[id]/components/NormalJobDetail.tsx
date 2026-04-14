@@ -459,7 +459,7 @@ function TablePagination() {
 // ─────────────────────────────────────────────────────────────────────────────
 const KANBAN_COLS = [
   { key: 'applied',         label: 'Applied',         count: 40, dotColor: 'bg-blue-500',         border: 'border-blue-200',         bg: 'bg-blue-50/50',         textColor: 'text-blue-600',         aiOnly: false },
-  { key: 'shortlisted',     label: 'Shortlisted',     count: 20, dotColor: 'bg-orange-400',       border: 'border-orange-200',       bg: 'bg-orange-50/50',       textColor: 'text-orange-500',       aiOnly: false },
+  { key: 'shortlisted',     label: 'Shortlisted',     count: 20, dotColor: 'bg-orange-400',       border: 'border-orange-200',       bg: 'bg-orange-50/50',       textColor: 'text-[#F4781B]',       aiOnly: false },
   { key: 'ai_interviewing', label: 'AI-Interviewing', count: 5,  dotColor: 'bg-red-400',          border: 'border-red-200',          bg: 'bg-red-50/40',          textColor: 'text-red-500',          aiOnly: true  },
   { key: 'interviewed',     label: 'Interviewed',     count: 6,  dotColor: 'bg-amber-700',        border: 'border-amber-200',        bg: 'bg-amber-50/40',        textColor: 'text-amber-800',        aiOnly: false },
   { key: 'hired',           label: 'Hired',           count: 2,  dotColor: 'bg-green-500',        border: 'border-green-200',        bg: 'bg-green-50/50',        textColor: 'text-green-600',        aiOnly: false },
@@ -479,7 +479,7 @@ function KanbanSection({ hasAI }: { hasAI: boolean }) {
   return (
     <div className="flex flex-col">
       {/* Scrollable columns area */}
-      <div className="px-4 pt-3 pb-2 overflow-x-auto">
+      <div className="px-4 pt-2 pb-2 overflow-x-auto">
         <div className="flex gap-4 min-w-max">
           {visibleCols.map((col) => {
             const isExpanded = expanded === col.key;
@@ -620,20 +620,20 @@ function KanbanActionButtons({ tab }: { tab: TabKey }) {
 function KanbanCard({ candidate: c, colKey }: { candidate: Candidate; colKey: TabKey }) {
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100 p-3 flex flex-col gap-2.5"
+  className="bg-white rounded-2xl border border-gray-100 px-4 pb-2 flex flex-col gap-1 p-2"
       style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}
     >
       {/* Row 1: Online badge + ScoreCard */}
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+      <div className="flex items-center justify-between -mt-1">
+        <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-1 py-px rounded-full border border-green-200 -mt-1">
           <span className={`w-1.5 h-1.5 rounded-full ${c.online ? 'bg-green-500' : 'bg-gray-400'}`} />
           {c.online ? 'Online' : 'Offline'}
         </span>
-        <ScoreCard score={c.score} maxScore={100} category="good" />
+        <ScoreCard score={c.score} maxScore={100} category="good"/>
       </div>
 
       {/* Row 2: Avatar + Name + Role */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 -mt-3">
         <div className="relative w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden border border-orange-100">
           <Image src={c.avatar} alt={c.name} fill className="object-cover" />
         </div>

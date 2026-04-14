@@ -56,7 +56,7 @@ export const CANDIDATE_DETAIL_BUTTON_CONFIGS: Record<StatusType, ButtonConfig[]>
   ],
   interviewing: [
     { label: 'Reject', style: 'border-2 border-red-500 text-red-500 px-6 py-2 hover:bg-red-50 rounded', action: 'reject' },
-    { label: 'Interviewing', style: 'border border-orange-400 text-orange-500 px-6 py-2 hover:bg-orange-50 rounded bg-white' },
+    { label: 'Interviewing', style: 'border border-orange-400 text-[#F4781B] px-6 py-2 hover:bg-orange-50 rounded bg-white' },
     { label: 'Hire', style: 'bg-orange-500 text-white px-6 py-2 hover:bg-orange-600 rounded', action: 'hire' }
   ],
   hired: [

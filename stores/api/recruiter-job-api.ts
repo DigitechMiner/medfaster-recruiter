@@ -112,6 +112,7 @@ export interface CandidateListItem {
   phone_number: string;
   highest_interview_score: number | null;
   highest_job_interview_score: number | null;
+  is_ai_recommended?: boolean;
 }
 
 export interface CandidatesListResponse {

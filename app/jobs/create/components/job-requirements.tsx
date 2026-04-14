@@ -67,7 +67,7 @@ export function JobRequirements({ formData, updateFormData }: JobRequirementsPro
           <div className="space-y-4 pt-2">
             <div className="flex justify-center text-sm text-gray-600 font-medium">
               <span className="bg-gray-100 px-3 py-1 rounded-md">
-                CAD ${formData.payRange[0]}
+                 ${formData.payRange[0]}
               </span>
             </div>
             <Slider

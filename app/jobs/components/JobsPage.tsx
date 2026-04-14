@@ -15,6 +15,7 @@ interface CandidatesData {
   interviewing: Job[];
   hired: Job[];
 }
+
 const INTERVIEWING_DUMMY: Job[] = [
   { id: 201, candidateId: "cand-201", doctorName: "Dr. Michael Thompson", experience: 6, position: "Emergency Medicine Physician", score: 90, specialization: ["Emergency Medicine", "Trauma Care"], currentCompany: "Metro Hospital" },
   { id: 202, candidateId: "cand-202", doctorName: "Dr. Priya Sharma", experience: 8, position: "Neurologist", score: 94, specialization: ["Neurology", "Neurosurgery"], currentCompany: "Brain & Spine Institute" },
@@ -67,12 +68,12 @@ const JobsPage: React.FC = () => {
     }).slice(0, 4);
   }, [jobs, searchQuery]);
 
-  // ✅ Auto-select first card when jobs load
+  // ✅ Auto-select first card when jobs load — selectedJobId added to deps
   useEffect(() => {
     if (filteredJobs.length > 0 && !selectedJobId) {
       setSelectedJobId(filteredJobs[0].id);
     }
-  }, [filteredJobs]);
+  }, [filteredJobs, selectedJobId]);
 
   // ✅ Fetch applications scoped to selected job via API param
   const appParams = useMemo(
@@ -215,34 +216,34 @@ const JobsPage: React.FC = () => {
           ) : (
             <>
               {layoutMode === "kanban" && (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
-      <StatusSection
-        key={status}
-        status={status}
-        title={title}
-        count={candidatesData[status as keyof CandidatesData]?.length || 0}
-        jobs={candidatesData[status as keyof CandidatesData] || []}
-        badgeColor={badgeColor}
-        onCandidateClick={handleCandidateClick}
-      />
-    ))}
-  </div>
-)}
-{layoutMode === "table" && (
-  <div className="space-y-4">
-    {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
-      <StatusTable
-        key={status}
-        status={status}
-        title={title}
-        count={candidatesData[status as keyof CandidatesData]?.length || 0}
-        jobs={candidatesData[status as keyof CandidatesData] || []}
-        badgeColor={badgeColor}
-      />
-    ))}
-  </div>
-)}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
+                    <StatusSection
+                      key={status}
+                      status={status}
+                      title={title}
+                      count={candidatesData[status as keyof CandidatesData]?.length || 0}
+                      jobs={candidatesData[status as keyof CandidatesData] || []}
+                      badgeColor={badgeColor}
+                      onCandidateClick={handleCandidateClick}
+                    />
+                  ))}
+                </div>
+              )}
+              {layoutMode === "table" && (
+                <div className="space-y-4">
+                  {STATUS_SECTIONS.map(({ status, title, badgeColor }) => (
+                    <StatusTable
+                      key={status}
+                      status={status}
+                      title={title}
+                      count={candidatesData[status as keyof CandidatesData]?.length || 0}
+                      jobs={candidatesData[status as keyof CandidatesData] || []}
+                      badgeColor={badgeColor}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>

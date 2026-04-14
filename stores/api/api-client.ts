@@ -59,8 +59,8 @@ export async function apiRequest<T>(
 // Export axios instance for direct use if needed
 export { axiosInstance };
 
-export const getBackendImageUrl = (imagePath: string | null | undefined): string | null => {
-  if (!imagePath) return null;
+export const getBackendImageUrl = (imagePath: string | null | undefined): string => {
+  if (!imagePath) return "";  // ← "" instead of null
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }

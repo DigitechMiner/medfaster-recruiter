@@ -8,8 +8,8 @@ export interface WalletData {
   currency: 'CAD';
   is_active: boolean;
   wallet_lock_reason: string | null;
-  available_balance: string;
-  held_balance: string;
+  available_balance: string;   // cents as string e.g. "200000"
+  held_balance: string;        // = locked balance
   pending_balance: string;
   balance_version: number;
   created_at: string;
@@ -28,10 +28,16 @@ export interface WalletTopupInitResponse {
 export interface WalletTransaction {
   id: string;
   wallet_id: string;
-  type: string;
-  amount: string;
+  type: string;               // "credit" | "debit"
+  amount: string;             // cents as string
   description?: string;
   reference?: string;
+  // ✅ these may or may not exist — mark optional, handle gracefully in UI
+  transaction_id?: string;
+  category?: string;
+  job_id?: string;
+  job_type?: string;
+  status?: string;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +60,8 @@ export interface PaginatedItems<T> {
   limit: number;
   offset: number;
 }
+
+// ── API functions ──────────────────────────────────────────────────────────
 
 export async function getWallet(): Promise<WalletData> {
   const res = await axiosInstance.get(ENDPOINTS.WALLET);
@@ -85,6 +93,7 @@ export async function getWalletTransactions(params?: {
   page?: number;
   limit?: number;
   offset?: number;
+  type?: string;   // ✅ added — pass to API if your backend supports it
 }): Promise<PaginatedItems<WalletTransaction>> {
   const res = await axiosInstance.get(ENDPOINTS.WALLET_TRANSACTIONS, { params });
   return res.data.data;

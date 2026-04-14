@@ -4,6 +4,8 @@ import React from "react";
 import { Star, Briefcase, Users } from "lucide-react";
 import ScoreCard from "@/components/card/scorecard";
 import Image from "next/image";
+import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
+import { renderCandidateCards } from "@/components/candidate/renderers";
 
 const DUMMY_CANDIDATES = [
   { id: '1', name: 'Michael Liam', role: 'Registered Nurse', exp: '5+ yrs', distance: '25km', rating: 4.8, score: 40, online: true, avatar: '/icon/card-doctor.svg' },
@@ -12,7 +14,7 @@ const DUMMY_CANDIDATES = [
 
 interface Props { jobId: string; }
 
-export const CandidatesGridView: React.FC<Props> = ({ jobId: _jobId }) => {
+export const CandidatesGridView: React.FC<Props> = () => {
   const candidates = DUMMY_CANDIDATES;
 
   if (candidates.length === 0) {
@@ -21,31 +23,31 @@ export const CandidatesGridView: React.FC<Props> = ({ jobId: _jobId }) => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      {candidates.map((c) => (
+      {renderCandidateCards(candidates, (c) => (
         <CandidateGridCard key={c.id} candidate={c} />
       ))}
     </div>
   );
 };
 
-function CandidateGridCard({ candidate: c }: { candidate: typeof DUMMY_CANDIDATES[0] }) {
+export function CandidateGridCard({ candidate: c }: { candidate: typeof DUMMY_CANDIDATES[0] }) {
   return (
-    <div
+    <BaseCard
       className="bg-white rounded-2xl border border-gray-100 p-3 flex flex-col pt-1 w-7/8"
       style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)', gap: '6px' }}
     >
       {/* Row 1: Online badge + ScoreCard on same row */}
-      <div className="flex items-center justify-between -pt-1">
+      <CardHeader className="flex items-center justify-between -pt-1">
         <span className="flex items-center gap-1.5 text-xs font-medium text-green-600
           bg-green-50 px-2.5 py-1 rounded-full border border-green-200 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
           Online
         </span>
         <ScoreCard maxScore={100} category="good" score={c.score} className="p-1.5 mt-3" />
-      </div>
+      </CardHeader>
 
       {/* Row 2: Avatar + Info block */}
-      <div className="flex gap-2 pb-1 -mt-2" style={{ alignItems: 'flex-start' }}>
+      <CardIdentity className="flex gap-2 pb-1 -mt-2" style={{ alignItems: 'flex-start' }}>
 
         {/* Avatar */}
         <div className="relative w-16 h-16 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 overflow-hidden border border-orange-100 mb-1">
@@ -78,7 +80,7 @@ function CandidateGridCard({ candidate: c }: { candidate: typeof DUMMY_CANDIDATE
           </span>
 
           {/* Stats */}
-          <div
+          <CardStats
             className="text-xs text-gray-500"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}
           >
@@ -96,10 +98,10 @@ function CandidateGridCard({ candidate: c }: { candidate: typeof DUMMY_CANDIDATE
               <Star size={11} className="fill-amber-400 text-amber-400" />
               {c.rating}/5
             </span>
-          </div>
+          </CardStats>
 
         </div>
-      </div>
+      </CardIdentity>
 
       {/* View Schedule */}
       <button
@@ -108,7 +110,7 @@ function CandidateGridCard({ candidate: c }: { candidate: typeof DUMMY_CANDIDATE
       >
         View Schedule
       </button>
-    </div>
+    </BaseCard>
   );
 }
 

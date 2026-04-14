@@ -82,19 +82,19 @@ export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => {
 </div>
 
       <p className="text-sm text-gray-600 mb-2">
-        <span className="text-orange-500 font-semibold">Spec : </span>
+        <span className="text-[#F4781B] font-semibold">Spec : </span>
         <span>{specializationDisplay.join(' | ') || 'N/A'}</span>
       </p>
 
       <p className="text-sm text-gray-600 mb-2">
-        <span className="text-orange-500 font-semibold">Qualif : </span>
+        <span className="text-[#F4781B] font-semibold">Qualif : </span>
         <span>{qualificationDisplay.join(' | ') || 'N/A'}</span>
       </p>
 
       {/* ✅ Location — shows once backend fix is done */}
       {locationDisplay && (
         <p className="text-sm text-gray-600 mb-3">
-          <span className="text-orange-500 font-semibold">Location : </span>
+          <span className="text-[#F4781B] font-semibold">Location : </span>
           <span>{locationDisplay}</span>
         </p>
       )}

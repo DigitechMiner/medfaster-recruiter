@@ -44,7 +44,7 @@ const ScoreBadge = ({ score }: { score: number }) => {
   const isGreen     = score >= 80;
   const isOrange    = score >= 60 && score < 80;
   const arcColor    = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
-  const textColor   = isGreen ? "text-green-600" : isOrange ? "text-orange-500" : "text-red-500";
+  const textColor   = isGreen ? "text-green-600" : isOrange ? "text-[#F4781B]" : "text-red-500";
   const borderColor = isGreen ? "border-green-500" : isOrange ? "border-orange-400" : "border-red-400";
   const size        = 32;
   const strokeWidth = 3;
@@ -77,7 +77,7 @@ const CandidateCard = ({ c }: { c: CardData }) => (
         <span className="text-sm font-semibold text-gray-900">{c.name}</span>
         {c.verified && <BadgeCheck className="w-4 h-4 shrink-0" fill="#22c55e" color="white" />}
       </div>
-      <p className="text-xs text-orange-500 font-medium">{c.role}</p>
+      <p className="text-xs text-[#F4781B] font-medium">{c.role}</p>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <span className="flex items-center gap-0.5 text-[11px] text-gray-500"><Briefcase size={10} />{c.exp}</span>
         <span className="text-[11px] text-gray-300">|</span>
@@ -87,11 +87,11 @@ const CandidateCard = ({ c }: { c: CardData }) => (
       <div className="flex gap-1.5 mt-1.5 flex-wrap">
         {c.badge && (
           <span className="flex items-center gap-0.5 text-[10px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-lg">
-            <Zap size={9} className="text-orange-500" fill="#f97316" />{c.badge}
+            <Zap size={9} className="text-[#F4781B]" fill="#f97316" />{c.badge}
           </span>
         )}
         {c.badge2 && (
-          <span className="flex items-center gap-0.5 text-[10px] font-medium text-orange-500 bg-orange-100 px-2 py-0.5 rounded-lg">
+          <span className="flex items-center gap-0.5 text-[10px] font-medium text-[#F4781B] bg-orange-100 px-2 py-0.5 rounded-lg">
             <CalendarDays size={9} />{c.badge2}
           </span>
         )}

@@ -13,13 +13,14 @@ import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/me
 import type { JobCreatePayload } from "@/Interface/job.types";
 
 interface Props {
-  pendingPayload?: JobCreatePayload | null;  // ← add ?
+  pendingPayload?: JobCreatePayload | null;
   onBack?: () => void;
+  onNext?: (payload: JobCreatePayload) => void; // ← goes to summary
 }
 
-export function GenerateAIForm({ pendingPayload, onBack }: Props) {
-  const router    = useRouter();
-  const createJob = useJobsStore((state) => state.createJob);
+export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) { // ✅ destructure onNext
+  const router     = useRouter();
+  const createJob  = useJobsStore((state) => state.createJob);
   const setHasJobs = useJobsStore((state) => state.setHasJobs);
 
   const [topics, setTopics]             = useState<Topic[]>(DEFAULT_TOPICS);
@@ -51,50 +52,65 @@ export function GenerateAIForm({ pendingPayload, onBack }: Props) {
     setTopics((prev) =>
       prev.map((topic) =>
         topic.id === topicId
-          ? { ...topic, questions: topic.questions.map((q) => q.id === questionId ? { ...q, text } : q) }
+          ? { ...topic, questions: topic.questions.map((q) => (q.id === questionId ? { ...q, text } : q)) }
           : topic
       )
     );
   };
 
-  const convertQuestionsToBackendFormat = (topics: Topic[]): string[] => {
-  return topics
-    .flatMap((topic) => topic.questions.map((q) => q.text))
-    .filter((text) => text.trim() !== "");
-};
+  const convertQuestionsToBackendFormat = (topics: Topic[]): string[] =>
+    topics
+      .flatMap((topic) => topic.questions.map((q) => q.text))
+      .filter((text) => text.trim() !== "");
 
-  const handleSave = async (withStatusOpen = false) => {
+  const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
+    ...(pendingPayload ?? {}),
+    job_title:    pendingPayload?.job_title ?? "",
+    questions:    convertQuestionsToBackendFormat(topics),
+    status:       withStatusOpen ? "OPEN" : "DRAFT",
+    ai_interview: true,
+  });
+
+  // ── Save as draft (TopActionBar button) ──────────────────────────────────
+  const handleSaveDraft = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     setError(null);
-
     try {
-      const questionsData = convertQuestionsToBackendFormat(topics);
-
-      // ✅ Single POST — merge questions + status into the original payload
-      const finalPayload: JobCreatePayload = {
-  ...(pendingPayload ?? {}),
-  job_title: pendingPayload?.job_title ?? '',  // ← satisfy required field
-  questions: questionsData,
-  status: withStatusOpen ? "OPEN" : "DRAFT",
-  ai_interview: true,
-};
-
-      console.log("📤 Final payload to backend:", JSON.stringify(finalPayload, null, 2));
-
-      const response = await createJob(finalPayload);
-
+      const payload = buildFinalPayload(false);
+      console.log("📤 Saving draft:", JSON.stringify(payload, null, 2));
+      const response = await createJob(payload);
       if (response.success) {
         setShowSuccess(true);
       } else {
-        setError(response.message || "Failed to create job");
+        setError(response.message || "Failed to save draft");
       }
     } catch (err) {
-      const error = err as Error;
-      console.error("Error creating job:", error);
-      setError(error.message || "An error occurred while saving");
+      setError((err as Error).message || "An error occurred while saving");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // ── Create / go to summary (primary CTA) ─────────────────────────────────
+  const handleCreate = () => {
+    const payload = buildFinalPayload(true);
+    console.log("📤 Proceeding to summary:", JSON.stringify(payload, null, 2));
+
+    if (onNext) {
+      // ✅ Summary page flow — pass payload up, don't submit here
+      onNext(payload);
+    } else {
+      // Fallback — direct submit (keeps old behaviour if onNext not provided)
+      setIsSubmitting(true);
+      setError(null);
+      createJob(payload)
+        .then((response) => {
+          if (response.success) setShowSuccess(true);
+          else setError(response.message || "Failed to create job");
+        })
+        .catch((err) => setError((err as Error).message || "An error occurred"))
+        .finally(() => setIsSubmitting(false));
     }
   };
 
@@ -115,7 +131,7 @@ export function GenerateAIForm({ pendingPayload, onBack }: Props) {
         <TopActionBar
           title={PAGE_TITLES.CREATE_JOB}
           onBack={onBack}
-          onPrimary={() => handleSave(false)}
+          onPrimary={handleSaveDraft}
           primaryLabel={isSubmitting ? "Saving..." : BUTTON_LABELS.SAVE_AND_CONTINUE}
         />
 
@@ -152,7 +168,7 @@ export function GenerateAIForm({ pendingPayload, onBack }: Props) {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => handleSave(true)}
+              onClick={handleCreate} // ✅ goes to summary if onNext provided
               disabled={isSubmitting}
               className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm order-1 sm:order-2"
             >

@@ -31,7 +31,7 @@ export const JobDetailHeader: React.FC<JobDetailHeaderProps> = ({
           <div className="flex items-center gap-2 text-sm">
             <span className="text-gray-600">Jobs</span>
             <ChevronRight className="w-4 h-4 text-gray-400" />
-            <span className="text-orange-500 font-semibold">{job.job_title}</span>
+            <span className="text-[#F4781B] font-semibold">{job.job_title}</span>
           </div>
         </div>
      

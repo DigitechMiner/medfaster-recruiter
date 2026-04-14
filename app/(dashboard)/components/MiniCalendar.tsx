@@ -127,7 +127,7 @@ useEffect(() => {
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => (
           <div key={day} className="flex flex-col items-center gap-0.5">
             <button className={`text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-colors
-              ${isToday(day) ? 'bg-orange-500 text-white' : 'text-gray-900 hover:bg-orange-50 hover:text-orange-500'}`}>
+              ${isToday(day) ? 'bg-orange-500 text-white' : 'text-gray-900 hover:bg-orange-50 hover:text-[#F4781B]'}`}>
               {day}
             </button>
             {scheduledDays.includes(day) && !isToday(day)
