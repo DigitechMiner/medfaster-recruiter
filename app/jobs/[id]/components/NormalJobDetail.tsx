@@ -634,7 +634,7 @@ function KanbanCard({ candidate: c, colKey }: { candidate: Candidate; colKey: Ta
 
       {/* Row 2: Avatar + Name + Role */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden border border-orange-100">
+        <div className="relative w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden border border-orange-100">
           <Image src={c.avatar} alt={c.name} fill className="object-cover" />
         </div>
         <div className="flex flex-col gap-0.5">

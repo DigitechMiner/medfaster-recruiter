@@ -9,6 +9,11 @@ import {
   CandidateDetailsResponse,
   ApplicationStatus,
 } from '@/stores/api/recruiter-job-api';
+import {
+  STATIC_CANDIDATES_MAP,  // ✅ import the map, not just STATIC_CANDIDATE
+  STATIC_CANDIDATES,
+} from '@/app/candidates/[id]/constants/staticData';
+
 
 export function useCandidatesList(params?: Parameters<typeof getCandidatesList>[0]) {
   const [data, setData] = useState<CandidatesListResponse | null>(null);
@@ -18,13 +23,46 @@ export function useCandidatesList(params?: Parameters<typeof getCandidatesList>[
   useEffect(() => {
     setIsLoading(true);
     getCandidatesList(params)
-      .then(setData)
-      .catch((e) => setError(e.message))
+      .then((res) => {
+        // ✅ If API returns empty, inject static candidates
+        if (!res?.candidates?.length) {
+          setData({
+            candidates: STATIC_CANDIDATES,
+            pagination: {
+              total: STATIC_CANDIDATES.length,
+              page: 1,
+              limit: 20,
+              offset: 0,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          });
+        } else {
+          setData(res);
+        }
+      })
+      .catch(() => {
+        // ✅ On API error, also fall back to static
+        setData({
+          candidates: STATIC_CANDIDATES,
+          pagination: {
+            total: STATIC_CANDIDATES.length,
+            page: 1,
+            limit: 20,
+            offset: 0,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        });
+      })
       .finally(() => setIsLoading(false));
   }, [params?.job_id, params?.page, params?.interview]);
 
   return { data, isLoading, error };
 }
+
 
 export function useCandidateDetails(candidateId: string | null) {
   const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);
@@ -33,6 +71,15 @@ export function useCandidateDetails(candidateId: string | null) {
 
   useEffect(() => {
     if (!candidateId) { setIsLoading(false); return; }
+
+    // ✅ Bypass API entirely for static IDs — no network call made
+    const staticMatch = STATIC_CANDIDATES_MAP[candidateId];
+    if (staticMatch) {
+      setCandidate(staticMatch);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     getCandidateDetails(candidateId)
       .then(setCandidate)
@@ -42,6 +89,7 @@ export function useCandidateDetails(candidateId: string | null) {
 
   return { candidate, isLoading, error };
 }
+
 
 export function useUpdateApplicationStatus() {
   const [isUpdating, setIsUpdating] = useState(false);

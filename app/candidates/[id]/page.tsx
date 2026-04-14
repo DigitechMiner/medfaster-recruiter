@@ -6,8 +6,10 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
 import { AppLayout } from "@/components/global/app-layout";
 import { useCandidateDetails } from "@/hooks/useCandidate";
+import { STATIC_CANDIDATE } from "./constants/staticData";
 
 export default function CandidateDetailPage() {
+
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -18,9 +20,11 @@ export default function CandidateDetailPage() {
 const { candidate, isLoading, error } = useCandidateDetails(candidateId)
 
   const handleBack = () => {
-    router.push("/jobs");
+    router.push("/candidates");
   };
 
+  const displayCandidate = candidate ?? STATIC_CANDIDATE;
+  
   if (isLoading) {
     return (
       <AppLayout>
@@ -50,14 +54,14 @@ const { candidate, isLoading, error } = useCandidateDetails(candidateId)
   }
 
   return (
-    <AppLayout>
-      <CandidateDetailContent
-        candidate={candidate}
-        status="applied"
-        onBack={handleBack}
-        candidateId={candidateId}
-        jobApplicationId={jobApplicationId}
-      />
-    </AppLayout>
-  );
+  <AppLayout>
+    <CandidateDetailContent
+      candidate={displayCandidate}   // ✅ real or static fallback
+      status="applied"
+      onBack={handleBack}
+      candidateId={candidateId}
+      jobApplicationId={jobApplicationId}
+    />
+  </AppLayout>
+);
 }
