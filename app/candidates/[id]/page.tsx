@@ -6,6 +6,7 @@ import { CandidateDetailContent } from "./components/CandidateDetailContent";
 import { AppLayout } from "@/components/global/app-layout";
 import { useCandidateDetails } from "@/hooks/useCandidate";
 import { STATIC_CANDIDATE } from "./constants/staticData";
+import Link from "next/link";
 
 export default function CandidateDetailPage() {
   const router       = useRouter();
@@ -48,7 +49,7 @@ export default function CandidateDetailPage() {
     <AppLayout>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-gray-400 px-6 pt-4 pb-0">
-        <a href="/candidates" className="hover:text-gray-700 transition-colors">Candidates</a>
+        <Link href="/candidates" className="hover:text-gray-700 transition-colors">Candidates</Link>
         <span>/</span>
         <span className="text-gray-700 font-medium">{candidateId}</span>
       </nav>

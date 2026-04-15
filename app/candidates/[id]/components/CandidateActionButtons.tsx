@@ -20,13 +20,6 @@ export function CandidateActionButtons({ c, actionType, onAction }: Props) {
     </button>
   );
 
-  const actionLabel: Record<Props["actionType"], string> = {
-    hire:      "Direct Hire",
-    schedule:  "Schedule Interview",
-    invite:    "Invite for Job",
-    shortlist: "Shortlist",
-  };
-
   return (
     <div className="flex gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
       {exportBtn}

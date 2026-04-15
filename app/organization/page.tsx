@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 import { complianceFields, orgSchema, type OrgDetailsType } from "../registration/const";
 import { getBackendImageUrl } from "@/stores/api/api-client";
-import type { RecruiterDocument } from "@/stores/api/recruiter-api";
+import type { RecruiterDocument, RecruiterProfile } from "@/stores/api/recruiter-api";
 
 import {
   orgTypes,
@@ -27,7 +27,7 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function profileToOrgForm(profile: any): OrgDetailsType {
+function profileToOrgForm(profile: RecruiterProfile): OrgDetailsType {
   return {
     organization_photo:     null,
     orgName:                profile.organization_name        ?? "",

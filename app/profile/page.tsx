@@ -11,7 +11,7 @@ import { FormInput } from "../registration/components";
 import { Button } from "@/components/ui/button";
 
 import { useAuthStore } from "@/stores/authStore";
-import { getRecruiterProfile, updateRecruiterProfile } from "@/stores/api/recruiter-api";
+import { getRecruiterProfile, RecruiterProfile, updateRecruiterProfile } from "@/stores/api/recruiter-api";
 
 const profileSchema = z.object({
   fullName:    z.string().min(1, "Full Name is required"),
@@ -23,7 +23,7 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-function profileToContactForm(profile: any): ProfileFormValues {
+function profileToContactForm(profile: RecruiterProfile): ProfileFormValues {
   return {
     fullName:    profile.contact_person_name        ?? "",
     designation: profile.contact_person_designation ?? "",

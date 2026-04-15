@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, MapPin, Mail, Phone, Clock, Users, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
 import { getWallet, initiateWalletTopup } from "@/stores/api/recruiter-wallet-api";
@@ -19,14 +19,7 @@ interface JobSummaryPageProps {
   }>;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-CA", {
-    day: "numeric", month: "long", year: "numeric",
-  });
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────;}
 
 function formatTime(timeStr?: string | null): string {
   if (!timeStr) return "—";

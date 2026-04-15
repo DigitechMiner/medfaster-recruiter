@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
 import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
@@ -8,7 +8,6 @@ import type { JobCreatePayload } from "@/Interface/job.types";
 
 function PaymentCompleteContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const createJob = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
 

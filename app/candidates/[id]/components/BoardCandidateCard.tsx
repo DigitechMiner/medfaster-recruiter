@@ -136,7 +136,7 @@ export const BoardCandidateCard = ({
             <LeftPill text={pillLeft} />
             {c.is_ai_recommended && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                ✦ KeRaeva's AI Recommended
+                ✦ KeRaeva&apos;s AI Recommended
               </span>
             )}
           </div>
