@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { fonts } from "@/lib/font";
 import ClientLayout from "./client-layout";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Recruiter Portal",
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en" className={fonts}>
       <body className="font-sans bg-[#F7F5F1]">
         <ClientLayout>{children}</ClientLayout>
+        <Analytics />
       </body>
     </html>
   );
