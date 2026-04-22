@@ -3,9 +3,8 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { JobStatusBadge } from './JobStatusBadge';
-import type { JobsListResponse } from '@/Interface/job.types';
+import type { JobListItem } from '@/Interface/job.types';
 
-type JobListItem = JobsListResponse['data']['jobs'][0];
 
 const formatDate = (d?: string | null) => {
   if (!d) return '—';
@@ -14,10 +13,9 @@ const formatDate = (d?: string | null) => {
 
 const formatTime = (t?: string | null) => (t ? t.slice(0, 5) : null);
 
-const formatBudget = (min?: string | number | null, max?: string | number | null) => {
-  if (!min && !max) return '—';
-  if (min && max) return `$${min}–$${max}/hr`;
-  return `$${min ?? max}/hr`;
+const formatBudget = (cents?: number | null) => {
+  if (cents == null) return '—';
+  return `$${(cents / 100).toFixed(2)}/hr`;
 };
 
 function getInterviewLabel(job: JobListItem): { label: string; cls: string } {
@@ -99,7 +97,7 @@ export const JobsListView: React.FC<Props> = ({ jobs }) => {
 
                 {/* Budget */}
                 <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">
-                  {formatBudget(job.pay_range_min, job.pay_range_max)}
+                  {formatBudget(job.pay_per_hour_cents)}
                 </td>
 
                 {/* AI Interview — inline badge, NOT JobStatusBadge (uses own colors) */}

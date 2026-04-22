@@ -5,13 +5,18 @@ import { ChevronDown, Search } from 'lucide-react';
 import { JobsAllPage } from '@/app/jobs/all/components/JobsAllPage';
 import { useJobsStore } from '@/stores/jobs-store';
 
+type JobFilter = {
+  status?:      'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED' | 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
+  job_urgency?: 'instant' | 'normal';  // ← renamed
+  label: string;
+};
+
 const BriefcaseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2">
     <rect x="2" y="7" width="20" height="14" rx="2" />
     <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
   </svg>
 );
-
 const PeopleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -20,7 +25,6 @@ const PeopleIcon = () => (
     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
-
 const TrashIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2">
     <polyline points="3 6 5 6 21 6" />
@@ -29,7 +33,6 @@ const TrashIcon = () => (
     <path d="M9 6V4h6v2" />
   </svg>
 );
-
 const LayersIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2">
     <polygon points="12 2 2 7 12 12 22 7 12 2" />
@@ -47,19 +50,18 @@ interface StatCounts {
 
 export const JobsDashboard: React.FC = () => {
   const [counts, setCounts] = useState<StatCounts>({
-    regular: 0,
-    urgent:  0,
-    noShow:  0,
-    active:  0,
+    regular: 0, urgent: 0, noShow: 0, active: 0,
   });
+  const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     const store = useJobsStore.getState();
 
     Promise.allSettled([
-      store.getJobsSilent({ joburgency: 'normal',  limit: 1 }),
-      store.getJobsSilent({ joburgency: 'instant', limit: 1 }),
+      store.getJobsSilent({ job_urgency: 'normal',  limit: 1 }),
+      store.getJobsSilent({ job_urgency: 'instant', limit: 1 }),
       store.getJobsSilent({ status: 'CLOSED',      limit: 1 }),
       store.getJobsSilent({ status: 'OPEN',        limit: 1 }),
     ]).then(([regular, urgent, closed, active]) => {
@@ -73,13 +75,28 @@ export const JobsDashboard: React.FC = () => {
     });
 
     return () => { cancelled = true; };
-  }, []); // runs once on mount
+  }, []);
+
+  // ── Filter definitions — clicking a card sets this filter ─────────────────
+  const FILTERS: Record<string, JobFilter> = {
+    regular: { job_urgency: 'normal',  label: 'Regular Job Openings'  },
+    urgent:  { job_urgency: 'instant', label: 'Urgent Shift Openings' },
+    noShow:  { status: 'CLOSED',      label: 'Closed Jobs'           },
+    active:  { status: 'OPEN',        label: 'Active Jobs & Shifts'  },
+  };
+
+  const handleCardClick = (key: keyof typeof FILTERS) => {
+    const filter = FILTERS[key];
+    setActiveFilter((prev) =>
+      prev?.label === filter.label ? null : filter  // toggle off if same card
+    );
+  };
 
   const statCards = [
-    { label: 'Regular Job Openings',  value: counts.regular, change: '-0.10%', up: false, icon: <BriefcaseIcon />, isFirst: true,  valueColor: 'text-gray-900' },
-    { label: 'Urgent Shift Openings', value: counts.urgent,  change: '+1.10%', up: true,  icon: <PeopleIcon />,   isFirst: false, valueColor: 'text-gray-900' },
-    { label: 'No-Show Alerts',        value: counts.noShow,  change: '+2.10%', up: false, icon: <TrashIcon />,    isFirst: false, valueColor: 'text-red-500'  },
-    { label: 'Active Jobs & Shifts',  value: counts.active,  change: '+2.10%', up: true,  icon: <LayersIcon />,   isFirst: false, valueColor: 'text-gray-900' },
+    { key: 'regular' as const, label: 'Regular Job Openings',  value: counts.regular, change: '-0.10%', up: false, icon: <BriefcaseIcon />, valueColor: 'text-gray-900' },
+    { key: 'urgent'  as const, label: 'Urgent Shift Openings', value: counts.urgent,  change: '+1.10%', up: true,  icon: <PeopleIcon />,   valueColor: 'text-gray-900' },
+    { key: 'noShow'  as const, label: 'No-Show Alerts',        value: counts.noShow,  change: '+2.10%', up: false, icon: <TrashIcon />,    valueColor: 'text-red-500'  },
+    { key: 'active'  as const, label: 'Active Jobs & Shifts',  value: counts.active,  change: '+2.10%', up: true,  icon: <LayersIcon />,   valueColor: 'text-gray-900' },
   ];
 
   return (
@@ -88,16 +105,16 @@ export const JobsDashboard: React.FC = () => {
       {/* Top Bar */}
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-bold text-gray-900 whitespace-nowrap">Jobs</h1>
-
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search"
             className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
           />
         </div>
-
         <div className="relative">
           <select className="appearance-none border border-gray-200 rounded-lg pl-4 pr-9 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer font-medium">
             <option>This Month</option>
@@ -108,39 +125,64 @@ export const JobsDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Active filter pill */}
+      {activeFilter && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">Filtering by:</span>
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-[#F4781B] bg-orange-50 border border-orange-200 px-3 py-1 rounded-full">
+            {activeFilter.label}
+            <button
+              onClick={() => setActiveFilter(null)}
+              className="text-orange-400 hover:text-orange-600 ml-1 leading-none"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className={`bg-white rounded-2xl p-5 border-2 ${
-              card.isFirst ? 'border-[#F4781B]' : 'border-transparent'
-            }`}
-            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-gray-500 font-medium">{card.label}</p>
-              <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
-                {card.icon}
+        {statCards.map((card) => {
+          const isActive = activeFilter?.label === card.label;
+          return (
+            <div
+              key={card.label}
+              onClick={() => handleCardClick(card.key)}
+              className={`bg-white rounded-2xl p-5 border-2 cursor-pointer transition-all ${
+                isActive
+                  ? 'border-[#F4781B] shadow-md'
+                  : 'border-transparent hover:border-orange-200'
+              }`}
+              style={{ boxShadow: isActive ? '0 4px 12px rgba(244,120,27,0.15)' : '0 1px 4px rgba(0,0,0,0.06)' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm text-gray-500 font-medium">{card.label}</p>
+                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                  {card.icon}
+                </div>
+              </div>
+              <p className={`text-4xl font-bold mb-4 ${card.valueColor}`}>
+                {card.value}
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Since last week</span>
+                <span className={`text-xs font-semibold flex items-center gap-0.5 ${card.up ? 'text-green-500' : 'text-red-500'}`}>
+                  {card.change}
+                  <span className="text-sm">{card.up ? '↑' : '↓'}</span>
+                </span>
               </div>
             </div>
-            <p className={`text-4xl font-bold mb-4 ${card.valueColor}`}>
-              {card.value}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Since last week</span>
-              <span className={`text-xs font-semibold flex items-center gap-0.5 ${card.up ? 'text-green-500' : 'text-red-500'}`}>
-                {card.change}
-                <span className="text-sm">{card.up ? '↑' : '↓'}</span>
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Jobs table — fully self-contained */}
-      <JobsAllPage />
-
+      {/* Jobs table — receives active filter + search */}
+      <JobsAllPage
+        filterStatus={activeFilter?.status}
+        filterUrgency={activeFilter?.job_urgency}
+        search={search}
+      />
     </div>
   );
 };

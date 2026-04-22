@@ -84,12 +84,9 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
     else if (jobType === 'casual')   jobType = 'Casual';
     else                             jobType = job.job_type || 'Full Time';
 
-    const payPerHour = (job as JobBackendResponse & { pay_per_hour_cents?: number }).pay_per_hour_cents;
-    const payRange = job.pay_range_max
-      ? `$${job.pay_range_min} - $${job.pay_range_max}`
-      : payPerHour
-        ? `$${payPerHour}/hr`
-        : undefined;
+     const payRange = job.pay_per_hour_cents
+  ? `$${(job.pay_per_hour_cents / 100).toFixed(2)}/hr`
+  : undefined;
 
     return {
       jobTitle:           job.job_title,

@@ -60,10 +60,10 @@ export const PerformanceCard = ({
   metrics,
   strength,
 }: {
-  title: string;
-  score: number;
-  metrics: { label: string; value: number }[];
-  strength: string;
+  title:    string;
+  score:    number;
+  metrics:  { label: string; value: number }[];
+  strength?: string;   // ← add ?
 }) => (
   <div className="bg-white border border-gray-200 rounded-xl p-5 sm:p-6">
     <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
@@ -75,16 +75,20 @@ export const PerformanceCard = ({
         <MetricRow key={i} label={m.label} value={m.value} />
       ))}
     </div>
-    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-      <div className="flex gap-2">
-        <svg className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-        </svg>
-        <div>
-          <p className="text-xs font-semibold text-green-900 mb-0.5">Strengths</p>
-          <p className="text-xs text-green-800">{strength}</p>
+
+    {/* Only render the strengths box if there's content */}
+    {strength && (
+      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+        <div className="flex gap-2">
+          <svg className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+          <div>
+            <p className="text-xs font-semibold text-green-900 mb-0.5">Strengths</p>
+            <p className="text-xs text-green-800">{strength}</p>
+          </div>
         </div>
       </div>
-    </div>
+    )}
   </div>
 );

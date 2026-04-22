@@ -74,7 +74,9 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
 
   // ── Cost Breakdown ── derived from actual API fields
   // pay_range_min is hourly rate in dollars (or use pay_per_hour_cents if available)
-  const hourlyRate         = Number(payload.pay_range_min ?? 0);
+  const hourlyRate         = payload.pay_per_hour_cents != null
+  ? payload.pay_per_hour_cents / 100
+  : 0;
   const shiftHours         = diffHours(payload.check_in_time, payload.check_out_time);
   const totalDays          = (() => {
     if (!payload.start_date || !payload.end_date) return 1;
@@ -82,7 +84,7 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
     return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
   })();
   const hoursPerCandidate  = shiftHours * totalDays;
-  const requiredCandidates = payload.no_of_hires ?? 1;
+  const requiredCandidates = payload.no_of_hires_required ?? 1;
   const costPerCandidate   = hourlyRate * hoursPerCandidate;
   const totalPayable       = costPerCandidate * requiredCandidates;
 

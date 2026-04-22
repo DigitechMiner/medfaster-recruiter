@@ -7,12 +7,20 @@ import { AddInHouseModal, SuccessModal } from "./InHouseModals";
 import { JobTable } from "./JobTable";
 import { PaginationBar, SectionHeader } from "./ui";
 
-export function InHouseCandidatesSection() {
-  const [localView, setLocalView] = useState<"grid" | "list">("list");
-  const [showAddModal, setShowAddModal] = useState(false);
+interface InHouseCandidatesSectionProps {
+  candidateId?: string;
+  jobId?: string;
+}
+
+export function InHouseCandidatesSection({
+  candidateId = "",
+  jobId = "",
+}: InHouseCandidatesSectionProps) {
+  const [localView, setLocalView]           = useState<"grid" | "list">("list");
+  const [showAddModal, setShowAddModal]     = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [inviteCount, setInviteCount] = useState(0);
-  const [hasStaff, setHasStaff] = useState(false);
+  const [inviteCount, setInviteCount]       = useState(0);
+  const [hasStaff, setHasStaff]             = useState(false);
 
   const inHouseJobs = MOCK_JOBS.filter((j) => j.candidateType === "In-House");
 
@@ -33,6 +41,8 @@ export function InHouseCandidatesSection() {
         <AddInHouseModal
           onClose={() => setShowAddModal(false)}
           onSuccess={handleSuccess}
+          candidateId={candidateId}
+          jobId={jobId}
         />
       )}
       {showSuccessModal && (

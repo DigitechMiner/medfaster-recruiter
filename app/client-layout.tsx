@@ -3,11 +3,13 @@
 import { useEffect } from "react";
 import GoogleOAuthProviderWrapper from "@/provider/GoogleOAuthProvider";
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "@/stores/authStore";
+import { useSidebarStore } from "@/stores/sidebarStore";
+import { Navbar } from "@/components/global/navbar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const loadRecruiterProfile = useAuthStore((state) => state.loadRecruiterProfile);
+  const isExpanded = useSidebarStore((s) => s.isExpanded);
 
   useEffect(() => {
     // Call getProfile API on mount to check authentication status
@@ -30,7 +32,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <>
       <GoogleOAuthProviderWrapper>
-        {children}
+        <Navbar />
+        <div
+  className={`transition-all duration-300 ease-in-out pt-16 ${
+    isExpanded ? "ml-64" : "ml-[72px]"
+  }`}
+>
+          {children}
+        </div>
       </GoogleOAuthProviderWrapper>
       <ToastContainer
         position="top-right"

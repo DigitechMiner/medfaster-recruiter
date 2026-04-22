@@ -47,11 +47,12 @@ class JobService {
   }
 
   static async getCandidatesByStatus(params?: {
-    job_id?:  string;
-    status?:  'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
-    page?:    number;
-    limit?:   number;
-  }) {
+  job_id?:  string;
+  status?:  'APPLIED' | 'SHORTLISTED' | 'INTERVIEWING' | 'INTERVIEWED' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
+  page?:    number;
+  limit?:   number;
+  offset?:  number;
+}) {
     return await getJobApplications(params ?? {});
   }
 

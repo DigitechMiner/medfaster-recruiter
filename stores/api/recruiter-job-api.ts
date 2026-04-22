@@ -87,6 +87,10 @@ export interface CandidateDetailsResponse {
   documents: Array<{ id: string; document_type: string; title: string; file_url: string | null }>;
   created_at: string;
   updated_at: string;
+
+  // ── AI interview ──────────────────────────────────────────────────────────
+  ai_interview_score:   number | null;
+  ai_interview_summary: string | null;
 }
 
 export interface CandidateListItem {
@@ -129,22 +133,21 @@ export interface CandidatesListResponse {
 }
 
 export interface GetJobsParams {
-  page?:        number;
-  limit?:       number;
-  offset?:      number;
-  status?:      'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
-  joburgency?:  'instant' | 'normal';
-  search?:      string;
+  job_urgency?: 'instant' | 'normal';
+  status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED' | 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
+  page?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED';
 
 export async function getJobApplications(params: {
-  job_id?: string;
-  status?: 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'REJECTED' | 'HIRE' | 'ACCEPTED' | 'CANCELLED';
-  page?: number;
-  limit?: number;
-  offset?: number;
+  job_id?:  string;
+  status?:  'APPLIED' | 'SHORTLISTED' | 'INTERVIEWING' | 'INTERVIEWED' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
+  page?:    number;
+  limit?:   number;
+  offset?:  number;
 }): Promise<JobApplicationListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOB_APPLICATIONS, { params });
   return res.data.data;

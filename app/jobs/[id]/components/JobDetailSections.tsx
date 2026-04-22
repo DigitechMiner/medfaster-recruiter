@@ -27,21 +27,14 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
 
   // ✅ Bug 3 fix — fixed+additional format, handles instant same-value case
   const formatSalary = () => {
-    const min = parseFloat(String(job.pay_range_min));
-    const max = parseFloat(String(job.pay_range_max));
-
-    if (job.job_urgency === "instant") {
-      const amount = max || min;
-      return amount ? `$${amount.toLocaleString()} (Fixed)` : "Negotiable";
-    }
-
-    if (min && max && min !== max)
-  return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-    if (min && max) return `$${min.toLocaleString()}`;
-    if (min) return `$${min.toLocaleString()}+`;
-    if (max) return `$${max.toLocaleString()}`;
-    return "Negotiable";
-  };
+  const dollars = job.pay_per_hour_cents != null
+    ? (job.pay_per_hour_cents / 100).toFixed(2)
+    : null;
+  if (!dollars) return "Negotiable";
+  return job.job_urgency === "instant"
+    ? `$${dollars}/hr (Fixed)`
+    : `$${dollars}/hr`;
+};
 
   const gridItems = [
     {
@@ -240,52 +233,50 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
       )}
 
       {/* Instant Job Schedule */}
-      {instantJob && (
-        <div className="mb-5 pb-5 border-b border-gray-200">
-          <Heading as="h3" size="xs" weight="semibold" className="text-sm text-orange-600 mb-3">
-            Schedule :
-          </Heading>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {instantJob.start_date && (
-              <div>
-                <Paragraph size="xs" className="text-gray-500 mb-1">From Date</Paragraph>
-                <Paragraph size="sm" weight="semibold" className="text-gray-900">
-                  {new Date(instantJob.start_date).toLocaleDateString()}
-                </Paragraph>
-              </div>
-            )}
-            {instantJob.end_date && (
-              <div>
-                <Paragraph size="xs" className="text-gray-500 mb-1">Till Date</Paragraph>
-                <Paragraph size="sm" weight="semibold" className="text-gray-900">
-                  {/* ✅ Bug 1 display — show "Same Day" for same-day shifts */}
-                  {instantJob.start_date &&
-                  new Date(instantJob.end_date).toDateString() ===
-                    new Date(instantJob.start_date).toDateString()
-                    ? `Same Day (${new Date(instantJob.end_date).toLocaleDateString()})`
-                    : new Date(instantJob.end_date).toLocaleDateString()}
-                </Paragraph>
-              </div>
-            )}
-            {instantJob.check_in_time && (
-              <div>
-                <Paragraph size="xs" className="text-gray-500 mb-1">Check In</Paragraph>
-                <Paragraph size="sm" weight="semibold" className="text-gray-900">
-                  {instantJob.check_in_time}
-                </Paragraph>
-              </div>
-            )}
-            {instantJob.check_out_time && (
-              <div>
-                <Paragraph size="xs" className="text-gray-500 mb-1">Check Out</Paragraph>
-                <Paragraph size="sm" weight="semibold" className="text-gray-900">
-                  {instantJob.check_out_time}
-                </Paragraph>
-              </div>
-            )}
-          </div>
+      {instantJob && (job.start_date || job.check_in_time) && (
+  <div className="mb-5 pb-5 border-b border-gray-200">
+    <Heading as="h3" size="xs" weight="semibold" className="text-sm text-orange-600 mb-3">
+      Schedule :
+    </Heading>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      {job.start_date && (
+        <div>
+          <Paragraph size="xs" className="text-gray-500 mb-1">From Date</Paragraph>
+          <Paragraph size="sm" weight="semibold" className="text-gray-900">
+            {new Date(job.start_date).toLocaleDateString()}
+          </Paragraph>
         </div>
       )}
+      {job.end_date && (
+        <div>
+          <Paragraph size="xs" className="text-gray-500 mb-1">Till Date</Paragraph>
+          <Paragraph size="sm" weight="semibold" className="text-gray-900">
+            {job.start_date &&
+             new Date(job.end_date).toDateString() === new Date(job.start_date).toDateString()
+              ? `Same Day (${new Date(job.end_date).toLocaleDateString()})`
+              : new Date(job.end_date).toLocaleDateString()}
+          </Paragraph>
+        </div>
+      )}
+      {job.check_in_time && (
+        <div>
+          <Paragraph size="xs" className="text-gray-500 mb-1">Check In</Paragraph>
+          <Paragraph size="sm" weight="semibold" className="text-gray-900">
+            {job.check_in_time}
+          </Paragraph>
+        </div>
+      )}
+      {job.check_out_time && (
+        <div>
+          <Paragraph size="xs" className="text-gray-500 mb-1">Check Out</Paragraph>
+          <Paragraph size="sm" weight="semibold" className="text-gray-900">
+            {job.check_out_time}
+          </Paragraph>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
       {/* Additional Info */}
 <div className="mt-6 pt-6 border-t border-gray-200">
@@ -314,7 +305,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
     <div>
       <Paragraph size="xs" className="text-gray-500 mb-1">Number of Hires</Paragraph>
       <Paragraph size="sm" weight="semibold" className="text-gray-900">
-        {job.no_of_hires || "Not specified"}
+        {job.no_of_hires_required || "Not specified"}
       </Paragraph>
     </div>
     <div>

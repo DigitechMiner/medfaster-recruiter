@@ -110,34 +110,44 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
 
   setIsSubmitting(true);
   setError(null);
+const rawAmount = Number(formData.amountPerHire?.replace(/\D/g, '') ?? '0');
 
-  const backendData: JobCreatePayload = {
-    job_title:           convertJobTitleToBackend(formData.jobTitle),
-    job_type:            "casual",
-    department:          formData.department || null,
-    street:              formData.streetAddress || null,
-    postal_code:         formData.postalCode || null,
-    province:            formData.province || null,
-    city:                formData.city || null,
-    neighborhood_name:   formData.neighborhoodName || null,
-    neighborhood_type:   formData.neighborhoodType || null,
-    direct_number:       formData.directNumber || null,
-    pay_range_min:       Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
-    pay_range_max:       Number(formData.amountPerHire?.replace(/\D/g, "")) || null,
-    years_of_experience: null,
-    qualifications:      null,
-    specializations:     null,
-    job_urgency:         "instant",
-    ai_interview:        false,
-    description:         formData.description || null,
-    questions:           null,
-    status:              "DRAFT",
-    no_of_hires:         formData.numberOfHires ? parseInt(formData.numberOfHires) : null,
-    start_date:          formatDateForBackend(formData.fromDate),
-    end_date:            formatDateForBackend(formData.tillDate),
-    check_in_time:  formData.fromTime ?? null,
-    check_out_time: formData.toTime   ?? null,
-  };
+const backendData: JobCreatePayload = {
+  job_title:            convertJobTitleToBackend(formData.jobTitle),
+  status:               'DRAFT',
+  job_type:             'casual',
+  job_urgency:          'instant',
+  department:           formData.department    || null,
+  street:               formData.streetAddress || null,
+  postal_code:          formData.postalCode    || null,
+  province:             formData.province      || null,
+  city:                 formData.city          || null,
+  neighborhood_name:    formData.neighborhoodName || null,
+  neighborhood_type:    formData.neighborhoodType || null,
+  direct_number:        formData.directNumber  || null,
+
+  // ── Pay — dollars → cents ─────────────────────────────
+  pay_per_hour_cents:   rawAmount ? Math.round(rawAmount * 100) : null,
+
+  // ── Normal job fields — empty for instant ─────────────
+  years_of_experience:  null,
+  qualifications:       null,
+  specializations:      null,
+  ai_interview:         false,
+  questions:            null,
+  description:          formData.description   || null,
+
+  // ── Hiring ────────────────────────────────────────────
+  no_of_hires_required: formData.numberOfHires
+                          ? parseInt(formData.numberOfHires)
+                          : undefined,
+
+  // ── Shift ─────────────────────────────────────────────
+  start_date:           formatDateForBackend(formData.fromDate),
+  end_date:             formatDateForBackend(formData.tillDate),
+  check_in_time:        formData.fromTime || null,
+  check_out_time:       formData.toTime   || null,
+};
 
   if (onNext) {
     // ✅ Go to summary page — don't submit yet

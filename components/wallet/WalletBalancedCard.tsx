@@ -13,7 +13,7 @@ export default function WalletBalanceCard({ balanceCAD, isLocked, onWithdraw }: 
   return (
     <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
       <p className="text-4xl font-bold text-gray-900 tracking-tight">
-        CA$ {formatted}/-
+        $ {formatted}/-
       </p>
       {isLocked ? (
         <p className="mt-2 text-sm text-red-400">Wallet is locked</p>

@@ -305,11 +305,15 @@ export function convertJobTitleToFrontend(backendValue: string | null | undefine
   return entry ? entry[0] : metadata.job_title[0];
 }
 
-export function convertJobTypeToBackend(frontendValue: string): string {
-  return (
-    metadata.job_type_mapping[frontendValue as keyof typeof metadata.job_type_mapping] ??
-    "full_time"
-  );
+export function convertJobTypeToBackend(
+  jobType: string
+): 'casual' | 'part_time' | 'full_time' {
+  const map: Record<string, 'casual' | 'part_time' | 'full_time'> = {
+    'Full Time': 'full_time',
+    'Part Time': 'part_time',
+    'Casual':    'casual',
+  };
+  return map[jobType] ?? 'casual';
 }
 
 export function convertJobTypeToFrontend(backendValue: string | null | undefined): string {

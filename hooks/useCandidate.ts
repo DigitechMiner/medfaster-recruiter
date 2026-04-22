@@ -5,103 +5,78 @@ import {
   getCandidatesList,
   getCandidateDetails,
   updateApplicationStatus,
-  CandidatesListResponse,
-  CandidateDetailsResponse,
-  ApplicationStatus,
+  type CandidatesListResponse,
+  type CandidateDetailsResponse,
+  type ApplicationStatus,
 } from '@/stores/api/recruiter-job-api';
-import {
-  STATIC_CANDIDATES_MAP,  // ✅ import the map, not just STATIC_CANDIDATE
-  STATIC_CANDIDATES,
-} from '@/app/candidates/[id]/constants/staticData';
-
 
 export function useCandidatesList(params?: Parameters<typeof getCandidatesList>[0]) {
-  const [data, setData] = useState<CandidatesListResponse | null>(null);
+  const [data,      setData]      = useState<CandidatesListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error,     setError]     = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setIsLoading(true);
+    setError(null);
+
     getCandidatesList(params)
       .then((res) => {
-        // ✅ If API returns empty, inject static candidates
-        if (!res?.candidates?.length) {
-          setData({
-            candidates: STATIC_CANDIDATES,
-            pagination: {
-              total: STATIC_CANDIDATES.length,
-              page: 1,
-              limit: 20,
-              offset: 0,
-              totalPages: 1,
-              hasNextPage: false,
-              hasPreviousPage: false,
-            },
-          });
-        } else {
-          setData(res);
-        }
+        if (cancelled) return;
+        setData(res);
       })
-      .catch(() => {
-        // ✅ On API error, also fall back to static
-        setData({
-          candidates: STATIC_CANDIDATES,
-          pagination: {
-            total: STATIC_CANDIDATES.length,
-            page: 1,
-            limit: 20,
-            offset: 0,
-            totalPages: 1,
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-        });
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e?.message ?? 'Failed to load candidates');
       })
-      .finally(() => setIsLoading(false));
-  }, [params?.job_id, params?.page, params?.interview]);
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [
+    params?.page,
+    params?.limit,
+    params?.job_id,
+    params?.interview,
+  ]);
 
   return { data, isLoading, error };
 }
 
-
 export function useCandidateDetails(candidateId: string | null) {
   const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
 
   useEffect(() => {
     if (!candidateId) { setIsLoading(false); return; }
-
-    // ✅ Bypass API entirely for static IDs — no network call made
-    const staticMatch = STATIC_CANDIDATES_MAP[candidateId];
-    if (staticMatch) {
-      setCandidate(staticMatch);
-      setIsLoading(false);
-      return;
-    }
+    let cancelled = false;
 
     setIsLoading(true);
+    setError(null);
+
     getCandidateDetails(candidateId)
-      .then(setCandidate)
-      .catch((e) => setError(e.message))
-      .finally(() => setIsLoading(false));
+      .then((res) => { if (!cancelled) setCandidate(res); })
+      .catch((e)  => { if (!cancelled) setError(e?.message ?? 'Candidate not found'); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
   }, [candidateId]);
 
   return { candidate, isLoading, error };
 }
 
-
 export function useUpdateApplicationStatus() {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error,      setError]      = useState<string | null>(null);
 
   const update = async (applicationId: string, status: ApplicationStatus) => {
     try {
       setIsUpdating(true);
       setError(null);
       return await updateApplicationStatus(applicationId, status);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Update failed';
+      setError(msg);
       throw e;
     } finally {
       setIsUpdating(false);

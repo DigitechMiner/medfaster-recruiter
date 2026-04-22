@@ -6,14 +6,13 @@ import Image from "next/image";
 import { StatusSection, StatusTable } from "./ui";
 import { STATUS_SECTIONS } from "../constants/jobs";
 import { Job } from "@/Interface/job.types";
-import type { JobsListResponse } from "@/Interface/job.types";
+import type { JobListItem } from "@/Interface/job.types";
 import type { JobApplicationListResponse } from "@/stores/api/recruiter-job-api";
 import {
   INTERVIEWING_DUMMY,
   HIRED_DUMMY,
 } from "../constants/jobs";
 
-type JobListItem = JobsListResponse["data"]["jobs"][0];
 type RawApplication = JobApplicationListResponse["applications"][number];
 
 interface JobPipelinePanelProps {

@@ -8,6 +8,16 @@ import { JobDescriptionModal, useJobDescriptionModal } from "./JobDescriptionMod
 import { EditInterviewQuestionsModal } from "./EditInterviewQuestionsModal";
 import ScoreCard from "@/components/card/scorecard";
 import Image from "next/image";
+import { useCandidatesList } from "@/hooks/useCandidate";
+import type { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import {
+  convertJobTypeToFrontend,
+  convertProvinceToFrontend,
+  convertSpecializationToFrontend,
+  convertQualificationToFrontend,
+  convertExperienceToFrontend,
+  provinces,
+} from "@/utils/constant/metadata";
 
 // ── Types ──────────────────────────────────────────────────────
 interface Props {
@@ -27,62 +37,173 @@ const TABS: Tab[] = [
   { key: 'hired',           label: 'Hired Candidates'                         },
 ];
 
-const DUMMY_CANDIDATES = [
-  { id: '1', name: 'Michael Liam', department: 'Nursing',    role: 'Registered Nurse',         exp: '5 to 7 Years', rating: 4.8, score: 40, distance: '25km', online: true,  avatar: '/icon/card-doctor.svg' },
-  { id: '2', name: 'Michael Liam', department: 'Disability', role: 'Licensed Practical Nurse', exp: '5 to 7 Years', rating: 4.8, score: 72, distance: '12km', online: true,  avatar: '/icon/card-doctor.svg' },
-  { id: '3', name: 'Michael Liam', department: 'Nursing',    role: 'Licensed Practical Nurse', exp: '5 to 7 Years', rating: 4.8, score: 55, distance: '8km',  online: false, avatar: '/icon/card-doctor.svg' },
-  { id: '4', name: 'Sarah Johnson', department: 'Nursing',   role: 'Registered Nurse',         exp: '3 to 5 Years', rating: 4.5, score: 63, distance: '15km', online: true,  avatar: '/icon/card-doctor.svg' },
-  { id: '5', name: 'David Kim',    department: 'Disability', role: 'Support Worker',           exp: '2 to 4 Years', rating: 4.2, score: 48, distance: '30km', online: false, avatar: '/icon/card-doctor.svg' },
-  { id: '6', name: 'Emma Clarke',  department: 'Nursing',    role: 'Registered Nurse',         exp: '7 to 10 Years',rating: 4.9, score: 88, distance: '5km',  online: true,  avatar: '/icon/card-doctor.svg' },
-];
+// ── Map CandidateListItem → display shape ──────────────────────
+interface Candidate {
+  id:         string;
+  name:       string;
+  department: string;
+  role:       string;
+  exp:        string;
+  rating:     number;
+  score:      number;
+  distance:   string;
+  online:     boolean;
+  avatar:     string;
+}
 
-type Candidate = typeof DUMMY_CANDIDATES[0];
+function toCandidate(c: CandidateListItem): Candidate {
+  const specialty = c.specialty?.[0]
+    ?.replace(/_/g, " ")
+    .replace(/\b\w/g, (l) => l.toUpperCase())
+    ?? c.medical_industry?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+    ?? "Healthcare Professional";
+
+  return {
+    id:         c.id,
+    name:       c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim(),
+    department: c.medical_industry?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) ?? "—",
+    role:       specialty,
+    exp:        "—",
+    rating:     Number(c.completion_percentage ?? 0) / 20,
+    score:      c.highest_job_interview_score ?? c.highest_interview_score ?? 0,
+    distance:   [c.city, c.state].filter(Boolean).join(", ") || "N/A",
+    online:     false,
+    avatar:     c.profile_image_url ?? "/icon/card-doctor.svg",
+  };
+}
+
+// ── Date/time helpers ──────────────────────────────────────────
+function formatTime(t?: string | null) {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'pm' : 'am'}`;
+}
+function calcShiftHours(ci?: string | null, co?: string | null) {
+  if (!ci || !co) return '';
+  const [ih, im] = ci.split(':').map(Number);
+  const [oh, om] = co.split(':').map(Number);
+  let mins = oh * 60 + om - (ih * 60 + im);
+  if (mins < 0) mins += 1440;
+  const h = Math.floor(mins / 60), r = mins % 60;
+  return r > 0 ? `Total ${h}h ${r}m Shift` : `Total ${h} Hours Shift`;
+}
+function formatJobDate(d?: string | null) {
+  if (!d) return 'N/A';
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function getCountdown(dateStr?: string | null) {
+  if (!dateStr) return '';
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff <= 0) return 'Already Started';
+  const days = Math.floor(diff / 86400000);
+  if (days > 0) return `Starts in ${days} Day${days > 1 ? 's' : ''}`;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return `Starts in ${h}:${String(m).padStart(2, '0')}:00 hrs`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Main Component ────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-export const NormalJobDetail: React.FC<Props> = ({ job }) => {
-  const router = useRouter()
-  const modal  = useJobDescriptionModal();
-  const hasAI  = job.normalJob?.ai_interview === true;
+export const NormalJobDetail: React.FC<Props> = ({ job, jobId, onCloseJob }) => {
+  const router  = useRouter();
+  const modal   = useJobDescriptionModal();
+  const hasAI   = job.normalJob?.ai_interview === true;
 
-  const [view,       setView]       = useState<'list' | 'kanban'>('list');
-  const [activeTab,  setActiveTab]  = useState<TabKey>('applied');
-  const [showQModal, setShowQModal] = useState(false);
+  const [view,        setView]        = useState<'list' | 'kanban'>('list');
+  const [activeTab,   setActiveTab]   = useState<TabKey>('applied');
+  const [showQModal,  setShowQModal]  = useState(false);
+  const [page,        setPage]        = useState(1);
+  const [limit,       setLimit]       = useState(10);
+
+  const { data, isLoading } = useCandidatesList({
+    page,
+    limit,
+    job_id: jobId,
+    ...(activeTab !== 'applied' && { candidate_status: activeTab }),
+  });
+
+  const candidates  = (data?.candidates ?? []).map(toCandidate);
+  const totalCount  = data?.pagination?.total ?? 0;
+  const totalPages  = Math.max(1, Math.ceil(totalCount / limit));
 
   const visibleTabs = TABS.filter(t => !t.aiOnly || hasAI);
   const hasSpecs    = job.normalJob?.specializations && job.normalJob.specializations.length > 0;
   const hasQuals    = job.normalJob?.qualifications  && job.normalJob.qualifications.length  > 0;
 
+  // ── Province → display label ─────────────────────────────────
+  const provinceSnake = convertProvinceToFrontend(job.province);
+  const provinceLabel = provinces.find(p => p.value === provinceSnake)?.label
+    ?? job.province ?? '';
+  const location = [job.city, provinceLabel].filter(Boolean).join(', ');
+
+  // ── Info row ─────────────────────────────────────────────────
   const infoItems = [
-    [job.city, job.province].filter(Boolean).join(', ') ? {
+    location ? {
       icon: <LocIcon />,
-      text: `${[job.city, job.province].filter(Boolean).join(', ')}, Canada`,
+      text: `${location}, Canada`,
     } : null,
-    { icon: <MailIcon />,   text: 'noahliamdoc@gmail.com' },
-    { icon: <PhoneIcon />,  text: '+1 123 1231 213' },
-    { icon: <ClockIcon />,  text: job.job_type ?? 'Part Time' },
+    {
+      icon: <ClockIcon />,
+      text: convertJobTypeToFrontend(job.job_type),
+    },
     {
       icon: <DollarIcon />,
-      node: <span><strong className="text-gray-900 font-bold">${job.pay_range_max ?? job.pay_range_min ?? '—'}</strong>/hr</span>,
+      node: (
+        <span>
+          <strong className="text-gray-900 font-bold">
+            ${job.pay_per_hour_cents ? (job.pay_per_hour_cents / 100).toFixed(2) : '—'}
+          </strong>/hr
+        </span>
+      ),
       text: null,
     },
   ].filter(Boolean) as { icon: React.ReactNode; text: string | null; node?: React.ReactNode }[];
 
-  const statCards = [
-    { label: 'Total Requirements',  value: job.no_of_hires ?? 'N/A',                   sub: 'None Hired',           icon: <LayersIcon /> },
-    { label: 'Experience Required', value: job.normalJob?.years_of_experience ?? 'N/A', sub: null,                   icon: <TimerIcon />  },
-    { label: 'Job Start Date',      value: 'N/A',                                       sub: 'Starts in 7 Days',     icon: <CalIcon />    },
-    { label: 'Job Timings',         value: 'N/A',                                       sub: 'Total 12 Hours Shift', icon: <ClockIcon />  },
+  // ── Stat cards ───────────────────────────────────────────────
+  const normalJob = job.normalJob;
+  const startDate = job.start_date     ?? null;
+const checkIn   = job.check_in_time  ?? null;
+const checkOut  = job.check_out_time ?? null;
+const statCards = [
+    {
+      label: 'Total Requirements',
+      value: job.no_of_hires_required ?? 'N/A',
+      sub:   totalCount > 0 ? `${totalCount} Candidates Applied` : 'None Applied',
+      icon:  <LayersIcon />,
+    },
+    {
+      label: 'Experience Required',
+      value: convertExperienceToFrontend(normalJob?.years_of_experience) || 'N/A',
+      sub:   null,
+      icon:  <TimerIcon />,
+    },
+    {
+      label: 'Job Start Date',
+      value: formatJobDate(startDate),
+      sub:   getCountdown(startDate),
+      icon:  <CalIcon />,
+    },
+    {
+      label: 'Job Timings',
+      value: checkIn && checkOut
+        ? `${formatTime(checkIn)} to ${formatTime(checkOut)}`
+        : 'N/A',
+      sub:   calcShiftHours(checkIn, checkOut) || null,
+      icon:  <ClockIcon />,
+    },
   ];
+
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab);
+    setPage(1);
+  };
 
   return (
     <div className="flex flex-col gap-4">
 
-      {/* ── Header Card ───────────────────────────────────── */}
+      {/* ── Header Card ── */}
       <div className="bg-white rounded-2xl border border-gray-200 px-6 py-4">
-
-        {/* Breadcrumb + status */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5 text-sm">
             <button onClick={() => router.push('/jobs')} className="p-1 -ml-1 hover:bg-gray-100 rounded">
@@ -92,15 +213,16 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
             </button>
             <span className="text-gray-700 font-semibold cursor-pointer hover:text-gray-900" onClick={() => router.push('/jobs')}>Jobs</span>
             <span className="text-gray-400">/</span>
-            <span className="text-gray-500">Job_id</span>
+            <span className="text-gray-500">{jobId}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-4 py-1.5 rounded-full text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200">Open</span>
+            <span className="px-4 py-1.5 rounded-full text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200">
+              {job.status.charAt(0) + job.status.slice(1).toLowerCase()}
+            </span>
             <span className="px-4 py-1.5 rounded-full text-sm font-medium text-green-600 bg-green-50 border border-green-200">Regular</span>
           </div>
         </div>
 
-        {/* Title + action buttons */}
         <div className="flex items-start justify-between gap-4 mb-2.5">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-extrabold text-gray-900">{job.job_title}</h1>
@@ -130,7 +252,6 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
           </div>
         </div>
 
-        {/* Info pipe row */}
         <div className="flex flex-wrap items-center gap-y-1 text-sm text-gray-600 pb-3">
           {infoItems.map((item, i) => (
             <React.Fragment key={i}>
@@ -142,28 +263,30 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
 
         <div className="h-px bg-gray-100 mb-3" />
 
-        {/* Specializations */}
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <span className="text-sm font-semibold text-[#F4781B]">Required Specialization :</span>
           {hasSpecs
             ? job.normalJob!.specializations!.map((s, i) => (
-                <span key={i} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">{String(s)}</span>
+                <span key={i} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">
+                  {convertSpecializationToFrontend(String(s))}
+                </span>
               ))
             : <span className="text-sm text-gray-400">N/A</span>}
         </div>
 
-        {/* Qualifications */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-[#F4781B]">Required Qualification :</span>
           {hasQuals
             ? job.normalJob!.qualifications!.map((q, i) => (
-                <span key={i} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">{q}</span>
+                <span key={i} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">
+                  {convertQualificationToFrontend(q)}
+                </span>
               ))
             : <span className="text-sm text-gray-400">N/A</span>}
         </div>
       </div>
 
-      {/* ── 4 Stat Cards ──────────────────────────────────── */}
+      {/* ── 4 Stat Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
           <div key={card.label} className="bg-white rounded-2xl px-5 py-4 border border-gray-200 flex flex-col gap-1.5 relative">
@@ -177,17 +300,16 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
         ))}
       </div>
 
-      {/* ── Candidates Section ─────────────────────────────── */}
+      {/* ── Candidates Section ── */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         {view === 'list' ? (
           <>
-            {/* Tab bar + view toggle */}
             <div className="flex items-center justify-between px-5 pt-4 border-b border-gray-100">
               <div className="flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
                 {visibleTabs.map((tab) => (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => handleTabChange(tab.key)}
                     className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors
                       ${activeTab === tab.key ? 'border-[#F4781B] text-[#F4781B]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                   >
@@ -203,19 +325,27 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
               <ViewToggle view={view} onChange={setView} />
             </div>
 
-            {/* Table */}
             <div className="p-5">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <CandidatesTable tab={activeTab} candidates={DUMMY_CANDIDATES} />
+                <CandidatesTable
+                  tab={activeTab}
+                  candidates={candidates}
+                  isLoading={isLoading}
+                />
               </div>
             </div>
 
-            {/* Pagination — bottom of list section */}
-            <TablePagination />
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              total={totalCount}
+              limit={limit}
+              onPageChange={setPage}
+              onLimitChange={(l) => { setLimit(l); setPage(1); }}
+            />
           </>
         ) : (
           <>
-            {/* Kanban controls row */}
             <div className="flex items-center justify-end gap-2 px-5 pt-4 pb-3 border-b border-gray-100">
               <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
                 <Filter size={14} />
@@ -223,14 +353,22 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
               </button>
               <ViewToggle view={view} onChange={setView} />
             </div>
-
-            {/* Kanban body — columns + pagination rendered inside */}
-            <KanbanSection hasAI={hasAI} />
+            <KanbanSection hasAI={hasAI} jobId={jobId} />
           </>
         )}
       </div>
 
-      {/* ── Modals ─────────────────────────────────────────── */}
+      {/* ── Bottom Actions ── */}
+      <div className="flex items-center justify-end gap-3 pb-4">
+        <button onClick={onCloseJob} className="px-6 py-2 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-50 font-medium">
+          Close This Job
+        </button>
+        <button onClick={() => router.push(`/jobs/edit/${jobId}`)} className="px-6 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 font-medium">
+          Edit Job
+        </button>
+      </div>
+
+      {/* ── Modals ── */}
       <JobDescriptionModal
         isOpen={modal.isOpen}
         onClose={modal.close}
@@ -258,18 +396,12 @@ export const NormalJobDetail: React.FC<Props> = ({ job }) => {
 function ViewToggle({ view, onChange }: { view: 'list' | 'kanban'; onChange: (v: 'list' | 'kanban') => void }) {
   return (
     <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-      <button
-        onClick={() => onChange('kanban')}
-        title="Kanban view"
-        className={`p-1.5 transition-colors ${view === 'kanban' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
-      >
+      <button onClick={() => onChange('kanban')} title="Kanban view"
+        className={`p-1.5 transition-colors ${view === 'kanban' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}>
         <LayoutGrid size={16} />
       </button>
-      <button
-        onClick={() => onChange('list')}
-        title="List view"
-        className={`p-1.5 transition-colors ${view === 'list' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
-      >
+      <button onClick={() => onChange('list')} title="List view"
+        className={`p-1.5 transition-colors ${view === 'list' ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}>
         <List size={16} />
       </button>
     </div>
@@ -279,7 +411,20 @@ function ViewToggle({ view, onChange }: { view: 'list' | 'kanban'; onChange: (v:
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Candidates Table ──────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candidate[] }) {
+function CandidatesTable({
+  tab, candidates, isLoading
+}: { tab: TabKey; candidates: Candidate[]; isLoading: boolean }) {
+
+  if (isLoading) {
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
   if (candidates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
@@ -292,6 +437,7 @@ function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candida
           </svg>
         </div>
         <p className="text-sm font-semibold text-gray-700">No Candidates Yet</p>
+        <p className="text-xs text-gray-400">No candidates in this stage</p>
       </div>
     );
   }
@@ -302,9 +448,7 @@ function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candida
         <thead>
           <tr className="bg-[#FEF3E9]">
             {['Candidate Name', 'Department', 'Job Title', 'Experience', 'Rating', 'Actions'].map((h) => (
-              <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap first:rounded-l-lg last:rounded-r-lg">
-                {h}
-              </th>
+              <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap first:rounded-l-lg last:rounded-r-lg">{h}</th>
             ))}
           </tr>
         </thead>
@@ -314,8 +458,8 @@ function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candida
               <td className="px-4 py-3.5">
                 <div className="flex items-center gap-2.5">
                   <div className="relative w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 overflow-hidden flex-shrink-0">
-  <Image src={c.avatar} alt={c.name} fill className="object-cover" />
-</div>
+                    <Image src={c.avatar} alt={c.name} fill className="object-cover" />
+                  </div>
                   <div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold text-gray-900">{c.name}</span>
@@ -337,7 +481,7 @@ function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candida
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
-                  {c.rating}/5
+                  {c.rating.toFixed(1)}/5
                 </span>
               </td>
               <td className="px-4 py-3.5">
@@ -351,7 +495,6 @@ function CandidatesTable({ tab, candidates }: { tab: TabKey; candidates: Candida
   );
 }
 
-// ── Table Action Buttons per tab ──────────────────────────────
 function TableActionButtons({ tab }: { tab: TabKey }) {
   switch (tab) {
     case 'applied':
@@ -369,9 +512,7 @@ function TableActionButtons({ tab }: { tab: TabKey }) {
         </div>
       );
     case 'ai_interviewing':
-      return (
-        <button className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600">Abort Interview</button>
-      );
+      return <button className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600">Abort Interview</button>;
     case 'interviewed':
       return (
         <div className="flex items-center gap-2">
@@ -380,23 +521,24 @@ function TableActionButtons({ tab }: { tab: TabKey }) {
         </div>
       );
     case 'hired':
-      return (
-        <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50">View Schedule</button>
-      );
-    default:
-      return null;
+      return <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50">View Schedule</button>;
+    default: return null;
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Table Pagination ──────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function TablePagination() {
-  const [page, setPage] = useState(1);
-  const totalPages = 10;
-  const total = 26;
-  const limit = 10;
-
+function TablePagination({
+  page, totalPages, total, limit, onPageChange, onLimitChange,
+}: {
+  page:          number;
+  totalPages:    number;
+  total:         number;
+  limit:         number;
+  onPageChange:  (p: number) => void;
+  onLimitChange: (l: number) => void;
+}) {
   const pages: (number | '...')[] =
     totalPages <= 7
       ? Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -404,11 +546,8 @@ function TablePagination() {
 
   return (
     <div className="bg-[#FEF3E9] px-5 py-3 flex items-center justify-between flex-wrap gap-3">
-      <button
-        onClick={() => setPage((p) => Math.max(1, p - 1))}
-        disabled={page === 1}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
+      <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
         Previous
       </button>
@@ -418,13 +557,8 @@ function TablePagination() {
           p === '...' ? (
             <span key={`e-${i}`} className="px-2 text-gray-400 text-sm">...</span>
           ) : (
-            <button
-              key={p}
-              onClick={() => setPage(p as number)}
-              className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                page === p ? 'bg-[#F4781B] text-white' : 'text-gray-500 hover:bg-white'
-              }`}
-            >
+            <button key={p} onClick={() => onPageChange(p as number)}
+              className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${page === p ? 'bg-[#F4781B] text-white' : 'text-gray-500 hover:bg-white'}`}>
               {p}
             </button>
           )
@@ -433,20 +567,21 @@ function TablePagination() {
 
       <div className="flex items-center gap-3">
         <span className="text-sm text-gray-500">
-          Showing <strong>{(page - 1) * limit + 1}–{Math.min(page * limit, total)}</strong> of <strong>{total}</strong> Candidates
+          Showing <strong>{Math.min((page - 1) * limit + 1, total)}–{Math.min(page * limit, total)}</strong> of <strong>{total}</strong> Candidates
         </span>
-        <select className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200">
-          <option>10 per page</option>
-          <option>25 per page</option>
-          <option>50 per page</option>
+        <select
+          value={limit}
+          onChange={(e) => onLimitChange(Number(e.target.value))}
+          className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200"
+        >
+          <option value={10}>10 per page</option>
+          <option value={25}>25 per page</option>
+          <option value={50}>50 per page</option>
         </select>
       </div>
 
-      <button
-        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-        disabled={page === totalPages}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
+      <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
         Next
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -455,46 +590,44 @@ function TablePagination() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ── Kanban Section (columns + bottom pagination) ──────────────────────────────
+// ── Kanban Section ────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
 const KANBAN_COLS = [
-  { key: 'applied',         label: 'Applied',         count: 40, dotColor: 'bg-blue-500',         border: 'border-blue-200',         bg: 'bg-blue-50/50',         textColor: 'text-blue-600',         aiOnly: false },
-  { key: 'shortlisted',     label: 'Shortlisted',     count: 20, dotColor: 'bg-orange-400',       border: 'border-orange-200',       bg: 'bg-orange-50/50',       textColor: 'text-[#F4781B]',       aiOnly: false },
-  { key: 'ai_interviewing', label: 'AI-Interviewing', count: 5,  dotColor: 'bg-red-400',          border: 'border-red-200',          bg: 'bg-red-50/40',          textColor: 'text-red-500',          aiOnly: true  },
-  { key: 'interviewed',     label: 'Interviewed',     count: 6,  dotColor: 'bg-amber-700',        border: 'border-amber-200',        bg: 'bg-amber-50/40',        textColor: 'text-amber-800',        aiOnly: false },
-  { key: 'hired',           label: 'Hired',           count: 2,  dotColor: 'bg-green-500',        border: 'border-green-200',        bg: 'bg-green-50/50',        textColor: 'text-green-600',        aiOnly: false },
+  { key: 'applied',         label: 'Applied',         dotColor: 'bg-blue-500',   border: 'border-blue-200',   bg: 'bg-blue-50/50',   textColor: 'text-blue-600',  aiOnly: false },
+  { key: 'shortlisted',     label: 'Shortlisted',     dotColor: 'bg-orange-400', border: 'border-orange-200', bg: 'bg-orange-50/50', textColor: 'text-[#F4781B]', aiOnly: false },
+  { key: 'ai_interviewing', label: 'AI-Interviewing', dotColor: 'bg-red-400',    border: 'border-red-200',    bg: 'bg-red-50/40',    textColor: 'text-red-500',   aiOnly: true  },
+  { key: 'interviewed',     label: 'Interviewed',     dotColor: 'bg-amber-700',  border: 'border-amber-200',  bg: 'bg-amber-50/40',  textColor: 'text-amber-800', aiOnly: false },
+  { key: 'hired',           label: 'Hired',           dotColor: 'bg-green-500',  border: 'border-green-200',  bg: 'bg-green-50/50',  textColor: 'text-green-600', aiOnly: false },
 ] as const;
 
-function KanbanSection({ hasAI }: { hasAI: boolean }) {
-  const [expanded,  setExpanded]  = useState<string | null>(null);
-  const [kanbanPage, setKanbanPage] = useState(1);
-  const visibleCols = KANBAN_COLS.filter(c => !c.aiOnly || hasAI);
-  const totalKanbanPages = 5;
+function KanbanSection({ hasAI, jobId }: { hasAI: boolean; jobId: string }) {
+  const [expanded,    setExpanded]    = useState<string | null>(null);
+  const [kanbanPage,  setKanbanPage]  = useState(1);
+  const [kanbanLimit, setKanbanLimit] = useState(10);
 
-  const kanbanPages: (number | '...')[] =
-    totalKanbanPages <= 7
-      ? Array.from({ length: totalKanbanPages }, (_, i) => i + 1)
-      : [1, 2, 3, '...', totalKanbanPages];
+  const visibleCols = KANBAN_COLS.filter(c => !c.aiOnly || hasAI);
+
+  const { data, isLoading } = useCandidatesList({
+    page:   kanbanPage,
+    limit:  kanbanLimit,
+    job_id: jobId,
+  });
+
+  const totalCount       = data?.pagination?.total ?? 0;
+  const totalKanbanPages = Math.max(1, Math.ceil(totalCount / kanbanLimit));
+  const candidates       = (data?.candidates ?? []).map(toCandidate);
 
   return (
     <div className="flex flex-col">
-      {/* Scrollable columns area */}
       <div className="px-4 pt-2 pb-2 overflow-x-auto">
         <div className="flex gap-4 min-w-max">
           {visibleCols.map((col) => {
             const isExpanded = expanded === col.key;
-            // When expanded: show 6 cards in a 3-col grid inside the same column width
-            // When collapsed: show 3 cards stacked
-            const shownCandidates = DUMMY_CANDIDATES.slice(0, isExpanded ? 6 : 3);
+            const shown = isLoading ? [] : candidates.slice(0, isExpanded ? 6 : 3);
 
             return (
-              <div
-                key={col.key}
-                className={`rounded-2xl border-2 p-3 flex flex-col gap-3 transition-all duration-300
-                  ${col.border} ${col.bg}
-                  ${isExpanded ? 'w-[1200px]' : 'w-[420px]'}`}
-              >
-                {/* Column header */}
+              <div key={col.key}
+                className={`rounded-2xl border-2 p-3 flex flex-col gap-3 transition-all duration-300 ${col.border} ${col.bg} ${isExpanded ? 'w-[1200px]' : 'w-[420px]'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {col.key === 'ai_interviewing' ? (
@@ -505,7 +638,9 @@ function KanbanSection({ hasAI }: { hasAI: boolean }) {
                       <span className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
                     )}
                     <span className={`text-sm font-bold ${col.textColor}`}>{col.label}</span>
-                    <span className="text-sm text-gray-400 font-medium">{col.count}</span>
+                    <span className="text-sm text-gray-400 font-medium">
+                      {col.key === 'applied' && !isLoading ? totalCount : '—'}
+                    </span>
                   </div>
                   <button
                     onClick={() => setExpanded(isExpanded ? null : col.key)}
@@ -515,62 +650,57 @@ function KanbanSection({ hasAI }: { hasAI: boolean }) {
                   </button>
                 </div>
 
-                {/* Cards — 3-col grid when expanded, single col when collapsed */}
-                <div className={`grid gap-3 ${isExpanded ? 'grid-cols-3' : 'grid-cols-1'}`}>
-                  {shownCandidates.map((c) => (
-                    <KanbanCard key={c.id} candidate={c} colKey={col.key as TabKey} />
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="flex flex-col gap-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-24 bg-white/60 rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`grid gap-3 ${isExpanded ? 'grid-cols-3' : 'grid-cols-1'}`}>
+                    {shown.map((c) => (
+                      <KanbanCard key={c.id} candidate={c} colKey={col.key as TabKey} />
+                    ))}
+                    {shown.length === 0 && (
+                      <p className="text-xs text-center text-gray-400 py-4">No candidates</p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Pagination — bottom of entire kanban section, outside columns */}
       <div className="bg-[#FEF3E9] px-5 py-3 flex items-center justify-between flex-wrap gap-3 mt-2">
-        <button
-          onClick={() => setKanbanPage((p) => Math.max(1, p - 1))}
-          disabled={kanbanPage === 1}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+        <button onClick={() => setKanbanPage((p) => Math.max(1, p - 1))} disabled={kanbanPage === 1}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
           Previous
         </button>
 
         <div className="flex items-center gap-1">
-          {kanbanPages.map((p, i) =>
-            p === '...' ? (
-              <span key={`ke-${i}`} className="px-2 text-gray-400 text-sm">...</span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => setKanbanPage(p as number)}
-                className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                  kanbanPage === p ? 'bg-[#F4781B] text-white' : 'text-gray-500 hover:bg-white'
-                }`}
-              >
-                {p}
-              </button>
-            )
-          )}
+          {Array.from({ length: Math.min(totalKanbanPages, 5) }, (_, i) => i + 1).map((p) => (
+            <button key={p} onClick={() => setKanbanPage(p)}
+              className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${kanbanPage === p ? 'bg-[#F4781B] text-white' : 'text-gray-500 hover:bg-white'}`}>
+              {p}
+            </button>
+          ))}
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
-            Showing <strong>{(kanbanPage - 1) * 10 + 1}–{Math.min(kanbanPage * 10, 73)}</strong> of <strong>73</strong> Candidates
+            Showing <strong>{Math.min((kanbanPage - 1) * kanbanLimit + 1, totalCount)}–{Math.min(kanbanPage * kanbanLimit, totalCount)}</strong> of <strong>{totalCount}</strong> Candidates
           </span>
-          <select className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200">
-            <option>10 per page</option>
-            <option>25 per page</option>
+          <select value={kanbanLimit} onChange={(e) => { setKanbanLimit(Number(e.target.value)); setKanbanPage(1); }}
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200">
+            <option value={10}>10 per page</option>
+            <option value={25}>25 per page</option>
           </select>
         </div>
 
-        <button
-          onClick={() => setKanbanPage((p) => Math.min(totalKanbanPages, p + 1))}
-          disabled={kanbanPage === totalKanbanPages}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+        <button onClick={() => setKanbanPage((p) => Math.min(totalKanbanPages, p + 1))} disabled={kanbanPage === totalKanbanPages}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
           Next
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
@@ -578,6 +708,10 @@ function KanbanSection({ hasAI }: { hasAI: boolean }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Kanban Card ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 function KanbanActionButtons({ tab }: { tab: TabKey }) {
   switch (tab) {
     case 'applied':
@@ -595,9 +729,7 @@ function KanbanActionButtons({ tab }: { tab: TabKey }) {
         </div>
       );
     case 'ai_interviewing':
-      return (
-        <button className="w-full py-2 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600">Abort Interview</button>
-      );
+      return <button className="w-full py-2 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600">Abort Interview</button>;
     case 'interviewed':
       return (
         <div className="flex gap-2">
@@ -606,33 +738,23 @@ function KanbanActionButtons({ tab }: { tab: TabKey }) {
         </div>
       );
     case 'hired':
-      return (
-        <button className="w-full py-2 rounded-xl border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50">View Schedule</button>
-      );
-    default:
-      return null;
+      return <button className="w-full py-2 rounded-xl border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50">View Schedule</button>;
+    default: return null;
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ── Kanban Card ───────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────────────
 function KanbanCard({ candidate: c, colKey }: { candidate: Candidate; colKey: TabKey }) {
   return (
-    <div
-  className="bg-white rounded-2xl border border-gray-100 px-4 pb-2 flex flex-col gap-1 p-2"
-      style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}
-    >
-      {/* Row 1: Online badge + ScoreCard */}
+    <div className="bg-white rounded-2xl border border-gray-100 px-4 pb-2 flex flex-col gap-1 p-2"
+      style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
       <div className="flex items-center justify-between -mt-1">
         <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-1 py-px rounded-full border border-green-200 -mt-1">
           <span className={`w-1.5 h-1.5 rounded-full ${c.online ? 'bg-green-500' : 'bg-gray-400'}`} />
           {c.online ? 'Online' : 'Offline'}
         </span>
-        <ScoreCard score={c.score} maxScore={100} category="good"/>
+        <ScoreCard score={c.score} maxScore={100} category="good" />
       </div>
 
-      {/* Row 2: Avatar + Name + Role */}
       <div className="flex items-center gap-3 -mt-3">
         <div className="relative w-12 h-12 rounded-xl bg-orange-50 flex-shrink-0 overflow-hidden border border-orange-100">
           <Image src={c.avatar} alt={c.name} fill className="object-cover" />
@@ -645,7 +767,6 @@ function KanbanCard({ candidate: c, colKey }: { candidate: Candidate; colKey: Ta
             </svg>
           </div>
           <span className="text-xs font-medium text-[#F4781B]">{c.role}</span>
-          {/* ✅ Stats moved here — sits directly under role, no awkward gap */}
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
             <span className="flex items-center gap-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
@@ -653,30 +774,25 @@ function KanbanCard({ candidate: c, colKey }: { candidate: Candidate; colKey: Ta
             </span>
             <span className="text-gray-300">|</span>
             <span className="flex items-center gap-0.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               {c.distance}
             </span>
             <span className="text-gray-300">|</span>
             <span className="flex items-center gap-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              {c.rating}/5
+              {c.rating.toFixed(1)}/5
             </span>
           </div>
         </div>
       </div>
 
-      {/* Row 3: Action buttons — full width, equal split */}
       <KanbanActionButtons tab={colKey} />
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ── Inline SVG Icon Helpers ───────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Inline SVG Icon Helpers ──────────────────────────────────────────────────
 function LocIcon()    { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>; }
-function MailIcon()   { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>; }
-function PhoneIcon()  { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>; }
 function ClockIcon()  { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }
 function DollarIcon() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>; }
 function LayersIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>; }

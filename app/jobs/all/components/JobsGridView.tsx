@@ -1,32 +1,35 @@
 'use client';
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MapPin, BriefcaseBusiness, Clock, User } from 'lucide-react';
 import { JobStatusBadge } from './JobStatusBadge';
-import type { JobsListResponse } from '@/Interface/job.types';
-
-type JobListItem = JobsListResponse['data']['jobs'][0];
+import { useAuthStore } from '@/stores/authStore';
+import { getBackendImageUrl } from '@/stores/api/api-client';
+import type { JobListItem } from '@/Interface/job.types';
 
 const formatJobType = (raw?: string | null) => {
   if (!raw) return null;
   return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// ✅ Single source of truth — same function used in both views
 function getInterviewBadge(job: JobListItem): { label: string; cls: string } {
-  if (job.job_urgency === 'instant') {
-    return { label: 'No Interview Needed',   cls: 'bg-[#FEE4E2] text-[#912018]' };
-  }
-  if (job.ai_interview) {
-    return { label: 'AI Interview',          cls: 'bg-[#D1FAE5] text-[#059669]' };
-  }
-  return   { label: 'No Interview Required', cls: 'bg-[#FEF9C3] text-[#854D0E]' };
+  if (job.job_urgency === 'instant') return { label: 'No Interview Needed',   cls: 'bg-[#FEE4E2] text-[#912018]' };
+  if (job.ai_interview)             return { label: 'AI Interview',           cls: 'bg-[#D1FAE5] text-[#059669]' };
+  return                                   { label: 'No Interview Required',  cls: 'bg-[#FEF9C3] text-[#854D0E]' };
 }
 
 const formatTime = (t?: string | null) => (t ? t.slice(0, 5) : null);
 
 export const JobsGridView: React.FC<{ jobs: JobListItem[] }> = ({ jobs }) => {
-  const router = useRouter();
+  const router     = useRouter();
+
+  // ── Org logo from auth store (same source as OrganizationPage) ──────────
+  const profile    = useAuthStore((state) => state.recruiterProfile);
+  const logoUrl    = profile?.organization_photo_url
+    ? getBackendImageUrl(profile.organization_photo_url)
+    : null;
+  const orgName    = profile?.organization_name ?? 'ORG';
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -66,11 +69,25 @@ export const JobsGridView: React.FC<{ jobs: JobListItem[] }> = ({ jobs }) => {
 
             {/* Row 2: Logo + title + meta */}
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-12 text-center leading-tight">
-                <span className="text-[10px] font-extrabold text-red-500 uppercase leading-none block">
-                  ANADIA<br />HEALTH
-                </span>
+
+              {/* ── Org logo ── */}
+              <div className="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">
+                {logoUrl ? (
+                  <Image
+                    src={logoUrl}
+                    alt={orgName}
+                    width={48}
+                    height={48}
+                    className="object-contain w-full h-full"
+                  />
+                ) : (
+                  // Fallback: initials from org name
+                  <span className="text-[10px] font-extrabold text-[#F4781B] uppercase text-center leading-tight px-1">
+                    {orgName.slice(0, 6)}
+                  </span>
+                )}
               </div>
+
               <div className="min-w-0 flex-1">
                 <h3 className="font-bold text-gray-900 text-[15px] leading-snug truncate">
                   {job.job_title}
@@ -97,7 +114,6 @@ export const JobsGridView: React.FC<{ jobs: JobListItem[] }> = ({ jobs }) => {
                 <MapPin size={13} className="text-[#F4781B] flex-shrink-0" />
                 {location ?? '—'}
               </span>
-              {/* ✅ Same color classes as list view */}
               <span className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${interview.cls}`}>
                 <User size={11} />
                 {interview.label}

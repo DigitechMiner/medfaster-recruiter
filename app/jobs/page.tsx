@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { EmptyJobState } from "./components/empty";
 import { AppLayout } from "@/components/global/app-layout";
 import { JobsDashboard } from "./components/JobsDashboard";
 import { useJobsStore } from "@/stores/jobs-store";
@@ -11,7 +10,6 @@ import { useAuthStore } from "@/stores/authStore";
 export default function JobsPageWrapper() {
   const router           = useRouter();
   const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
-  const hasJobs          = useJobsStore((state) => state.hasJobs);
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [initialChecked, setInitialChecked] = useState(false);
@@ -69,7 +67,7 @@ export default function JobsPageWrapper() {
 
   return (
     <AppLayout>
-      {hasJobs ? <JobsDashboard /> : <EmptyJobState />}
+      <JobsDashboard />
     </AppLayout>
   );
 }

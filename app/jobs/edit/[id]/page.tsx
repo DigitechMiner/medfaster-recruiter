@@ -35,7 +35,14 @@ import {
   convertExperienceToFrontend,       // ✅ converts "2" → "2-3 Yrs" when loading form
 } from "@/utils/constant/metadata";
 
-
+const formatDateForBackend = (date?: Date | null): string | null => {
+  if (!date) return null;
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
 // ✅ Strip parenthetical suffix: "Licensed Practical Nurse (LPN)" → "Licensed Practical Nurse"
 const normalizeJobTitle = (backendTitle: string | null | undefined): string => {
   if (!backendTitle) return metadata.job_title[0];
@@ -60,62 +67,62 @@ export default function EditJobPage() {
     useQuestions(DEFAULT_TOPICS);
 
 
-  const convertBackendToFormData = useCallback(
-    (job: JobBackendResponse): JobFormData => {
-      const normalJob = job.normalJob;
-      const instantJob = job.instantJob;
+ const convertBackendToFormData = useCallback(
+  (job: JobBackendResponse): JobFormData => {
+    const normalJob  = job.normalJob;
 
-      return {
-        // ✅ Strip "(LPN)" etc. then match dropdown option
-        jobTitle: normalizeJobTitle(job.job_title),
+    // pay_per_hour_cents → dollars for the form slider
+    const hourlyDollars = job.pay_per_hour_cents != null
+      ? job.pay_per_hour_cents / 100
+      : 0;
 
-        department: job.department || "",
-        jobType: convertToFrontendValue(job.job_type),
-        location: job.city || "",
-        payRange: [
-          parseFloat(String(job.pay_range_min)) || 0,
-          parseFloat(String(job.pay_range_max)) || 0,
-        ] as [number, number],
-        urgency: job.job_urgency || "normal",
-        description: job.description || "",
-        status: job.status || "DRAFT",
-        numberOfHires: job.no_of_hires?.toString() || undefined,
-        streetAddress: job.street || undefined,
-        postalCode: job.postal_code || undefined,
+    return {
+      jobTitle:    normalizeJobTitle(job.job_title),
+      department:  job.department || "",
+      jobType:     convertToFrontendValue(job.job_type),
+      location:    job.city || "",
 
-        // ✅ camelCase backend → snake_case frontend
-        // "newBrunswick" → "new_brunswick"
-        province: convertProvinceToFrontend(job.province),
+      // ── Pay ──────────────────────────────────────────
+      payRange: [hourlyDollars, hourlyDollars] as [number, number],
 
-        city: job.city || undefined,
-        country: undefined,
+      urgency:     job.job_urgency || "normal",
+      description: job.description || "",
+      status:      job.status || "DRAFT",
 
-        // ✅ "2" → "2-3 Yrs"
-        experience: convertExperienceToFrontend(normalJob?.years_of_experience),
+      // ── Hiring ───────────────────────────────────────
+      numberOfHires: job.no_of_hires_required?.toString() || undefined,
 
-        // ✅ ["cardiology"] → ["Cardiology"]
-        qualification: Array.isArray(normalJob?.qualifications)
-          ? normalJob.qualifications.map((v) => convertQualificationToFrontend(v))
-          : [],
+      // ── Location ─────────────────────────────────────
+      streetAddress: job.street      || undefined,
+      postalCode:    job.postal_code || undefined,
+      province:      convertProvinceToFrontend(job.province),
+      city:          job.city        || undefined,
+      country:       undefined,
 
-        // ✅ ["long_term_care"] → ["Long Term Care"]
-        specialization: Array.isArray(normalJob?.specializations)
-          ? normalJob.specializations.map((s) => convertSpecializationToFrontend(s))
-          : [],
+      // ── Normal job fields ────────────────────────────
+      experience:     convertExperienceToFrontend(normalJob?.years_of_experience),
+      qualification:  Array.isArray(normalJob?.qualifications)
+                        ? normalJob.qualifications.map(convertQualificationToFrontend)
+                        : [],
+      specialization: Array.isArray(normalJob?.specializations)
+                        ? normalJob.specializations.map((s) =>
+                            convertSpecializationToFrontend(String(s))
+                          )
+                        : [],
+      aiInterview:    normalJob?.ai_interview === true ? "Yes" : "No",
 
-        // ✅ Explicit boolean check — don't use || "Yes" fallback
-        aiInterview: normalJob?.ai_interview === true ? "Yes" : "No",
+      inPersonInterview: "No",
+      physicalInterview: "No",
 
-        inPersonInterview: "No",
-        physicalInterview: "No",
-        fromDate: instantJob?.start_date ? new Date(instantJob.start_date) : undefined,
-        tillDate: instantJob?.end_date ? new Date(instantJob.end_date) : undefined,
-        fromTime: instantJob?.check_in_time || undefined,
-        toTime: instantJob?.check_out_time || undefined,
-      };
-    },
-    []
-  );
+      // ── Shift — from job root (not instantJob) ───────
+      fromDate: job.start_date    ? new Date(job.start_date)    : undefined,
+      tillDate: job.end_date      ? new Date(job.end_date)      : undefined,
+      fromTime: job.check_in_time  || undefined,
+      toTime:   job.check_out_time || undefined,
+    };
+  },
+  []
+);
 
 
   const convertQuestionsToTopics = (
@@ -156,33 +163,31 @@ export default function EditJobPage() {
     data: JobFormData,
     questionsData: Record<string, { title: string; questions: string[] }>
   ): JobUpdatePayload => {
-    const jobType = convertToBackendValue(data.jobType);
     const isNormalJob = data.urgency === "normal";
 
     const payload: Partial<JobCreatePayload> = {
-      job_title:    convertJobTitleToBackend(data.jobTitle),
-      department:   data.department || null,
-      job_type:     jobType,
-      street:       data.streetAddress || null,
-      postal_code:  data.postalCode || null,
+  job_title:   convertJobTitleToBackend(data.jobTitle),
+  department:  data.department || null,
+  job_type: convertToBackendValue(data.jobType) as 'casual' | 'part_time' | 'full_time',
+  street:      data.streetAddress || null,
+  postal_code: data.postalCode    || null,
+  province:    convertProvinceToJobBackend(data.province) as string | null,
+  city:        data.city          || null,
 
-      // ✅ snake_case → camelCase before sending to API
-      // "new_brunswick" → "newBrunswick"
-      province: convertProvinceToJobBackend(data.province),
+  pay_per_hour_cents: data.payRange[0]
+    ? Math.round(data.payRange[0] * 100)
+    : null,
 
-      city:          data.city || null,
-      pay_range_min: data.payRange[0] || null,
-      pay_range_max: data.payRange[1] || null,
-      job_urgency:   data.urgency,
-      description:   data.description || null,
-      questions:     questionsData,
-      status:        data.status,
-    };
+  job_urgency:  data.urgency,
+  description:  data.description || null,
+  questions:    questionsData,
+  status:       data.status,
+};
 
-    if (data.numberOfHires && data.numberOfHires.trim() !== "") {
-      const parsed = parseInt(data.numberOfHires);
-      if (!isNaN(parsed)) payload.no_of_hires = parsed;
-    }
+if (data.numberOfHires && data.numberOfHires.trim() !== '') {
+  const parsed = parseInt(data.numberOfHires);
+  if (!isNaN(parsed)) payload.no_of_hires_required = parsed;  // ← renamed
+}
 
     if (isNormalJob) {
       // ✅ "2-3 Yrs" → "2" before sending
@@ -217,11 +222,11 @@ export default function EditJobPage() {
 
       payload.ai_interview = data.aiInterview === "Yes";
     } else {
-      if (data.fromDate) payload.start_date     = data.fromDate.toISOString();
-      if (data.tillDate) payload.end_date        = data.tillDate.toISOString();
-      if (data.fromTime) payload.check_in_time   = data.fromTime;
-      if (data.toTime)   payload.check_out_time  = data.toTime;
-    }
+  if (data.fromDate) payload.start_date    = formatDateForBackend(data.fromDate);  // "YYYY-MM-DD"
+  if (data.tillDate) payload.end_date      = formatDateForBackend(data.tillDate);
+  if (data.fromTime) payload.check_in_time  = data.fromTime;
+  if (data.toTime)   payload.check_out_time = data.toTime;
+}
 
     console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
     return payload as JobUpdatePayload;

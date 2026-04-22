@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
 import { StatusSection, StatusTable } from "./ui";
-import { Job } from "@/Interface/job.types";
+import { Job, JobListItem } from "@/Interface/job.types";
 import { STATUS_SECTIONS } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
@@ -28,13 +28,6 @@ const HIRED_DUMMY: Job[] = [
   { id: 302, candidateId: "cand-302", doctorName: "Dr. Maria Garcia", experience: 6, position: "Dermatologist", score: 89, specialization: ["Dermatology", "Cosmetic Dermatology"], currentCompany: "Skin & Beauty Clinic" },
 ];
 
-type JobListItem = {
-  id: string;
-  job_title: string;
-  department?: string;
-  status?: string;
-  [key: string]: unknown;
-};
 
 const JobsPage: React.FC = () => {
   const router = useRouter();

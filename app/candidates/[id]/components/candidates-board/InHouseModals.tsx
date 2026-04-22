@@ -2,29 +2,55 @@
 
 import { useState } from "react";
 import { Upload, Plus, ArrowRight, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { useInviteCandidate } from "@/hooks/useRecruiterData";
 
 type StaffEntry = { name: string; email: string; phone: string };
+
+interface AddInHouseModalProps {
+  onClose: () => void;
+  onSuccess: (count: number) => void;
+  // ── Pass these down from CandidateDetailContent ──
+  candidateId: string;
+  jobId: string;
+}
 
 export function AddInHouseModal({
   onClose,
   onSuccess,
-}: {
-  onClose: () => void;
-  onSuccess: (count: number) => void;
-}) {
+  candidateId,
+  jobId,
+}: AddInHouseModalProps) {
   const [entries, setEntries] = useState<StaffEntry[]>([
     { name: "", email: "", phone: "" },
   ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError]   = useState<string | null>(null);
+
+  const { invite } = useInviteCandidate();
 
   const updateEntry = (i: number, field: keyof StaffEntry, val: string) => {
-    setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e));
+    setEntries((prev) =>
+      prev.map((e, idx) => (idx === i ? { ...e, [field]: val } : e))
+    );
   };
 
-  const addRow = () => setEntries((prev) => [...prev, { name: "", email: "", phone: "" }]);
+  const addRow = () =>
+    setEntries((prev) => [...prev, { name: "", email: "", phone: "" }]);
 
-  const handleSend = () => {
-    const filled = entries.filter((e) => e.name.trim() || e.email.trim());
-    onSuccess(filled.length || entries.length);
+  const handleSend = async () => {
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    const res = await invite({ candidate_id: candidateId, job_id: jobId });
+
+    setIsSubmitting(false);
+
+    if (res.success) {
+      const filled = entries.filter((e) => e.name.trim() || e.email.trim());
+      onSuccess(filled.length || entries.length);
+    } else {
+      setSubmitError(res.message ?? "Failed to send invitation. Please try again.");
+    }
   };
 
   return (
@@ -32,7 +58,10 @@ export function AddInHouseModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
               <ChevronLeft size={18} />
             </button>
             <h2 className="text-base font-bold text-gray-900">Add In-House Staff</h2>
@@ -84,12 +113,19 @@ export function AddInHouseModal({
           ))}
         </div>
 
+        {/* Error message */}
+        {submitError && (
+          <p className="mt-3 text-xs text-red-500 text-center">{submitError}</p>
+        )}
+
         <div className="flex justify-end mt-5">
           <button
             onClick={handleSend}
-            className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
           >
-            Send Invitation <ArrowRight size={14} />
+            {isSubmitting ? "Sending..." : "Send Invitation"}
+            {!isSubmitting && <ArrowRight size={14} />}
           </button>
         </div>
       </div>
@@ -117,7 +153,9 @@ export function SuccessModal({
           <p className="text-base font-bold text-gray-900">
             Invitations Sent to {count} Candidate{count !== 1 ? "s" : ""} !
           </p>
-          <p className="text-xs text-gray-400 mt-1">You will be notified once they are enrolled</p>
+          <p className="text-xs text-gray-400 mt-1">
+            You will be notified once they are enrolled
+          </p>
         </div>
         <button
           onClick={onDone}

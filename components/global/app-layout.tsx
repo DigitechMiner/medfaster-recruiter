@@ -18,7 +18,7 @@ export function AppLayout({ children, padding = "sm" }: AppLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen w-screen flex flex-col bg-[#F7F5F1]">
+    <div className="min-h-screen w-full flex flex-col bg-[#F7F5F1]">
       <Navbar />
       <main className={`flex-1 w-full flex flex-col bg-[#F7F5F1] ${paddingClassesMap[padding]}`}>
         {children}
