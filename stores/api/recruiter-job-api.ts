@@ -142,6 +142,9 @@ export interface GetJobsParams {
 
 export type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED';
 
+const extractData = <T>(payload: unknown): T => (payload as { data: T }).data;
+const extractRoot = <T>(payload: unknown): T => payload as T;
+
 export async function getJobApplications(params: {
   job_id?:  string;
   status?:  'APPLIED' | 'SHORTLISTED' | 'INTERVIEWING' | 'INTERVIEWED' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
@@ -150,12 +153,12 @@ export async function getJobApplications(params: {
   offset?:  number;
 }): Promise<JobApplicationListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOB_APPLICATIONS, { params });
-  return res.data.data;
+  return extractData<JobApplicationListResponse>(res.data);
 }
 
 export async function getCandidateDetails(candidateId: string): Promise<CandidateDetailsResponse> {
   const res = await axiosInstance.get(ENDPOINTS.CANDIDATE_DETAILS(candidateId));
-  return res.data.data;
+  return extractData<CandidateDetailsResponse>(res.data);
 }
 
 export async function getCandidatesList(params?: {
@@ -169,7 +172,7 @@ export async function getCandidatesList(params?: {
   limit?: number;
 }): Promise<CandidatesListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.CANDIDATES_LIST, { params });
-  return res.data.data;
+  return extractData<CandidatesListResponse>(res.data);
 }
 
 export async function updateApplicationStatus(
@@ -180,22 +183,22 @@ export async function updateApplicationStatus(
     ENDPOINTS.JOB_APPLICATION_STATUS(applicationId),
     { status }
   );
-  return res.data.data;
+  return extractData<{ id: string; job_id: string; candidate_id: string; status: ApplicationStatus; updated_at: string }>(res.data);
 }
 
 export async function getRecruiterJobs(params?: GetJobsParams): Promise<JobsListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_LIST, { params });
-  return res.data;
+  return extractRoot<JobsListResponse>(res.data);
 }
 
 export async function getRecruiterJob(id: string): Promise<JobDetailResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL(id));
-  return res.data;
+  return extractRoot<JobDetailResponse>(res.data);
 }
 
 export async function createRecruiterJob(payload: JobCreatePayload): Promise<JobCreateResponse> {
   const res = await axiosInstance.post(ENDPOINTS.JOBS_CREATE, payload);
-  return res.data;
+  return extractRoot<JobCreateResponse>(res.data);
 }
 
 export async function updateRecruiterJob(
@@ -203,24 +206,24 @@ export async function updateRecruiterJob(
   payload: JobUpdatePayload
 ): Promise<JobUpdateResponse> {
   const res = await axiosInstance.patch(ENDPOINTS.JOBS_UPDATE(id), payload);
-  return res.data;
+  return extractRoot<JobUpdateResponse>(res.data);
 }
 
 export async function deleteRecruiterJob(id: string): Promise<JobDeleteResponse> {
   const res = await axiosInstance.delete(ENDPOINTS.JOBS_DELETE(id));
-  return res.data;
+  return extractRoot<JobDeleteResponse>(res.data);
 }
 
 export async function generateJobDescription(
   payload: GenerateDescriptionPayload
 ): Promise<GenerateDescriptionResponse> {
   const res = await axiosInstance.post(ENDPOINTS.GENERATE_JOB_DESCRIPTION, payload);
-  return res.data;
+  return extractRoot<GenerateDescriptionResponse>(res.data);
 }
 
 export async function generateJobQuestions(
   payload: GenerateQuestionsPayload
 ): Promise<GenerateQuestionsResponse> {
   const res = await axiosInstance.post(ENDPOINTS.GENERATE_JOB_QUESTIONS, payload);
-  return res.data;
+  return extractRoot<GenerateQuestionsResponse>(res.data);
 }

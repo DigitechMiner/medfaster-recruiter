@@ -85,7 +85,7 @@ export function Navbar() {
               onClick={() => router.push("/")}
             >
               <Image
-                src="/img/brand/new_logo.svg"
+                src="/img/brand/k-logo.svg"
                 height={36}
                 width={36}
                 alt="KeRaeva"

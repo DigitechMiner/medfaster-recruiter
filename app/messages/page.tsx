@@ -54,7 +54,7 @@ export default function MessagesPage() {
         setError(null);
         if (!recruiterProfile) await loadRecruiterProfile();
         const data = await fetchChatConversations();
-        if (mounted) setConversations(data || []);
+        if (mounted) setConversations((data as Conversation[]) || []);
       } catch (err: unknown) {
         if (mounted) setError(err instanceof Error ? err.message : "Failed to load conversations");
       } finally {
@@ -63,14 +63,15 @@ export default function MessagesPage() {
     }
     loadData();
     return () => { mounted = false; };
-  }, [recruiterProfile, loadRecruiterProfile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recruiterProfile]);
 
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateId.trim()) return;
     setCreatingChat(true);
     try {
-      const conversation = await createOrGetChatConversation(candidateId.trim());
+      const conversation = await createOrGetChatConversation(candidateId.trim()) as { id: string };
       router.push(`/messages/${conversation.id}`);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to start conversation.");

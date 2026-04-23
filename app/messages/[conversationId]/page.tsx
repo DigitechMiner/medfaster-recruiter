@@ -50,12 +50,13 @@ export default function RecruiterConversationPage() {
   useEffect(() => {
     if (!conversationId) return;
     let mounted = true;
+    let socketCleanup: (() => void) | undefined;
 
     async function load() {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchChatMessages(conversationId);
+        const data = await fetchChatMessages(conversationId) as { messages: Message[] };
         if (mounted) setMessages(data.messages || []);
       } catch (err: unknown) {
         if (mounted) setError(err instanceof Error ? err.message : "Failed to load messages");
@@ -79,9 +80,11 @@ export default function RecruiterConversationPage() {
             );
           }
         };
+
         const onUpdated = (msg: Message) => {
           setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, ...msg } : m)));
         };
+
         const onDeleted = (payload: { messageId: string; conversationId: string }) => {
           if (payload.conversationId === conversationId) {
             setMessages((prev) =>
@@ -94,13 +97,12 @@ export default function RecruiterConversationPage() {
         socket.on("message_updated", onUpdated);
         socket.on("message_deleted", onDeleted);
 
-        return () => {
-          if (mounted && socket) {
-            socket.emit("leave_conversation", conversationId);
-            socket.off("message_received", onReceived);
-            socket.off("message_updated", onUpdated);
-            socket.off("message_deleted", onDeleted);
-          }
+        // ✅ Store cleanup so useEffect return can call it
+        socketCleanup = () => {
+          socket.emit("leave_conversation", conversationId);
+          socket.off("message_received", onReceived);
+          socket.off("message_updated", onUpdated);
+          socket.off("message_deleted", onDeleted);
         };
       } catch (err) {
         console.error("Socket setup error:", err);
@@ -109,7 +111,11 @@ export default function RecruiterConversationPage() {
 
     load();
     setupSocket();
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+      socketCleanup?.(); // ✅ properly cleans up listeners on unmount
+    };
   }, [conversationId]);
 
   const handleSend = async () => {
@@ -264,7 +270,6 @@ export default function RecruiterConversationPage() {
 
                 {group.msgs.map((m) => {
                   const isOutgoing = m.sender_type === "recruiter";
-
                   return (
                     <div
                       key={m.id}

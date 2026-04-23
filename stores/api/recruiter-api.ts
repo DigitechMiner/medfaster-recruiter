@@ -61,13 +61,19 @@ export interface UpdateProfileResponse {
   };
 }
 
+const multipartHeaders = { headers: { "Content-Type": "multipart/form-data" } } as const;
+
 // ============================================================================
 // API FUNCTIONS
 // ============================================================================
 
 export async function getRecruiterProfile(): Promise<RecruiterProfile> {
-  const res = await axiosInstance.get(ENDPOINTS.RECRUITER_PROFILE);
-  return (res.data as any).data.profile;
+  const res = await axiosInstance.get<{
+    success: boolean;
+    message: string;
+    data: { profile: RecruiterProfile };
+  }>(ENDPOINTS.RECRUITER_PROFILE);
+  return res.data.data.profile;
 }
 
 export async function updateRecruiterProfile(
@@ -76,7 +82,7 @@ export async function updateRecruiterProfile(
   const res = await axiosInstance.patch<UpdateProfileResponse>(
     ENDPOINTS.RECRUITER_PROFILE_UPDATE,
     formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    multipartHeaders
   );
   return res.data;
 }
@@ -88,7 +94,7 @@ export async function registerRecruiterStep(
   const res = await axiosInstance.post<UpdateProfileResponse>(
     `${ENDPOINTS.RECRUITER_REGISTER}?step=${step}`,
     formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    multipartHeaders
   );
   return res.data;
 }

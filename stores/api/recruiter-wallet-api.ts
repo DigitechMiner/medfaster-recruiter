@@ -8,8 +8,8 @@ export interface WalletData {
   currency: 'CAD';
   is_active: boolean;
   wallet_lock_reason: string | null;
-  available_balance: string;   // cents as string e.g. "200000"
-  held_balance: string;        // = locked balance
+  available_balance: string;
+  held_balance: string;
   pending_balance: string;
   balance_version: number;
   created_at: string;
@@ -28,11 +28,10 @@ export interface WalletTopupInitResponse {
 export interface WalletTransaction {
   id: string;
   wallet_id: string;
-  type: string;               // "credit" | "debit"
-  amount: string;             // cents as string
+  type: string;
+  amount: string;
   description?: string;
   reference?: string;
-  // ✅ these may or may not exist — mark optional, handle gracefully in UI
   transaction_id?: string;
   category?: string;
   job_id?: string;
@@ -61,11 +60,11 @@ export interface PaginatedItems<T> {
   offset: number;
 }
 
-// ── API functions ──────────────────────────────────────────────────────────
+const extractData = <T>(payload: unknown): T => (payload as { data: T }).data;
 
 export async function getWallet(): Promise<WalletData> {
   const res = await axiosInstance.get(ENDPOINTS.WALLET);
-  return res.data.data;
+  return extractData<WalletData>(res.data);
 }
 
 export async function initiateWalletTopup(
@@ -77,7 +76,7 @@ export async function initiateWalletTopup(
     { amount },
     idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined
   );
-  return res.data.data;
+  return extractData<WalletTopupInitResponse>(res.data);
 }
 
 export async function getWalletTopups(params?: {
@@ -86,15 +85,15 @@ export async function getWalletTopups(params?: {
   offset?: number;
 }): Promise<PaginatedItems<WalletTopup>> {
   const res = await axiosInstance.get(ENDPOINTS.WALLET_TOPUPS, { params });
-  return res.data.data;
+  return extractData<PaginatedItems<WalletTopup>>(res.data);
 }
 
 export async function getWalletTransactions(params?: {
   page?: number;
   limit?: number;
   offset?: number;
-  type?: string;   // ✅ added — pass to API if your backend supports it
+  type?: string;
 }): Promise<PaginatedItems<WalletTransaction>> {
   const res = await axiosInstance.get(ENDPOINTS.WALLET_TRANSACTIONS, { params });
-  return res.data.data;
+  return extractData<PaginatedItems<WalletTransaction>>(res.data);
 }
