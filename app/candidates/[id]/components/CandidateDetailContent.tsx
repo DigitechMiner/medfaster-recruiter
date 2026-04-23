@@ -42,9 +42,9 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   const [isInviteSuccessOpen, setIsInviteSuccessOpen] = useState(false);
   const [inviteCount,        setInviteCount]        = useState(0);
   const [scheduledDate,      setScheduledDate]      = useState("");
-  const [hasExistingRequest, setHasExistingRequest] = useState(false);
+  const [_hasExistingRequest, setHasExistingRequest] = useState(false);
   const [successMessage,     setSuccessMessage]     = useState("");
-  const [pendingAction,      setPendingAction]      = useState<HeroActionType | null>(null);
+  const [_pendingAction,      setPendingAction]      = useState<HeroActionType | null>(null);
 
   const fullName = useMemo(
     () =>

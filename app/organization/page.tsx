@@ -7,7 +7,6 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import { FileText, Plus, Pencil } from "lucide-react";
 
-import { Navbar } from "@/components/global/navbar";
 import { FormInput, FormSelect } from "../registration/components";
 import { Button } from "@/components/ui/button";
 
@@ -203,7 +202,6 @@ export default function OrganizationPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f7f5]">
-        <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <p className="text-gray-500 text-sm animate-pulse">Loading organization...</p>
         </div>
@@ -213,7 +211,6 @@ export default function OrganizationPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f7f5]">
-      <Navbar />
       <div className="p-6 font-sans">
         <div className="max-w-5xl mx-auto space-y-6">
           <FormProvider {...methods}>

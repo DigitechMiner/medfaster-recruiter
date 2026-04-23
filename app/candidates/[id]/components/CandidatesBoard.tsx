@@ -139,18 +139,10 @@ export const CandidatesBoard = () => {
 )}
 
         {/* Empty state when API returns no data */}
-        {!isLoading && !error && candidates.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400 text-sm gap-2">
-            <Users size={36} className="text-gray-300" />
-            <p className="font-medium text-gray-500">No candidates found</p>
-            <p>Candidates will appear here once they apply or are added.</p>
-          </div>
-        )}
-
-        {!isLoading && !error && candidates.length > 0 && (
-          <>
-            {(activeKpi === "candidatesPool" || activeKpi === "none") && (
-              <CandidatesPoolSection
+        {!isLoading && !error && (
+  <>
+    {(activeKpi === "candidatesPool" || activeKpi === "none") && candidates.length > 0 && (
+      <CandidatesPoolSection
                 view={view}
                 activeListTab={activeListTab}
                 setActiveListTab={setActiveListTab}
@@ -160,12 +152,20 @@ export const CandidatesBoard = () => {
                 activeKpi={activeKpi}
                 setActiveKpi={setActiveKpi}
               />
-            )}
-            {activeKpi === "hired"   && <HiredCandidatesSection candidates={candidates} />}
-            {activeKpi === "inHouse" && <InHouseCandidatesSection />}
-            {activeKpi === "active"  && <ActiveCandidatesSection />}
-          </>
-        )}
+    )}
+    {(activeKpi === "none" || activeKpi === "candidatesPool") && candidates.length === 0 && (
+      <div className="flex flex-col items-center justify-center py-16 text-gray-400 text-sm gap-2">
+        <Users size={36} className="text-gray-300" />
+        <p className="font-medium text-gray-500">No candidates found</p>
+        <p>Candidates will appear here once they apply or are added.</p>
+      </div>
+    )}
+    {/* ↓ These always render — they manage their own empty states */}
+    {activeKpi === "hired"   && <HiredCandidatesSection candidates={candidates} />}
+    {activeKpi === "inHouse" && <InHouseCandidatesSection />}
+    {activeKpi === "active"  && <ActiveCandidatesSection />}
+  </>
+)}
       </div>
     </div>
   );

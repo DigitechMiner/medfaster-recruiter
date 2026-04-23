@@ -1,24 +1,28 @@
+// client-layout.tsx
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import GoogleOAuthProviderWrapper from "@/provider/GoogleOAuthProvider";
 import { ToastContainer } from "react-toastify";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import { Navbar } from "@/components/global/navbar";
+import { Footer } from "@/components/global/footer";
+
+const NO_NAVBAR_ROUTES = ["/registration", "/login", "/coming-soon"];
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const loadRecruiterProfile = useAuthStore((state) => state.loadRecruiterProfile);
   const isExpanded = useSidebarStore((s) => s.isExpanded);
+  const pathname = usePathname();
+  const showChrome = !NO_NAVBAR_ROUTES.includes(pathname);
 
   useEffect(() => {
-    // Call getProfile API on mount to check authentication status
-    // Cookies will be automatically sent via credentials: 'include' in apiRequest
     const loadProfile = async () => {
       try {
         await loadRecruiterProfile();
       } catch (error) {
-        // Set user to null on error
         useAuthStore.setState({
           recruiterProfile: null,
           recruiterDocuments: null,
@@ -32,15 +36,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <>
       <GoogleOAuthProviderWrapper>
-        <Navbar />
+        {showChrome && <Navbar />}
+
         <div
-  className={`transition-all duration-300 ease-in-out pt-16 ${
-    isExpanded ? "ml-64" : "ml-[72px]"
-  }`}
->
-          {children}
+          className={`transition-all duration-300 ease-in-out flex flex-col min-h-screen ${
+            showChrome
+              ? `pt-16 ${isExpanded ? "ml-64" : "ml-[72px]"}`
+              : ""
+          }`}
+        >
+          <main className="flex-1">
+            {children}
+          </main>
+
+          {showChrome && <Footer />}
         </div>
+
       </GoogleOAuthProviderWrapper>
+
       <ToastContainer
         position="top-right"
         autoClose={3000}

@@ -5,8 +5,6 @@ import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-toastify";
-
-import { Navbar } from "@/components/global/navbar";
 import { FormInput } from "../registration/components";
 import { Button } from "@/components/ui/button";
 
@@ -82,7 +80,6 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8f7f5]">
-        <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <p className="text-gray-500 text-sm animate-pulse">Loading profile...</p>
         </div>
@@ -92,7 +89,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#f8f7f5]">
-      <Navbar />
       <div className="p-6 font-sans">
         <div className="max-w-5xl mx-auto">
           <FormProvider {...methods}>

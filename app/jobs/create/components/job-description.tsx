@@ -1,17 +1,164 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import { JobDescriptionInput } from "@/stores/api/job-description.api";
+import type { JobFormData } from "@/Interface/job.types";
+import { Input } from "@/components/ui/input";
 import { AIDescriptionModal } from "./job-description/ai-modal";
-import { ListSection } from "./job-description/list-section";
-import { parseAIDescription } from "./job-description/parser";
-import { JobDescriptionProps, LIST_SECTIONS } from "./job-description/types";
 
+interface ParsedDescription {
+  summary: string;
+  keyResponsibilities: string[];
+  requiredSkills: string[];
+  experience: string[];
+  workingConditions: string[];
+  whyJoinUs: string[];
+}
+
+function parseAIDescription(text: string): ParsedDescription {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  const extract = (heading: RegExp): string[] => {
+    const start = lines.findIndex((l) => heading.test(l));
+    if (start === -1) return [];
+    const items: string[] = [];
+    for (let i = start + 1; i < lines.length; i++) {
+      // Stop at next heading (line that ends with : or is ALL CAPS)
+      if (/^[A-Z][^a-z]{3,}$/.test(lines[i]) || lines[i].endsWith(":")) break;
+      const clean = lines[i].replace(/^[-•*]\s*/, "").trim();
+      if (clean) items.push(clean);
+    }
+    return items;
+  };
+
+  const summaryEnd = lines.findIndex((l) =>
+    /responsibilities|requirements|skills|experience/i.test(l)
+  );
+  const summary = lines
+    .slice(0, summaryEnd > 0 ? summaryEnd : 3)
+    .join(" ")
+    .trim();
+
+  return {
+    summary,
+    keyResponsibilities: extract(/responsibilities/i),
+    requiredSkills:      extract(/skills|requirements/i),
+    experience:          extract(/experience/i),
+    workingConditions:   extract(/working conditions/i),
+    whyJoinUs:           extract(/why join/i),
+  };
+}
+interface JobDescriptionProps {
+  formData: JobFormData;
+  updateFormData: (updates: Partial<JobFormData>) => void;
+}
+
+// ── Section config — use the correct field keys ───────────────────────────
+const LIST_SECTIONS: {
+  key: keyof JobFormData;
+  label: string;
+  required?: boolean;
+}[] = [
+  { key: "responsibilities", label: "Key Responsibilities", required: true },
+  { key: "required_skills",      label: "Required Skill",       required: true },
+  { key: "experienceList",      label: "Experience"                           }, // ✅ not experience
+  { key: "workingConditions",   label: "Working Conditions"                   },
+  { key: "whyJoinUs",           label: "Why Join Us?"                         },
+];
+
+// ── Inline editable list section ─────────────────────────────────────────────
+// ── Inline editable list section — styled like QuestionsTopic ────────────────
+function ListSection({
+  title,
+  required,
+  items,
+  onChange,
+}: {
+  title: string;
+  required?: boolean;
+  items: string[];
+  onChange: (items: string[]) => void;
+}) {
+  // Always maintain exactly 4 rows — pad with empty strings if needed
+  const normalized = [...items, "", "", "", ""].slice(0, Math.max(4, items.length));
+
+  const handleUpdate = (index: number, value: string) => {
+    const next = [...normalized];
+    next[index] = value;
+    onChange(next);
+  };
+
+  const handleDelete = (index: number) => {
+    const next = normalized.filter((_, i) => i !== index);
+    // Re-pad to 4 if we go below
+    while (next.length < 4) next.push("");
+    onChange(next);
+  };
+
+  const handleAdd = () => {
+    onChange([...normalized, ""]);
+  };
+
+  return (
+    <div className="mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-900">
+          {title}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
+        </h3>
+        <Button
+          type="button"
+          onClick={handleAdd}
+          className="flex items-center gap-1.5 bg-[#F4781B] hover:bg-orange-600 text-white text-xs font-semibold px-3 h-8 rounded-md shadow-sm"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add More
+        </Button>
+      </div>
+
+      {/* Rows */}
+      <div className="space-y-4 w-full">
+        {normalized.map((item, index) => (
+          <div key={index} className="flex items-center gap-4">
+            {/* Always-visible input — no index label */}
+            <Input
+              value={item}
+              onChange={(e) => handleUpdate(index, e.target.value)}
+              placeholder="Lorem ipsum dolor sit amet consectetur adipiscing elit..."
+              className="flex-1 h-11 border-gray-200 focus:border-[#F4781B] focus:ring-[#F4781B] rounded-xl"
+            />
+
+            {/* Pencil icon — green */}
+            <button
+              type="button"
+              className="text-green-500 hover:text-green-600 p-1 hover:bg-green-50 rounded transition-colors flex-shrink-0"
+              aria-label="Edit item"
+            >
+              <Pencil className="w-5 h-5" />
+            </button>
+
+            {/* Delete icon — red */}
+            <button
+              type="button"
+              onClick={() => handleDelete(index)}
+              className="text-red-500 hover:text-red-600 p-1 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+              aria-label="Delete item"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+// ── Main component ────────────────────────────────────────────────────────────
 export function JobDescription({ formData, updateFormData }: JobDescriptionProps) {
   const [showModal, setShowModal] = useState(false);
   const { description, loading, error, generateDescription, reset } = useGenerateDescription();

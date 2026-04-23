@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobBasicInfo } from "../create/components/job-basic-info";
 import { JobRequirements } from "../create/components/job-requirements";
 import { JobDescription } from "../create/components/job-description";
 import { QuestionsTopic } from "../create/components/questions-topic";
-import { TopActionBar } from "@/components/custom/top-action-bar";
+
 import { Topic } from "../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS } from "../constants/messages";
 import { LocationFields } from "../create/components/location-fields";
@@ -46,21 +46,17 @@ export function JobForm({
   onRemoveQuestion,
   onUpdateQuestion,
   onSubmit,
-  onBack,
   onCancel,
   title,
   showInterviewQuestions = false,
   showBackButton = false,
   showNextButton = false,
   submitLabel,
-  backLabel = BUTTON_LABELS.BACK,
-  nextLabel = BUTTON_LABELS.NEXT,
   wrapperClassName,
   customSections,
   hideRequirements = false,
 }: JobFormProps) {
   const isEditMode = mode === "edit";
-  const isCreateMode = mode === "create";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,27 +65,11 @@ export function JobForm({
     }
   };
 
-  const handleTopActionBarPrimary = () => {
-    if (onSubmit) {
-      const syntheticEvent = {
-        preventDefault: () => {},
-      } as React.FormEvent;
-      onSubmit(syntheticEvent);
-    }
-  };
 
   const formTitle = title || (isEditMode ? "Edit job details" : PAGE_TITLES.GENERATE_WITH_AI);
 
   return (
     <div className={wrapperClassName || "space-y-3 sm:space-y-4"}>
-      {isCreateMode && (
-        <TopActionBar
-          title={PAGE_TITLES.CREATE_JOB}
-          onBack={onBack}
-          onPrimary={handleTopActionBarPrimary}
-          primaryLabel={BUTTON_LABELS.SAVE_AND_CONTINUE}
-        />
-      )}
 
       <form
         onSubmit={handleSubmit}
@@ -151,28 +131,20 @@ export function JobForm({
 
         {(showBackButton || showNextButton || onSubmit || onCancel) && (
           <div className={`flex flex-col sm:flex-row justify-center sm:justify-end items-stretch sm:items-center gap-2 sm:gap-3 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 ${isEditMode ? "border-t border-gray-200" : ""}`}>
-            {(showBackButton || onBack || onCancel) && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={onBack || onCancel}
-                className="w-full sm:w-auto bg-white border-[#D9D9E0] border-2 hover:bg-gray-50 text-gray-600 px-4 sm:px-6 h-10 text-sm order-2 sm:order-1"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {backLabel}
-              </Button>
-            )}
             {showNextButton && (
               <Button
                 type="submit"
                 variant="ghost"
                 className="w-full sm:w-auto bg-[#F4781B] hover:bg-orange-600 text-white px-4 sm:px-6 h-10 shadow-sm text-sm order-1 sm:order-2"
               >
-                {nextLabel}
+                Submit Request
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             )}
-            {!showNextButton && (onSubmit || onCancel) && (
+            
+          </div>
+        )}
+        {!showNextButton && (onSubmit || onCancel) && (
               <Button
                 type={onSubmit ? "submit" : "button"}
                 onClick={onSubmit ? undefined : onCancel}
@@ -181,8 +153,6 @@ export function JobForm({
                 {submitLabel || (isEditMode ? "Save" : BUTTON_LABELS.SAVE_AND_CONTINUE)}
               </Button>
             )}
-          </div>
-        )}
       </form>
     </div>
   );
