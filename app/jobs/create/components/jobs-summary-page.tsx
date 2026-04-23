@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import { getWallet, initiateWalletTopup } from "@/stores/api/recruiter-wallet-api";
 import type { JobCreatePayload } from "@/Interface/job.types";
 
 interface JobSummaryPageProps {
@@ -94,42 +93,25 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
 
   // ── Payment Logic ─────────────────────────────────────────────────────────
   const handlePayAndHire = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    setError(null);
+  if (isProcessing) return;
+  setIsProcessing(true);
+  setError(null);
 
-    try {
-      const wallet      = await getWallet();
-      const available   = Number(wallet.available_balance); // cents
-      const totalCents  = totalPayable * 100;
-
-      if (available >= totalCents) {
-        // ✅ Priority 1 — wallet has enough → submit directly
-        const res = await onSubmit({ ...payload, status: "OPEN" });
-        if (res.success) {
-          setSuccessJobId(res.jobId ?? "");
-          setShowSuccess(true);
-        } else {
-          setError(res.message || "Failed to create job");
-        }
-      } else {
-        // ✅ Priority 2 — top up the deficit via Stripe, then submit after redirect
-        const topupAmount = Math.ceil((totalCents - available) / 100);
-        const { client_secret, topup_id } = await initiateWalletTopup(topupAmount);
-
-        sessionStorage.setItem("pending_job_payload", JSON.stringify({ ...payload, status: "OPEN" }));
-        sessionStorage.setItem("pending_job_mode", mode);
-
-        router.push(
-          `/wallet/topup/confirm?secret=${client_secret}&topup_id=${topup_id}&amount=${topupAmount}&redirect=/jobs/payment-complete`
-        );
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Payment failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
+  try {
+    // ✅ Skip wallet check — submit the job directly
+    const res = await onSubmit({ ...payload, status: "OPEN" });
+    if (res.success) {
+      setSuccessJobId(res.jobId ?? "");
+      setShowSuccess(true);
+    } else {
+      setError(res.message || "Failed to create job");
     }
-  };
+  } catch (e) {
+    setError(e instanceof Error ? e.message : "Failed to create job. Please try again.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const isUrgent     = mode === "urgent";
   const pageTitle    = isUrgent ? "Request Immediate Staff" : "Create Job Post";

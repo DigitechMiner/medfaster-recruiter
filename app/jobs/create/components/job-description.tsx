@@ -23,34 +23,49 @@ interface ParsedDescription {
 function parseAIDescription(text: string): ParsedDescription {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
 
+  // ✅ Strip markdown: **text**, ## text, ### text, * bullet, - bullet
+  const clean = (line: string) =>
+    line.replace(/^#{1,4}\s*/, "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").trim();
+
+  const cleanedLines = lines.map(clean);
+
+  // ✅ Extract bullet items under a heading that matches the regex
   const extract = (heading: RegExp): string[] => {
-    const start = lines.findIndex((l) => heading.test(l));
+    const start = cleanedLines.findIndex((l) => heading.test(l));
     if (start === -1) return [];
     const items: string[] = [];
-    for (let i = start + 1; i < lines.length; i++) {
-      // Stop at next heading (line that ends with : or is ALL CAPS)
-      if (/^[A-Z][^a-z]{3,}$/.test(lines[i]) || lines[i].endsWith(":")) break;
-      const clean = lines[i].replace(/^[-•*]\s*/, "").trim();
-      if (clean) items.push(clean);
+    for (let i = start + 1; i < cleanedLines.length; i++) {
+      const raw = cleanedLines[i];
+      // Stop at next section heading
+      if (
+        /^(key responsibilities|required skills?|requirements|experience|working conditions|why join|qualifications?|benefits?|about)/i.test(raw) ||
+        lines[i].match(/^#{1,4}\s/) ||   // markdown heading in original
+        lines[i].match(/^\*\*[^*]+\*\*:?$/) // **Heading** alone on a line
+      ) break;
+      // Strip bullet markers: -, *, •, numbered (1. 2.)
+      const item = raw.replace(/^[-•*]\s*/, "").replace(/^\d+\.\s*/, "").trim();
+      if (item) items.push(item);
     }
     return items;
   };
 
-  const summaryEnd = lines.findIndex((l) =>
-    /responsibilities|requirements|skills|experience/i.test(l)
+  // ✅ Summary = everything before first section heading
+  const firstSectionIdx = cleanedLines.findIndex((l) =>
+    /^(key responsibilities|required skills?|requirements|experience|working conditions|why join|qualifications?)/i.test(l)
   );
-  const summary = lines
-    .slice(0, summaryEnd > 0 ? summaryEnd : 3)
+  const summary = cleanedLines
+    .slice(0, firstSectionIdx > 0 ? firstSectionIdx : 3)
+    .filter((l) => !l.match(/^#{1,4}\s/) && l.length > 20) // skip headings, short lines
     .join(" ")
     .trim();
 
   return {
     summary,
-    keyResponsibilities: extract(/responsibilities/i),
-    requiredSkills:      extract(/skills|requirements/i),
+    keyResponsibilities: extract(/key responsibilities|responsibilities/i),
+    requiredSkills:      extract(/required skills?|requirements|qualifications?/i),
     experience:          extract(/experience/i),
-    workingConditions:   extract(/working conditions/i),
-    whyJoinUs:           extract(/why join/i),
+    workingConditions:   extract(/working conditions|work conditions|environment/i),
+    whyJoinUs:           extract(/why join|benefits?|what we offer/i),
   };
 }
 interface JobDescriptionProps {
@@ -171,52 +186,69 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
     reset();
   };
 
-  const handleGenerateWithAI = async () => {
-    if (!formData.jobTitle || !formData.department) {
-      alert("Please fill in Job Title and Department before generating with AI");
-      return;
-    }
+ const handleGenerateWithAI = async () => {
+  if (!formData.jobTitle || !formData.department) {
+    alert("Please fill in Job Title and Department before generating with AI");
+    return;
+  }
 
-    setShowModal(true);
+  setShowModal(true);
 
-    let jobType = formData.jobType?.toLowerCase().replace(/\s+/g, "");
-    if (jobType === "fulltime") jobType = "Full Time";
-    else if (jobType === "parttime") jobType = "Part Time";
-    else jobType = formData.jobType || "Full Time";
-
-    const input: JobDescriptionInput = {
-      jobTitle: formData.jobTitle,
-      department: formData.department,
-      jobType,
-      location: formData.location || undefined,
-      payRange: `$${formData.payRange[0]} - $${formData.payRange[1]}`,
-      experienceRequired: formData.experience || undefined,
-      qualification: formData.qualification?.join(", ") || undefined,
-      specialization: formData.specialization?.join(", ") || undefined,
-      urgency: formData.urgency || undefined,
-      inPersonInterview: formData.inPersonInterview === "Yes",
-      physicalInterview: formData.physicalInterview === "Yes",
-    };
-
-    await generateDescription(input);
+  const input: JobDescriptionInput = {
+    jobTitle:           formData.jobTitle,    // ✅ already "registered_nurse" from store
+    department:         formData.department,  // ✅ already "nursing"
+    jobType:            formData.jobType || "Full Time",
+    location:           formData.location || undefined,
+    payRange:           `$${formData.payRange[0]} - $${formData.payRange[1]}`,
+    experienceRequired: formData.experience || undefined,
+    qualification:      formData.qualification?.join(", ") || undefined,
+    specialization:     formData.specialization?.join(", ") || undefined,
+    urgency:            formData.urgency || undefined,
+    inPersonInterview:  formData.inPersonInterview === "Yes",
+    physicalInterview:  formData.physicalInterview === "Yes",
   };
 
-  const handleUse = () => {
-    if (!description) return;
+  await generateDescription(input);
+};
 
-    const parsed = parseAIDescription(description);
+ const handleUse = () => {
+  if (!description) return;
 
-    updateFormData({
-      description: parsed.summary,
-      responsibilities: parsed.keyResponsibilities,
-      required_skills: parsed.requiredSkills,
-      experienceList: parsed.experience,
-      workingConditions: parsed.workingConditions,
-      whyJoinUs: parsed.whyJoinUs,
-    });
+  const parsed = parseAIDescription(description);
 
-    handleClose();
-  };
+  // Split summary into sentences as fallback seeds
+  const sentences = description
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 10);
+
+  updateFormData({
+    description:       parsed.summary || description,
+
+    // ✅ Never send empty — seed from summary sentences if AI didn't return sections
+    responsibilities:  parsed.keyResponsibilities.length > 0
+                         ? parsed.keyResponsibilities
+                         : [sentences[0] ?? "Provide clinical care"],
+
+    required_skills:   parsed.requiredSkills.length > 0
+                         ? parsed.requiredSkills
+                         : [sentences[1] ?? "Valid nursing license"],
+
+    experienceList:    parsed.experience.length > 0
+                         ? parsed.experience
+                         : ["Relevant clinical experience required"],
+
+    workingConditions: parsed.workingConditions.length > 0
+                         ? parsed.workingConditions
+                         : ["Standard healthcare facility conditions"],
+
+    whyJoinUs:         parsed.whyJoinUs.length > 0
+                         ? parsed.whyJoinUs
+                         : ["Competitive compensation and benefits"],
+  });
+
+  handleClose();
+};
 
   const handleRegenerate = async () => {
     reset();

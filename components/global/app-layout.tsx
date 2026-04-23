@@ -1,7 +1,6 @@
 "use client";
 import { ReactNode } from "react";
 import { Navbar } from "./navbar";
-import { Footer } from "./footer";
 
 type AppLayoutProps = {
   children: ReactNode;

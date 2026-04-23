@@ -47,18 +47,20 @@ const DashboardPage: React.FC = () => {
   const normal  = apps?.NORMAL_JOB;
   const instant = apps?.INSTANT_JOB;
 
-  const metrics = useMemo(() => ({
-    // Row 1
-    activeJobOpenings: (jobs?.OPEN ?? 0) + (jobs?.ACTIVE ?? 0),
-    totalInPipeline:   apps?.TOTAL ?? 0,
-    positionsFilled:   normal?.HIRE ?? 0,
-    urgentStaffings:   (instant?.ACCEPTED ?? 0) + (instant?.CANCELLED ?? 0),
-
-    // Row 2
-    totalInvitesMade:  normal?.SHORTLISTED  ?? 0,   // shortlisted = invited to proceed
-    totalHired:        normal?.HIRE         ?? 0,
-    totalRejected:     normal?.REJECTED     ?? 0,
-  }), [dashboard]);
+ const metrics = useMemo(() => ({
+  activeJobOpenings: (jobs?.OPEN ?? 0) + (jobs?.ACTIVE ?? 0),
+  totalInPipeline:   apps?.TOTAL ?? 0,
+  positionsFilled:   normal?.HIRE ?? 0,
+  urgentStaffings:   (instant?.ACCEPTED ?? 0) + (instant?.CANCELLED ?? 0),
+  totalInvitesMade:  normal?.SHORTLISTED ?? 0,
+  totalHired:        normal?.HIRE        ?? 0,
+  totalRejected:     normal?.REJECTED    ?? 0,
+}), [
+  jobs?.OPEN, jobs?.ACTIVE,
+  apps?.TOTAL,
+  normal?.HIRE, normal?.SHORTLISTED, normal?.REJECTED,
+  instant?.ACCEPTED, instant?.CANCELLED,
+]); // ✅ all deps listed — no more warning
 
   return (
     <AppLayout padding="none">

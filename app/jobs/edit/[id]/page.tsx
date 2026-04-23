@@ -180,7 +180,7 @@ export default function EditJobPage() {
 
   job_urgency:  data.urgency,
   description:  data.description || null,
-  questions:    questionsData,
+  questions: topics.flatMap(t => t.questions.map(q => q.text)).filter(Boolean),
   status:       data.status,
 };
 

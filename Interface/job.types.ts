@@ -182,43 +182,40 @@ export interface JobDetailResponse {
 // ============ CREATE / UPDATE ============
 
 export interface JobCreatePayload {
-  job_title:    string;
-  department?:  string | null;
-  job_type?:    'casual' | 'part_time' | 'full_time' | null;
-  job_urgency?: 'instant' | 'normal';
+  job_title:            string | null;
+  status:               string;
 
-  // ── Location ─────────────────────────────────────────────
-  street?:            string | null;
-  postal_code?:       string | null;
-  province?:          string | null;
-  city?:              string | null;
-  neighborhood_name?: string | null;
-  neighborhood_type?: string | null;
-  direct_number?:     string | null;
+  // ✅ Make optional — generative-ai-form spreads pendingPayload which may not have it
+  job_urgency?:         string;
 
-  // ── Pay ──────────────────────────────────────────────────
-  pay_per_hour_cents?: number | null;   // ← replaces pay_range_min / pay_range_max
-
-  // ── Normal job fields ────────────────────────────────────
+  department?:          string | null;
+  job_type?:            "casual" | "part_time" | "full_time" | null;
+  street?:              string | null;
+  postal_code?:         string | null;
+  province?:            string | null;
+  city?:                string | null;
+  neighborhood_name?:   string | null;
+  neighborhood_type?:   string | null;   // ✅ add this
+  pay_per_hour_cents?:  number | null;
+  description?:         string | null;
+  no_of_hires_required?: number;
+  start_date?:          string | null;
+  end_date?:            string | null;
+  check_in_time?:       string | null;
+  check_out_time?:      string | null;
+  direct_number?:       string | null;
   years_of_experience?: string | null;
   qualifications?:      string[] | null;
   specializations?:     string[] | null;
   ai_interview?:        boolean;
-  questions?:           string[] | Record<string, unknown> | null;
+  questions?:           string[] | null;
 
-  // ── Shift ────────────────────────────────────────────────
-  start_date?:     string | null;   // "YYYY-MM-DD"
-  end_date?:       string | null;   // "YYYY-MM-DD"
-  check_in_time?:  string | null;   // "HH:mm"
-  check_out_time?: string | null;   // "HH:mm"
-
-  // ── Narrative ────────────────────────────────────────────
-  description?: string | null;
-
-  // ── Hiring ───────────────────────────────────────────────
-  no_of_hires_required?: number;    // ← replaces no_of_hires
-
-  status: JobStatus;
+  // Job description sections
+  responsibilities?:    string[];
+  required_skills?:     string[];
+  experience?:          string[];
+  working_conditions?:  string[];
+  why_join_us?:         string[];
 }
 
 export type JobUpdatePayload = Partial<JobCreatePayload>;

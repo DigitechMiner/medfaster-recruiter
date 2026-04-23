@@ -63,12 +63,14 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) { // �
       .filter((text) => text.trim() !== "");
 
   const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
-    ...(pendingPayload ?? {}),
-    job_title:    pendingPayload?.job_title ?? "",
-    questions:    convertQuestionsToBackendFormat(topics),
-    status:       withStatusOpen ? "OPEN" : "DRAFT",
-    ai_interview: true,
-  });
+  ...(pendingPayload ?? {}),
+  job_title:    pendingPayload?.job_title ?? "",
+  questions:    convertQuestionsToBackendFormat(topics),
+  status:       withStatusOpen ? "OPEN" : "DRAFT",
+  ai_interview: true,
+  // ✅ Ensure job_urgency is never undefined
+  job_urgency:  pendingPayload?.job_urgency ?? "normal",
+});
 
   // ── Create / go to summary (primary CTA) ─────────────────────────────────
   const handleCreate = () => {

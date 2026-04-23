@@ -6,7 +6,6 @@ import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
 import { BUTTON_LABELS } from "../../constants/messages";
 import { JobForm } from "../../components/JobForm";
 import metadata, {
-  convertJobTitleToBackend,
   convertJobTypeToBackend,
   convertSpecializationToBackend,
   convertQualificationToBackend,
@@ -47,9 +46,8 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   };
 
  const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
-  const isNormalJob = urgencyMode === 'normal';
+  const isNormalJob = urgencyMode === "normal";
 
-  // ── Optional fields built separately ───────────────────
   const normalJobFields: Partial<JobCreatePayload> = isNormalJob
     ? {
         years_of_experience: convertExperienceToBackend(data.experience) ?? null,
@@ -72,28 +70,35 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
         questions:           null,
       };
 
-  // ── Required + optional base fields ────────────────────
-  return {
-    job_title:   convertJobTitleToBackend(data.jobTitle),
-    status:      'DRAFT',
-    department:  data.department  || null,
-job_type: isNormalJob
-  ? convertJobTypeToBackend(data.jobType) as 'casual' | 'part_time' | 'full_time'
-  : 'casual',
-    street:      data.streetAddress || null,
-    postal_code: data.postalCode    || null,
-    province:    convertProvinceToJobBackend(data.province) as string | null,
-    city:        data.city          || null,
-    pay_per_hour_cents:   data.payRange[0] ? Math.round(data.payRange[0] * 100) : null,
-    job_urgency:          urgencyMode,
-    description:          data.description || null,
-    no_of_hires_required: data.numberOfHires ? parseInt(data.numberOfHires) : undefined,
-    start_date:           formatDateForBackend(data.fromDate),
-    end_date:             formatDateForBackend(data.tillDate),
-    check_in_time:        data.fromTime || null,
-    check_out_time:       data.toTime   || null,
-    ...normalJobFields,
-  };
+ return {
+  job_title:   data.jobTitle ?? "",
+  department:  data.department || null,
+  status:      "DRAFT",
+  job_type: isNormalJob
+    ? convertJobTypeToBackend(data.jobType) as "casual" | "part_time" | "full_time"
+    : "casual",
+  street:      data.streetAddress || null,
+  postal_code: data.postalCode    || null,
+  province:    convertProvinceToJobBackend(data.province) as string | null,
+  city:        data.city          || null,
+  pay_per_hour_cents:   data.payRange[0] ? Math.round(data.payRange[0] * 100) : null,
+  job_urgency:          urgencyMode,
+  description:          data.description || null,
+  no_of_hires_required: data.numberOfHires ? parseInt(data.numberOfHires) : undefined,
+  start_date:           formatDateForBackend(data.fromDate),
+  end_date:             formatDateForBackend(data.tillDate),
+  check_in_time:        data.fromTime || null,
+  check_out_time:       data.toTime   || null,
+
+  // ✅ Add these — backend requires them
+  responsibilities:  data.responsibilities?.filter(Boolean) ?? [],
+  required_skills:   data.required_skills?.filter(Boolean)  ?? [],
+  experience:        data.experienceList?.filter(Boolean)    ?? [],
+  working_conditions: data.workingConditions?.filter(Boolean) ?? [],
+  why_join_us:       data.whyJoinUs?.filter(Boolean)         ?? [],
+
+  ...normalJobFields,
+};
 };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,6 +132,12 @@ job_type: isNormalJob
     try {
       const backendData = convertToBackendFormat(formData);
       // ✅ No API call here — just pass payload up to page.tsx
+      console.log("📦 payload to send:", JSON.stringify({
+      job_title:  backendData.job_title,
+      department: backendData.department,
+      job_type:   backendData.job_type,
+      status:     backendData.status,
+    }, null, 2));
       if (onNext) onNext(backendData);
     } catch (err) {
       const error = err as Error;

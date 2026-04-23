@@ -68,6 +68,10 @@ export const ENDPOINTS = {
   VERIFY_CREDENTIAL_VALIDATE_OTP:  '/recruiter/verify-credential/validate-otp',
 
   // Common
-  COMMON_DEPARTMENTS:              '/common/departments_job_titles',
-  COMMON_SPECIALIZATIONS:          '/common/specializations',
+  COMMON_METADATA:                  '/common/metadata',
+  COMMON_DEPARTMENTS:               '/common/departments-job-titles',     // ✅ hyphen, not underscore
+  COMMON_SPECIALIZATIONS:           '/common/specializations',
+  COMMON_FCM_REGISTER:              '/common/notifications/register',
+  COMMON_DEVICE_ACTIVE:             '/common/notifications/device/active',
+  COMMON_NOTIFICATIONS:             '/common/notifications',
 } as const;
