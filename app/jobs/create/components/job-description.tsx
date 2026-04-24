@@ -17,7 +17,7 @@ interface ParsedDescription {
   requiredSkills: string[];
   experience: string[];
   workingConditions: string[];
-  whyJoinUs: string[];
+  whyJoin: string[];
 }
 
 function parseAIDescription(text: string): ParsedDescription {
@@ -65,7 +65,7 @@ function parseAIDescription(text: string): ParsedDescription {
     requiredSkills:      extract(/required skills?|requirements|qualifications?/i),
     experience:          extract(/experience/i),
     workingConditions:   extract(/working conditions|work conditions|environment/i),
-    whyJoinUs:           extract(/why join|benefits?|what we offer/i),
+    whyJoin:           extract(/why join|benefits?|what we offer/i),
   };
 }
 interface JobDescriptionProps {
@@ -83,7 +83,7 @@ const LIST_SECTIONS: {
   { key: "required_skills",      label: "Required Skill",       required: true },
   { key: "experienceList",      label: "Experience"                           }, // ✅ not experience
   { key: "workingConditions",   label: "Working Conditions"                   },
-  { key: "whyJoinUs",           label: "Why Join Us?"                         },
+  { key: "whyJoin",           label: "Why Join Us?"                         },
 ];
 
 // ── Inline editable list section ─────────────────────────────────────────────
@@ -242,8 +242,8 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
                          ? parsed.workingConditions
                          : ["Standard healthcare facility conditions"],
 
-    whyJoinUs:         parsed.whyJoinUs.length > 0
-                         ? parsed.whyJoinUs
+    whyJoin:         parsed.whyJoin.length > 0
+                         ? parsed.whyJoin
                          : ["Competitive compensation and benefits"],
   });
 

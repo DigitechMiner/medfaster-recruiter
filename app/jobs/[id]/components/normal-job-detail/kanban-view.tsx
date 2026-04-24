@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import ScoreCard from "@/components/card/scorecard";
-import { useCandidatesList } from "@/hooks/useCandidate";
+import { useCandidatesList } from "@/hooks/useRecruiterData";
 import { buildKanbanPages, getVisibleCountRange, TabKey, toCandidate } from "./shared";
 
 const KANBAN_COLS = [
@@ -30,9 +30,9 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
     job_id: jobId,
   });
 
-  const totalCount = data?.pagination?.total ?? 0;
+  const totalCount = data?.data.pagination?.total ?? 0;
   const totalKanbanPages = Math.max(1, Math.ceil(totalCount / kanbanLimit));
-  const candidates = (data?.candidates ?? []).map(toCandidate);
+  const candidates = (data?.data.candidates ?? []).map(toCandidate);
   const visibleRange = getVisibleCountRange(kanbanPage, kanbanLimit, totalCount);
   const pageButtons = buildKanbanPages(totalKanbanPages);
 

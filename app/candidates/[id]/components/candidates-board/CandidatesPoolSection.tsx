@@ -1,7 +1,7 @@
 "use client";
 
 import { CandidateColumn } from "../CandidateColumn";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import { COLUMNS, colStyles, KpiView } from "./constants";
 import { PaginationBar } from "./ui";
 import { PoolListRow } from "./PoolListRow";

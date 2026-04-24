@@ -7,6 +7,7 @@ import { GenerateAIForm } from "./form/generative-ai-form";
 import { JobSummaryPage } from "./components/jobs-summary-page";
 import { useJobsStore } from "@/stores/jobs-store";
 import type { JobCreatePayload } from "@/Interface/job.types";
+import { updateRecruiterJob } from "@/stores/api/recruiter-job-api";
 
 function CreateJobContent() {
   const router = useRouter();
@@ -33,13 +34,14 @@ function CreateJobContent() {
             onNext={(updatedPayload) => { setPendingPayload(updatedPayload); setStep(3); }}
           />
         )}
-        {step === 3 && pendingPayload && (
+      {step === 3 && pendingPayload && (
   <JobSummaryPage
     mode="regular"
     payload={pendingPayload}
     onBack={() => setStep(2)}
     onSubmit={async (finalPayload) => {
-      const res = await createJob(finalPayload);
+      // ✅ Single step — create directly with OPEN status
+      const res = await createJob(finalPayload);  // finalPayload already has status: "OPEN"
       if (res.success) setHasJobs(true);
       return { success: res.success, message: res.message, jobId: res.data?.id };
     }}

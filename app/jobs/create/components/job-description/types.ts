@@ -17,7 +17,7 @@ export interface ParsedAIDescription {
   requiredSkills: string[];
   experience: string[];
   workingConditions: string[];
-  whyJoinUs: string[];
+  whyJoin: string[];
 }
 
 export const LIST_SECTIONS: ListSectionConfig[] = [
@@ -25,5 +25,5 @@ export const LIST_SECTIONS: ListSectionConfig[] = [
   { key: "required_skills", label: "Required Skill", required: true },
   { key: "experienceList", label: "Experience" },
   { key: "workingConditions", label: "Working Conditions" },
-  { key: "whyJoinUs", label: "Why Join Us?" },
+  { key: "whyJoin", label: "Why Join Us?" },
 ];

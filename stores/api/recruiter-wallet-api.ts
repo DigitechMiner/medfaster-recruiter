@@ -28,15 +28,21 @@ export interface WalletTopupInitResponse {
 export interface WalletTransaction {
   id: string;
   wallet_id: string;
-  type: string;
+  type: 'TOPUP' | 'DEPOSIT' | 'ESCROW_HOLD' | 'ESCROW_RELEASE' | 'JOB_PAYMENT' | 'REFUND' | 'WITHDRAWAL' | string;
+  direction: 'HOLD' | 'RELEASE' | 'CREDIT' | 'DEBIT' | 'REFUND' | string;
   amount: string;
+  currency: string;
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | string;
   description?: string;
-  reference?: string;
+  balance_after?: string;
+  platform?: string;
+  reference_group_id?: string;   // ← replaces 'reference'
+  idempotency_key?: string;
   transaction_id?: string;
   category?: string;
   job_id?: string;
   job_type?: string;
-  status?: string;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

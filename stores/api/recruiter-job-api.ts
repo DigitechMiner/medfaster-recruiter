@@ -54,83 +54,6 @@ export interface JobApplicationListResponse {
   };
 }
 
-export interface CandidateDetailsResponse {
-  id: string;
-  first_name: string;
-  last_name: string;
-  full_name: string | null;
-  gender: string | null;
-  dob: string | null;
-  profile_image_url: string | null;
-  street: string | null;
-  street_2: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
-  medical_industry: string | null;
-  specialty: string | null;
-  work_eligibility: string | null;
-  expected_salary: string | null;
-  expected_hour_rate: string | null;
-  skill: string | string[] | null;
-  job_type: string | null;
-  preferred_location: string | null;
-  preferred_shift: string | null;
-  status: string | null;
-  completion_percentage: number | null;
-  email: string | null;
-  phone_number: string | null;
-  work_experiences: Array<{ id: string; title: string; company: string }>;
-  educations: Array<{ id: string; school: string; degree: string }>;
-  awards: Array<{ id: string; award_name: string; award_date: string }>;
-  social_links: Array<{ id: string; social_media: string; link: string }>;
-  documents: Array<{ id: string; document_type: string; title: string; file_url: string | null }>;
-  created_at: string;
-  updated_at: string;
-
-  // ── AI interview ──────────────────────────────────────────────────────────
-  ai_interview_score:   number | null;
-  ai_interview_summary: string | null;
-}
-
-export interface CandidateListItem {
-  id: string;
-  first_name: string;
-  last_name: string | null;
-  full_name: string;
-  profile_image_url: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
-  medical_industry: string | null;
-  specialty: string[];
-  role: string[];
-  availability: string[];
-  work_permit: string | null;
-  job_titles: string[];
-  preferred_shift: string[];
-  work_eligibility: string | null;
-  status: string;
-  completion_percentage: string;
-  email: string | null;
-  phone_number: string;
-  highest_interview_score: number | null;
-  highest_job_interview_score: number | null;
-  is_ai_recommended?: boolean;
-}
-
-export interface CandidatesListResponse {
-  candidates: CandidateListItem[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    offset: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
-}
 
 export interface GetJobsParams {
   job_urgency?: 'instant' | 'normal';
@@ -139,8 +62,26 @@ export interface GetJobsParams {
   limit?: number;
   offset?: number;
 }
+export interface JobFeePreview {
+  job_title: string;
+  no_of_hires: number;
+  recruiter_pay_per_hour_cents: number;
+  is_night_shift: boolean;
+  shift_summaries: unknown[];
+  total_working_hours_label: string;
+  total_working_hours: number;
+  per_candidate_shift_recruiter_pay_cents: number;
+  total_recruiter_pay_cents: number;
+}
 
-export type ApplicationStatus = 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW' | 'HIRE' | 'REJECTED';
+export interface JobFeePreviewParams {
+  job_title: string;
+  no_of_hires_required: number;
+  start_date: string;
+  end_date: string;
+  check_in_time: string;
+  check_out_time: string;
+}
 
 const extractData = <T>(payload: unknown): T => (payload as { data: T }).data;
 const extractRoot = <T>(payload: unknown): T => payload as T;
@@ -156,36 +97,6 @@ export async function getJobApplications(params: {
   return extractData<JobApplicationListResponse>(res.data);
 }
 
-export async function getCandidateDetails(candidateId: string): Promise<CandidateDetailsResponse> {
-  const res = await axiosInstance.get(ENDPOINTS.CANDIDATE_DETAILS(candidateId));
-  return extractData<CandidateDetailsResponse>(res.data);
-}
-
-export async function getCandidatesList(params?: {
-  role?: string[];
-  specialty?: string[];
-  availability?: string[];
-  work_permit?: string[];
-  job_id?: string;
-  interview?: 'SELF' | 'JOB';
-  page?: number;
-  limit?: number;
-}): Promise<CandidatesListResponse> {
-  const res = await axiosInstance.get(ENDPOINTS.CANDIDATES_LIST, { params });
-  return extractData<CandidatesListResponse>(res.data);
-}
-
-export async function updateApplicationStatus(
-  applicationId: string,
-  status: ApplicationStatus
-): Promise<{ id: string; job_id: string; candidate_id: string; status: ApplicationStatus; updated_at: string }> {
-  const res = await axiosInstance.patch(
-    ENDPOINTS.JOB_APPLICATION_STATUS(applicationId),
-    { status }
-  );
-  return extractData<{ id: string; job_id: string; candidate_id: string; status: ApplicationStatus; updated_at: string }>(res.data);
-}
-
 export async function getRecruiterJobs(params?: GetJobsParams): Promise<JobsListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_LIST, { params });
   return extractRoot<JobsListResponse>(res.data);
@@ -196,9 +107,10 @@ export async function getRecruiterJob(id: string): Promise<JobDetailResponse> {
   return extractRoot<JobDetailResponse>(res.data);
 }
 
-export async function createRecruiterJob(payload: JobCreatePayload): Promise<JobCreateResponse> {
+export async function createRecruiterJob(payload: JobCreatePayload & { status?: string }) {
+  console.log("🔥 API createRecruiterJob — status:", payload.status);
   const res = await axiosInstance.post(ENDPOINTS.JOBS_CREATE, payload);
-  return extractRoot<JobCreateResponse>(res.data);
+  return extractRoot<JobCreateResponse>(res.data);  // ← change extractData to extractRoot
 }
 
 export async function updateRecruiterJob(
@@ -227,3 +139,20 @@ export async function generateJobQuestions(
   const res = await axiosInstance.post(ENDPOINTS.GENERATE_JOB_QUESTIONS, payload);
   return extractRoot<GenerateQuestionsResponse>(res.data);
 }
+
+export async function getJobFeePreview(params: JobFeePreviewParams): Promise<JobFeePreview> {
+  const { job_title, ...rest } = params;
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_FEES(job_title), { params: rest });
+  return extractData<JobFeePreview>(res.data);
+}
+
+export type {
+  CandidateListItem,
+  CandidateDetailsResponse,
+  CandidatesListResponse,
+  CandidatesListParams,
+  CandidateSummaryResponse,
+  CandidateSummaryData,
+  InviteCandidatePayload,
+  InviteCandidateResponse,
+} from '@/Interface/recruiter.types';

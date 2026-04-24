@@ -4,8 +4,8 @@ import React from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
 import { AppLayout } from "@/components/global/app-layout";
-import { useCandidateDetails } from "@/hooks/useCandidate";
 import Link from "next/link";
+import { useCandidateDetails } from "@/hooks/useRecruiterData";
 
 export default function CandidateDetailPage() {
   const router       = useRouter();
@@ -57,7 +57,7 @@ export default function CandidateDetailPage() {
         <Link href="/candidates" className="hover:text-gray-700 transition-colors">Candidates</Link>
         <span>/</span>
         <span className="text-gray-700 font-medium">
-          {candidate.full_name ?? candidateId}
+          {candidate.data.candidate.full_name ?? candidateId}
         </span>
       </nav>
 

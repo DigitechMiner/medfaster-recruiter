@@ -4,7 +4,7 @@ import { Calendar, MapPin, Star, Zap } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import { CandidateActionModal } from "../CandidateActionModal";
 
 type ActionType = "shortlist" | "hire" | "schedule" | "invite";

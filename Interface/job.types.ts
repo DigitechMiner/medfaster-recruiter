@@ -14,29 +14,37 @@ export interface JobFeeSnapshot {
   };
 }
 
+export interface JobShiftSnapshot {
+  shift_summaries:           string[];
+  is_night_shift:            boolean;
+  total_working_hours_label: string | null;
+}
+
 export type JobStatus =
   | 'DRAFT'
   | 'OPEN'
   | 'PAUSED'
-  | 'CLOSED'
   | 'UPCOMING'
   | 'ACTIVE'
-  | 'COMPLETED';
+  | 'COMPLETED'
+  | 'CLOSED';
 
-/** Fields that belong ONLY to a normal/regular job */
+// ─── Sub-type models ──────────────────────────────────────────────────────────
+
+/** Fields from normal_jobs table */
 export interface NormalJobDetails {
   id:                  string;
   job_id:              string;
   years_of_experience: string;
   qualifications:      string[];
-  specializations:     number[];   // DB stores integer IDs — use convertSpecializationToFrontend()
+  specializations:     number[];   // integer IDs in DB
   ai_interview:        boolean;
   questions:           Record<string, { title: string; questions: string[] }> | null;
   created_at:          string;
   updated_at:          string;
 }
 
-/** Fields that belong ONLY to an instant/urgent job */
+/** Fields from instant_jobs table */
 export interface InstantJobDetails {
   id:                string;
   job_id:            string;
@@ -47,52 +55,73 @@ export interface InstantJobDetails {
   updated_at:        string;
 }
 
-/** Job details narrative fields (stored in job_details table, flattened in API response) */
+/** Narrative fields from job_details table — flattened in API response */
 export interface JobDetails {
-  description:       string | null;
-  responsibilities:  string[];
-  required_skills:   string[];
-  experience:        string[];
+  description:        string | null;
+  responsibilities:   string[];
+  required_skills:    string[];
+  experience:         string[];
   working_conditions: string[];
-  why_join:          string[];
+  why_join:           string[];     // ← "why_join" NOT "why_join_us" — matches model
 }
 
+/** Single shift row from job_shifts table */
+export interface JobShift {
+  id:                  string;
+  job_id:              string;
+  shift_date:          string;       // "YYYY-MM-DD"
+  check_in_time:       string;       // "HH:mm:ss"
+  check_out_time:      string;       // "HH:mm:ss"
+  sequence_index:      number;
+  total_hours:         number;
+  recruiter_pay_cents: string;       // BIGINT as string
+  fee_snapshot:        unknown | null;
+  status:              'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  created_at:          string;
+  updated_at:          string;
+}
+
+// ─── Detail response ──────────────────────────────────────────────────────────
+
 /**
- * Full job response from GET /recruiter/jobs/:id
- * Shift fields (start_date, check_in_time etc.) live flat on the jobs table —
- * they are NOT exclusive to instantJob.
+ * Full job object from GET /v1/recruiter/jobs/:id
+ * All jobs table fields + flattened normalJob/instantJob + job_details fields
  */
 export interface JobBackendResponse {
   id:                   string;
   recruiter_profile_id: string;
-  job_title:            string;
-  department:           string | null;
-  job_type:             'casual' | 'part_time' | 'full_time' | null;
-  job_urgency:          'instant' | 'normal' | null;
 
-  // ── Location ───────────────────────────────────────────────
+  // job_title_id / department_id are integers in DB but API returns labels
+  job_title:            string;         // human-readable label
+  department:           string | null;
+
+  job_type:    'casual' | 'part_time' | 'full_time' | null;  // ← matches EMPLOYMENT_TYPES
+  job_urgency: 'instant' | 'normal' | null;
+
+  // ── Location ──────────────────────────────────────────────
   street:      string | null;
   postal_code: string | null;
   province:    string | null;
   city:        string | null;
+  geolocation: { type: 'Point'; coordinates: [number, number] } | null;  // ← added; present in create response
 
-  // ── Pay ────────────────────────────────────────────────────
-  /** Hourly pay in cents (BIGINT). Divide by 100 for dollars. */
-  pay_per_hour_cents: number | null;
+  // ── Pay ───────────────────────────────────────────────────
+  pay_per_hour_cents: string;           // ← BIGINT returned as string, NOT number
   fee_snapshot:       JobFeeSnapshot | null;
+  shift_snapshot:     JobShiftSnapshot | null;  // ← was missing; present in jobs table
 
-  // ── Hiring ─────────────────────────────────────────────────
-  no_of_hires_required: number;   // default 1, never null
-  no_of_hires_hired:    number;   // default 0, never null
+  // ── Hiring ────────────────────────────────────────────────
+  no_of_hires_required: number;
+  no_of_hires_hired:    number;
   application_count:    number;
 
-  // ── Shift (flat on jobs table — both instant and normal) ───
+  // ── Shift ─────────────────────────────────────────────────
   start_date:     string | null;   // "YYYY-MM-DD"
-  end_date:       string | null;   // "YYYY-MM-DD" — null for full_time
+  end_date:       string | null;
   check_in_time:  string | null;   // "HH:mm:ss"
-  check_out_time: string | null;   // "HH:mm:ss"
+  check_out_time: string | null;
 
-  // ── Status ─────────────────────────────────────────────────
+  // ── Status ────────────────────────────────────────────────
   status:               JobStatus;
   closed_reason:        'FILLED' | 'EXPIRED' | 'MANUAL' | null;
   recruiter_close_note: string | null;
@@ -100,24 +129,30 @@ export interface JobBackendResponse {
   created_at: string;
   updated_at: string;
 
-  // ── Type-specific extras ───────────────────────────────────
+  // ── Type-specific child rows ───────────────────────────────
   normalJob:  NormalJobDetails | null;
   instantJob: InstantJobDetails | null;
 
-  // ── Job details (narrative fields from job_details table) ──
+  // ── Narrative fields (flattened from job_details) ─────────
   description:        string | null;
   responsibilities:   string[];
   required_skills:    string[];
   experience:         string[];
   working_conditions: string[];
-  why_join:           string[];
+  why_join:           string[];     // ← NOT why_join_us
 }
 
-// ============ LIST RESPONSE ============
-// The list endpoint returns a flattened subset — no normalJob/instantJob nesting.
-// start_date, end_date, check_in_time, check_out_time may not be returned by the list API.
-// Use the detail endpoint (/jobs/:id) to get full details.
+export interface JobDetailResponse {
+  success: boolean;
+  message: string;
+  data: { job: JobBackendResponse };
+}
 
+// ─── List response ────────────────────────────────────────────────────────────
+
+/**
+ * GET /v1/recruiter/jobs — flattened subset, no normalJob/instantJob nesting
+ */
 export interface JobListItem {
   id:                   string;
   job_title:            string;
@@ -125,29 +160,29 @@ export interface JobListItem {
   job_type:             'casual' | 'part_time' | 'full_time' | null;
   job_urgency:          'instant' | 'normal' | null;
   status:               JobStatus;
-  closed_reason:        string | null;
+  closed_reason:        'FILLED' | 'EXPIRED' | 'MANUAL' | null;
   recruiter_close_note: string | null;
   years_of_experience:  string | null;   // flattened from normalJob
   application_count:    number;
   no_of_hires_required: number;
   no_of_hires_hired:    number;
-  pay_per_hour_cents:   number | null;
+  pay_per_hour_cents:   string;          // ← BIGINT as string, NOT number
   created_at:           string;
   updated_at:           string;
 
-  // Location — present on list response
-  city?:        string | null;
-  province?:    string | null;
+  // Location
   street?:      string | null;
   postal_code?: string | null;
+  province?:    string | null;
+  city?:        string | null;
 
-  // Shift — may be present for instant jobs
+  // Shift
   start_date?:     string | null;
   end_date?:       string | null;
   check_in_time?:  string | null;
   check_out_time?: string | null;
 
-  // Normal job extras — may be present
+  // Normal job extras
   specializations?: number[] | null;
   qualifications?:  string[] | null;
   ai_interview?:    boolean | null;
@@ -160,116 +195,84 @@ export interface JobsListResponse {
     jobs: JobListItem[];
     pagination: {
       total:           number;
-      count:           number;
       page:            number;
       limit:           number;
       offset:          number;
       totalPages:      number;
       hasNextPage:     boolean;
       hasPreviousPage: boolean;
+      // ↓ removed `count` — not in API response
     };
   };
 }
 
-// ============ DETAIL RESPONSE ============
-
-export interface JobDetailResponse {
-  success: boolean;
-  message: string;
-  data: { job: JobBackendResponse };
-}
-
-// ============ CREATE / UPDATE ============
+// ─── Create / Update ──────────────────────────────────────────────────────────
 
 export interface JobCreatePayload {
-  job_title:            string | null;
-  status:               string;
+  // Required
+  job_title:   string;
+  department?:  string;
+  job_type:    'casual' | 'part_time' | 'full_time';
+  job_urgency: 'instant' | 'normal';
+  description?: string;
+  responsibilities: string[];
+  required_skills:  string[];
 
-  // ✅ Make optional — generative-ai-form spreads pendingPayload which may not have it
-  job_urgency?:         string;
+  // Location — required, geocoded by backend
+  street?:      string;
+  postal_code?: string;
+  province?:    string;
+  city?:        string;
 
-  department?:          string | null;
-  job_type?:            "casual" | "part_time" | "full_time" | null;
-  street?:              string | null;
-  postal_code?:         string | null;
-  province?:            string | null;
-  city?:                string | null;
-  neighborhood_name?:   string | null;
-  neighborhood_type?:   string | null;   // ✅ add this
-  pay_per_hour_cents?:  number | null;
-  description?:         string | null;
+  // Narrative (optional arrays)
+  experience?:         string[];
+  working_conditions?: string[];
+  why_join?:           string[];     // ← NOT why_join_us
+
+  // Hiring
   no_of_hires_required?: number;
-  start_date?:          string | null;
-  end_date?:            string | null;
-  check_in_time?:       string | null;
-  check_out_time?:      string | null;
-  direct_number?:       string | null;
-  years_of_experience?: string | null;
-  qualifications?:      string[] | null;
-  specializations?:     string[] | null;
-  ai_interview?:        boolean;
-  questions?:           string[] | null;
 
-  // Job description sections
-  responsibilities?:    string[];
-  required_skills?:     string[];
-  experience?:          string[];
-  working_conditions?:  string[];
-  why_join_us?:         string[];
+  // Shift (required for instant/casual, required unless full_time)
+  start_date?:     string;   // "YYYY-MM-DD"
+  end_date?:       string;
+  check_in_time?:  string;   // "HHmm" — e.g. "0800"
+  check_out_time?: string;
+
+  // Instant job only
+  neighborhood_name?: string;
+  neighborhood_type?: string;
+  direct_number?:     string;
+
+  // Normal job only
+  years_of_experience?: string;
+  qualifications?:      string[];
+  specializations?:     string[];   // slugs sent, IDs stored
+  ai_interview?:        boolean;
+  questions?:           string[]; 
+  status?: JobStatus;
+  pay_per_hour_cents?: string;
+    // required if ai_interview: true
 }
 
-export type JobUpdatePayload = Partial<JobCreatePayload>;
+export type JobUpdatePayload = Partial<JobCreatePayload> & {
+  status?:             JobStatus;   // ← ADD
+  pay_per_hour_cents?: string;      // ← ADD
+};
 
+/**
+ * POST /v1/recruiter/jobs response
+ * Returns a single flattened object — all jobs + child + job_details fields merged
+ */
 export interface JobCreateResponse {
   success: boolean;
   message: string;
-  data: {
-    id:                   string;
-    recruiter_profile_id: string;
-    job_title_id:         number;
-    department_id:        number;
-    job_type:             'casual' | 'part_time' | 'full_time';
-    street:               string | null;
-    postal_code:          string | null;
-    province:             string | null;
-    city:                 string | null;
-    geolocation:          { type: string; coordinates: [number, number] } | null;
-    pay_per_hour_cents:   string;   // BIGINT returned as string — parse with parseInt()
-    fee_snapshot:         JobFeeSnapshot | null;
-    shift_snapshot:       unknown | null;
-    job_urgency:          'instant' | 'normal';
-    no_of_hires_required: number;
-    no_of_hires_hired:    number;
-    start_date:           string | null;
-    end_date:             string | null;
-    check_in_time:        string | null;
-    check_out_time:       string | null;
-    status:               JobStatus;
-    closed_reason:        string | null;
-    recruiter_close_note: string | null;
-    application_count:    number;
-    // Normal job fields (flattened in create response)
-    years_of_experience:  string | null;
-    qualifications:       string[];
-    specializations:      number[];   // IDs, not slugs
-    ai_interview:         boolean;
-    questions:            Record<string, unknown> | null;
-    // Narrative fields
-    description:          string | null;
-    responsibilities:     string[];
-    required_skills:      string[];
-    experience:           string[];
-    working_conditions:   string[];
-    why_join:             string[];
-    created_at:           string;
-    updated_at:           string;
-  };
+  data:    JobBackendResponse;   // ← same shape as detail response, not a separate type
 }
 
 export interface JobUpdateResponse {
   success: boolean;
   message: string;
-  data:    JobCreateResponse['data'];
+  data:    JobBackendResponse;
 }
 
 export interface JobDeleteResponse {
@@ -277,7 +280,35 @@ export interface JobDeleteResponse {
   message: string;
 }
 
-// ============ FRONTEND FORM TYPES (camelCase) ============
+// ─── Fee Preview ──────────────────────────────────────────────────────────────
+
+export interface JobFeePreviewPayload {
+  job_title:            string;
+  no_of_hires_required: number;
+  start_date:           string;
+  end_date:             string;
+  check_in_time:        string;
+  check_out_time:       string;
+}
+
+export interface JobFeePreviewResponse {
+  success: boolean;
+  message: string;
+  data: {
+    job_title:                         string;
+    job_title_label:                   string;
+    no_of_hires:                       number;
+    recruiter_pay_per_hour_cents:      number;
+    is_night_shift:                    boolean;
+    shift_summaries:                   string[];
+    total_working_hours_label:         string;
+    total_working_hours:               number;
+    per_candidate_shift_recruiter_pay_cents: number;
+    total_recruiter_pay_cents:         number;
+  };
+}
+
+// ─── Frontend form types (camelCase) ─────────────────────────────────────────
 
 export interface JobFormData {
   jobTitle:          string;
@@ -295,43 +326,41 @@ export interface JobFormData {
   description:       string;
   responsibilities?: string[];
   required_skills?:  string[];
-  workingConditions?:   string[];
-  whyJoinUs?:           string[];
-  experienceList?:      string[];
+  workingConditions?: string[];
+  whyJoin?:          string[];    // ← renamed from whyJoin to match backend why_join
+  experienceList?:   string[];
   streetAddress?:    string;
   postalCode?:       string;
   province?:         string;
   city?:             string;
   country?:          string;
   numberOfHires?:    string;
-  // ── Instant job form fields ──────────────────────────────
-  fromDate?: Date;
-  tillDate?: Date;
-  fromTime?: string;
-  toTime?:   string;
-  status:    JobStatus;
+  fromDate?:         Date;
+  tillDate?:         Date;
+  fromTime?:         string;
+  toTime?:           string;
+  status:            JobStatus;
+  questions?:        string[];
 }
 
-// ============ GENERATE AI CONTENT ============
+// ─── AI Content Generation ────────────────────────────────────────────────────
 
 export interface GenerateDescriptionPayload {
-  jobTitle:            string;
-  department:          string;
-  jobType:             string;
-  payRange?:           string;
-  location?:           string;
-  experienceRequired?: string;
-  qualification?:      string;
-  specialization?:     string;
-  urgency?:            string;
-  inPersonInterview?:  boolean;
-  physicalInterview?:  boolean;
+  job_title:    string;   // ← backend expects snake_case slug
+  department:   string;
 }
 
 export type GenerateDescriptionResponse = {
   success: boolean;
   message: string;
-  data: { description: string };
+  data: {
+    description:        string;
+    responsibilities:   string[];
+    required_skills:    string[];
+    experience:         string[];
+    working_conditions: string[];
+    why_join:           string[];
+  };
 };
 
 export interface GenerateQuestionsPayload {
@@ -346,7 +375,7 @@ export type GenerateQuestionsResponse = {
   data: { questions: string[] };
 };
 
-// ============ LEGACY TYPES ============
+// ─── Legacy / UI types (unchanged) ───────────────────────────────────────────
 
 export interface TopJob {
   id:              number;
@@ -370,8 +399,8 @@ export interface Job {
   jobApplicationId?: string;
 }
 
-export type StatusType = 'applied' | 'interviewing' | 'hired';
-export type BadgeColor = 'blue' | 'orange' | 'red' | 'green';
+export type StatusType  = 'applied' | 'interviewing' | 'hired';
+export type BadgeColor  = 'blue' | 'orange' | 'red' | 'green';
 
 export interface JobsData {
   applied:      Job[];

@@ -9,7 +9,7 @@ import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
-import type { JobCreatePayload } from "@/Interface/job.types";
+import type { JobCreatePayload, JobUpdatePayload } from "@/Interface/job.types";
 
 interface Props {
   pendingPayload?: JobCreatePayload | null;
@@ -64,14 +64,15 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) { // �
 
   const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
   ...(pendingPayload ?? {}),
-  job_title:    pendingPayload?.job_title ?? "",
-  questions:    convertQuestionsToBackendFormat(topics),
-  status:       withStatusOpen ? "OPEN" : "DRAFT",
-  ai_interview: true,
-  // ✅ Ensure job_urgency is never undefined
-  job_urgency:  pendingPayload?.job_urgency ?? "normal",
+  job_title:        pendingPayload?.job_title        ?? "",
+  job_type:         pendingPayload?.job_type         ?? "casual",
+  job_urgency:      pendingPayload?.job_urgency      ?? "normal",
+  responsibilities: pendingPayload?.responsibilities ?? [],   // ← ADD
+  required_skills:  pendingPayload?.required_skills  ?? [],   // ← ADD (same issue)
+  questions:        convertQuestionsToBackendFormat(topics),
+  status:           withStatusOpen ? "OPEN" : "DRAFT",
+  ai_interview:     true,
 });
-
   // ── Create / go to summary (primary CTA) ─────────────────────────────────
   const handleCreate = () => {
     const payload = buildFinalPayload(true);

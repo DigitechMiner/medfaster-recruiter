@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { MapPin, Briefcase, Star, Zap, Calendar } from "lucide-react";
 import { useState } from "react";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import ScoreCard from "@/components/card/scorecard";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
 import { CandidateActionModal } from "./CandidateActionModal";
@@ -84,7 +84,6 @@ const ActionButtons = ({
     );
   }
 
-  // shortlist
   return score >= 75 ? (
     <div className="flex gap-2">
       <button onClick={open} className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-2 rounded-xl transition-colors">
@@ -130,7 +129,6 @@ export const BoardCandidateCard = ({
         onClick={() => router.push(`/candidates/${c.id}`)}
         className="flex flex-col gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer"
       >
-        {/* Tags row */}
         <CardHeader className="flex items-center justify-between gap-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <LeftPill text={pillLeft} />
@@ -143,7 +141,6 @@ export const BoardCandidateCard = ({
           {pillRight && <RightPill text={pillRight} />}
         </CardHeader>
 
-        {/* Identity row */}
         <CardIdentity className="flex items-start gap-2">
           <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
             <Image src={c.profile_image_url || "/svg/Photo.svg"} alt={name} width={40} height={40} className="object-cover w-full h-full" />
@@ -163,7 +160,6 @@ export const BoardCandidateCard = ({
           }
         </CardIdentity>
 
-        {/* Stats row */}
         <CardStats className="flex items-center gap-2 text-[10px] text-gray-500 flex-wrap">
           <span className="flex items-center gap-1"><Briefcase size={10} className="text-gray-400" /> 5+ yrs</span>
           <span className="text-gray-300">|</span>
@@ -174,7 +170,6 @@ export const BoardCandidateCard = ({
           <span className="flex items-center gap-0.5"><Star size={9} className="fill-yellow-400 text-yellow-400" /> 4.8/5</span>
         </CardStats>
 
-        {/* Actions */}
         <div onClick={(e) => e.stopPropagation()}>
           <ActionButtons actionType={actionType} score={score} onOpenModal={() => setShowModal(true)} />
         </div>

@@ -17,8 +17,8 @@ export const ENDPOINTS = {
   JOBS_DELETE:                     (id: string) => `/recruiter/jobs/${id}`,
   GENERATE_JOB_DESCRIPTION:        '/recruiter/jobs/generate-description',
   GENERATE_JOB_QUESTIONS:          '/recruiter/jobs/generate-questions',
-  JOBS_FEES:                       '/recruiter/jobs/fees',
-  JOB_PREVIEW:                     (id: string) => `/recruiter/jobs/${id}/preview`,
+  JOBS_FEES:                       (jobTitle: string) => `/recruiter/jobs/fees/${jobTitle}`,
+  JOBS_FEE_PREVIEW:                 '/recruiter/jobs/preview',
 
   // Jobs Summary & Calendar (new)
   JOBS_SUMMARY:                    '/recruiter/jobs/summary',

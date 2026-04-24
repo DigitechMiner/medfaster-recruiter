@@ -15,12 +15,12 @@ import metadata, {
 
 interface Props {
   urgencyMode: "normal" | "instant";
-  onNext?: (payload: JobCreatePayload) => void;  // ← changed: passes payload, not jobId
+  onNext?: (payload: JobCreatePayload) => void;
   onBack?: () => void;
 }
 
-const formatDateForBackend = (date?: Date): string | null => {
-  if (!date) return null;
+const formatDateForBackend = (date?: Date): string | undefined => {
+  if (!date) return undefined;
   const year  = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day   = String(date.getDate()).padStart(2, "0");
@@ -45,61 +45,72 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
- const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
-  const isNormalJob = urgencyMode === "normal";
+  const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
+    const isNormalJob = urgencyMode === "normal";
 
-  const normalJobFields: Partial<JobCreatePayload> = isNormalJob
-    ? {
-        years_of_experience: convertExperienceToBackend(data.experience) ?? null,
-        qualifications: data.qualification
-          ?.filter((q) => q?.trim())
-          .map(convertQualificationToBackend)
-          .filter((q) => Object.values(metadata.qualification_mapping).includes(q)) ?? null,
-        specializations: data.specialization
-          ?.filter((s) => s?.trim())
-          .map(convertSpecializationToBackend)
-          .filter((s) => Object.values(metadata.specialization_mapping).includes(s)) ?? null,
-        ai_interview: false,
-        questions:    null,
-      }
-    : {
-        years_of_experience: null,
-        qualifications:      [],
-        specializations:     [],
-        ai_interview:        false,
-        questions:           null,
-      };
+    const normalJobFields: Partial<JobCreatePayload> = isNormalJob
+      ? {
+          years_of_experience: convertExperienceToBackend(data.experience) ?? undefined,
+          qualifications: data.qualification
+            ?.filter((q) => q?.trim())
+            .map(convertQualificationToBackend)
+            .filter((q) => Object.values(metadata.qualification_mapping).includes(q)) ?? [],
+          specializations: data.specialization
+            ?.filter((s) => s?.trim())
+            .map(convertSpecializationToBackend)
+            .filter((s) => Object.values(metadata.specialization_mapping).includes(s)) ?? [],
+          ai_interview: data.aiInterview === "Yes",
+          questions:    data.questions?.filter(Boolean) ?? [],
+        }
+      : {
+          years_of_experience: undefined,
+          qualifications:      [],
+          specializations:     [],
+          ai_interview:        false,
+          questions:           [],
+        };
 
- return {
-  job_title:   data.jobTitle ?? "",
-  department:  data.department || null,
-  status:      "DRAFT",
-  job_type: isNormalJob
-    ? convertJobTypeToBackend(data.jobType) as "casual" | "part_time" | "full_time"
-    : "casual",
-  street:      data.streetAddress || null,
-  postal_code: data.postalCode    || null,
-  province:    convertProvinceToJobBackend(data.province) as string | null,
-  city:        data.city          || null,
-  pay_per_hour_cents:   data.payRange[0] ? Math.round(data.payRange[0] * 100) : null,
-  job_urgency:          urgencyMode,
-  description:          data.description || null,
-  no_of_hires_required: data.numberOfHires ? parseInt(data.numberOfHires) : undefined,
-  start_date:           formatDateForBackend(data.fromDate),
-  end_date:             formatDateForBackend(data.tillDate),
-  check_in_time:        data.fromTime || null,
-  check_out_time:       data.toTime   || null,
+    const raw: Record<string, unknown> = {
+      job_title:            data.jobTitle ?? "",
+      department:           data.department          || undefined,
+      status:               "DRAFT",
+      job_type:             isNormalJob
+                              ? convertJobTypeToBackend(data.jobType) as "casual" | "part_time" | "full_time"
+                              : "casual",
+      street:               data.streetAddress       || undefined,
+      postal_code:          data.postalCode          || undefined,
+      province:             convertProvinceToJobBackend(data.province) || undefined,
+      city:                 data.city                || undefined,
 
-  // ✅ Add these — backend requires them
-  responsibilities:  data.responsibilities?.filter(Boolean) ?? [],
-  required_skills:   data.required_skills?.filter(Boolean)  ?? [],
-  experience:        data.experienceList?.filter(Boolean)    ?? [],
-  working_conditions: data.workingConditions?.filter(Boolean) ?? [],
-  why_join_us:       data.whyJoinUs?.filter(Boolean)         ?? [],
+      // ✅ Only send if actually set — never send null to backend
+      ...(data.payRange?.[0]
+        ? { pay_per_hour_cents: Math.round(data.payRange[0] * 100) }
+        : {}),
 
-  ...normalJobFields,
-};
-};
+      job_urgency:          urgencyMode,
+      description:          data.description         || undefined,
+      no_of_hires_required: data.numberOfHires ? parseInt(data.numberOfHires, 10) : 1,
+
+      start_date:    formatDateForBackend(data.fromDate),
+      // ✅ full_time jobs have no end_date
+      end_date:      data.jobType === "full_time" ? undefined : formatDateForBackend(data.tillDate),
+      check_in_time: data.fromTime || undefined,
+      check_out_time: data.toTime  || undefined,
+
+      responsibilities:   data.responsibilities?.filter(Boolean) ?? [],
+      required_skills:    data.required_skills?.filter(Boolean)  ?? [],
+      experience:         data.experienceList?.filter(Boolean)    ?? [],
+      working_conditions: data.workingConditions?.filter(Boolean) ?? [],
+      why_join_us:        data.whyJoin?.filter(Boolean)         ?? [],
+
+      ...normalJobFields,
+    };
+
+    // ✅ Strip all undefined/null before sending — prevents backend crashes
+    return Object.fromEntries(
+  Object.entries(raw).filter(([, v]) => v !== null && v !== undefined)
+) as unknown as JobCreatePayload;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +132,9 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
         (q) => !Object.keys(metadata.qualification_mapping).includes(q)
       );
       if (invalidQuals.length > 0) {
-        setError(`Invalid qualification(s): ${invalidQuals.join(", ")}. Please select from the dropdown.`);
+        setError(
+          `Invalid qualification(s): ${invalidQuals.join(", ")}. Please select from the dropdown.`
+        );
         return;
       }
     }
@@ -131,13 +144,9 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
 
     try {
       const backendData = convertToBackendFormat(formData);
-      // ✅ No API call here — just pass payload up to page.tsx
-      console.log("📦 payload to send:", JSON.stringify({
-      job_title:  backendData.job_title,
-      department: backendData.department,
-      job_type:   backendData.job_type,
-      status:     backendData.status,
-    }, null, 2));
+
+      console.log("📦 payload to send:", JSON.stringify(backendData, null, 2));
+
       if (onNext) onNext(backendData);
     } catch (err) {
       const error = err as Error;

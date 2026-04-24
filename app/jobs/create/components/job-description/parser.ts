@@ -7,7 +7,7 @@ export function parseAIDescription(raw: string): ParsedAIDescription {
     requiredSkills: [],
     experience: [],
     workingConditions: [],
-    whyJoinUs: [],
+    whyJoin: [],
   };
 
   const lines = raw.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -18,7 +18,7 @@ export function parseAIDescription(raw: string): ParsedAIDescription {
     { pattern: /required\s*skills?/i, key: "requiredSkills" },
     { pattern: /experience/i, key: "experience" },
     { pattern: /working\s*conditions?/i, key: "workingConditions" },
-    { pattern: /why\s*join/i, key: "whyJoinUs" },
+    { pattern: /why\s*join/i, key: "whyJoin" },
   ];
 
   let currentSection: SectionKey = "summary";

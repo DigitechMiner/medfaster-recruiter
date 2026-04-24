@@ -48,8 +48,8 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
 
   const fullName = useMemo(
     () =>
-      candidate.full_name ||
-      `${candidate.first_name} ${candidate.last_name ?? ""}`.trim(),
+      candidate.data.candidate.full_name ||
+      `${candidate.data.candidate.first_name} ${candidate.data.candidate.last_name ?? ""}`.trim(),
     [candidate]
   );
 
@@ -114,7 +114,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     <>
       <div className="mb-5">
         <CandidateHero
-          candidate={candidate}
+          candidate={candidate.data.candidate}
           onBack={onBack}
           onExport={handleExportProfile}
           onShortlist={handleShortlist}

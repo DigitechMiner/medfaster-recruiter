@@ -1,6 +1,6 @@
 import React from "react";
 import type { JobBackendResponse } from "@/Interface/job.types";
-import type { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import { convertProvinceToFrontend, provinces } from "@/utils/constant/metadata";
 
 export interface Props {
@@ -56,7 +56,7 @@ export function toCandidate(candidate: CandidateListItem): Candidate {
     ?? "Healthcare Professional";
 
   return {
-    id: candidate.id,
+    id: candidate.id ?? candidate.candidate_id ?? '',
     name: candidate.full_name || `${candidate.first_name} ${candidate.last_name ?? ""}`.trim(),
     department: toTitleCase(candidate.medical_industry) ?? "—",
     role: specialty,

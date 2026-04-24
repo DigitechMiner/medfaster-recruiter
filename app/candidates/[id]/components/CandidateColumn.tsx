@@ -1,6 +1,6 @@
 "use client";
 import { BoardCandidateCard } from "./BoardCandidateCard";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import { ColumnShell } from "@/components/candidate/ColumnShell";
 import { renderCandidateCards } from "@/components/candidate/renderers";
 

@@ -97,7 +97,7 @@ export const JobsListView: React.FC<Props> = ({ jobs }) => {
 
                 {/* Budget */}
                 <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">
-                  {formatBudget(job.pay_per_hour_cents)}
+                  {formatBudget(parseInt(job.pay_per_hour_cents))}
                 </td>
 
                 {/* AI Interview — inline badge, NOT JobStatusBadge (uses own colors) */}

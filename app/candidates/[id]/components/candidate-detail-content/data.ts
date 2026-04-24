@@ -1,5 +1,7 @@
 "use client";
 
+import { CandidateDocument } from "@/Interface/recruiter.types";
+
 export const STATIC_EDUCATION_FULL = [
   { id: "ed1", school: "Canadian Red Cross University", degree: "Master Degree", field: "MD",    period: "Jan 2025 - Dec 2023" },
   { id: "ed2", school: "Canadian Special School",      degree: "Bachelor",       field: "B.Sc.", period: "Jan 2023 - Dec 2020" },
@@ -14,20 +16,20 @@ export const STATIC_REGISTRATION = [
   { id: "reg1", type: "Provisional Nursing Body Registered", body: "College of Nurses of Ontario", number: "ONT-12345", expiry: "Dec 2026" },
 ];
 
-export const STATIC_PERSONAL_DOCS = [
-  { id: "pd1", title: "Passport" },
-  { id: "pd2", title: "PR Card" },
-  { id: "pd3", title: "Valid Work Permit" },
-  { id: "pd4", title: "Criminal Record Check" },
+export const STATIC_PERSONAL_DOCS: CandidateDocument[] = [
+  { id: "pd1", document_type: "personal", title: "Passport" },
+  { id: "pd2", document_type: "personal", title: "PR Card" },
+  { id: "pd3", document_type: "personal", title: "Valid Work Permit" },
+  { id: "pd4", document_type: "personal", title: "Criminal Record Check" },
 ];
 
-export const STATIC_LICENSE_DOCS = [
-  { id: "ld1", title: "LPN License" },
-  { id: "ld2", title: "First Aid Certificate" },
-  { id: "ld3", title: "Professional Liability Certificate" },
-  { id: "ld4", title: "Flu Vaccination Certificate" },
-  { id: "ld5", title: "Covid Vaccination Certificate" },
-  { id: "ld6", title: "TB Screeing Certificate" },
+export const STATIC_LICENSE_DOCS: CandidateDocument[] = [
+  { id: "ld1", document_type: "license", title: "LPN License" },
+  { id: "ld2", document_type: "license", title: "First Aid Certificate" },
+  { id: "ld3", document_type: "license", title: "Professional Liability Certificate" },
+  { id: "ld4", document_type: "license", title: "Flu Vaccination Certificate" },
+  { id: "ld5", document_type: "license", title: "Covid Vaccination Certificate" },
+  { id: "ld6", document_type: "license", title: "TB Screening Certificate" },
 ];
 
 export const STATIC_WORK_EXPERIENCE = [

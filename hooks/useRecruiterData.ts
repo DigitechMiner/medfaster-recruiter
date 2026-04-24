@@ -17,12 +17,15 @@ import type {
   CalendarJob,
   CandidateListItem,
   CandidatesListParams,
+  CandidatesListResponse,
   CandidateDetailsResponse,
   InviteCandidatePayload,
+  InviteCandidateResponse,
   RecruiterNotification,
   NotificationsParams,
 } from '@/Interface/recruiter.types';
 import type { RecruiterDashboardData } from '@/stores/api/recruiter-candidates-api';
+
 // ─── Generic async hook factory ───────────────────────────────────────────────
 function useAsyncData<T>(
   fetcher: () => Promise<{ success: boolean; data: T; message?: string }>,
@@ -53,11 +56,13 @@ function useAsyncData<T>(
 }
 
 // ─── 1. Candidate Summary ─────────────────────────────────────────────────────
-export function useCandidateSummary() {
+export function useCandidatesSummary() {
   const { data, isLoading, error, refetch } =
     useAsyncData<CandidateSummaryData>(getCandidateSummary);
   return { summary: data, isLoading, error, refetch };
 }
+// Alias — some components import without the "s"
+export const useCandidateSummary = useCandidatesSummary;
 
 // ─── 2. Jobs Summary ──────────────────────────────────────────────────────────
 export function useJobsSummary() {
@@ -79,10 +84,8 @@ export function useJobsCalendar() {
     getJobsCalendar()
       .then((res) => {
         if (cancelled) return;
-        if (res.success) {
-          // ✅ shifts is nested under res.data.shifts
+        if (res.success)
           setCalendarJobs(Array.isArray(res.data.shifts) ? res.data.shifts : []);
-        }
       })
       .catch(() => { if (!cancelled) setCalendarJobs([]); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
@@ -94,43 +97,37 @@ export function useJobsCalendar() {
 }
 
 // ─── 4. Candidates List ───────────────────────────────────────────────────────
+// Returns { data } shape — components do: data?.data.candidates ?? []
 export function useCandidatesList(params?: CandidatesListParams) {
-  const stableParams = JSON.stringify(params ?? {});
+  const [data,      setData]      = useState<CandidatesListResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error,     setError]     = useState<string | null>(null);
 
-  const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
-  const [total,      setTotal]      = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading,  setIsLoading]  = useState(true);
-  const [error,      setError]      = useState<string | null>(null);
+  const stableKey = JSON.stringify(params ?? {});
 
   const run = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await getCandidatesList(params);
-      if (res.success) {
-        setCandidates(res.data.candidates);
-        setTotal(res.data.pagination.total);
-        setTotalPages(res.data.pagination.totalPages);
-      } else {
-        setError(res.message ?? 'Failed to fetch candidates');
-      }
+      setData(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
+      setError(e instanceof Error ? e.message : 'Failed to load candidates');
     } finally {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stableParams]);
+  }, [stableKey]);
 
   useEffect(() => { run(); }, [run]);
 
-  return { candidates, total, totalPages, isLoading, error, refetch: run };
+  return { data, isLoading, error, refetch: run };
 }
 
 // ─── 5. Candidate Details ─────────────────────────────────────────────────────
+// Returns { candidate } — components do: candidate?.data.candidate
 export function useCandidateDetails(candidateId: string | null) {
-  const [details,   setDetails]   = useState<CandidateDetailsResponse['data'] | null>(null);
+  const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
 
@@ -140,10 +137,9 @@ export function useCandidateDetails(candidateId: string | null) {
     setError(null);
     try {
       const res = await getCandidateDetails(candidateId);
-      if (res.success) setDetails(res.data);
-      else             setError(res.message ?? 'Failed to fetch candidate details');
+      setCandidate(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
+      setError(e instanceof Error ? e.message : 'Candidate not found');
     } finally {
       setIsLoading(false);
     }
@@ -151,25 +147,25 @@ export function useCandidateDetails(candidateId: string | null) {
 
   useEffect(() => { run(); }, [run]);
 
-  return { details, isLoading, error, refetch: run };
+  return { candidate, isLoading, error, refetch: run };
 }
 
-// ─── 6. Invite Candidate (mutation) ───────────────────────────────────────────
+// ─── 6. Invite Candidate ──────────────────────────────────────────────────────
 export function useInviteCandidate() {
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
 
-  const invite = useCallback(async (payload: InviteCandidatePayload) => {
+  const invite = useCallback(async (
+    payload: InviteCandidatePayload
+  ): Promise<InviteCandidateResponse> => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await inviteCandidate(payload);
-      if (!res.success) setError(res.message ?? 'Invite failed');
-      return res;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Unknown error';
+      return await inviteCandidate(payload);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Invite failed';
       setError(msg);
-      return { success: false, message: msg, data: { invitation_id: '', status: '' } };
+      throw e;
     } finally {
       setIsLoading(false);
     }
@@ -180,10 +176,10 @@ export function useInviteCandidate() {
 
 // ─── 7. Notifications ─────────────────────────────────────────────────────────
 export function useNotifications(params?: NotificationsParams) {
-  const stableParams = JSON.stringify(params ?? {});
+  const stableKey = JSON.stringify(params ?? {});
 
   const [notifications, setNotifications] = useState<RecruiterNotification[]>([]);
-  const [unreadCount,   setUnreadCount]   = useState(0);   // derived client-side
+  const [unreadCount,   setUnreadCount]   = useState(0);
   const [total,         setTotal]         = useState(0);
   const [isLoading,     setIsLoading]     = useState(true);
   const [error,         setError]         = useState<string | null>(null);
@@ -196,7 +192,6 @@ export function useNotifications(params?: NotificationsParams) {
       if (res.success) {
         const notifs = res.data.notifications;
         setNotifications(notifs);
-        // API has no unread_count field — derive it from is_read
         setUnreadCount(notifs.filter((n) => !n.is_read).length);
         setTotal(res.data.pagination.total);
       } else {
@@ -208,13 +203,14 @@ export function useNotifications(params?: NotificationsParams) {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stableParams]);
+  }, [stableKey]);
 
   useEffect(() => { run(); }, [run]);
 
   return { notifications, unreadCount, total, isLoading, error, refetch: run };
 }
 
+// ─── 8. Recruiter Dashboard ───────────────────────────────────────────────────
 export function useRecruiterDashboard() {
   const { data, isLoading, error, refetch } =
     useAsyncData<RecruiterDashboardData>(getRecruiterDashboard);

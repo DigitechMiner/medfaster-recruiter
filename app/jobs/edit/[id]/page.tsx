@@ -35,8 +35,8 @@ import {
   convertExperienceToFrontend,       // ✅ converts "2" → "2-3 Yrs" when loading form
 } from "@/utils/constant/metadata";
 
-const formatDateForBackend = (date?: Date | null): string | null => {
-  if (!date) return null;
+const formatDateForBackend = (date?: Date | null): string | undefined => {
+  if (!date) return undefined;
   const d = new Date(date);
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, '0');
@@ -73,8 +73,8 @@ export default function EditJobPage() {
 
     // pay_per_hour_cents → dollars for the form slider
     const hourlyDollars = job.pay_per_hour_cents != null
-      ? job.pay_per_hour_cents / 100
-      : 0;
+  ? parseInt(job.pay_per_hour_cents, 10) / 100   // ← parseInt first
+  : 0;
 
     return {
       jobTitle:    normalizeJobTitle(job.job_title),
@@ -167,19 +167,19 @@ export default function EditJobPage() {
 
     const payload: Partial<JobCreatePayload> = {
   job_title:   convertJobTitleToBackend(data.jobTitle),
-  department:  data.department || null,
+  department:  data.department || undefined,
   job_type: convertToBackendValue(data.jobType) as 'casual' | 'part_time' | 'full_time',
-  street:      data.streetAddress || null,
-  postal_code: data.postalCode    || null,
-  province:    convertProvinceToJobBackend(data.province) as string | null,
-  city:        data.city          || null,
+  street:      data.streetAddress || undefined,
+  postal_code: data.postalCode    || undefined,
+  province:    convertProvinceToJobBackend(data.province) as string | undefined,
+  city:        data.city          || undefined,
 
   pay_per_hour_cents: data.payRange[0]
-    ? Math.round(data.payRange[0] * 100)
-    : null,
+  ? String(Math.round(data.payRange[0] * 100))
+  : undefined,
 
   job_urgency:  data.urgency,
-  description:  data.description || null,
+  description:  data.description || undefined,
   questions: topics.flatMap(t => t.questions.map(q => q.text)).filter(Boolean),
   status:       data.status,
 };
@@ -228,7 +228,7 @@ if (data.numberOfHires && data.numberOfHires.trim() !== '') {
   if (data.toTime)   payload.check_out_time = data.toTime;
 }
 
-    console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
+    console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, undefined, 2));
     return payload as JobUpdatePayload;
   };
 

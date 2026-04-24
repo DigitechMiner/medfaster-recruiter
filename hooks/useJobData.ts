@@ -4,13 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useJobsStore } from '@/stores/jobs-store';
 import type { JobBackendResponse, JobsListResponse } from '@/Interface/job.types';
-import {
-  getCandidateDetails,
-  getJobApplications,
-  type CandidateDetailsResponse,
-  type JobApplicationListResponse,
-} from '@/stores/api/recruiter-job-api';
+
 import type { JobListItem } from '@/Interface/job.types';
+import { CandidateDetailsResponse } from '@/Interface/recruiter.types';
+import { getCandidateDetails } from '@/stores/api/recruiter-candidates-api';
+import { getJobApplications, JobApplicationListResponse } from '@/stores/api/recruiter-job-api';
 
 
 // ── Full status union matching the actual API ─────────────────────────────────

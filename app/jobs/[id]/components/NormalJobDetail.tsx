@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Filter, Users } from "lucide-react";
 import { JobDescriptionModal, useJobDescriptionModal } from "./JobDescriptionModal";
 import { EditInterviewQuestionsModal } from "./EditInterviewQuestionsModal";
-import { useCandidatesList } from "@/hooks/useCandidate";
+import { useCandidatesList } from "@/hooks/useRecruiterData";
 import {
   convertExperienceToFrontend,
   convertJobTypeToFrontend,
@@ -54,8 +54,8 @@ export const NormalJobDetail: React.FC<Props> = ({ job, jobId, onCloseJob }) => 
     ...(activeTab !== "applied" && { candidate_status: activeTab }),
   });
 
-  const candidates: Candidate[] = (data?.candidates ?? []).map(toCandidate);
-  const totalCount = data?.pagination?.total ?? 0;
+   const candidates: Candidate[] = (data?.data?.candidates ?? []).map(toCandidate);
+  const totalCount = data?.data?.pagination?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   const visibleTabs = TABS.filter((tab) => !tab.aiOnly || hasAI);
@@ -81,7 +81,7 @@ export const NormalJobDetail: React.FC<Props> = ({ job, jobId, onCloseJob }) => 
       node: (
         <span>
           <strong className="text-gray-900 font-bold">
-            ${job.pay_per_hour_cents ? (job.pay_per_hour_cents / 100).toFixed(2) : "—"}
+            ${job.pay_per_hour_cents ? (parseInt(job.pay_per_hour_cents, 10) / 100).toFixed(2) : "—"}
           </strong>
           /hr
         </span>

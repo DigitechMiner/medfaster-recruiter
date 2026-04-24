@@ -4,7 +4,7 @@ import { Download, MapPin, Briefcase, Star } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import ScoreCard from "@/components/card/scorecard";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
 import { JobTypePill } from "./ui";
