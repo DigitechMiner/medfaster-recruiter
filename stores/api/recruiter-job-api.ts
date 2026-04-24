@@ -63,15 +63,16 @@ export interface GetJobsParams {
   offset?: number;
 }
 export interface JobFeePreview {
-  job_title: string;
-  no_of_hires: number;
-  recruiter_pay_per_hour_cents: number;
-  is_night_shift: boolean;
-  shift_summaries: unknown[];
-  total_working_hours_label: string;
-  total_working_hours: number;
+  job_title:                               string;
+  job_title_label:                         string;
+  no_of_hires:                             number;
+  recruiter_pay_per_hour_cents:            number;
+  is_night_shift:                          boolean;
+  shift_summaries:                         string[];
+  total_working_hours_label:               string;
+  total_working_hours:                     number;
   per_candidate_shift_recruiter_pay_cents: number;
-  total_recruiter_pay_cents: number;
+  total_recruiter_pay_cents:               number;
 }
 
 export interface JobFeePreviewParams {
@@ -141,11 +142,18 @@ export async function generateJobQuestions(
 }
 
 export async function getJobFeePreview(params: JobFeePreviewParams): Promise<JobFeePreview> {
-  const { job_title, ...rest } = params;
-  const res = await axiosInstance.get(ENDPOINTS.JOBS_FEES(job_title), { params: rest });
+  const body = {
+    job_title:            params.job_title,
+    no_of_hires_required: params.no_of_hires_required,
+    start_date:           new Date(params.start_date).toISOString(),
+    end_date:             new Date(params.end_date).toISOString(),
+    check_in_time:        params.check_in_time,   // ← "07:30" as-is, no replace
+    check_out_time:       params.check_out_time,  // ← "11:30" as-is, no replace
+  };
+
+  const res = await axiosInstance.post(ENDPOINTS.JOBS_FEE_PREVIEW, body);
   return extractData<JobFeePreview>(res.data);
 }
-
 export type {
   CandidateListItem,
   CandidateDetailsResponse,

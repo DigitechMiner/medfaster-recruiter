@@ -129,7 +129,7 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
     neighborhood_name: formData.neighborhoodName || undefined,
     neighborhood_type: formData.neighborhoodType || undefined,
     direct_number:     formData.directNumber     || undefined,
-    pay_per_hour_cents: rawAmount ? String(Math.round(rawAmount * 100)) : undefined,
+    pay_per_hour_cents: rawAmount ? (Math.round(rawAmount * 100)) : undefined,
     years_of_experience: undefined,
     qualifications:    undefined,
     specializations:   undefined,

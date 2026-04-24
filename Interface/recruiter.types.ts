@@ -63,50 +63,44 @@ export interface JobsCalendarResponse {
 }
 
 // ─── Candidates List ──────────────────────────────────────────────────────────
-/**
- * Flat shape returned by GET /v1/recruiter/candidates
- * Cross-verified against recruiter.ts docs response example:
- * candidateid, firstname, lastname, department, jobtitles,
- * experienceinmonths, distance, bestaiinterviewscore, avgratingscore
- */
 export interface CandidateListItem {
-  candidate_id?:               string;
-  id?:                        string;           // ← add back (alias, used throughout)
-  first_name:                 string;
-  last_name?:                 string;
-  full_name?:                 string;
-  profile_image_url?:         string;
-  specialty?:                 string[];         // ← add back
-  medical_industry?:          string;           // ← add back
-  city?:                      string;
-  state?:                     string;
-  preferred_shift?:           string[];         // ← add back
-  availability?:              string[];         // ← add back
-  completion_percentage?:     number | string;  // ← add back
-  best_ai_interview_score?:   number;           // canonical name
-  highest_job_interview_score?: number;         // ← add back as alias
-  highest_interview_score?:   number;           // ← add back as alias
-  avg_rating_score?:          number;           // ← add (used in hook + staticData)
-  status?:                    string;
-  job_type?:                  string;
-  work_eligibility?:          string;           // ← add back
-  is_ai_recommended?:         boolean;
-  department?:                string;
-  job_title?:                 string;
-  experience_in_months?:      number;
-  distance?:                  number;
-  postal_code?:               string;
-  role?: string;
+  candidate_id?:                string;
+  id?:                          string;
+  first_name:                   string;
+  last_name?:                   string;
+  full_name?:                   string;
+  profile_image_url?:           string;
+  specialty?:                   string[];
+  medical_industry?:            string;
+  city?:                        string;
+  state?:                       string;
+  preferred_shift?:             string[];
+  availability?:                string[];
+  completion_percentage?:       number | string;
+  best_ai_interview_score?:     number;
+  highest_job_interview_score?: number;
+  highest_interview_score?:     number;
+  avg_rating_score?:            number;
+  status?:                      string;
+  job_type?:                    string;
+  work_eligibility?:            string;
+  is_ai_recommended?:           boolean;
+  department?:                  string;
+  job_title?:                   string;
+  experience_in_months?:        number;
+  distance?:                    number;
+  postal_code?:                 string;
+  role?:                        string;
 }
 
 export interface CandidatesListParams {
-  page?:             number;
-  limit?:            number;
-  status?:           'applied' | 'shortlisted' | 'ai_interviewing' | 'interviewed' | 'hired';
-  job_id?:           string;   // ← add back
-  search?:           string;
-  candidate_status?: string;
-  is_ai_recommended?:  boolean;
+  page?:              number;
+  limit?:             number;
+  status?:            'applied' | 'shortlisted' | 'ai_interviewing' | 'interviewed' | 'hired';
+  job_id?:            string;
+  search?:            string;
+  candidate_status?:  string;
+  is_ai_recommended?: boolean;
 }
 
 export interface CandidatesListResponse {
@@ -127,36 +121,30 @@ export interface CandidatesListResponse {
 }
 
 // ─── Candidate Details ────────────────────────────────────────────────────────
-/**
- * GET /v1/recruiter/candidates/:candidateId
- * Sections: basic, generalscore, qualification, documentation,
- *           workexperience, workhistory, ratings
- */
 export interface CandidateDetailProfile {
-  id:                    string;
-  full_name:             string;
-  first_name:            string;
-  last_name?:            string;
-  email?:                string;
-  phone_number?:         string;
-  profile_image_url?:    string;
-  city?:                 string;
-  state?:                string;
-  preferred_location?:   string;
-  job_type?:             string;
-  work_eligibility?:     string;
-  skill?:                string | string[];
-  specialty?:            string[];
-  specializations?:      string[];
-  medical_industry?:     string;
-  completion_percentage?: number | string;
-  ai_interview_score?:   number | null;
-  ai_interview_summary?: string | null;
-  work_experiences?:     WorkExperience[];
-  educations?:           Education[];
-  documents?:            CandidateDocument[];
-  applications?:         CandidateApplication[];
-  // page-level flags (set by frontend, not returned by API)
+  id:                      string;
+  full_name:               string;
+  first_name:              string;
+  last_name?:              string;
+  email?:                  string;
+  phone_number?:           string;
+  profile_image_url?:      string;
+  city?:                   string;
+  state?:                  string;
+  preferred_location?:     string;
+  job_type?:               string;
+  work_eligibility?:       string;
+  skill?:                  string | string[];
+  specialty?:              string[];
+  specializations?:        string[];
+  medical_industry?:       string;
+  completion_percentage?:  number | string;
+  ai_interview_score?:     number | null;
+  ai_interview_summary?:   string | null;
+  work_experiences?:       WorkExperience[];
+  educations?:             Education[];
+  documents?:              CandidateDocument[];
+  applications?:           CandidateApplication[];
   is_hired?:               boolean;
   is_ai_recommended?:      boolean;
   is_instant_hire?:        boolean;
@@ -174,24 +162,24 @@ export interface CandidateDetailsResponse {
 // ─── Candidate Sub-types ──────────────────────────────────────────────────────
 export interface CandidateApplication {
   id:         string;
-  job_id:     string;           // ← was jobId (camelCase), API uses snake_case
+  job_id:     string;
   status:     'APPLIED' | 'SHORTLISTED' | 'INTERVIEWING' | 'INTERVIEWED'
             | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
-  created_at: string;           // ← was createdAt
-  updated_at: string;           // ← was updatedAt
+  created_at: string;
+  updated_at: string;
   job: {
     id:         string;
-    job_title:  string;         // ← was jobtitle
+    job_title:  string;
     department: string;
-    job_type:   string;         // ← was jobtype
+    job_type:   string;
     status:     string;
   };
 }
 
 export interface WorkExperience {
-  id:        string;
-  company:   string;
-  title:     string;
+  id:          string;
+  company:     string;
+  title:       string;
   start_date?: string;
   end_date?:   string;
 }
@@ -211,22 +199,19 @@ export interface CandidateDocument {
   id:            string;
   document_type: string;
   title?:        string;
-  file_url?:     string;    // ← was `url`, matches RecruiterDocument model `file_url`
+  file_url?:     string;
   status?:       string;
 }
 
 // ─── In-House Candidates ──────────────────────────────────────────────────────
-/**
- * GET /v1/recruiter/in-house-candidates
- */
 export interface InHouseCandidate {
-  candidate_id:      string;
-  mapping_id:        string;
-  status:            'active' | 'removed';
-  joined_at:         string;
-  first_name:        string;
-  last_name?:        string;
-  full_name:         string;
+  candidate_id:       string;
+  mapping_id:         string;
+  status:             'active' | 'removed';
+  joined_at:          string;
+  first_name:         string;
+  last_name?:         string;
+  full_name:          string;
   profile_image_url?: string;
   location?: {
     city?:        string;
@@ -254,9 +239,6 @@ export type ApplicationStatus =
   | 'ACCEPTED'
   | 'CANCELLED';
 
-/**
- * Single item returned by GET /v1/recruiter/job-applications
- */
 export interface JobApplicationItem {
   id:           string;
   job_id:       string;
@@ -272,20 +254,20 @@ export interface JobApplicationItem {
     status:     string;
   };
   candidate: {
-    id:                    string;
-    first_name:            string;
-    last_name?:            string;
-    full_name:             string;
-    profile_image_url?:    string;
-    city?:                 string;
-    state?:                string;
-    department?:           string;
-    job_title?:            string;
-    experience?:           string;
-    experience_months?:    number;
-    work_eligibility?:     string;
+    id:                       string;
+    first_name:               string;
+    last_name?:               string;
+    full_name:                string;
+    profile_image_url?:       string;
+    city?:                    string;
+    state?:                   string;
+    department?:              string;
+    job_title?:               string;
+    experience?:              string;
+    experience_months?:       number;
+    work_eligibility?:        string;
     best_ai_interview_score?: number | null;
-    job_interview_score?:  number | null;
+    job_interview_score?:     number | null;
   };
 }
 
@@ -314,11 +296,11 @@ export interface UpdateApplicationStatusResponse {
   success: boolean;
   message: string;
   data: {
-    id:         string;
-    job_id:     string;
+    id:           string;
+    job_id:       string;
     candidate_id: string;
-    status:     ApplicationStatus;
-    updated_at: string;
+    status:       ApplicationStatus;
+    updated_at:   string;
   };
 }
 
@@ -341,7 +323,7 @@ export interface InviteCandidateResponse {
 export interface CreateInterviewRequestPayload {
   candidate_id:       string;
   job_application_id: string;
-  valid_until:        string;    // ISO 8601 future datetime
+  valid_until:        string;
   message?:           string;
 }
 
@@ -361,7 +343,7 @@ export interface InterviewRequestsResponse {
   success: boolean;
   message: string;
   data: {
-    interviewRequests: InterviewRequest[];    // ← camelCase key from API
+    interviewRequests: InterviewRequest[];
     pagination: {
       currentPage:     number;
       totalPages:      number;
@@ -374,24 +356,19 @@ export interface InterviewRequestsResponse {
 }
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────
-/**
- * Cross-verified against Wallet model:
- * available_balance (string/BIGINT), held_balance, pending_balance,
- * balance_version, platform (RECRUITER), currency, is_active
- */
 export interface RecruiterWallet {
-  id:                string;
-  user_id:           string;           // ← was recruiter_id; model uses user_id
-  platform:          'RECRUITER';
-  currency:          string;
-  is_active:         boolean;
+  id:                 string;
+  user_id:            string;
+  platform:           'RECRUITER';
+  currency:           string;
+  is_active:          boolean;
   wallet_lock_reason: string | null;
-  available_balance: string;           // ← BIGINT returned as string — parse with parseInt()
-  held_balance:      string;
-  pending_balance:   string;
-  balance_version:   number;
-  created_at:        string;
-  updated_at:        string;
+  available_balance:  string;        // BIGINT as string — parse with Number()
+  held_balance:       string;
+  pending_balance:    string;
+  balance_version:    number;
+  created_at:         string;
+  updated_at:         string;
 }
 
 export interface WalletResponse {
@@ -401,46 +378,46 @@ export interface WalletResponse {
 }
 
 export interface WalletPayPayload {
-  amount: number;   // CAD, minimum 1
+  amount: number;
 }
 
 export interface WalletPayResponse {
   success: boolean;
   message: string;
   data: {
-    client_secret:      string;
-    topup_id:           string;
-    idempotency_key:    string;
-    amount:             number;
-    currency:           string;
-    stripe_payment_intent_id: string;
+    client_secret:             string;
+    topup_id:                  string;
+    idempotency_key:           string;
+    amount:                    number;   // cents, from Stripe
+    currency:                  string;
+    stripe_payment_intent_id:  string;
   };
 }
 
 export interface WalletTopup {
-  id:                    string;
-  amount:                string;     // cents as string (BIGINT)
-  status:                string;
+  id:                        string;
+  amount:                    string;   // BIGINT as string (DB-stored cents)
+  status:                    string;
   stripe_payment_intent_id?: string;
-  created_at:            string;
+  created_at:                string;
 }
 
 export interface WalletTopupsResponse {
   success: boolean;
   message: string;
   data: {
-    items:      WalletTopup[];
-    total:      number;
-    page:       number;
-    limit:      number;
-    offset:     number;
+    items:  WalletTopup[];
+    total:  number;
+    page:   number;
+    limit:  number;
+    offset: number;
   };
 }
 
 export interface WalletTransaction {
   id:            string;
   type:          string;
-  amount:        string;           // cents as string
+  amount:        string;        // BIGINT as string
   balance_after: string;
   description?:  string | null;
   created_at:    string;
@@ -499,7 +476,7 @@ export type OrganizationType =
   | 'pharmacy' | 'laboratory' | 'other';
 
 export type RecruiterStatus =
-  | 'pending' | 'active' | 'suspended' | 'rejected';   // ← "pending" not "pending_verification"
+  | 'pending' | 'active' | 'suspended' | 'rejected';
 
 export interface RecruiterProfileData {
   id:                         string;
@@ -527,15 +504,15 @@ export interface RecruiterProfileData {
 }
 
 export interface RecruiterDocument {
-  id:                  string;
+  id:                   string;
   recruiter_profile_id: string;
-  document_type:       string;
-  file_url:            string;
-  status:              string;
-  verified_by:         string | null;
-  verified_at:         string | null;
-  created_at:          string;
-  updated_at:          string;
+  document_type:        string;
+  file_url:             string;
+  status:               string;
+  verified_by:          string | null;
+  verified_at:          string | null;
+  created_at:           string;
+  updated_at:           string;
 }
 
 export interface RecruiterProfileResponse {
@@ -548,10 +525,6 @@ export interface RecruiterProfileResponse {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-/**
- * GET /v1/recruiter/dashboard
- * Cross-verified against docs response example
- */
 export interface RecruiterDashboardData {
   job_status_overview: {
     TOTAL:     number;
@@ -564,13 +537,13 @@ export interface RecruiterDashboardData {
     CLOSED:    number;
   };
   application_status_overview: {
-    TOTAL:        number;
-    NORMAL_JOB:   Record<string, number>;
-    INSTANT_JOB?: Record<string, number>;
+    TOTAL:         number;
+    NORMAL_JOB:    Record<string, number>;
+    INSTANT_JOB?:  Record<string, number>;
   };
   interview_overview: {
-    REQUESTS: Record<string, number>;
-    BOOKINGS: Record<string, number>;
+    REQUESTS:   Record<string, number>;
+    BOOKINGS:   Record<string, number>;
     INTERVIEWS: Record<string, number>;
   };
 }

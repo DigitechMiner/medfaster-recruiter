@@ -28,7 +28,7 @@ export const JobDetailSections: React.FC<JobDetailSectionsProps> = ({ job }) => 
   // ✅ Bug 3 fix — fixed+additional format, handles instant same-value case
   const formatSalary = () => {
   const dollars = job.pay_per_hour_cents != null
-    ? (job.pay_per_hour_cents / 100).toFixed(2)
+    ? (parseInt(job.pay_per_hour_cents, 10) / 100).toFixed(2)
     : null;
   if (!dollars) return "Negotiable";
   return job.job_urgency === "instant"

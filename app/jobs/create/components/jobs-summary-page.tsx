@@ -8,6 +8,7 @@ import SuccessModal from "@/components/modal";
 import type { JobCreatePayload, JobStatus } from "@/Interface/job.types";
 import { getWallet } from '@/stores/api/recruiter-wallet-api';
 import { getJobFeePreview, type JobFeePreview } from '@/stores/api/recruiter-job-api';
+import { convertJobTitleToBackend } from "@/utils/constant/metadata";
 
 interface JobSummaryPageProps {
   mode: "regular" | "urgent";
@@ -82,13 +83,13 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
     setFeeError(null);
 
     getJobFeePreview({
-      job_title:            payload.job_title,
-      no_of_hires_required: payload.no_of_hires_required ?? 1,  // ✅ fixed key name
-      start_date:           payload.start_date,
-      end_date:             payload.end_date,
-      check_in_time:        payload.check_in_time,
-      check_out_time:       payload.check_out_time,
-    })
+  job_title:            convertJobTitleToBackend(payload.job_title), // ← wrap this
+  no_of_hires_required: payload.no_of_hires_required ?? 1,
+  start_date:           payload.start_date,
+  end_date:             payload.end_date,
+  check_in_time:        payload.check_in_time,
+  check_out_time:       payload.check_out_time,
+})
       .then(setFeePreview)
       .catch(() => setFeeError("Could not load cost estimate. Please go back and try again."))
       .finally(() => setFeeLoading(false));
@@ -101,11 +102,12 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
     payload.check_out_time,
   ]);
 
-  const hourlyRate         = feePreview ? feePreview.recruiter_pay_per_hour_cents / 100 : 0;
-  const hoursPerCandidate  = feePreview ? feePreview.total_working_hours : 0;
-  const requiredCandidates = payload.no_of_hires_required ?? 1;
-  const costPerCandidate   = feePreview ? feePreview.per_candidate_shift_recruiter_pay_cents / 100 : 0;
-  const totalPayable       = feePreview ? feePreview.total_recruiter_pay_cents / 100 : 0;
+const hourlyRate        = feePreview ? feePreview.recruiter_pay_per_hour_cents / 100            : 0;
+const hoursPerCandidate = feePreview ? feePreview.total_working_hours                           : 0;
+const costPerCandidate  = feePreview ? feePreview.per_candidate_shift_recruiter_pay_cents / 100 : 0;
+const totalPayable      = feePreview ? feePreview.total_recruiter_pay_cents / 100               : 0;
+const requiredCandidates = payload.no_of_hires_required ?? 1;  // ← add this back
+
 
   const shifts   = buildShiftRows(payload);
   const location = [payload.city, payload.province].filter(Boolean).join(", ");
@@ -122,19 +124,27 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
   setError(null);
 
   try {
-    const wallet                = await getWallet();
-    const availableBalanceCents = BigInt(wallet.available_balance ?? '0');
-    const requiredCents         = BigInt(feePreview.total_recruiter_pay_cents);
+    const wallet = await getWallet();
+
+    // ← Safe number comparison — no BigInt needed
+    const availableBalanceCents = parseInt(wallet.available_balance ?? '0', 10);
+    // ✅ snake_case
+const requiredCents = Math.round(feePreview.total_recruiter_pay_cents ?? 0);
+
+    // Guard: if fee came back invalid, block the action
+    if (isNaN(requiredCents) || requiredCents <= 0) {
+      setError("Invalid cost estimate. Please go back and try again.");
+      return;
+    }
 
     if (availableBalanceCents < requiredCents) {
       sessionStorage.setItem('pending_job_payload', JSON.stringify(payload));
       sessionStorage.setItem('pending_job_mode', mode);
-      router.push(`/wallet/topup`);
+      router.push('/wallet/topup');
       return;
     }
 
-    // ✅ Override status to OPEN — this is what triggers wallet deduction on backend
-    const finalPayload = { ...payload, status: payload.status as JobStatus, };
+    const finalPayload = { ...payload, status: payload.status as JobStatus };
 
     const res = await onSubmit(finalPayload);
     if (res?.success) {

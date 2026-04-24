@@ -31,20 +31,18 @@ export type JobStatus =
 
 // ─── Sub-type models ──────────────────────────────────────────────────────────
 
-/** Fields from normal_jobs table */
 export interface NormalJobDetails {
   id:                  string;
   job_id:              string;
   years_of_experience: string;
   qualifications:      string[];
-  specializations:     number[];   // integer IDs in DB
+  specializations:     number[];
   ai_interview:        boolean;
   questions:           Record<string, { title: string; questions: string[] }> | null;
   created_at:          string;
   updated_at:          string;
 }
 
-/** Fields from instant_jobs table */
 export interface InstantJobDetails {
   id:                string;
   job_id:            string;
@@ -55,17 +53,15 @@ export interface InstantJobDetails {
   updated_at:        string;
 }
 
-/** Narrative fields from job_details table — flattened in API response */
 export interface JobDetails {
   description:        string | null;
   responsibilities:   string[];
   required_skills:    string[];
   experience:         string[];
   working_conditions: string[];
-  why_join:           string[];     // ← "why_join" NOT "why_join_us" — matches model
+  why_join:           string[];
 }
 
-/** Single shift row from job_shifts table */
 export interface JobShift {
   id:                  string;
   job_id:              string;
@@ -83,45 +79,35 @@ export interface JobShift {
 
 // ─── Detail response ──────────────────────────────────────────────────────────
 
-/**
- * Full job object from GET /v1/recruiter/jobs/:id
- * All jobs table fields + flattened normalJob/instantJob + job_details fields
- */
 export interface JobBackendResponse {
   id:                   string;
   recruiter_profile_id: string;
 
-  // job_title_id / department_id are integers in DB but API returns labels
-  job_title:            string;         // human-readable label
-  department:           string | null;
+  job_title:   string;
+  department:  string | null;
 
-  job_type:    'casual' | 'part_time' | 'full_time' | null;  // ← matches EMPLOYMENT_TYPES
+  job_type:    'casual' | 'part_time' | 'full_time' | null;
   job_urgency: 'instant' | 'normal' | null;
 
-  // ── Location ──────────────────────────────────────────────
   street:      string | null;
   postal_code: string | null;
   province:    string | null;
   city:        string | null;
-  geolocation: { type: 'Point'; coordinates: [number, number] } | null;  // ← added; present in create response
+  geolocation: { type: 'Point'; coordinates: [number, number] } | null;
 
-  // ── Pay ───────────────────────────────────────────────────
-  pay_per_hour_cents: string;           // ← BIGINT returned as string, NOT number
+  pay_per_hour_cents: string;        // BIGINT returned as string
   fee_snapshot:       JobFeeSnapshot | null;
-  shift_snapshot:     JobShiftSnapshot | null;  // ← was missing; present in jobs table
+  shift_snapshot:     JobShiftSnapshot | null;
 
-  // ── Hiring ────────────────────────────────────────────────
   no_of_hires_required: number;
   no_of_hires_hired:    number;
   application_count:    number;
 
-  // ── Shift ─────────────────────────────────────────────────
-  start_date:     string | null;   // "YYYY-MM-DD"
+  start_date:     string | null;     // "YYYY-MM-DD"
   end_date:       string | null;
-  check_in_time:  string | null;   // "HH:mm:ss"
+  check_in_time:  string | null;     // "HH:mm:ss"
   check_out_time: string | null;
 
-  // ── Status ────────────────────────────────────────────────
   status:               JobStatus;
   closed_reason:        'FILLED' | 'EXPIRED' | 'MANUAL' | null;
   recruiter_close_note: string | null;
@@ -129,17 +115,15 @@ export interface JobBackendResponse {
   created_at: string;
   updated_at: string;
 
-  // ── Type-specific child rows ───────────────────────────────
   normalJob:  NormalJobDetails | null;
   instantJob: InstantJobDetails | null;
 
-  // ── Narrative fields (flattened from job_details) ─────────
   description:        string | null;
   responsibilities:   string[];
   required_skills:    string[];
   experience:         string[];
   working_conditions: string[];
-  why_join:           string[];     // ← NOT why_join_us
+  why_join:           string[];
 }
 
 export interface JobDetailResponse {
@@ -150,9 +134,6 @@ export interface JobDetailResponse {
 
 // ─── List response ────────────────────────────────────────────────────────────
 
-/**
- * GET /v1/recruiter/jobs — flattened subset, no normalJob/instantJob nesting
- */
 export interface JobListItem {
   id:                   string;
   job_title:            string;
@@ -162,27 +143,24 @@ export interface JobListItem {
   status:               JobStatus;
   closed_reason:        'FILLED' | 'EXPIRED' | 'MANUAL' | null;
   recruiter_close_note: string | null;
-  years_of_experience:  string | null;   // flattened from normalJob
+  years_of_experience:  string | null;
   application_count:    number;
   no_of_hires_required: number;
   no_of_hires_hired:    number;
-  pay_per_hour_cents:   string;          // ← BIGINT as string, NOT number
+  pay_per_hour_cents:   string;       // BIGINT as string
   created_at:           string;
   updated_at:           string;
 
-  // Location
   street?:      string | null;
   postal_code?: string | null;
   province?:    string | null;
   city?:        string | null;
 
-  // Shift
   start_date?:     string | null;
   end_date?:       string | null;
   check_in_time?:  string | null;
   check_out_time?: string | null;
 
-  // Normal job extras
   specializations?: number[] | null;
   qualifications?:  string[] | null;
   ai_interview?:    boolean | null;
@@ -201,7 +179,6 @@ export interface JobsListResponse {
       totalPages:      number;
       hasNextPage:     boolean;
       hasPreviousPage: boolean;
-      // ↓ removed `count` — not in API response
     };
   };
 }
@@ -210,32 +187,32 @@ export interface JobsListResponse {
 
 export interface JobCreatePayload {
   // Required
-  job_title:   string;
-  department?:  string;
-  job_type:    'casual' | 'part_time' | 'full_time';
-  job_urgency: 'instant' | 'normal';
-  description?: string;
+  job_title:        string;
+  department?:      string;
+  job_type:         'casual' | 'part_time' | 'full_time';
+  job_urgency:      'instant' | 'normal';
+  description?:     string;
   responsibilities: string[];
   required_skills:  string[];
 
-  // Location — required, geocoded by backend
+  // Location
   street?:      string;
   postal_code?: string;
   province?:    string;
   city?:        string;
 
-  // Narrative (optional arrays)
+  // Narrative
   experience?:         string[];
   working_conditions?: string[];
-  why_join?:           string[];     // ← NOT why_join_us
+  why_join?:           string[];
 
   // Hiring
   no_of_hires_required?: number;
 
-  // Shift (required for instant/casual, required unless full_time)
+  // Shift — "HH:mm" e.g. "08:00"
   start_date?:     string;   // "YYYY-MM-DD"
   end_date?:       string;
-  check_in_time?:  string;   // "HHmm" — e.g. "0800"
+  check_in_time?:  string;
   check_out_time?: string;
 
   // Instant job only
@@ -246,27 +223,25 @@ export interface JobCreatePayload {
   // Normal job only
   years_of_experience?: string;
   qualifications?:      string[];
-  specializations?:     string[];   // slugs sent, IDs stored
+  specializations?:     string[];
   ai_interview?:        boolean;
-  questions?:           string[]; 
+  questions?:           string[];
+
+  // ✅ number — frontend sends Math.round(rate * 100), not a string
+  pay_per_hour_cents?: number;
+
   status?: JobStatus;
-  pay_per_hour_cents?: string;
-    // required if ai_interview: true
 }
 
 export type JobUpdatePayload = Partial<JobCreatePayload> & {
-  status?:             JobStatus;   // ← ADD
-  pay_per_hour_cents?: string;      // ← ADD
+  status?:             JobStatus;
+  pay_per_hour_cents?: number;
 };
 
-/**
- * POST /v1/recruiter/jobs response
- * Returns a single flattened object — all jobs + child + job_details fields merged
- */
 export interface JobCreateResponse {
   success: boolean;
   message: string;
-  data:    JobBackendResponse;   // ← same shape as detail response, not a separate type
+  data:    JobBackendResponse;
 }
 
 export interface JobUpdateResponse {
@@ -295,59 +270,59 @@ export interface JobFeePreviewResponse {
   success: boolean;
   message: string;
   data: {
-    job_title:                         string;
-    job_title_label:                   string;
-    no_of_hires:                       number;
-    recruiter_pay_per_hour_cents:      number;
-    is_night_shift:                    boolean;
-    shift_summaries:                   string[];
-    total_working_hours_label:         string;
-    total_working_hours:               number;
+    job_title:                              string;
+    job_title_label:                        string;
+    no_of_hires:                            number;
+    recruiter_pay_per_hour_cents:           number;
+    is_night_shift:                         boolean;
+    shift_summaries:                        string[];
+    total_working_hours_label:              string;
+    total_working_hours:                    number;
     per_candidate_shift_recruiter_pay_cents: number;
-    total_recruiter_pay_cents:         number;
+    total_recruiter_pay_cents:              number;
   };
 }
 
 // ─── Frontend form types (camelCase) ─────────────────────────────────────────
 
 export interface JobFormData {
-  jobTitle:          string;
-  department:        string;
-  jobType:           string;
-  location:          string;
-  payRange:          [number, number];
-  experience:        string;
-  qualification:     string[];
-  specialization:    string[];
-  urgency:           'instant' | 'normal';
-  inPersonInterview: string;
-  physicalInterview: string;
-  aiInterview?:      string;
-  description:       string;
-  responsibilities?: string[];
-  required_skills?:  string[];
+  jobTitle:           string;
+  department:         string;
+  jobType:            string;
+  location:           string;
+  payRange:           [number, number];
+  experience:         string;
+  qualification:      string[];
+  specialization:     string[];
+  urgency:            'instant' | 'normal';
+  inPersonInterview:  string;
+  physicalInterview:  string;
+  aiInterview?:       string;
+  description:        string;
+  responsibilities?:  string[];
+  required_skills?:   string[];
   workingConditions?: string[];
-  whyJoin?:          string[];    // ← renamed from whyJoin to match backend why_join
-  experienceList?:   string[];
-  streetAddress?:    string;
-  postalCode?:       string;
-  province?:         string;
-  city?:             string;
-  country?:          string;
-  numberOfHires?:    string;
-  fromDate?:         Date;
-  tillDate?:         Date;
-  fromTime?:         string;
-  toTime?:           string;
-  status:            JobStatus;
-  questions?:        string[];
+  whyJoin?:           string[];
+  experienceList?:    string[];
+  streetAddress?:     string;
+  postalCode?:        string;
+  province?:          string;
+  city?:              string;
+  country?:           string;
+  numberOfHires?:     string;
+  fromDate?:          Date;
+  tillDate?:          Date;
+  fromTime?:          string;
+  toTime?:            string;
+  status:             JobStatus;
+  questions?:         string[];
 }
 
 // ─── AI Content Generation ────────────────────────────────────────────────────
 
 export interface GenerateDescriptionPayload {
-  job_title:    string;   // ← backend expects snake_case slug
-  department:   string;
+  job_title:  string;
+  department: string;
 }
 
 export type GenerateDescriptionResponse = {
@@ -375,7 +350,7 @@ export type GenerateQuestionsResponse = {
   data: { questions: string[] };
 };
 
-// ─── Legacy / UI types (unchanged) ───────────────────────────────────────────
+// ─── Legacy / UI types ───────────────────────────────────────────────────────
 
 export interface TopJob {
   id:              number;
@@ -399,7 +374,7 @@ export interface Job {
   jobApplicationId?: string;
 }
 
-export type StatusType  = 'applied' | 'interviewing' | 'hired';
+export type StatusType = 'applied' | 'interviewing' | 'hired';
 export type BadgeColor  = 'blue' | 'orange' | 'red' | 'green';
 
 export interface JobsData {

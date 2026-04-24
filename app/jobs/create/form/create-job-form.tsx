@@ -11,6 +11,7 @@ import metadata, {
   convertQualificationToBackend,
   convertExperienceToBackend,
   convertProvinceToJobBackend,
+  convertJobTitleToBackend,
 } from "@/utils/constant/metadata";
 
 interface Props {
@@ -71,8 +72,8 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
         };
 
     const raw: Record<string, unknown> = {
-      job_title:            data.jobTitle ?? "",
-      department:           data.department          || undefined,
+      job_title:  convertJobTitleToBackend(data.jobTitle ?? ""),  // ← WRAP THIS
+  department: data.department || undefined,
       status:               "DRAFT",
       job_type:             isNormalJob
                               ? convertJobTypeToBackend(data.jobType) as "casual" | "part_time" | "full_time"
@@ -101,7 +102,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       required_skills:    data.required_skills?.filter(Boolean)  ?? [],
       experience:         data.experienceList?.filter(Boolean)    ?? [],
       working_conditions: data.workingConditions?.filter(Boolean) ?? [],
-      why_join_us:        data.whyJoin?.filter(Boolean)         ?? [],
+      why_join:        data.whyJoin?.filter(Boolean)         ?? [],
 
       ...normalJobFields,
     };

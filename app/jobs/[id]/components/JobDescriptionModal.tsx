@@ -85,7 +85,7 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
     else                             jobType = job.job_type || 'Full Time';
 
      const payRange = job.pay_per_hour_cents
-  ? `$${(job.pay_per_hour_cents / 100).toFixed(2)}/hr`
+  ? `$${(parseInt(job.pay_per_hour_cents, 10) / 100).toFixed(2)}/hr`
   : undefined;
 
     return {
