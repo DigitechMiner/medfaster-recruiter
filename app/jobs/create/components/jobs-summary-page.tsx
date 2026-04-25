@@ -9,16 +9,17 @@ import type { JobCreatePayload, JobStatus } from "@/Interface/job.types";
 import { getWallet } from '@/stores/api/recruiter-wallet-api';
 import { getJobFeePreview, type JobFeePreview } from '@/stores/api/recruiter-job-api';
 import { convertJobTitleToBackend } from "@/utils/constant/metadata";
+import { useWalletStore } from "@/stores/walletStore";
 
 interface JobSummaryPageProps {
-  mode: "regular" | "urgent";
+  mode: "normal" | "urgent";
   payload: JobCreatePayload;
   onBack: () => void;
-  onSubmit: (payload: JobCreatePayload) => Promise<{
-    success: boolean;
-    message?: string;
-    jobId?: string;
-  }>;
+  onSubmit: (payload: JobCreatePayload, feeCents: number) => Promise<{
+  success: boolean;
+  message?: string;
+  jobId?: string;
+}>;
 }
 
 function formatTime(timeStr?: string | null): string {
@@ -61,7 +62,7 @@ function buildShiftRows(payload: JobCreatePayload) {
 
 export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPageProps) {
   const router = useRouter();
-
+const refreshWallet = useWalletStore((s) => s.refreshWallet);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [showSuccess, setShowSuccess]   = useState(false);
@@ -129,7 +130,7 @@ const requiredCandidates = payload.no_of_hires_required ?? 1;  // ← add this b
     // ← Safe number comparison — no BigInt needed
     const availableBalanceCents = parseInt(wallet.available_balance ?? '0', 10);
     // ✅ snake_case
-const requiredCents = Math.round(feePreview.total_recruiter_pay_cents ?? 0);
+const requiredCents = feePreview.per_candidate_shift_recruiter_pay_cents ?? 0;
 
     // Guard: if fee came back invalid, block the action
     if (isNaN(requiredCents) || requiredCents <= 0) {
@@ -144,15 +145,16 @@ const requiredCents = Math.round(feePreview.total_recruiter_pay_cents ?? 0);
       return;
     }
 
-    const finalPayload = { ...payload, status: payload.status as JobStatus };
+    const finalPayload = { ...payload, status: "OPEN" as JobStatus };
 
-    const res = await onSubmit(finalPayload);
-    if (res?.success) {
-      setSuccessJobId(res.jobId ?? '');
-      setShowSuccess(true);
-    } else {
-      setError(res?.message ?? 'Failed to create job. Please try again.');
-    }
+    const res = await onSubmit(finalPayload, requiredCents);
+if (res?.success) {
+  await refreshWallet();          // ← force-fetch updated balance from backend
+  setSuccessJobId(res.jobId ?? '');
+  setShowSuccess(true);
+} else {
+  setError(res?.message ?? 'Failed to create job. Please try again.');
+}
   } catch (err) {
     setError(err instanceof Error ? err.message : 'Failed to create job. Please try again.');
   } finally {
@@ -185,7 +187,7 @@ const requiredCents = Math.round(feePreview.total_recruiter_pay_cents ?? 0);
                 ? "bg-orange-50 text-orange-600 border-orange-200"
                 : "bg-green-50 text-green-600 border-green-200"
             }`}>
-              {isUrgent ? "Urgent" : "Regular"}
+              {isUrgent ? "Urgent" : "Normal"}
             </span>
           </div>
 

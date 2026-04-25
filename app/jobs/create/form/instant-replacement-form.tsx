@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
-import { JobCreatePayload, JobFormData, JobUpdatePayload } from "@/Interface/job.types";
+import { JobCreatePayload, JobFormData,} from "@/Interface/job.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
 import { SuccessModal } from "@/components/modal";

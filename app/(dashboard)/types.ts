@@ -52,12 +52,13 @@ export interface DashboardMetrics {
 }
 
 export interface MetricCardProps {
-  icon: React.ReactNode;
-  title: string;
-  value: number | string;
-  percentChange?: string;   // ✅ optional
-  isPositive?: boolean;     // ✅ optional
-  isActive?: boolean;       // ✅ optional
-  onClick?: () => void;     // ✅ optional
+  title:          string;
+  value:          number | string;
+  percentChange?: number;
+  isPositive?:    boolean;
+  isActive?:      boolean;
+  onClick?:       () => void;
+  icon:           React.ReactNode;
+  valueColor?:    string;
+  subLabel?:      string;
 }
-

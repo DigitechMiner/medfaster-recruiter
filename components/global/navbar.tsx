@@ -12,8 +12,8 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
+import { NotificationPanel } from "@/components/notifications/NotificationPanel"; // ← new
 
-// ── Wallet balance — loaded client-only, zero SSR hydration mismatch ──
 const WalletBalance = dynamic(
   () => import("@/components/wallet/wallet-balance").then((m) => m.WalletBalance),
   {
@@ -25,7 +25,8 @@ const WalletBalance = dynamic(
 export function Navbar() {
   const { isExpanded, setExpanded } = useSidebarStore();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [loggingOut, setLoggingOut]   = useState(false);
+  const [notifOpen,   setNotifOpen]   = useState(false);  // ← new
+  const [loggingOut,  setLoggingOut]  = useState(false);
   const pathname   = usePathname();
   const router     = useRouter();
   const logout     = useAuthStore((s) => s.logout);
@@ -176,7 +177,6 @@ export function Navbar() {
           <Plus size={14} /> Regular Job
         </button>
 
-        {/* ── Wallet Balance — client-only via dynamic import ── */}
         <button
           onClick={() => router.push("/wallet")}
           className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 h-9 hover:bg-gray-50 transition-colors"
@@ -186,11 +186,28 @@ export function Navbar() {
           <span className="text-sm text-[#F4781B] font-semibold ml-1">Top Up</span>
         </button>
 
-        <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 h-9 w-9 flex items-center justify-center">
-          <Bell size={16} className="text-gray-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-1 ring-white" />
+        {/* ── Bell button — toggles NotificationPanel ── */}
+        <button
+          onClick={() => setNotifOpen((o) => !o)}
+          className={`relative p-2 rounded-lg transition-colors border h-9 w-9 flex items-center justify-center ${
+            notifOpen
+              ? 'bg-orange-50 border-[#F4781B] text-[#F4781B]'
+              : 'hover:bg-gray-100 border-gray-200 text-gray-500'
+          }`}
+          aria-label="Notifications"
+        >
+          <Bell size={16} />
+          {/* Unread dot */}
+          {!notifOpen && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-1 ring-white" />
+          )}
         </button>
       </header>
+
+      {/* ── Notification Panel (portal-like, rendered at root level) ── */}
+      {notifOpen && (
+        <NotificationPanel onClose={() => setNotifOpen(false)} />
+      )}
     </>
   );
 }

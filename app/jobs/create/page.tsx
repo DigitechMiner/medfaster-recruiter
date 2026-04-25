@@ -6,8 +6,10 @@ import { CreateJobForm } from "./form/create-job-form";
 import { GenerateAIForm } from "./form/generative-ai-form";
 import { JobSummaryPage } from "./components/jobs-summary-page";
 import { useJobsStore } from "@/stores/jobs-store";
+import { axiosInstance } from "@/stores/api/api-client";
+import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import type { JobCreatePayload } from "@/Interface/job.types";
-import { updateRecruiterJob } from "@/stores/api/recruiter-job-api";
+
 
 function CreateJobContent() {
   const router = useRouter();
@@ -34,19 +36,36 @@ function CreateJobContent() {
             onNext={(updatedPayload) => { setPendingPayload(updatedPayload); setStep(3); }}
           />
         )}
-      {step === 3 && pendingPayload && (
-  <JobSummaryPage
-    mode="regular"
-    payload={pendingPayload}
-    onBack={() => setStep(2)}
-    onSubmit={async (finalPayload) => {
-      // ✅ Single step — create directly with OPEN status
-      const res = await createJob(finalPayload);  // finalPayload already has status: "OPEN"
-      if (res.success) setHasJobs(true);
-      return { success: res.success, message: res.message, jobId: res.data?.id };
-    }}
-  />
-)}
+        {step === 3 && pendingPayload && (
+          <JobSummaryPage
+            mode="normal"
+            payload={pendingPayload}
+            onBack={() => setStep(2)}
+           onSubmit={async (finalPayload, feeCents) => {
+  try {
+    console.log("💳 feeCents received:", feeCents);
+    console.log("💳 amount being sent:", feeCents / 100);
+
+    const payRes = await axiosInstance.post(ENDPOINTS.WALLET_PAY, {
+      amount: feeCents / 100,
+    });
+
+    console.log("✅ WALLET_PAY response:", payRes.data);
+
+    const res = await createJob(finalPayload);
+    if (res.success) setHasJobs(true);
+    return { success: res.success, message: res.message, jobId: res.data?.id };
+
+  } catch (err) {
+    console.error("❌ onSubmit error:", err);
+    return {
+      success: false,
+      message: (err as Error).message ?? "Failed. Please try again.",
+    };
+  }
+}}
+          />
+        )}
       </div>
     </AppLayout>
   );
@@ -54,7 +73,13 @@ function CreateJobContent() {
 
 export default function CreateJobPage() {
   return (
-    <Suspense fallback={<AppLayout><div className="flex items-center justify-center min-h-[400px]"><p className="text-gray-600">Loading...</p></div></AppLayout>}>
+    <Suspense fallback={
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </AppLayout>
+    }>
       <CreateJobContent />
     </Suspense>
   );

@@ -34,9 +34,8 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     urgency:           urgencyMode,
     aiInterview:       "Yes",
     inPersonInterview: "Yes",
-    status:            "DRAFT",
     fromTime:          "07:30",
-    toTime:            "07:30",
+    toTime:            "11:30",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +73,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     const raw: Record<string, unknown> = {
       job_title:  convertJobTitleToBackend(data.jobTitle ?? ""),  // ← WRAP THIS
   department: data.department || undefined,
-      status:               "DRAFT",
+      status:               "OPEN",
       job_type:             isNormalJob
                               ? convertJobTypeToBackend(data.jobType) as "casual" | "part_time" | "full_time"
                               : "casual",

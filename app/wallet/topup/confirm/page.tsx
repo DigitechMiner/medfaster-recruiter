@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -21,7 +21,6 @@ function TopupForm({ amount, topupId }: { amount: string; topupId: string }) {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError]               = useState<string | null>(null);
-  const [success, setSuccess]           = useState(false);
 
   const handleConfirm = async () => {
     if (!stripe || !elements) return;
