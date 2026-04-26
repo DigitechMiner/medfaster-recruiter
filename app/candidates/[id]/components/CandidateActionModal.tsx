@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, BriefcaseBusiness, Clock, MapPin, User } from "lucide-react";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 
 type ActionType = "invite" | "schedule" | "shortlist" | "hire";
 

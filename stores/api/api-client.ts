@@ -1,39 +1,30 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
-const HOST = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:4000'
+const HOST = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'; // ✅ http not https
 export const BASE_URL = `${HOST}/api/v1`;
 
-// Create axios instance with default config
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // For cookies
+  withCredentials: true, // cookies sent on every request
 });
 
-// Request interceptor (optional - for adding auth tokens, etc.)
 axiosInstance.interceptors.request.use(
-  (config) => {
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (config) => config,
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
 axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error: AxiosError) => {
-    const message = 
-      (error.response?.data as { message?: string })?.message || 
-      error.message || 
+    const message =
+      (error.response?.data as { message?: string })?.message ||
+      error.message ||
       `HTTP ${error.response?.status || 'Unknown'}`;
-    console.log(`API Error [${error.config?.url}]:`, message);
+    console.error(`API Error [${error.config?.url}]:`, message); // ✅ console.error
     return Promise.reject(new Error(message));
   }
 );
@@ -47,20 +38,18 @@ export async function apiRequest<T>(
       url: endpoint,
       ...options,
     });
-
     return response.data;
   } catch (error) {
     const err = error as Error;
-    console.log(`API Error [${endpoint}]:`, err.message);
+    console.error(`API Error [${endpoint}]:`, err.message); // ✅ console.error
     throw err;
   }
 }
 
-// Export axios instance for direct use if needed
 export { axiosInstance };
 
 export const getBackendImageUrl = (imagePath: string | null | undefined): string => {
-  if (!imagePath) return "";  // ← "" instead of null
+  if (!imagePath) return '';
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }

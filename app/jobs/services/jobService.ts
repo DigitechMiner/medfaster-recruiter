@@ -5,7 +5,6 @@ import {
   updateRecruiterJob,
   deleteRecruiterJob,
   getJobApplications,
-  getCandidateDetails,
 } from '@/stores/api/recruiter-job-api';
 
 // ✅ Import types from job.types.ts where they're actually defined
@@ -13,6 +12,7 @@ import type {
   JobCreatePayload,
   JobUpdatePayload,
 } from '@/Interface/job.types';
+import { getCandidateDetails } from '@/stores/api/recruiter-candidates-api';
 
 class JobService {
   static async getAllJobs(params?: {

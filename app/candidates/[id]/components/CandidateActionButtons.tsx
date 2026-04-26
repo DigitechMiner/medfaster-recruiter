@@ -2,7 +2,7 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 
 interface Props {
   c: CandidateListItem;

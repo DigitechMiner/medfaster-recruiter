@@ -1,5 +1,5 @@
-import { axiosInstance } from "@/stores/api/api-client";
-import { ENDPOINTS } from "./api-endpoints";
+import { axiosInstance } from '@/stores/api/api-client';
+import { ENDPOINTS } from './api-endpoints';
 import type {
   CandidateSummaryResponse,
   JobsSummaryResponse,
@@ -11,40 +11,45 @@ import type {
   InviteCandidateResponse,
   NotificationsParams,
   NotificationsResponse,
-} from "@/Interface/recruiter.types";
+} from '@/Interface/recruiter.types';
+
+const getJson = <T>(url: string, params?: unknown): Promise<T> =>
+  axiosInstance.get<T>(url, params ? { params } : undefined).then((r) => r.data);
+
+const postJson = <T>(url: string, payload: unknown): Promise<T> =>
+  axiosInstance.post<T>(url, payload).then((r) => r.data);
 
 export const getCandidateSummary =
   (): Promise<CandidateSummaryResponse> =>
-    axiosInstance.get<CandidateSummaryResponse>(ENDPOINTS.CANDIDATES_SUMMARY).then((r) => r.data);
+    getJson<CandidateSummaryResponse>(ENDPOINTS.CANDIDATES_SUMMARY);
 
 export const getJobsSummary =
   (): Promise<JobsSummaryResponse> =>
-    axiosInstance.get<JobsSummaryResponse>(ENDPOINTS.JOBS_SUMMARY).then((r) => r.data);
+    getJson<JobsSummaryResponse>(ENDPOINTS.JOBS_SUMMARY);
 
 export const getJobsCalendar = (): Promise<JobsCalendarResponse> =>
-  axiosInstance.get<JobsCalendarResponse>(ENDPOINTS.JOBS_CALENDAR)
-    .then((r) => r.data);
+  getJson<JobsCalendarResponse>(ENDPOINTS.JOBS_CALENDAR);
 
 export const getCandidatesList = (
   params?: CandidatesListParams
 ): Promise<CandidatesListResponse> =>
-  axiosInstance.get<CandidatesListResponse>(ENDPOINTS.CANDIDATES_LIST_V1, { params }).then((r) => r.data);
+  getJson<CandidatesListResponse>(ENDPOINTS.CANDIDATES_LIST_V1, params);
 
 export const getCandidateDetails = (
   candidateId: string
 ): Promise<CandidateDetailsResponse> =>
-  axiosInstance.get<CandidateDetailsResponse>(ENDPOINTS.CANDIDATE_DETAIL_V1(candidateId)).then((r) => r.data);
+  getJson<CandidateDetailsResponse>(ENDPOINTS.CANDIDATE_DETAIL_V1(candidateId));
 
 export const inviteCandidate = (
   payload: InviteCandidatePayload
 ): Promise<InviteCandidateResponse> =>
-  axiosInstance.post<InviteCandidateResponse>(ENDPOINTS.CANDIDATE_INVITE, payload).then((r) => r.data);
+  postJson<InviteCandidateResponse>(ENDPOINTS.CANDIDATE_INVITE, payload);
 
 export const getNotifications = (
   params?: NotificationsParams
 ): Promise<NotificationsResponse> =>
-  axiosInstance.get<NotificationsResponse>(ENDPOINTS.NOTIFICATIONS, { params }).then((r) => r.data);
-  // @/Interface/recruiter.types.ts
+  getJson<NotificationsResponse>(ENDPOINTS.NOTIFICATIONS, params);
+
 export interface RecruiterDashboardData {
   jobStatusOverview: {
     TOTAL: number; DRAFT: number; OPEN: number; PAUSED: number;
@@ -71,6 +76,4 @@ export interface RecruiterDashboardData {
 }
 
 export const getRecruiterDashboard = (): Promise<{ success: boolean; message: string; data: RecruiterDashboardData }> =>
-  axiosInstance
-    .get<{ success: boolean; message: string; data: RecruiterDashboardData }>(ENDPOINTS.RECRUITER_DASHBOARD)
-    .then((r) => r.data);
+  getJson<{ success: boolean; message: string; data: RecruiterDashboardData }>(ENDPOINTS.RECRUITER_DASHBOARD);

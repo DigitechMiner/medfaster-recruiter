@@ -1,64 +1,61 @@
 import { io, Socket } from 'socket.io-client';
 
 let recruiterSocket: Socket | null = null;
-let isInitializing = false;
+let initPromise: Promise<Socket | null> | null = null;
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://app.keraeva.com';
 
-export const initRecruiterChatSocket = (): Socket | null => {
-  if (recruiterSocket?.connected) {
-    console.log('✅ Recruiter socket already connected');
-    return recruiterSocket;
-  }
+export const initRecruiterChatSocket = (): Promise<Socket | null> => {
+  if (recruiterSocket?.connected) return Promise.resolve(recruiterSocket);
+  if (initPromise) return initPromise;
 
-  if (isInitializing) {
-    console.log('Socket initialization in progress...');
-    return null;
-  }
+  initPromise = new Promise<Socket | null>((resolve) => {
+    try {
+      const socket = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        auth: { userType: 'recruiter' },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
 
-  isInitializing = true;
+      socket.on('connect', () => {
+        console.log('✅ Recruiter socket connected:', socket.id);
+        recruiterSocket = socket;
+        initPromise = null;
+        resolve(socket);
+      });
 
-  try {
-    console.log('🔌 Initializing recruiter socket with cookie auth...');
-    recruiterSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true, // ✅ Sends recruiter_token cookie
-      auth: {
-        userType: 'recruiter', // ✅ Backend reads cookie directly
-      },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+      socket.on('connect_error', (err) => {
+        console.error('❌ Socket error:', err.message);
+        initPromise = null;
+        recruiterSocket = null;
+        resolve(null);
+      });
 
-    recruiterSocket.on('connect', () => {
-      console.log('✅ Recruiter socket connected:', recruiterSocket?.id);
-      isInitializing = false;
-    });
+      socket.on('disconnect', () => {
+        recruiterSocket = null;
+        initPromise = null;
+      });
 
-    recruiterSocket.on('connect_error', (err) => {
-      console.error('❌ Recruiter socket error:', err.message);
-      isInitializing = false;
-    });
+    } catch (error) {
+      console.error('Socket init failed:', error);
+      initPromise = null;
+      recruiterSocket = null;
+      resolve(null);
+    }
+  });
 
-    recruiterSocket.on('disconnect', (reason) => {
-      console.log('🔌 Recruiter socket disconnected:', reason);
-    });
-
-    return recruiterSocket;
-  } catch (error) {
-    console.error('Error initializing recruiter socket:', error);
-    isInitializing = false;
-    recruiterSocket = null;
-    return null;
-  }
+  return initPromise;
 };
 
 export const getRecruiterChatSocket = (): Socket | null => recruiterSocket;
 
-export const disconnectRecruiterSocket = () => {
+export const disconnectRecruiterSocket = (): void => {
   if (recruiterSocket) {
     recruiterSocket.disconnect();
     recruiterSocket = null;
+    initPromise = null;
   }
 };

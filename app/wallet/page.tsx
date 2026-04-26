@@ -3,15 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  getWallet,
   getWalletTransactions,
-  WalletData,
   WalletTransaction,
 } from '@/stores/api/recruiter-wallet-api';
 import {
   Eye, Filter, Wallet, Lock, DollarSign, TrendingUp,
   ChevronDown, ChevronLeft, ChevronRight, Plus,
 } from 'lucide-react';
+import { useWalletStore } from '@/stores/walletStore';
 
 type TabKey = 'all' | 'spent' | 'locked' | 'refund';
 
@@ -40,19 +39,25 @@ function Badge({ label, color }: { label: string; color: string }) {
 
 function typeBadge(type: string) {
   if (!type) return <Badge label="—" color="gray" />;
-  const t = type.toLowerCase();
-  if (t === 'credit') return <Badge label="Credit" color="green" />;
-  if (t === 'debit')  return <Badge label="Debit"  color="orange" />;
+  const t = type.toUpperCase();
+  if (t === 'TOPUP' || t === 'DEPOSIT')        return <Badge label="Top-up"  color="green"  />;
+  if (t === 'ESCROW_HOLD')                     return <Badge label="Locked"  color="blue"   />;
+  if (t === 'ESCROW_RELEASE' || t === 'JOB_PAYMENT') return <Badge label="Released" color="orange" />;
+  if (t === 'REFUND')                          return <Badge label="Refund"  color="green"  />;
+  if (t === 'WITHDRAWAL')                      return <Badge label="Withdraw" color="orange" />;
   return <Badge label={type} color="gray" />;
 }
+
 function categoryBadge(cat: string) {
   if (!cat) return null;
   return <Badge label={cat.replace(/_/g, ' ')} color="blue" />;
 }
+
 function jobTypeBadge(jt: string) {
   if (!jt) return null;
   return <Badge label={jt} color="orange" />;
 }
+
 function statusBadge(status: string | undefined) {
   const s = status?.toLowerCase();
   if (s === 'success' || s === 'completed') return <Badge label="Success" color="green" />;
@@ -68,41 +73,51 @@ function fmt(cents: number) {
 export default function WalletPage() {
   const router = useRouter();
 
-  const [wallet, setWallet]               = useState<WalletData | null>(null);
-  const [transactions, setTransactions]   = useState<WalletTransaction[]>([]);
-  const [totalItems, setTotalItems]       = useState(0);
-  const [isLoading, setIsLoading]         = useState(true);
-  const [error, setError]                 = useState<string | null>(null);
-  const [activeTab, setActiveTab]         = useState<TabKey>('all');
-  const [page, setPage]                   = useState(1);
-  const [perPage, setPerPage]             = useState(10);
-  const [period, setPeriod]               = useState('This Month');
-  const [activeCard, setActiveCard]       = useState<string>('total');
+  // ── Wallet from shared store (also feeds Navbar) ──
+  const wallet        = useWalletStore((s) => s.wallet);
+const walletLoading = useWalletStore((s) => s.isLoading);
 
+  // ── Transactions — local state only ──
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [totalItems, setTotalItems]     = useState(0);
+  const [txLoading, setTxLoading]       = useState(true);
+  const [error, setError]               = useState<string | null>(null);
+  const [activeTab, setActiveTab]       = useState<TabKey>('all');
+  const [page, setPage]                 = useState(1);
+  const [perPage, setPerPage]           = useState(10);
+  const [period, setPeriod]             = useState('This Month');
+  const [activeCard, setActiveCard]     = useState<string>('total');
+  
+  // Fetch wallet once — uses cache if Navbar already loaded it
   useEffect(() => {
-    async function load() {
-      try {
-        setIsLoading(true);
-        const typeFilter = activeTab === 'all'    ? undefined
-          : activeTab === 'spent'  ? 'debit'
-          : activeTab === 'locked' ? 'locked'
-          : 'refund';
+  useWalletStore.getState().refreshWallet();
+}, []);
 
-        const [walletData, txData] = await Promise.all([
-          getWallet(),
-          getWalletTransactions({ page, limit: perPage, type: typeFilter }),
-        ]);
-        setWallet(walletData);
+  // Fetch transactions on tab / page / perPage change
+  useEffect(() => {
+    async function loadTx() {
+      try {
+        setTxLoading(true);
+        const typeFilter =
+          activeTab === 'all'    ? undefined
+          : activeTab === 'spent'  ? 'ESCROW_RELEASE'
+          : activeTab === 'locked' ? 'ESCROW_HOLD'
+          : 'REFUND';
+
+        const txData = await getWalletTransactions({ page, limit: perPage, type: typeFilter });
         setTransactions(txData.items);
         setTotalItems(txData.total ?? txData.items.length);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load wallet');
+        setError(e instanceof Error ? e.message : 'Failed to load transactions');
       } finally {
-        setIsLoading(false);
+        setTxLoading(false);
       }
     }
-    load();
+    loadTx();
   }, [activeTab, page, perPage]);
+
+  // Full-page loader only on very first wallet fetch
+  const isLoading = walletLoading && !wallet;
 
   const totalPages  = Math.max(1, Math.ceil(totalItems / perPage));
   const showingFrom = Math.min((page - 1) * perPage + 1, totalItems);
@@ -123,7 +138,8 @@ export default function WalletPage() {
   const pending   = wallet ? Number(wallet.pending_balance)   : 0;
   const total     = available + locked + pending;
 
-  if (isLoading && !wallet) {
+  // ── Full-page loading state ──
+  if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-56px)] bg-[#f8f7f5] flex items-center justify-center">
         <p className="text-gray-400 text-sm animate-pulse">Loading wallet...</p>
@@ -131,6 +147,7 @@ export default function WalletPage() {
     );
   }
 
+  // ── Error state ──
   if (error) {
     return (
       <div className="min-h-[calc(100vh-56px)] bg-[#f8f7f5] flex items-center justify-center">
@@ -146,7 +163,7 @@ export default function WalletPage() {
     <div className="min-h-[calc(100vh-56px)] bg-[#f8f7f5] overflow-y-auto">
       <div className="max-w-6xl mx-auto px-6 py-6 space-y-6 bg-white rounded-xl mt-4">
 
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">Wallet Overview</h1>
           <div className="flex items-center gap-3">
@@ -171,14 +188,14 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Stat Cards */}
+        {/* ── Stat Cards ── */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <div className="grid grid-cols-2 gap-4">
             {[
-              { key: 'total',     title: 'Wallet Total', amount: fmt(total),     change: '-0.10%', positive: false, icon: <Wallet className="w-5 h-5" />         },
-              { key: 'available', title: 'Available',    amount: fmt(available), change: '+1.10%', positive: true,  icon: <DollarSign className="w-5 h-5" />     },
-              { key: 'locked',    title: 'Locked',       amount: fmt(locked),    change: '+1.10%', positive: true,  icon: <Lock className="w-5 h-5" />           },
-              { key: 'pending',   title: 'Spent',        amount: fmt(pending),   change: '+2.10%', positive: false, icon: <TrendingUp className="w-5 h-5" />     },
+              { key: 'total',     title: 'Wallet Total', amount: fmt(total),     change: '-0.10%', positive: false, icon: <Wallet className="w-5 h-5" />     },
+              { key: 'available', title: 'Available',    amount: fmt(available), change: '+1.10%', positive: true,  icon: <DollarSign className="w-5 h-5" /> },
+              { key: 'locked',    title: 'Locked',       amount: fmt(locked),    change: '+1.10%', positive: true,  icon: <Lock className="w-5 h-5" />       },
+              { key: 'pending',   title: 'Spent',        amount: fmt(pending),   change: '+2.10%', positive: false, icon: <TrendingUp className="w-5 h-5" /> },
             ].map((card) => {
               const isActive = activeCard === card.key;
               return (
@@ -210,7 +227,7 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Transactions Table */}
+        {/* ── Transactions Table ── */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
           {/* Tabs + Filter */}
@@ -240,13 +257,14 @@ export default function WalletPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-gray-500 text-xs font-medium uppercase tracking-wide">
-                  {['Transaction ID','Date & Time','Type','Description','Category','Reference','Job Type','Amount','Status','Actions'].map((h) => (
+                  {['Transaction ID', 'Date & Time', 'Type', 'Description', 'Category', 'Reference', 'Job Type', 'Amount', 'Status', 'Actions'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {isLoading ? (
+                {/* ✅ txLoading for skeleton — not isLoading */}
+                {txLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-gray-50">
                       {Array.from({ length: 10 }).map((__, j) => (
@@ -278,11 +296,11 @@ export default function WalletPage() {
                       </td>
                       <td className="px-4 py-3">{categoryBadge(tx.category ?? '')}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">
-                        {tx.reference ?? tx.job_id ?? '—'}
+                        {tx.reference_group_id ?? tx.job_id ?? '—'}
                       </td>
                       <td className="px-4 py-3">{jobTypeBadge(tx.job_type ?? '')}</td>
                       <td className="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">
-                        {tx.amount != null ? `$${(Number(tx.amount) / 100).toFixed(0)}/hr` : '—'}
+                        {tx.amount != null ? `$${(Number(tx.amount) / 100).toFixed(2)}` : '—'}
                       </td>
                       <td className="px-4 py-3">{statusBadge(tx.status)}</td>
                       <td className="px-4 py-3">
@@ -344,7 +362,7 @@ export default function WalletPage() {
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-500">
                 Showing <span className="font-medium text-gray-700">{showingFrom}–{showingTo}</span> of{' '}
-                <span className="font-medium text-gray-700">{totalItems}</span> Jobs
+                <span className="font-medium text-gray-700">{totalItems}</span> transactions
               </span>
               <div className="relative">
                 <select
@@ -360,8 +378,8 @@ export default function WalletPage() {
               </div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );

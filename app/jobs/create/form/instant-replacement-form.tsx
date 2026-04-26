@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
-import { JobCreatePayload, JobFormData } from "@/Interface/job.types";
+import { JobCreatePayload, JobFormData,} from "@/Interface/job.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
-import { convertJobTitleToBackend } from "@/utils/constant/metadata";
 import { SuccessModal } from "@/components/modal";
 
 interface Props {
@@ -30,8 +29,8 @@ interface InstantJobFormData extends JobFormData {
   country?: string;
 }
 
-const formatDateForBackend = (date?: Date): string | null => {
-  if (!date) return null;
+const formatDateForBackend = (date?: Date): string | undefined => {
+  if (!date) return undefined;
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -101,7 +100,7 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
     const [h1, m1] = inTime.split(":").map(Number);
     const [h2, m2] = outTime.split(":").map(Number);
     let diffMins = (h2 * 60 + m2) - (h1 * 60 + m1);
-    if (diffMins < 0) diffMins += 24 * 60; // handles overnight e.g. 20:00 → 02:00
+    if (diffMins < 0) diffMins += 24 * 60;
     if (diffMins / 60 < 3 || diffMins / 60 > 12) {
       setError("Shift duration must be between 3 and 12 hours");
       return;
@@ -110,53 +109,69 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
 
   setIsSubmitting(true);
   setError(null);
-const rawAmount = Number(formData.amountPerHire?.replace(/\D/g, '') ?? '0');
 
-const backendData: JobCreatePayload = {
-  job_title:            convertJobTitleToBackend(formData.jobTitle),
-  status:               'DRAFT',
-  job_type:             'casual',
-  job_urgency:          'instant',
-  department:           formData.department    || null,
-  street:               formData.streetAddress || null,
-  postal_code:          formData.postalCode    || null,
-  province:             formData.province      || null,
-  city:                 formData.city          || null,
-  neighborhood_name:    formData.neighborhoodName || null,
-  neighborhood_type:    formData.neighborhoodType || null,
-  direct_number:        formData.directNumber  || null,
+  const rawAmount = Number(formData.amountPerHire?.replace(/\D/g, "") ?? "0");
+  const jobTitleLabel = (formData.jobTitle ?? "")
+  .replace(/_/g, " ")
+  .replace(/\b\w/g, (c) => c.toUpperCase());
+  
+  const backendData: JobCreatePayload = {
+    // ✅ Already a slug from the store — NO conversion needed
+    job_title:         formData.jobTitle ?? "",
+    status:            "DRAFT",
+    job_type:          "casual",
+    job_urgency:       "instant",
+    department:        formData.department       || undefined,
+    street:            formData.streetAddress    || undefined,
+    postal_code:       formData.postalCode       || undefined,
+    province:          formData.province         || undefined,
+    city:              formData.city             || undefined,
+    neighborhood_name: formData.neighborhoodName || undefined,
+    neighborhood_type: formData.neighborhoodType || undefined,
+    direct_number:     formData.directNumber     || undefined,
+    pay_per_hour_cents: rawAmount ? (Math.round(rawAmount * 100)) : undefined,
+    years_of_experience: undefined,
+    qualifications:    undefined,
+    specializations:   undefined,
+    ai_interview:      false,
+    questions:         undefined,
+    description:       formData.description      || undefined,
+    no_of_hires_required: formData.numberOfHires
+                            ? parseInt(formData.numberOfHires)
+                            : undefined,
+    start_date:        formatDateForBackend(formData.fromDate),
+    end_date:          formatDateForBackend(formData.tillDate),
+    check_in_time:     formData.fromTime || undefined,
+    check_out_time:    formData.toTime   || undefined,
 
-  // ── Pay — dollars → cents ─────────────────────────────
-  pay_per_hour_cents:   rawAmount ? Math.round(rawAmount * 100) : null,
+    // ✅ Required by backend for all job types — send empty arrays for instant jobs
+     responsibilities:   formData.responsibilities?.filter(Boolean).length
+                        ? formData.responsibilities.filter(Boolean)
+                        : [`Provide ${jobTitleLabel} duties as assigned`],
 
-  // ── Normal job fields — empty for instant ─────────────
-  years_of_experience:  null,
-  qualifications:       null,
-  specializations:      null,
-  ai_interview:         false,
-  questions:            null,
-  description:          formData.description   || null,
+  required_skills:    formData.required_skills?.filter(Boolean).length
+                        ? formData.required_skills.filter(Boolean)
+                        : [`Valid ${jobTitleLabel} license or certification`],
 
-  // ── Hiring ────────────────────────────────────────────
-  no_of_hires_required: formData.numberOfHires
-                          ? parseInt(formData.numberOfHires)
-                          : undefined,
+  experience:         formData.experienceList?.filter(Boolean).length
+                        ? formData.experienceList.filter(Boolean)
+                        : ["Relevant clinical experience required"],
 
-  // ── Shift ─────────────────────────────────────────────
-  start_date:           formatDateForBackend(formData.fromDate),
-  end_date:             formatDateForBackend(formData.tillDate),
-  check_in_time:        formData.fromTime || null,
-  check_out_time:       formData.toTime   || null,
+  working_conditions: formData.workingConditions?.filter(Boolean).length
+                        ? formData.workingConditions.filter(Boolean)
+                        : ["Standard healthcare facility environment"],
+
+  why_join:        formData.whyJoin?.filter(Boolean).length
+                        ? formData.whyJoin.filter(Boolean)
+                        : ["Competitive hourly pay"],
 };
 
   if (onNext) {
-    // ✅ Go to summary page — don't submit yet
     setIsSubmitting(false);
     onNext(backendData);
     return;
   }
 
-  // Fallback — direct submit if no summary step
   try {
     const response = await createJob(backendData);
     if (response.success) {

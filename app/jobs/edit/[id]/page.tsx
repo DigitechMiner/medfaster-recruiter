@@ -35,8 +35,8 @@ import {
   convertExperienceToFrontend,       // ✅ converts "2" → "2-3 Yrs" when loading form
 } from "@/utils/constant/metadata";
 
-const formatDateForBackend = (date?: Date | null): string | null => {
-  if (!date) return null;
+const formatDateForBackend = (date?: Date | null): string | undefined => {
+  if (!date) return undefined;
   const d = new Date(date);
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, '0');
@@ -73,8 +73,8 @@ export default function EditJobPage() {
 
     // pay_per_hour_cents → dollars for the form slider
     const hourlyDollars = job.pay_per_hour_cents != null
-      ? job.pay_per_hour_cents / 100
-      : 0;
+  ? parseInt(job.pay_per_hour_cents, 10) / 100   // ← parseInt first
+  : 0;
 
     return {
       jobTitle:    normalizeJobTitle(job.job_title),
@@ -159,79 +159,76 @@ export default function EditJobPage() {
   };
 
 
-  const convertToBackendFormat = (
-    data: JobFormData,
-    questionsData: Record<string, { title: string; questions: string[] }>
-  ): JobUpdatePayload => {
-    const isNormalJob = data.urgency === "normal";
+ const convertToBackendFormat = (
+  data: JobFormData,
+  questionsData: Record<string, { title: string; questions: string[] }>
+): JobUpdatePayload => {
+  const isNormalJob = data.urgency === 'normal';
 
-    const payload: Partial<JobCreatePayload> = {
-  job_title:   convertJobTitleToBackend(data.jobTitle),
-  department:  data.department || null,
-  job_type: convertToBackendValue(data.jobType) as 'casual' | 'part_time' | 'full_time',
-  street:      data.streetAddress || null,
-  postal_code: data.postalCode    || null,
-  province:    convertProvinceToJobBackend(data.province) as string | null,
-  city:        data.city          || null,
+  const payload: Partial<JobCreatePayload> = {
+    job_title:   convertJobTitleToBackend(data.jobTitle),
+    department:  data.department || undefined,
+    job_type:    convertToBackendValue(data.jobType) as 'casual' | 'part_time' | 'full_time',
+    street:      data.streetAddress || undefined,
+    postal_code: data.postalCode    || undefined,
+    province:    convertProvinceToJobBackend(data.province) as string | undefined,
+    city:        data.city          || undefined,
 
-  pay_per_hour_cents: data.payRange[0]
-    ? Math.round(data.payRange[0] * 100)
-    : null,
+    // ✅ number, not string
+    pay_per_hour_cents: data.payRange[0]
+      ? Math.round(data.payRange[0] * 100)
+      : undefined,
 
-  job_urgency:  data.urgency,
-  description:  data.description || null,
-  questions:    questionsData,
-  status:       data.status,
-};
-
-if (data.numberOfHires && data.numberOfHires.trim() !== '') {
-  const parsed = parseInt(data.numberOfHires);
-  if (!isNaN(parsed)) payload.no_of_hires_required = parsed;  // ← renamed
-}
-
-    if (isNormalJob) {
-      // ✅ "2-3 Yrs" → "2" before sending
-      if (data.experience && data.experience.trim() !== "") {
-        payload.years_of_experience =
-          convertExperienceToBackend(data.experience) ?? data.experience;
-      }
-
-      if (Array.isArray(data.qualification)) {
-  const validQualifications = data.qualification
-    .filter((q) => q && typeof q === "string" && q.trim() !== "")
-    .map((q) => convertQualificationToBackend(q))
-    // ✅ reject anything not in the official mapping
-    .filter((q) => Object.values(metadata.qualification_mapping).includes(q));
-
-  if (validQualifications.length > 0) {
-    payload.qualifications = validQualifications;
-  }
-}
-
-      if (Array.isArray(data.specialization)) {
-  const validSpecializations = data.specialization
-    .filter((s) => s && typeof s === "string" && s.trim() !== "")
-    .map((s) => convertSpecializationToBackend(s))
-    // ✅ reject anything not in the official mapping
-    .filter((s) => Object.values(metadata.specialization_mapping).includes(s));
-
-  if (validSpecializations.length > 0) {
-    payload.specializations = validSpecializations;
-  }
-}
-
-      payload.ai_interview = data.aiInterview === "Yes";
-    } else {
-  if (data.fromDate) payload.start_date    = formatDateForBackend(data.fromDate);  // "YYYY-MM-DD"
-  if (data.tillDate) payload.end_date      = formatDateForBackend(data.tillDate);
-  if (data.fromTime) payload.check_in_time  = data.fromTime;
-  if (data.toTime)   payload.check_out_time = data.toTime;
-}
-
-    console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
-    return payload as JobUpdatePayload;
+    job_urgency:  data.urgency,
+    description:  data.description || undefined,
+    questions:    topics.flatMap((t) => t.questions.map((q) => q.text)).filter(Boolean),
+    status:       data.status,
   };
 
+  if (data.numberOfHires && data.numberOfHires.trim() !== '') {
+    const parsed = parseInt(data.numberOfHires, 10);
+    if (!isNaN(parsed)) payload.no_of_hires_required = parsed;
+  }
+
+  if (isNormalJob) {
+    if (data.experience && data.experience.trim() !== '') {
+      payload.years_of_experience =
+        convertExperienceToBackend(data.experience) ?? data.experience;
+    }
+
+    if (Array.isArray(data.qualification)) {
+      const validQualifications = data.qualification
+        .filter((q) => q && typeof q === 'string' && q.trim() !== '')
+        .map((q) => convertQualificationToBackend(q))
+        .filter((q) => Object.values(metadata.qualification_mapping).includes(q));
+
+      if (validQualifications.length > 0) {
+        payload.qualifications = validQualifications;
+      }
+    }
+
+    if (Array.isArray(data.specialization)) {
+      const validSpecializations = data.specialization
+        .filter((s) => s && typeof s === 'string' && s.trim() !== '')
+        .map((s) => convertSpecializationToBackend(s))
+        .filter((s) => Object.values(metadata.specialization_mapping).includes(s));
+
+      if (validSpecializations.length > 0) {
+        payload.specializations = validSpecializations;
+      }
+    }
+
+    payload.ai_interview = data.aiInterview === 'Yes';
+  } else {
+    if (data.fromDate) payload.start_date    = formatDateForBackend(data.fromDate);
+    if (data.tillDate) payload.end_date      = formatDateForBackend(data.tillDate);
+    if (data.fromTime) payload.check_in_time  = data.fromTime;
+    if (data.toTime)   payload.check_out_time = data.toTime;
+  }
+
+  console.log('📤 FINAL PAYLOAD:', JSON.stringify(payload, undefined, 2));
+  return payload as JobUpdatePayload;
+};
 
   const convertTopicsToBackendFormat = (
     topics: Topic[]

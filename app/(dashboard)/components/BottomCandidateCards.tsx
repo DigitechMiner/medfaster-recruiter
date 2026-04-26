@@ -1,206 +1,201 @@
-"use client";
-import Image from "next/image";
-import { MapPin, Briefcase, Zap, CalendarDays, BadgeCheck } from "lucide-react";
-import { useState } from "react";
-import { useCandidatesList } from "@/hooks/useCandidate";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+'use client';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { BadgeCheck, Briefcase, MapPin, Star, CalendarCheck, Zap, Phone } from 'lucide-react';
+import { useCandidatesList } from '@/hooks/useRecruiterData';
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 
-interface CardData {
-  name: string;
-  role: string;
-  exp: string;
-  type: string;
-  dist: string;
-  score: number;
-  verified: boolean;
-  badge: string | null;
-  badge2: string | null;
-  img: string;
+interface Props {
+  section: 'nearby' | 'urgent';
+  title:   string;
 }
 
-const toCardData = (c: CandidateListItem): CardData => {
-  const score      = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
-  const shift      = c.preferred_shift?.[0] ?? c.availability?.[0] ?? null;
-  const shiftLabel = shift ? shift.charAt(0).toUpperCase() + shift.slice(1).toLowerCase() : null;
-  const specialty  = c.specialty?.[0]
-    ? c.specialty[0].replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-    : c.medical_industry?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) ?? "Healthcare Professional";
-
-  return {
-    name:     c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim(),
-    role:     specialty,
-    exp:      "—",
-    type:     shiftLabel ?? "—",
-    dist:     [c.city, c.state].filter(Boolean).join(", ") || "N/A",
-    score,
-    verified: Number(c.completion_percentage) >= 80,
-    badge:    score >= 90 ? "Hire Instantly" : null,
-    badge2:   c.availability?.length > 0 ? `Available ${shiftLabel ?? ""}` : null,
-    img:      c.profile_image_url ?? "/svg/Photo.svg",
-  };
-};
-
+/* ─── Score badge: right side of avatar row ─── */
 const ScoreBadge = ({ score }: { score: number }) => {
-  const isGreen     = score >= 80;
-  const isOrange    = score >= 60 && score < 80;
-  const arcColor    = isGreen ? "#22c55e" : isOrange ? "#f97316" : "#ef4444";
-  const textColor   = isGreen ? "text-green-600" : isOrange ? "text-[#F4781B]" : "text-red-500";
-  const borderColor = isGreen ? "border-green-500" : isOrange ? "border-orange-400" : "border-red-400";
-  const size        = 32;
-  const strokeWidth = 3;
-  const radius      = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress    = (score / 100) * circumference;
+  const borderColor =
+    score >= 80 ? 'border-green-500' :
+    score >= 60 ? 'border-[#F4781B]' : 'border-red-400';
+  const textColor =
+    score >= 80 ? 'text-green-600' :
+    score >= 60 ? 'text-[#F4781B]'  : 'text-red-500';
 
   return (
-    <div className={`flex flex-row items-center gap-1.5 px-2 py-1.5 rounded-xl border-2 ${borderColor} shrink-0`}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} className="shrink-0">
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#f3f4f6" strokeWidth={strokeWidth} />
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={arcColor} strokeWidth={strokeWidth}
-          strokeDasharray={`${progress} ${circumference}`} strokeLinecap="round" />
-      </svg>
-      <div className="flex flex-col items-start">
-        <span className={`text-sm font-bold leading-none ${textColor}`}>{score}/100</span>
-        <span className="text-[10px] text-gray-400 leading-tight">Score</span>
+    <div className={`flex items-center gap-1.5 border ${borderColor} rounded-xl px-2.5 py-2 shrink-0`}>
+      {/* red phone circle — matches design */}
+      <div className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center">
+        <Phone className="w-3 h-3 text-red-400" />
+      </div>
+      <div className="flex flex-col leading-tight">
+        <span className={`text-sm font-bold ${textColor}`}>{score}/100</span>
+        <span className="text-[10px] text-gray-400">Score</span>
       </div>
     </div>
   );
 };
 
-const CandidateCard = ({ c }: { c: CardData }) => (
-  <div className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-orange-200 hover:bg-orange-50/30 transition-colors">
-    <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0">
-      <Image src={c.img} alt={c.name} width={40} height={40} className="object-cover w-full h-full" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-1">
-        <span className="text-sm font-semibold text-gray-900">{c.name}</span>
-        {c.verified && <BadgeCheck className="w-4 h-4 shrink-0" fill="#22c55e" color="white" />}
-      </div>
-      <p className="text-xs text-[#F4781B] font-medium">{c.role}</p>
-      <div className="flex items-center gap-2 mt-1 flex-wrap">
-        <span className="flex items-center gap-0.5 text-[11px] text-gray-500"><Briefcase size={10} />{c.exp}</span>
-        <span className="text-[11px] text-gray-300">|</span>
-        <span className="text-[11px] text-gray-500">{c.type}</span>
-        <span className="flex items-center gap-0.5 text-[11px] text-gray-500"><MapPin size={10} className="text-green-500" />{c.dist}</span>
-      </div>
-      <div className="flex gap-1.5 mt-1.5 flex-wrap">
-        {c.badge && (
-          <span className="flex items-center gap-0.5 text-[10px] font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-lg">
-            <Zap size={9} className="text-[#F4781B]" fill="#f97316" />{c.badge}
-          </span>
-        )}
-        {c.badge2 && (
-          <span className="flex items-center gap-0.5 text-[10px] font-medium text-[#F4781B] bg-orange-100 px-2 py-0.5 rounded-lg">
-            <CalendarDays size={9} />{c.badge2}
-          </span>
-        )}
-      </div>
-    </div>
-    <ScoreBadge score={c.score} />
-  </div>
-);
+/* ─── Single candidate card ─── */
+const CandidateCard = ({
+  c,
+  section,
+  index,
+}: {
+  c:       CandidateListItem;
+  section: 'nearby' | 'urgent';
+  index:   number;
+}) => {
+  const router = useRouter();
 
-// ── THIS IS THE KEY CHANGE ─────────────────────────────────────────────────
-export const BottomCandidateCards = () => {
-  const [radius, setRadius] = useState("Within 5km");
-  const { data, isLoading } = useCandidatesList({ page: 1, limit: 9 });
-  const all       = (data?.candidates ?? []).map(toCardData);
-  const available = all.slice(0, 3);
-  const nearby    = all.slice(3, 6);
-  const urgent    = all.slice(6, 9);
+  const score     = c.highest_job_interview_score ?? c.highest_interview_score ?? 40;
+  const initials  = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase();
+  const fullName  = c.full_name ?? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim();
+  const specialty = c.specialty?.[0]
+    ? c.specialty[0].replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+    : 'Registered Nurse';
+  const verified  = Number(c.completion_percentage ?? 0) >= 80;
+  const xp        = c.experience_in_months ? `${Math.max(1, Math.round(c.experience_in_months / 12))}+ yrs` : '5+ yrs';
+  const dist      = c.distance ? `${c.distance}km` : '25km';
+  const rating    = c.avg_rating_score   ? `${c.avg_rating_score}/5`   : '4.8/5';
+  const href      = `/candidates/${c.id ?? c.candidate_id}`;
 
-  const skeletons = [...Array(3)].map((_, i) => (
-    <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
-  ));
+  // Nearby: even index → "Invite For a Job", odd → "Shortlist + Direct Hire"
+  const showInviteOnly = section === 'urgent' || index % 2 === 0;
 
   return (
-    // Outer wrapper: bleeds past padding on mobile so the peek works
-    <div className="-mx-4 px-4 md:-mx-5 md:px-5 lg:mx-0 lg:px-0">
+    <div className="border border-gray-200 rounded-xl p-4 flex flex-col gap-3 bg-white">
 
-      {/*
-        ─ Mobile / Tablet : flex row + horizontal scroll + snap
-        ─ Desktop (lg+)   : CSS grid 3 columns, scroll disabled
-      */}
-      <div
-        className={[
-          // mobile/tablet: horizontal scroll row
-          "flex flex-row gap-3",
-          "overflow-x-auto scroll-smooth",
-          "snap-x snap-mandatory",
-          "pb-3",
-          // desktop: switch to 3-col grid
-          "lg:grid lg:grid-cols-3",
-          "lg:overflow-x-visible lg:snap-none lg:pb-0",
-        ].join(" ")}
-        // hide scrollbar cross-browser
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
-      >
-
-        {/* Panel 1 — Currently Available */}
-        <div className="
-          bg-white rounded-xl border border-gray-200 p-4
-          flex-none snap-start
-          w-[85vw] sm:w-[60vw] md:w-[46vw]
-          lg:w-auto lg:flex-auto
-        ">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Currently Available</h2>
-          </div>
-          <div className="flex flex-col gap-3">
-            {isLoading ? skeletons : available.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
-          </div>
-        </div>
-
-        {/* Panel 2 — Nearby Professionals */}
-        <div className="
-          bg-white rounded-xl border border-gray-200 p-4
-          flex-none snap-start
-          w-[85vw] sm:w-[60vw] md:w-[46vw]
-          lg:w-auto lg:flex-auto
-        ">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Nearby Professionals</h2>
-            <select
-              value={radius}
-              onChange={(e) => setRadius(e.target.value)}
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600"
-            >
-              <option>Within 5km</option>
-              <option>Within 10km</option>
-              <option>Within 25km</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-3">
-            {isLoading ? skeletons : nearby.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
-          </div>
-        </div>
-
-        {/* Panel 3 — Urgent Hire */}
-        <div className="
-          bg-white rounded-xl border border-gray-200 p-4
-          flex-none snap-start
-          w-[85vw] sm:w-[60vw] md:w-[46vw]
-          lg:w-auto lg:flex-auto
-        ">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Urgent Hire (Pre-Verified)</h2>
-          </div>
-          <div className="flex flex-col gap-3">
-            {isLoading ? skeletons : urgent.map((c) => <CandidateCard key={c.name + c.role} c={c} />)}
-          </div>
-        </div>
-
+      {/* ── Row 1: Online badge (alone, left-aligned) ── */}
+      <div>
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+          Online
+        </span>
       </div>
 
-      {/* Scroll dots — only visible on mobile/tablet */}
-      <div className="flex justify-center gap-1.5 mt-2 lg:hidden">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className={`h-1.5 rounded-full ${i === 0 ? "w-4 bg-orange-400" : "w-1.5 bg-gray-200"}`}
-          />
-        ))}
+      {/* ── Row 2: [Avatar] [Name/Specialty/Stats flex-1] [ScoreBadge] ── */}
+      <div className="flex items-center gap-3">
+
+        {/* Avatar */}
+        <div className="w-12 h-12 rounded-full overflow-hidden bg-orange-50 shrink-0">
+          {c.profile_image_url ? (
+            <Image
+              src={c.profile_image_url}
+              alt={fullName}
+              width={48}
+              height={48}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-[#F4781B]">
+              {initials}
+            </div>
+          )}
+        </div>
+
+        {/* Name / Specialty / Stats — grows to fill space */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="text-sm font-bold text-gray-900 truncate">{fullName}</span>
+            {verified && (
+              <BadgeCheck className="w-4 h-4 shrink-0" fill="#22c55e" color="white" />
+            )}
+          </div>
+          <p className="text-xs text-[#F4781B] font-medium truncate mt-0.5">{specialty}</p>
+          <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
+            <span className="flex items-center gap-1 text-[11px] text-gray-500">
+              <Briefcase size={10} className="text-gray-400" /> {xp}
+            </span>
+            <span className="flex items-center gap-1 text-[11px] text-gray-500">
+              <MapPin size={10} className="text-gray-400" /> {dist}
+            </span>
+            <span className="flex items-center gap-1 text-[11px] text-gray-500">
+              <Star size={10} className="text-yellow-400" fill="#facc15" /> {rating}
+            </span>
+          </div>
+        </div>
+
+        {/* Score badge — right end of this row */}
+        <ScoreBadge score={score} />
+      </div>
+
+      {/* ── Row 3: Action button(s) ── */}
+      {section === 'urgent' ? (
+        <button
+          onClick={() => router.push('/jobs/urgent-replacement')}
+          className="w-full flex items-center justify-center gap-2 text-sm font-semibold border border-green-500 text-green-600 hover:bg-green-50 py-2.5 rounded-xl transition-colors"
+        >
+          <Zap size={14} fill="#22c55e" className="text-green-500" />
+          Hire Instantly
+        </button>
+      ) : showInviteOnly ? (
+        <button
+          onClick={() => router.push(href)}
+          className="w-full flex items-center justify-center gap-2 text-sm font-semibold border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 py-2.5 rounded-xl transition-colors"
+        >
+          <CalendarCheck size={14} />
+          Invite For a Job
+        </button>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push(href)}
+            className="flex-1 text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 py-2.5 rounded-xl transition-colors"
+          >
+            Shortlist
+          </button>
+          <button
+            onClick={() => router.push(href)}
+            className="flex-1 text-sm font-semibold bg-[#F4781B] hover:bg-orange-600 text-white py-2.5 rounded-xl transition-colors"
+          >
+            Direct Hire
+          </button>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+/* ─── Section wrapper ─── */
+export const BottomCandidateCards = ({ section, title }: Props) => {
+  const router = useRouter();
+  const { data, isLoading } = useCandidatesList({
+    page:  1,
+    limit: 3,
+    ...(section === 'urgent' ? { is_ai_recommended: true } : {}),
+  });
+  const candidates = data?.data?.candidates ?? [];
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+        <button
+          onClick={() => router.push('/candidates')}
+          className="text-xs text-[#F4781B] font-medium hover:underline"
+        >
+          View all
+        </button>
+      </div>
+
+      {/* Cards list */}
+      <div className="flex flex-col gap-3">
+        {isLoading ? (
+          [...Array(2)].map((_, i) => (
+            <div key={i} className="h-40 bg-gray-100 rounded-xl animate-pulse" />
+          ))
+        ) : candidates.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">No candidates found</p>
+        ) : (
+          candidates.map((c: CandidateListItem, i: number) => (
+            <CandidateCard
+              key={c.id ?? c.candidate_id ?? i}
+              c={c}
+              section={section}
+              index={i}
+            />
+          ))
+        )}
       </div>
     </div>
   );

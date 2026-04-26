@@ -21,7 +21,7 @@ function PaymentCompleteContent() {
     if (!raw) { router.replace("/jobs"); return; }
 
     const payload: JobCreatePayload = JSON.parse(raw);
-    setJobTitle(payload.job_title);
+    setJobTitle(payload.job_title ?? "");
 
     createJob(payload).then((res) => {
       if (res.success) {

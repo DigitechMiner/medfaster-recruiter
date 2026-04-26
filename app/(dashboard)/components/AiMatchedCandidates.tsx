@@ -1,12 +1,13 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useCandidatesList } from '@/hooks/useCandidate';
+import { CandidateListItem } from '@/Interface/recruiter.types';
+import { useCandidatesList } from '@/hooks/useRecruiterData';
 
 export const AiMatchedCandidates = () => {
   const router = useRouter();
-  const { data, isLoading } = useCandidatesList({ page: 1, limit: 4 });
-  const candidates = data?.candidates ?? [];
+  const { data, isLoading } = useCandidatesList({ is_ai_recommended: true });
+const candidates = data?.data.candidates ?? [];
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -33,7 +34,7 @@ export const AiMatchedCandidates = () => {
                   ))}
                 </tr>
               ))
-            ) : candidates.map((c) => {
+            ) : candidates.map((c: CandidateListItem) => {
               const score = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
               const scoreColor = score >= 80 ? 'text-green-600' : score >= 60 ? 'text-[#F4781B]' : 'text-red-500';
               const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase();
@@ -47,7 +48,7 @@ export const AiMatchedCandidates = () => {
                         {c.profile_image_url ? (
                           <Image
                             src={c.profile_image_url}
-                            alt={c.full_name}
+                            alt={c.full_name ?? c.first_name}
                             width={32} height={32}
                             className="object-cover w-full h-full"
                           />

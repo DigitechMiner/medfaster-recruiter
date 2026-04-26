@@ -11,8 +11,8 @@ import { Logo, CloseButton } from './components';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // ← add this
-  forceOpen?: boolean;    // ← add this
+  onSuccess?: () => void;
+  forceOpen?: boolean;
 }
 
 export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = false }: LoginModalProps) {
@@ -21,13 +21,12 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '']);
 
-  const { 
-    sendOtp, 
-    verifyOtp, 
-    loadRecruiterProfile,
-    otpSending, 
+  const {
+    sendOtp,
+    verifyOtp,
+    otpSending,
     otpError,
-    setOtpError
+    setOtpError,
   } = useAuthStore();
 
   useEffect(() => {
@@ -83,12 +82,14 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
       return;
     }
 
+    // ✅ Pass loadProfile=true — verifyOtp sets the token then loads profile internally.
+    //    Do NOT call loadRecruiterProfile() again here — that was causing the 401
+    //    race condition (profile fetch fired before token was committed).
     const result = await verifyOtp(otpCode, true);
 
     if (result.ok) {
-      await loadRecruiterProfile();
       toast.success('Login successful!');
-      onSuccess?.();  // ← notify OtpGate
+      onSuccess?.();
       onClose();
     } else {
       setOtpError(result.message ?? 'Failed to verify OTP');
@@ -133,7 +134,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
 
   return (
     <div
-      // ← if forceOpen, clicking backdrop does nothing
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-100/80 md:bg-black/50 p-4 md:p-0"
       onClick={forceOpen ? undefined : onClose}
     >
@@ -142,7 +142,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
         className="md:hidden relative w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Hide close button when forceOpen */}
         {!forceOpen && (
           <CloseButton
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -158,7 +157,6 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
         className="hidden md:flex fixed inset-0 w-full h-full"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Hide close button when forceOpen */}
         {!forceOpen && (
           <CloseButton
             className="absolute top-6 right-6 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-2 shadow-md"

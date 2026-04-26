@@ -1,7 +1,6 @@
 "use client";
 import { ReactNode } from "react";
 import { Navbar } from "./navbar";
-import { Footer } from "./footer";
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -23,7 +22,6 @@ export function AppLayout({ children, padding = "sm" }: AppLayoutProps) {
       <main className={`flex-1 w-full flex flex-col bg-[#F7F5F1] ${paddingClassesMap[padding]}`}>
         {children}
       </main>
-      <Footer />
     </div>
   );
 }

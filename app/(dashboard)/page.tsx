@@ -1,80 +1,69 @@
-"use client";
+'use client';
+import React, { useState, useMemo } from 'react';
+import { BriefcaseBusiness, CalendarClock, Layers, AlertOctagon, ClipboardList, Wallet } from 'lucide-react';
+import { AppLayout }            from '@/components/global/app-layout';
+import { MetricCard }           from './components/MetricCard';
+import { TopIssues }            from './components/TopIssues';
+import { TodaysOperations }     from './components/TodaysOperations';
+import { JobsOverviewChart }    from './components/JobsOverviewChart';
+import { QuickActions }         from './components/QuickActions';
+import { PerformanceOverview }  from './components/PerformanceOverview';
+import { WorkforceStatus }      from './components/WorkforceStatus';
+import { FinancialSnapshot }    from './components/FinancialSnapshot';
+import { RecentActivity }       from './components/RecentActivity';
+import { BottomCandidateCards } from './components/BottomCandidateCards';
+import { Top5CandidatesHired }  from './components/Top5CandidatesHired';
+import { useAuthStore }         from '@/stores/authStore';
+import { useRecruiterDashboard } from '@/hooks/useRecruiterData';
+import { useWalletStore }       from '@/stores/walletStore';
 
-import React, { useState, useMemo } from "react";
-import {
-  BriefcaseBusiness, Users, Sparkles, Layers,
-  Gift, UserCheck, LogOut,
-} from "lucide-react";
-
-import { AppLayout }             from "@/components/global/app-layout";
-import { MetricCard }            from "./components/MetricCard";
-import { CandidateFunnelChart }  from "./components/CandidateFunnelChart";
-import { MiniCalendar }          from "./components/MiniCalendar";
-import { HiringFunnel }          from "./components/HiringFunnel";
-import { LocationInsights }      from "./components/LocationInsights";
-import { BottomWidgets }         from "./components/BottomWidgets";
-import { AiMatchedCandidates }   from "./components/AiMatchedCandidates";
-import { BottomCandidateCards }  from "./components/BottomCandidateCards";
-import type { MetricType }       from "./types";
-import { useAuthStore }          from "@/stores/authStore";
-import { useRecruiterDashboard } from "@/hooks/useRecruiterData";
-
-// ── Skeletons ────────────────────────────────────────────────────────────────
-const MetricSkeleton = ({ count }: { count: number }) => (
-  <>
-    {[...Array(count)].map((_, i) => (
-      <div key={i} className="bg-white rounded-xl p-4 border-2 border-gray-100 h-28 animate-pulse" />
-    ))}
-  </>
+const Skeleton = ({ className = '' }: { className?: string }) => (
+  <div className={`bg-white rounded-xl border border-gray-100 animate-pulse ${className}`} />
 );
 
-const SectionSkeleton = ({ className = "" }: { className?: string }) => (
-  <div className={`bg-white rounded-xl border-2 border-gray-100 animate-pulse ${className}`} />
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
 const DashboardPage: React.FC = () => {
-  const { recruiterProfile } = useAuthStore();
-  const [selectedPeriod,          setSelectedPeriod]          = useState("This Month");
-  const [selectedDashboardMetric, setSelectedDashboardMetric] = useState<MetricType>("openJobs");
-
-  // ── Single API call ───────────────────────────────────────────────────────
+  const { recruiterProfile }     = useAuthStore();
+  const [period, setPeriod]      = useState('This Month');
   const { dashboard, isLoading } = useRecruiterDashboard();
+  const wallet                   = useWalletStore((s) => s.wallet);
 
-  // ── Derive every metric from the one endpoint ─────────────────────────────
-  const jobs    = dashboard?.jobStatusOverview;
-  const apps    = dashboard?.applicationStatusOverview;
-  const normal  = apps?.NORMAL_JOB;
-  const instant = apps?.INSTANT_JOB;
+  const jobs = dashboard?.jobStatusOverview;
+
+  const firstName = recruiterProfile?.contact_person_name?.split(' ')[0]
+    ?? recruiterProfile?.organization_name
+    ?? 'there';
+
+  const walletBalance = wallet ? Number(wallet.available_balance) / 100 : null;
+  const lockedBalance = wallet ? Number(wallet.held_balance) / 100       : null;
+  const fmtCAD = (v: number | null) =>
+    v !== null ? `$${v.toLocaleString('en-CA', { minimumFractionDigits: 0 })}` : '—';
 
   const metrics = useMemo(() => ({
-    // Row 1
-    activeJobOpenings: (jobs?.OPEN ?? 0) + (jobs?.ACTIVE ?? 0),
-    totalInPipeline:   apps?.TOTAL ?? 0,
-    positionsFilled:   normal?.HIRE ?? 0,
-    urgentStaffings:   (instant?.ACCEPTED ?? 0) + (instant?.CANCELLED ?? 0),
-
-    // Row 2
-    totalInvitesMade:  normal?.SHORTLISTED  ?? 0,   // shortlisted = invited to proceed
-    totalHired:        normal?.HIRE         ?? 0,
-    totalRejected:     normal?.REJECTED     ?? 0,
-  }), [dashboard]);
+    active:   jobs?.ACTIVE   ?? 0,
+    upcoming: jobs?.UPCOMING ?? 0,
+    open:     jobs?.OPEN     ?? 0,
+  }), [jobs?.ACTIVE, jobs?.UPCOMING, jobs?.OPEN]);
 
   return (
     <AppLayout padding="none">
-      <div className="space-y-4 md:space-y-5 p-3 sm:p-4 md:p-5 xl:p-6 max-w-[1440px] mx-auto w-full">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 max-w-[1440px] mx-auto w-full">
 
-        {/* ── Header ── */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Header
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-base sm:text-lg xl:text-xl font-semibold text-gray-900 truncate">
-            Hello, {recruiterProfile?.organization_name ?? "Your Hospital"} 👋
-          </h1>
+          <div>
+            <h1 className="text-lg xl:text-xl font-semibold text-gray-900">
+              Hello, {firstName} 👋
+            </h1>
+            <p className="text-sm text-gray-500">
+              Here&apos;s what&apos;s happening in your operations today
+            </p>
+          </div>
           <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            disabled
-            title="Period filter coming soon"
-            className="shrink-0 text-xs sm:text-sm border border-gray-200 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-gray-400 bg-white shadow-sm focus:outline-none opacity-60 cursor-not-allowed"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="shrink-0 text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-600 bg-white shadow-sm focus:outline-none"
           >
             <option>This Month</option>
             <option>Last Month</option>
@@ -83,125 +72,90 @@ const DashboardPage: React.FC = () => {
           </select>
         </div>
 
-        {/* ── Metric Cards Row 1 ── */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
-          {isLoading ? <MetricSkeleton count={4} /> : (
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            6 Metric Cards
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          {isLoading ? (
+            [...Array(6)].map((_, i) => <Skeleton key={i} className="h-28" />)
+          ) : (
             <>
               <MetricCard
                 icon={<BriefcaseBusiness className="w-4 h-4 text-[#F4781B]" />}
-                title="Active Job Openings"
-                value={metrics.activeJobOpenings}
-                percentChange={0.10}
-                isPositive={false}
-                isActive={selectedDashboardMetric === "openJobs"}
-                onClick={() => setSelectedDashboardMetric("openJobs")}
-              />
+                title="Active Jobs/Shifts"   value={metrics.active}
+                percentChange={0.10}         isPositive={false} />
               <MetricCard
-                icon={<Users className="w-4 h-4 text-[#F4781B]" />}
-                title="Total Candidates in Pipeline"
-                value={metrics.totalInPipeline}
-                percentChange={1.10}
-                isPositive={true}
-                isActive={selectedDashboardMetric === "applied"}
-                onClick={() => setSelectedDashboardMetric("applied")}
-              />
-              <MetricCard
-                icon={<Sparkles className="w-4 h-4 text-[#F4781B]" />}
-                title="Positions Filled"
-                value={metrics.positionsFilled}
-                percentChange={1.10}
-                isPositive={true}
-                isActive={false}
-                onClick={() => {}}
-              />
+                icon={<CalendarClock className="w-4 h-4 text-[#F4781B]" />}
+                title="Upcoming Jobs/Shifts" value={metrics.upcoming}
+                percentChange={1.10}         isPositive={true} />
               <MetricCard
                 icon={<Layers className="w-4 h-4 text-[#F4781B]" />}
-                title="Urgent Staffings"
-                value={metrics.urgentStaffings}
-                percentChange={2.10}
-                isPositive={false}
-                isActive={selectedDashboardMetric === "interviewing"}
-                onClick={() => setSelectedDashboardMetric("interviewing")}
-              />
+                title="Open Jobs/Shifts"    value={metrics.open}
+                percentChange={1.10}        isPositive={true} />
+              <MetricCard
+                icon={<AlertOctagon className="w-4 h-4 text-[#F4781B]" />}
+                title="No-Shows"            value={0}
+                valueColor="text-red-500"
+                percentChange={2.10}        isPositive={false} />
+              <MetricCard
+                icon={<ClipboardList className="w-4 h-4 text-[#F4781B]" />}
+                title="Pending Check-Ins"   value={0}
+                percentChange={2.10}        isPositive={false} />
+              <MetricCard
+                icon={<Wallet className="w-4 h-4 text-[#F4781B]" />}
+                title="Wallet Balance"
+                value={fmtCAD(walletBalance)}
+                subLabel={`Locked: ${fmtCAD(lockedBalance)}`}
+                valueColor="text-gray-900" />
             </>
           )}
         </div>
 
-        {/* ── Metric Cards Row 2 ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          {isLoading ? <MetricSkeleton count={3} /> : (
-            <>
-              <MetricCard
-                icon={<Gift className="w-4 h-4 text-[#F4781B]" />}
-                title="Total Job Invites Made to Candidates"
-                value={metrics.totalInvitesMade}
-                percentChange={1.10}
-                isPositive={true}
-                isActive={false}
-                onClick={() => {}}
-              />
-              <MetricCard
-                icon={<UserCheck className="w-4 h-4 text-[#F4781B]" />}
-                title="Total Hired"
-                value={metrics.totalHired}
-                percentChange={1.10}
-                isPositive={true}
-                isActive={selectedDashboardMetric === "hired"}
-                onClick={() => setSelectedDashboardMetric("hired")}
-              />
-              <MetricCard
-                icon={<LogOut className="w-4 h-4 text-[#F4781B]" />}
-                title="Rejected"
-                value={metrics.totalRejected}
-                percentChange={2.10}
-                isPositive={false}
-                isActive={false}
-                onClick={() => {}}
-              />
-            </>
-          )}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ROW 1 — Top Issues | Today's Operations | Jobs Overview
+            Ratio: 1fr : 2fr : 1fr
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-3 items-stretch">
+
+  {/* Col 1 — Top Issues */}
+  <TopIssues />
+
+  {/* Col 2 — Today's Operations */}
+  <TodaysOperations />
+
+  {/* Col 3 — Chart grows to fill, Quick Actions pinned to bottom */}
+  <div className="flex flex-col gap-3 h-full">
+    <div className="flex-1 min-h-0">
+      <JobsOverviewChart jobs={jobs} />
+    </div>
+    <div className="shrink-0">
+      <QuickActions />
+    </div>
+  </div>
+
+</div>
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ROW 2 — Performance Overview | Workforce Status | Financial | Activity
+            4 equal columns
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
+  <PerformanceOverview />
+  <WorkforceStatus jobs={jobs} />
+  <FinancialSnapshot />
+  <RecentActivity />
+</div>
+
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ROW 3 — Nearby Professionals | Urgent Hires | Top 5 Candidates
+            3 equal columns
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+          <BottomCandidateCards section="nearby" title="Nearby Professionals (Within 5 kms)" />
+          <BottomCandidateCards section="urgent" title="Urgent Hires" />
+          <Top5CandidatesHired />
         </div>
 
-        {/* ── Chart + Calendar ── */}
-        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-          <div className="flex-1 flex flex-col gap-3 md:gap-4 min-w-0">
-            {isLoading ? (
-              <>
-                <SectionSkeleton className="h-64 md:h-72" />
-                <SectionSkeleton className="h-48 md:h-56" />
-              </>
-            ) : (
-              <>
-                <CandidateFunnelChart />
-                <AiMatchedCandidates />
-              </>
-            )}
-          </div>
-          <div className="w-full md:w-72 xl:w-80 flex-shrink-0 flex flex-col">
-            {isLoading
-              ? <SectionSkeleton className="h-full min-h-[480px]" />
-              : <MiniCalendar />
-            }
-          </div>
-        </div>
-
-        <BottomCandidateCards />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          {isLoading ? (
-            <>
-              <SectionSkeleton className="h-64" />
-              <SectionSkeleton className="h-64" />
-            </>
-          ) : (
-            <>
-              <HiringFunnel />
-              <LocationInsights />
-            </>
-          )}
-        </div>
-
-        <BottomWidgets />
       </div>
     </AppLayout>
   );

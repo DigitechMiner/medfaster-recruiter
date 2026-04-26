@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CandidateListItem } from "@/stores/api/recruiter-job-api";
+import type { CandidateListItem } from '@/Interface/recruiter.types';
 import { renderCandidateCards } from "@/components/candidate/renderers";
 import { MOCK_JOBS } from "./constants";
 import { PaginationBar, SectionHeader } from "./ui";

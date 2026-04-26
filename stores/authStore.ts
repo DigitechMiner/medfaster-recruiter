@@ -8,8 +8,8 @@ import { formatPhoneToE164 } from '@/utils/phone';
 import {
   updateRecruiterProfile as apiUpdateProfile,
   registerRecruiterStep,
-  type RecruiterProfile,   // ✅ imported — not redefined
-  type RecruiterDocument,  // ✅ imported — not redefined
+  type RecruiterProfile,
+  type RecruiterDocument,
 } from '@/stores/api/recruiter-api';
 
 // ============================================================================
@@ -21,9 +21,6 @@ interface OtpCredential {
   targetType: 'email' | 'phone';
   countryCode?: string;
 }
-
-// ✅ RecruiterProfile and RecruiterDocument are imported from recruiter-api.ts
-// NO local redefinitions — single source of truth
 
 interface AuthState {
   otpCredential: OtpCredential | null;
@@ -54,14 +51,14 @@ interface AuthActions {
   registerStep: (
     formData: FormData,
     step: 1 | 2 | 3
-  ) => Promise<{ ok: boolean; message?: string; data?: any }>;
+  ) => Promise<{ ok: boolean; message?: string; data?: unknown }>;
 
   updateProfile: (
     formData: FormData
   ) => Promise<{
     ok: boolean;
     message?: string;
-    data?: any;
+    data?: unknown;
     errors?: Array<{ field: string; message: string }>;
   }>;
 }
@@ -80,6 +77,31 @@ const initialState: AuthState = {
   recruiterDocuments: null,
 };
 
+const normalizeCountryCode = (countryCode: string) =>
+  countryCode.replace(/[^\d]/g, '');
+
+const normalizePhoneTarget = (target: string, countryCode: string) => {
+  const e164 = formatPhoneToE164(target, countryCode);
+  return e164.startsWith('+') ? e164 : target;
+};
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Array<{ field: string; message: string }>;
+    };
+  };
+  message?: string;
+};
+
+const asApiError = (error: unknown): ApiError => error as ApiError;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const parsed = asApiError(error);
+  return parsed.response?.data?.message || parsed.message || fallback;
+};
+
 // ============================================================================
 // STORE
 // ============================================================================
@@ -91,18 +113,17 @@ export const useAuthStore = create<AuthStore>()(
 
       setOtpError: (msg) => set({ otpError: msg ?? null }),
 
-      // ── Send OTP ───────────────────────────────────────────────────────────
+      // ── Send OTP ──────────────────────────────────────────────────────────
       sendOtp: async (params) => {
         set({ otpSending: true, otpError: null });
         try {
-          let targetType: 'email' | 'phone' =
+          const targetType: 'email' | 'phone' =
             params.targetType ?? (params.target.includes('@') ? 'email' : 'phone');
           let target = params.target;
-          let countryCode = params.countryCode ?? '1';
+          const countryCode = params.countryCode ?? '1';
 
           if (targetType === 'phone') {
-            const e164 = formatPhoneToE164(target, countryCode);
-            if (e164.startsWith('+')) target = e164;
+            target = normalizePhoneTarget(target, countryCode);
           }
 
           const payload: { email?: string; phone?: string; country_code?: string } = {};
@@ -110,7 +131,7 @@ export const useAuthStore = create<AuthStore>()(
             payload.email = params.target;
           } else {
             payload.phone = target;
-            payload.country_code = countryCode.replace(/[^\d]/g, '');
+            payload.country_code = normalizeCountryCode(countryCode);
           }
 
           const res = await axiosInstance.post<{ success: boolean; message: string }>(
@@ -126,8 +147,8 @@ export const useAuthStore = create<AuthStore>()(
 
           set({ otpCredential: { target: params.target, targetType, countryCode } });
           return { ok: true, message: res.data.message || 'OTP sent successfully' };
-        } catch (error: any) {
-          const msg = error.response?.data?.message || 'Failed to send OTP';
+        } catch (error: unknown) {
+          const msg = getErrorMessage(error, 'Failed to send OTP');
           set({ otpError: msg });
           return { ok: false, message: msg };
         } finally {
@@ -135,7 +156,7 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      // ── Verify OTP ─────────────────────────────────────────────────────────
+      // ── Verify OTP ────────────────────────────────────────────────────────
       verifyOtp: async (otp, loadProfile = false) => {
         const { otpCredential } = get();
         if (!otpCredential) {
@@ -146,8 +167,7 @@ export const useAuthStore = create<AuthStore>()(
           const countryCode = otpCredential.countryCode ?? '1';
 
           if (otpCredential.targetType === 'phone') {
-            const e164 = formatPhoneToE164(target, countryCode);
-            if (e164.startsWith('+')) target = e164;
+            target = normalizePhoneTarget(target, countryCode);
           }
 
           const payload: { otp: string; email?: string; phone?: string; country_code?: string } = { otp };
@@ -155,27 +175,39 @@ export const useAuthStore = create<AuthStore>()(
             payload.email = otpCredential.target;
           } else {
             payload.phone = target;
-            payload.country_code = countryCode.replace(/[^\d]/g, '');
+            payload.country_code = normalizeCountryCode(countryCode);
           }
 
           const res = await axiosInstance.post<{
             success: boolean;
             message: string;
-            data?: { token: string; user?: any };
+            data?: { token: string; user?: unknown };
           }>(ENDPOINTS.RECRUITER_VALIDATE_OTP, payload);
 
           if (!res.data?.success || !res.data?.data?.token) {
             return { ok: false, message: res.data?.message || 'Invalid OTP' };
           }
 
-          if (loadProfile) await get().loadRecruiterProfile();
+          // ✅ Token received — set it on axiosInstance immediately so the
+          //    profile request below goes out with the correct Authorization header.
+          //    (Only needed if your backend uses Bearer tokens instead of cookies.
+          //    If using HttpOnly cookies, the cookie is already set by the response
+          //    and withCredentials:true handles it — but this covers both cases.)
+          const token = res.data.data.token;
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+          // ✅ loadProfile guard — only load if explicitly requested
+          if (loadProfile) {
+            await get().loadRecruiterProfile();
+          }
+
           return { ok: true, message: res.data.message || 'Login successful' };
-        } catch (error: any) {
-          return { ok: false, message: error.response?.data?.message || 'Invalid OTP' };
+        } catch (error: unknown) {
+          return { ok: false, message: getErrorMessage(error, 'Invalid OTP') };
         }
       },
 
-      // ── Load Profile ───────────────────────────────────────────────────────
+      // ── Load Profile ──────────────────────────────────────────────────────
       loadRecruiterProfile: async () => {
         try {
           const res = await axiosInstance.get<{
@@ -190,61 +222,65 @@ export const useAuthStore = create<AuthStore>()(
           }
 
           set({
-            recruiterProfile:  res.data.data.profile,
+            recruiterProfile: res.data.data.profile,
             recruiterDocuments: res.data.data.documents,
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const parsedError = asApiError(error);
           set({ recruiterProfile: null, recruiterDocuments: null });
-          console.error('loadRecruiterProfile error:', error.response?.data || error);
+          console.error('loadRecruiterProfile error:', parsedError.response?.data || error);
         }
       },
 
-      // ── Register Step ──────────────────────────────────────────────────────
+      // ── Register Step ─────────────────────────────────────────────────────
       registerStep: async (formData, step) => {
         try {
           const result = await registerRecruiterStep(formData, step);
           if (result.success) {
             set({
-              recruiterProfile:  result.data.profile,
+              recruiterProfile: result.data.profile,
               recruiterDocuments: result.data.documents,
             });
             return { ok: true, message: result.message || `Step ${step} saved`, data: result.data };
           }
           return { ok: false, message: result.message || `Step ${step} failed` };
-        } catch (error: any) {
-          const message = error.response?.data?.message || error.message || `Step ${step} failed`;
+        } catch (error: unknown) {
+          const message = getErrorMessage(error, `Step ${step} failed`);
           return { ok: false, message };
         }
       },
 
-      // ── Update Profile ─────────────────────────────────────────────────────
+      // ── Update Profile ────────────────────────────────────────────────────
       updateProfile: async (formData) => {
         try {
           const result = await apiUpdateProfile(formData);
           if (result.success) {
             set({
-              recruiterProfile:  result.data.profile,
+              recruiterProfile: result.data.profile,
               recruiterDocuments: result.data.documents,
             });
             return { ok: true, message: result.message || 'Profile updated', data: result.data };
           }
           return { ok: false, message: result.message || 'Failed to update profile' };
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const parsedError = asApiError(error);
           return {
             ok: false,
-            message: error.response?.data?.message || error.message || 'Failed to update profile',
-            errors: error.response?.data?.errors || [],
+            message: getErrorMessage(error, 'Failed to update profile'),
+            errors: parsedError.response?.data?.errors || [],
           };
         }
       },
 
-      // ── Logout ─────────────────────────────────────────────────────────────
+      // ── Logout ────────────────────────────────────────────────────────────
       logout: async () => {
         try {
           await axiosInstance.post(ENDPOINTS.RECRUITER_LOGOUT);
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
+          // ✅ Clear the Authorization header on logout
+          delete axiosInstance.defaults.headers.common['Authorization'];
           set({ ...initialState });
         }
       },

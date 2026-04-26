@@ -11,9 +11,9 @@ export default function CandidatesPage() {
         <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
         <button
           onClick={() => router.push("/candidates/add")}
-          className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+          className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
         >
-          + Add Candidate
+          + Add My In-House Staff
         </button>
       </div>
       <CandidatesBoard />

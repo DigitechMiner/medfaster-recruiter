@@ -55,18 +55,18 @@ export const JobsAllPage: React.FC<JobsAllPageProps> = ({
 
   // ── Sync tab when parent filter changes ───────────────────────────────────
   useEffect(() => {
-    if (!filterStatus && !filterUrgency) return;
-    const matchingTab = (Object.keys(TAB_FILTER) as FilterTab[]).find((key) => {
-      const f = TAB_FILTER[key];
-      if (filterStatus  && f.status      === filterStatus)  return true;
-      if (filterUrgency && f.job_urgency === filterUrgency) return true;
-      return false;
-    });
-    if (matchingTab && matchingTab !== tab) {
-      setTab(matchingTab);
-      setPage(1);
-    }
-  }, [filterStatus, filterUrgency]);
+  if (!filterStatus && !filterUrgency) return;
+  const matchingTab = (Object.keys(TAB_FILTER) as FilterTab[]).find((key) => {
+    const f = TAB_FILTER[key];
+    if (filterStatus  && f.status      === filterStatus)  return true;
+    if (filterUrgency && f.job_urgency === filterUrgency) return true;
+    return false;
+  });
+  if (matchingTab && matchingTab !== tab) {
+    setTab(matchingTab);
+    setPage(1);
+  }
+}, [filterStatus, filterUrgency, tab]); // ✅ add tab
 
   // ── Reset to All when parent filter is cleared ────────────────────────────
   useEffect(() => {

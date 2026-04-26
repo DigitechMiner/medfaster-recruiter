@@ -17,8 +17,8 @@ export const ENDPOINTS = {
   JOBS_DELETE:                     (id: string) => `/recruiter/jobs/${id}`,
   GENERATE_JOB_DESCRIPTION:        '/recruiter/jobs/generate-description',
   GENERATE_JOB_QUESTIONS:          '/recruiter/jobs/generate-questions',
-  JOBS_FEES:                       '/recruiter/jobs/fees',
-  JOB_PREVIEW:                     (id: string) => `/recruiter/jobs/${id}/preview`,
+  JOBS_FEES:                       (jobTitle: string) => `/recruiter/jobs/fees/${jobTitle}`,
+  JOBS_FEE_PREVIEW:                 '/recruiter/jobs/preview',
 
   // Jobs Summary & Calendar (new)
   JOBS_SUMMARY:                    '/recruiter/jobs/summary',
@@ -68,6 +68,10 @@ export const ENDPOINTS = {
   VERIFY_CREDENTIAL_VALIDATE_OTP:  '/recruiter/verify-credential/validate-otp',
 
   // Common
-  COMMON_DEPARTMENTS:              '/common/departments_job_titles',
-  COMMON_SPECIALIZATIONS:          '/common/specializations',
+  COMMON_METADATA:                  '/common/metadata',
+  COMMON_DEPARTMENTS:               '/common/departments-job-titles',     // ✅ hyphen, not underscore
+  COMMON_SPECIALIZATIONS:           '/common/specializations',
+  COMMON_FCM_REGISTER:              '/common/notifications/register',
+  COMMON_DEVICE_ACTIVE:             '/common/notifications/device/active',
+  COMMON_NOTIFICATIONS:             '/common/notifications',
 } as const;

@@ -293,10 +293,19 @@ export function convertExperienceToFrontend(backendValue: string | null | undefi
 }
 
 export function convertJobTitleToBackend(frontendValue: string): string {
-  return (
-    metadata.job_title_mapping[frontendValue as keyof typeof metadata.job_title_mapping] ??
-    "registered_nurse"
-  );
+  if (!frontendValue) return "registered_nurse";
+
+  // ✅ Already a slug — pass through untouched
+  if (!frontendValue.includes(" ") && frontendValue === frontendValue.toLowerCase()) {
+    return frontendValue;
+  }
+
+  // Look up in mapping
+  const mapped = metadata.job_title_mapping[frontendValue as keyof typeof metadata.job_title_mapping];
+  if (mapped) return mapped;
+
+  // Fallback: display string → snake_case
+  return frontendValue.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
 }
 
 export function convertJobTitleToFrontend(backendValue: string | null | undefined): string {

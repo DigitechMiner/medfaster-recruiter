@@ -1,19 +1,22 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getWallet, initiateWalletTopup } from '@/stores/api/recruiter-wallet-api';
-import { Minus, Plus, Wallet } from 'lucide-react';
+import { Minus, Plus, Wallet, AlertCircle } from 'lucide-react';
 
 const QUICK_AMOUNTS = [100, 500, 1000, 2500, 5000, 10000];
 
-export default function TopupPage() {
-  const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+function TopupContent() {
+  const searchParams    = useSearchParams();
+  const loadError       = searchParams.get('error');
+  const router          = useRouter();
+  const inputRef        = useRef<HTMLInputElement>(null);
 
   const [amount, setAmount]                     = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading]               = useState(false);
+  const [isNavigating, setIsNavigating]         = useState(false);
   const [error, setError]                       = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,19 +58,32 @@ export default function TopupPage() {
     }
     try {
       setIsLoading(true);
+      setIsNavigating(true);
       setError(null);
       const { client_secret, topup_id } = await initiateWalletTopup(numericAmount);
-      router.push(`/wallet/topup/confirm?secret=${client_secret}&topup_id=${topup_id}&amount=${numericAmount}`);
+      // encodeURIComponent prevents any special chars in client_secret from breaking the URL
+      router.push(
+        `/wallet/topup/confirm?secret=${encodeURIComponent(client_secret)}&topup_id=${topup_id}&amount=${numericAmount}`
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to initiate topup');
-    } finally {
       setIsLoading(false);
+      setIsNavigating(false);
     }
+    // Don't reset isLoading on success — keep button disabled until navigation completes
   };
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
+
+        {/* Session expired banner — shown when redirected back from confirm page */}
+        {loadError === 'payment_load_failed' && (
+          <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-xl px-4 py-3 mb-4">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>Your payment session expired. A fresh session has been started — please try again.</span>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
@@ -81,7 +97,7 @@ export default function TopupPage() {
               <p className="text-[13px] text-gray-400">
                 Current balance:{' '}
                 <span className="font-semibold text-gray-700">
-                  $ {availableBalance.toLocaleString('en-CA')}
+                  CA$ {availableBalance.toLocaleString('en-CA')}
                 </span>
               </p>
             )}
@@ -102,7 +118,7 @@ export default function TopupPage() {
             {/* Input with +/- */}
             <div>
               <label className="text-[12px] font-medium text-gray-500 mb-1.5 block">
-                Amount (USD)
+                Amount (CAD)
               </label>
               <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#F4781B] focus-within:ring-1 focus-within:ring-[#F4781B]/20 transition-all">
                 <button
@@ -170,14 +186,15 @@ export default function TopupPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 py-3 rounded-xl border border-gray-200 text-[14px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                disabled={isNavigating}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-[14px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isLoading || numericAmount < 1}
+                disabled={isLoading || isNavigating || numericAmount < 1}
                 className="flex-1 py-3 rounded-xl bg-[#F4781B] text-white text-[14px] font-semibold
                   hover:bg-[#e06a10] disabled:opacity-40 disabled:cursor-not-allowed
                   active:scale-[0.98] transition-all"
@@ -196,5 +213,18 @@ export default function TopupPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense because useSearchParams() requires it in Next.js App Router
+export default function TopupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center">
+        <p className="text-gray-400 text-sm animate-pulse">Loading...</p>
+      </div>
+    }>
+      <TopupContent />
+    </Suspense>
   );
 }

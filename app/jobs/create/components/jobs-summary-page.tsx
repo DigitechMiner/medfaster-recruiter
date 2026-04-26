@@ -1,29 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import { getWallet, initiateWalletTopup } from "@/stores/api/recruiter-wallet-api";
-import type { JobCreatePayload } from "@/Interface/job.types";
+import type { JobCreatePayload, JobStatus } from "@/Interface/job.types";
+import { getWallet } from '@/stores/api/recruiter-wallet-api';
+import { getJobFeePreview, type JobFeePreview } from '@/stores/api/recruiter-job-api';
+import { convertJobTitleToBackend } from "@/utils/constant/metadata";
+import { useWalletStore } from "@/stores/walletStore";
 
 interface JobSummaryPageProps {
-  mode: "regular" | "urgent";
+  mode: "normal" | "urgent";
   payload: JobCreatePayload;
   onBack: () => void;
-  onSubmit: (payload: JobCreatePayload) => Promise<{
-    success: boolean;
-    message?: string;
-    jobId?: string;
-  }>;
+  onSubmit: (payload: JobCreatePayload, feeCents: number) => Promise<{
+  success: boolean;
+  message?: string;
+  jobId?: string;
+}>;
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────;}
 
 function formatTime(timeStr?: string | null): string {
   if (!timeStr) return "—";
-  // expects "HH:MM:SS" or "HH:MM"
   const [h, m] = timeStr.split(":");
   const date = new Date();
   date.setHours(Number(h), Number(m));
@@ -34,25 +34,23 @@ function diffHours(checkIn?: string | null, checkOut?: string | null): number {
   if (!checkIn || !checkOut) return 0;
   const [h1, m1] = checkIn.split(":").map(Number);
   const [h2, m2] = checkOut.split(":").map(Number);
-  const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
-  return Math.abs(mins) / 60;
+  return Math.abs((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
 }
 
 function buildShiftRows(payload: JobCreatePayload) {
   if (!payload.start_date || !payload.end_date) return [];
-  const start = new Date(payload.start_date);
-  const end   = new Date(payload.end_date);
-  const rows  = [];
+  const start  = new Date(payload.start_date);
+  const end    = new Date(payload.end_date);
+  const rows   = [];
   const cursor = new Date(start);
   let day = 1;
-
   while (cursor <= end) {
     const next = new Date(cursor);
     next.setDate(next.getDate() + 1);
     rows.push({
       day:       `Day ${day}`,
       startDate: cursor.toLocaleDateString("en-CA", { day: "numeric", month: "long", year: "numeric" }),
-      endDate:   next.toLocaleDateString("en-CA", { day: "numeric", month: "long", year: "numeric" }),
+      endDate:   next.toLocaleDateString("en-CA",   { day: "numeric", month: "long", year: "numeric" }),
       timing:    `${formatTime(payload.check_in_time)} to ${formatTime(payload.check_out_time)}`,
       duration:  `${diffHours(payload.check_in_time, payload.check_out_time)} hrs`,
     });
@@ -62,74 +60,107 @@ function buildShiftRows(payload: JobCreatePayload) {
   return rows;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPageProps) {
   const router = useRouter();
-
+const refreshWallet = useWalletStore((s) => s.refreshWallet);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [showSuccess, setShowSuccess]   = useState(false);
   const [successJobId, setSuccessJobId] = useState("");
+  const [feePreview, setFeePreview]     = useState<JobFeePreview | null>(null);
+  const [feeLoading, setFeeLoading]     = useState(false);
+  const [feeError, setFeeError]         = useState<string | null>(null);
 
-  // ── Cost Breakdown ── derived from actual API fields
-  // pay_range_min is hourly rate in dollars (or use pay_per_hour_cents if available)
-  const hourlyRate         = payload.pay_per_hour_cents != null
-  ? payload.pay_per_hour_cents / 100
-  : 0;
-  const shiftHours         = diffHours(payload.check_in_time, payload.check_out_time);
-  const totalDays          = (() => {
-    if (!payload.start_date || !payload.end_date) return 1;
-    const diff = new Date(payload.end_date).getTime() - new Date(payload.start_date).getTime();
-    return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
-  })();
-  const hoursPerCandidate  = shiftHours * totalDays;
-  const requiredCandidates = payload.no_of_hires_required ?? 1;
-  const costPerCandidate   = hourlyRate * hoursPerCandidate;
-  const totalPayable       = costPerCandidate * requiredCandidates;
+  useEffect(() => {
+    if (
+      !payload.job_title    ||
+      !payload.start_date   ||
+      !payload.end_date     ||
+      !payload.check_in_time ||
+      !payload.check_out_time
+    ) return;
 
-  const shifts = buildShiftRows(payload);
+    setFeeLoading(true);
+    setFeeError(null);
 
+    getJobFeePreview({
+  job_title:            convertJobTitleToBackend(payload.job_title), // ← wrap this
+  no_of_hires_required: payload.no_of_hires_required ?? 1,
+  start_date:           payload.start_date,
+  end_date:             payload.end_date,
+  check_in_time:        payload.check_in_time,
+  check_out_time:       payload.check_out_time,
+})
+      .then(setFeePreview)
+      .catch(() => setFeeError("Could not load cost estimate. Please go back and try again."))
+      .finally(() => setFeeLoading(false));
+  }, [
+    payload.job_title,
+    payload.no_of_hires_required,
+    payload.start_date,
+    payload.end_date,
+    payload.check_in_time,
+    payload.check_out_time,
+  ]);
+
+const hourlyRate        = feePreview ? feePreview.recruiter_pay_per_hour_cents / 100            : 0;
+const hoursPerCandidate = feePreview ? feePreview.total_working_hours                           : 0;
+const costPerCandidate  = feePreview ? feePreview.per_candidate_shift_recruiter_pay_cents / 100 : 0;
+const totalPayable      = feePreview ? feePreview.total_recruiter_pay_cents / 100               : 0;
+const requiredCandidates = payload.no_of_hires_required ?? 1;  // ← add this back
+
+
+  const shifts   = buildShiftRows(payload);
   const location = [payload.city, payload.province].filter(Boolean).join(", ");
 
-  // ── Payment Logic ─────────────────────────────────────────────────────────
   const handlePayAndHire = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    setError(null);
+  if (isProcessing) return;
 
-    try {
-      const wallet      = await getWallet();
-      const available   = Number(wallet.available_balance); // cents
-      const totalCents  = totalPayable * 100;
+  if (!feePreview) {
+    setError("Cost estimate not loaded. Please wait or go back and retry.");
+    return;
+  }
 
-      if (available >= totalCents) {
-        // ✅ Priority 1 — wallet has enough → submit directly
-        const res = await onSubmit({ ...payload, status: "OPEN" });
-        if (res.success) {
-          setSuccessJobId(res.jobId ?? "");
-          setShowSuccess(true);
-        } else {
-          setError(res.message || "Failed to create job");
-        }
-      } else {
-        // ✅ Priority 2 — top up the deficit via Stripe, then submit after redirect
-        const topupAmount = Math.ceil((totalCents - available) / 100);
-        const { client_secret, topup_id } = await initiateWalletTopup(topupAmount);
+  setIsProcessing(true);
+  setError(null);
 
-        sessionStorage.setItem("pending_job_payload", JSON.stringify({ ...payload, status: "OPEN" }));
-        sessionStorage.setItem("pending_job_mode", mode);
+  try {
+    const wallet = await getWallet();
 
-        router.push(
-          `/wallet/topup/confirm?secret=${client_secret}&topup_id=${topup_id}&amount=${topupAmount}&redirect=/jobs/payment-complete`
-        );
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Payment failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
+    // ← Safe number comparison — no BigInt needed
+    const availableBalanceCents = parseInt(wallet.available_balance ?? '0', 10);
+    // ✅ snake_case
+const requiredCents = feePreview.per_candidate_shift_recruiter_pay_cents ?? 0;
+
+    // Guard: if fee came back invalid, block the action
+    if (isNaN(requiredCents) || requiredCents <= 0) {
+      setError("Invalid cost estimate. Please go back and try again.");
+      return;
     }
-  };
+
+    if (availableBalanceCents < requiredCents) {
+      sessionStorage.setItem('pending_job_payload', JSON.stringify(payload));
+      sessionStorage.setItem('pending_job_mode', mode);
+      router.push('/wallet/topup');
+      return;
+    }
+
+    const finalPayload = { ...payload, status: "OPEN" as JobStatus };
+
+    const res = await onSubmit(finalPayload, requiredCents);
+if (res?.success) {
+  await refreshWallet();          // ← force-fetch updated balance from backend
+  setSuccessJobId(res.jobId ?? '');
+  setShowSuccess(true);
+} else {
+  setError(res?.message ?? 'Failed to create job. Please try again.');
+}
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Failed to create job. Please try again.');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const isUrgent     = mode === "urgent";
   const pageTitle    = isUrgent ? "Request Immediate Staff" : "Create Job Post";
@@ -140,7 +171,6 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
     <>
       <div className="space-y-4 w-full max-w-3xl mx-auto px-4 py-4 bg-white rounded-xl">
 
-        {/* ── Back nav ── */}
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-xl text-gray-600 hover:text-gray-900 transition-colors"
@@ -157,11 +187,10 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
                 ? "bg-orange-50 text-orange-600 border-orange-200"
                 : "bg-green-50 text-green-600 border-green-200"
             }`}>
-              {isUrgent ? "Urgent" : "Regular"}
+              {isUrgent ? "Urgent" : "Normal"}
             </span>
           </div>
 
-          {/* Role + department */}
           <div className="flex flex-wrap items-center gap-3">
             <span className="font-semibold text-gray-900 text-base">{payload.job_title}</span>
             {payload.department && (
@@ -182,7 +211,6 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
             </div>
           </div>
 
-          {/* Meta row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
             {location && (
               <span className="flex items-center gap-1">
@@ -206,7 +234,7 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
           </div>
         </div>
 
-        {/* ── Shift / Job Details Table ── */}
+        {/* ── Shift Details Table ── */}
         {shifts.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h3 className="text-base font-bold text-gray-900 mb-4">{tableTitle}</h3>
@@ -240,37 +268,48 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
           <div className="p-6">
             <h3 className="text-base font-bold text-gray-900 mb-4">Cost Breakdown</h3>
           </div>
-          <div className="divide-y divide-gray-100 px-6">
-            <div className="flex justify-between py-3 text-sm">
-              <span className="text-gray-700 font-medium flex items-center gap-1.5">
-                Hourly Rate
-                <span
-                  className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
-                  title="Hourly pay rate for this role"
-                >?</span>
-              </span>
-              <span className="font-medium text-gray-900">$ {hourlyRate.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between py-3 text-sm">
-              <span className="text-gray-700 font-medium">Hours per Candidate</span>
-              <span className="font-medium text-gray-900">{hoursPerCandidate} hrs</span>
-            </div>
-            <div className="flex justify-between py-3 text-sm">
-              <span className="text-gray-700 font-medium">Cost per Candidate</span>
-              <span className="font-medium text-gray-900">$ {costPerCandidate.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between py-3 text-sm">
-              <span className="text-gray-700 font-medium">Required Candidates</span>
-              <span className="font-medium text-gray-900">x {requiredCandidates}</span>
-            </div>
-          </div>
-          {/* Total — sits flush at bottom inside the card */}
-          <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
-            <span className="font-bold text-gray-900">Total Payable</span>
-            <span className="font-bold text-gray-900 text-xl">
-              $ {totalPayable.toLocaleString()}
-            </span>
-          </div>
+
+          {feeLoading && (
+            <p className="px-6 pb-4 text-sm text-gray-500 animate-pulse">Loading cost estimate...</p>
+          )}
+          {feeError && (
+            <p className="px-6 pb-4 text-sm text-red-600">{feeError}</p>
+          )}
+
+          {!feeLoading && !feeError && (
+            <>
+              <div className="divide-y divide-gray-100 px-6">
+                <div className="flex justify-between py-3 text-sm">
+                  <span className="text-gray-700 font-medium flex items-center gap-1.5">
+                    Hourly Rate
+                    <span
+                      className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
+                      title="Hourly pay rate for this role"
+                    >?</span>
+                  </span>
+                  <span className="font-medium text-gray-900">$ {hourlyRate.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between py-3 text-sm">
+                  <span className="text-gray-700 font-medium">Hours per Candidate</span>
+                  <span className="font-medium text-gray-900">{hoursPerCandidate} hrs</span>
+                </div>
+                <div className="flex justify-between py-3 text-sm">
+                  <span className="text-gray-700 font-medium">Cost per Candidate</span>
+                  <span className="font-medium text-gray-900">$ {costPerCandidate.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between py-3 text-sm">
+                  <span className="text-gray-700 font-medium">Required Candidates</span>
+                  <span className="font-medium text-gray-900">x {requiredCandidates}</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
+                <span className="font-bold text-gray-900">Total Payable</span>
+                <span className="font-bold text-gray-900 text-xl">
+                  $ {totalPayable.toLocaleString()}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {error && (
@@ -292,7 +331,7 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
           <Button
             type="button"
             onClick={handlePayAndHire}
-            disabled={isProcessing}
+            disabled={isProcessing || feeLoading || !!feeError || !feePreview}
             className="flex items-center gap-2 bg-[#f47b20] hover:bg-[#d5650e] text-white px-6 disabled:opacity-60"
           >
             {isProcessing ? "Processing..." : "Pay & Start Hiring"}

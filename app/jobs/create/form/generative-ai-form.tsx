@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuestionsTopic } from "../components/questions-topic";
-import { TopActionBar } from "@/components/custom/top-action-bar";
 import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
-import type { JobCreatePayload } from "@/Interface/job.types";
+import type { JobCreatePayload, } from "@/Interface/job.types";
 
 interface Props {
   pendingPayload?: JobCreatePayload | null;
@@ -64,34 +63,16 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) { // �
       .filter((text) => text.trim() !== "");
 
   const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
-    ...(pendingPayload ?? {}),
-    job_title:    pendingPayload?.job_title ?? "",
-    questions:    convertQuestionsToBackendFormat(topics),
-    status:       withStatusOpen ? "OPEN" : "DRAFT",
-    ai_interview: true,
-  });
-
-  // ── Save as draft (TopActionBar button) ──────────────────────────────────
-  const handleSaveDraft = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const payload = buildFinalPayload(false);
-      console.log("📤 Saving draft:", JSON.stringify(payload, null, 2));
-      const response = await createJob(payload);
-      if (response.success) {
-        setShowSuccess(true);
-      } else {
-        setError(response.message || "Failed to save draft");
-      }
-    } catch (err) {
-      setError((err as Error).message || "An error occurred while saving");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  ...(pendingPayload ?? {}),
+  job_title:        pendingPayload?.job_title        ?? "",
+  job_type:         pendingPayload?.job_type         ?? "casual",
+  job_urgency:      pendingPayload?.job_urgency      ?? "normal",
+  responsibilities: pendingPayload?.responsibilities ?? [],   // ← ADD
+  required_skills:  pendingPayload?.required_skills  ?? [],   // ← ADD (same issue)
+  questions:        convertQuestionsToBackendFormat(topics),
+  status:           withStatusOpen ? "OPEN" : "DRAFT",
+  ai_interview:     true,
+});
   // ── Create / go to summary (primary CTA) ─────────────────────────────────
   const handleCreate = () => {
     const payload = buildFinalPayload(true);
@@ -128,12 +109,6 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) { // �
         </div>
       )}
       <div className="space-y-3 sm:space-y-4 w-full overflow-x-hidden">
-        <TopActionBar
-          title={PAGE_TITLES.CREATE_JOB}
-          onBack={onBack}
-          onPrimary={handleSaveDraft}
-          primaryLabel={isSubmitting ? "Saving..." : BUTTON_LABELS.SAVE_AND_CONTINUE}
-        />
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-w-0">
           <div className="p-4 sm:p-6 lg:p-8">
