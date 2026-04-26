@@ -84,7 +84,7 @@ export function Navbar() {
             </div>
           ) : (
             <div className="w-10 h-10 flex items-center justify-center cursor-pointer" onClick={() => router.push("/")}>
-              <Image src="/img/brand/k-logo.svg" height={36} width={36} alt="KeRaeva" className="object-contain" priority />
+              <Image src="/img/brand/K-logo.svg" height={36} width={36} alt="KeRaeva" className="object-contain" priority />
             </div>
           )}
         </div>
