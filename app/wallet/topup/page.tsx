@@ -96,7 +96,7 @@ function TopupContent() {
               <p className="text-[13px] text-gray-400">
                 Current balance:{' '}
                 <span className="font-semibold text-gray-700">
-                  CA$ {availableBalance.toLocaleString('en-CA')}
+                  $ {availableBalance.toLocaleString('en-CA')}
                 </span>
               </p>
             )}

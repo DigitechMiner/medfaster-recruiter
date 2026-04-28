@@ -45,7 +45,7 @@ function SuccessContent() {
 }, []); // eslint-disable-line
 
   const newBalance = wallet
-    ? `CA$ ${(Number(wallet.available_balance) / 100).toLocaleString("en-CA")}`
+    ? `$ ${(Number(wallet.available_balance) / 100).toLocaleString("en-CA")}`
     : null;
 
   const pendingJob = typeof window !== "undefined"
