@@ -29,7 +29,7 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export async function apiRequest<T>(
+export async function apiRequest<T = any>(
   endpoint: string,
   options: AxiosRequestConfig = {}
 ): Promise<T> {

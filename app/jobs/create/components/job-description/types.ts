@@ -1,4 +1,4 @@
-import type { JobFormData } from "@/Interface/job.types";
+import type { JobFormData } from "@/Interface/recruiter.types";
 
 export interface JobDescriptionProps {
   formData: JobFormData;

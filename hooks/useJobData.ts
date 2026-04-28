@@ -3,12 +3,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useJobsStore } from '@/stores/jobs-store';
-import type { JobBackendResponse, JobsListResponse } from '@/Interface/job.types';
+import type { JobBackendResponse, JobsListResponse } from '@/Interface/recruiter.types';
 
-import type { JobListItem } from '@/Interface/job.types';
+import type { JobListItem } from '@/Interface/recruiter.types';
 import { CandidateDetailsResponse } from '@/Interface/recruiter.types';
 import { getCandidateDetails } from '@/stores/api/recruiter-candidates-api';
 import { getJobApplications, JobApplicationListResponse } from '@/stores/api/recruiter-job-api';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/stores/api/api-client';
+import { ENDPOINTS } from '@/stores/api/api-endpoints';
+import { JobDetailHeaderVM } from '@/Interface/view-models';
+import { fromJobBackendResponse } from '@/lib/transforms/job-detail.transform';
 
 
 // ── Full status union matching the actual API ─────────────────────────────────
@@ -177,4 +182,35 @@ export function useJobId(): string | null {
   const jobId  = params?.id;
   if (!jobId) return null;
   return typeof jobId === 'string' ? jobId : String(jobId);
+}
+
+// ─── useJobDetail (transformed — use this in JobDetailHeader) ─────────────────
+export function useJobDetail(jobId: string | null) {
+  // Fetch job
+  const { data: jobData, isLoading: jobLoading } = useQuery({
+    queryKey: ["job-detail", jobId],
+    queryFn:  () => apiRequest<{ data: { job: JobBackendResponse } }>(
+      ENDPOINTS.JOBS_DETAIL(jobId!), { method: "GET" }
+    ),
+    enabled: !!jobId,
+  });
+
+  // Fetch specialization map — cached forever in session (metadata never changes)
+  const { data: specData } = useQuery({
+    queryKey: ["common-specializations"],
+    queryFn:  () => apiRequest<{ data: { id: string; name: string }[] }>(
+      ENDPOINTS.COMMON_SPECIALIZATIONS, { method: "GET" }
+    ),
+    staleTime: Infinity,
+  });
+
+  const specializationMap: Record<string, string> = Object.fromEntries(
+    (specData?.data ?? []).map((s) => [s.id, s.name])
+  );
+
+  const header: JobDetailHeaderVM | null = jobData?.data?.job
+    ? fromJobBackendResponse(jobData.data.job, specializationMap)
+    : null;
+
+  return { header, isLoading: jobLoading };
 }

@@ -1,4 +1,4 @@
-"use client";
+// No "use client" directive ✅
 
 import { axiosInstance } from "./api-client";
 import { ENDPOINTS } from "./api-endpoints";
@@ -13,7 +13,7 @@ export async function fetchChatConversations() {
 
 export async function fetchChatMessages(conversationId: string) {
   const res = await axiosInstance.get(
-    ENDPOINTS.CHAT_CONVERSATION_MESSAGES(conversationId)
+    ENDPOINTS.CHAT_MESSAGES(conversationId)   // ✅ was CHAT_CONVERSATIONS
   );
   return extractData(res.data);
 }
@@ -26,7 +26,6 @@ export async function sendChatMessage(conversationId: string, text: string) {
   return extractData(res.data);
 }
 
-// PUT /chat/message/:messageId
 export async function editChatMessage(messageId: string, message: string) {
   const res = await axiosInstance.put(
     `${ENDPOINTS.CHAT_SEND_MESSAGE}/${messageId}`,
@@ -35,7 +34,6 @@ export async function editChatMessage(messageId: string, message: string) {
   return extractData(res.data);
 }
 
-// DELETE /chat/message/:messageId
 export async function deleteChatMessage(messageId: string) {
   const res = await axiosInstance.delete(
     `${ENDPOINTS.CHAT_SEND_MESSAGE}/${messageId}`
@@ -43,12 +41,11 @@ export async function deleteChatMessage(messageId: string) {
   return extractData(res.data);
 }
 
-// POST /chat/conversation - Create or get conversation
 export async function createOrGetChatConversation(candidateId: string) {
   const profile = await getRecruiterProfile();
   const res = await axiosInstance.post(ENDPOINTS.CHAT_CREATE_OR_GET, {
     recruiterId: profile.id,
-    candidateId: candidateId,
+    candidateId,
   });
   return extractData(res.data);
 }

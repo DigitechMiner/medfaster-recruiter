@@ -3,7 +3,7 @@
 import React from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { JobBackendResponse } from "@/Interface/job.types";
+import type { JobBackendResponse } from "@/Interface/recruiter.types";
 
 interface JobDetailHeaderProps {
   job: JobBackendResponse;

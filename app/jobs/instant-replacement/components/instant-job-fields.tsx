@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { provinces } from "@/utils/constant/metadata";
-import type { JobFormData } from "@/Interface/job.types";
+import type { InstantJobFormData, Province } from "@/Interface/recruiter.types";
 
 const NEIGHBOURHOOD_TYPES = [
   { value: "independent_living", label: "Independent Living" },
@@ -19,14 +19,6 @@ const NEIGHBOURHOOD_TYPES = [
   { value: "complex_dementia_care", label: "Complex Dementia Care" },
   { value: "adult_mental_health", label: "Adult Mental Health" },
 ];
-
-interface InstantJobFormData extends JobFormData {
-  numberOfHires?: string;
-  amountPerHire?: string;
-  neighborhoodName?: string;
-  neighborhoodType?: string;
-  directNumber?: string;
-}
 
 interface InstantJobFieldsProps {
   formData: InstantJobFormData;
@@ -150,7 +142,7 @@ export function InstantJobFields({
           </Label>
           <Select
             value={formData.province || ""}
-            onValueChange={(value) => updateFormData({ province: value })}
+            onValueChange={(value) => updateFormData({ province: value as Province })}
           >
             <SelectTrigger id="province" className="h-11 border-[#F4781B]">
               <SelectValue placeholder="Select Province" />

@@ -17,8 +17,9 @@ import type {
   JobUpdateResponse,
   JobDeleteResponse,
   JobCreatePayload,
-  JobUpdatePayload,
-} from '@/Interface/job.types';
+  JobUpdatePayload
+ } from '@/Interface/recruiter.types'
+
 
 interface JobsState {
   hasJobs: boolean;

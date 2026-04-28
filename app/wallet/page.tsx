@@ -89,9 +89,10 @@ const walletLoading = useWalletStore((s) => s.isLoading);
   const [activeCard, setActiveCard]     = useState<string>('total');
   
   // Fetch wallet once — uses cache if Navbar already loaded it
-  useEffect(() => {
-  useWalletStore.getState().refreshWallet();
-}, []);
+  const refreshWallet = useWalletStore((s) => s.refreshWallet);
+useEffect(() => {
+  refreshWallet();
+}, [refreshWallet]);
 
   // Fetch transactions on tab / page / perPage change
   useEffect(() => {

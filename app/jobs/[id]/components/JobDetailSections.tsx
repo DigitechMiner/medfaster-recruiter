@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { JobBackendResponse } from "@/Interface/job.types";
+import type { JobBackendResponse } from "@/Interface/recruiter.types";
 import { Clock, MapPin, Briefcase, Timer, DollarSign, Building2 } from "lucide-react";
 import { Paragraph, ResponsiveParagraph } from "@/components/custom/paragraph";
 import { Heading } from "@/components/custom/heading";

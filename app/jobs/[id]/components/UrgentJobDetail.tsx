@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutGrid, List, FileText } from "lucide-react";
-import type { JobBackendResponse } from "@/Interface/job.types";
+import type { JobBackendResponse } from "@/Interface/recruiter.types";
 import { CandidatesGridView } from "./CandidatesGridView";
 import { CandidatesListView } from "./CandidatesListView";
 import { JobDescriptionModal, useJobDescriptionModal } from "./JobDescriptionModal";

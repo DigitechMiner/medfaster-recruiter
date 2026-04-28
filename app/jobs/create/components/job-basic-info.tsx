@@ -149,9 +149,13 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
                 <Label className="text-sm font-medium text-gray-700">
                   Do you admire to have Interview? <span className="text-red-500">*</span>
                 </Label>
-                <RadioGroup
-                  value={formData.inPersonInterview}
-                  onValueChange={(value) => updateFormData({ inPersonInterview: value })}
+               <RadioGroup
+  value={
+    formData.inPersonInterview === true  ? "Yes" :
+    formData.inPersonInterview === false ? "No"  :
+    (formData.inPersonInterview as string | undefined)
+  }
+  onValueChange={(value) => updateFormData({ inPersonInterview: value })}
                   className="flex gap-4 pt-2"
                 >
                   {["Yes", "No"].map((opt) => (

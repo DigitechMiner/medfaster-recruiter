@@ -10,7 +10,7 @@ import { QuestionsTopic } from "../create/components/questions-topic";
 import { Topic } from "../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS } from "../constants/messages";
 import { LocationFields } from "../create/components/location-fields";
-import type { JobFormData } from "@/Interface/job.types";
+import type { JobFormData } from "@/Interface/recruiter.types";
 
 interface JobFormProps {
   mode: "create" | "edit";

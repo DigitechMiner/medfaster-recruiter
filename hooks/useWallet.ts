@@ -1,94 +1,21 @@
-'use client';
+// src/hooks/useWallet.ts — replace useWallet entirely
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  getWallet,
-  getWalletTopups,
-  getWalletTransactions,
-  initiateWalletTopup,
-  WalletData,
-  WalletTransaction,
-  WalletTopup,
-  PaginatedItems,
-} from '@/stores/api/recruiter-wallet-api';
+import { useEffect } from "react";
+import { useWalletStore } from "@/stores/walletStore";
 
 export function useWallet() {
-  const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const wallet     = useWalletStore((s) => s.wallet);
+  const isLoading  = useWalletStore((s) => s.isLoading);
+  const refresh    = useWalletStore((s) => s.refreshWallet);
 
-  const refetch = useCallback(() => {
-    setIsLoading(true);
-    getWallet()
-      .then(setWallet)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load wallet'))
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => {
+    // Only fetch if not already loaded
+    if (!wallet && !isLoading) {
+      refresh();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const balanceCAD = wallet ? Number(wallet.available_balance) / 100 : 0;
 
-  return { wallet, balanceCAD, isLoading, error, refetch };
-}
-
-export function useWalletTransactions(params?: {
-  page?: number;
-  limit?: number;
-  offset?: number;
-}) {
-  const [data, setData] = useState<PaginatedItems<WalletTransaction> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setIsLoading(true);
-    getWalletTransactions(params)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load transactions'))
-      .finally(() => setIsLoading(false));
-  }, [params?.page, params?.limit]);
-
-  return { data, isLoading, error };
-}
-
-export function useWalletTopups(params?: {
-  page?: number;
-  limit?: number;
-  offset?: number;
-}) {
-  const [data, setData] = useState<PaginatedItems<WalletTopup> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setIsLoading(true);
-    getWalletTopups(params)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load topups'))
-      .finally(() => setIsLoading(false));
-  }, [params?.page, params?.limit]);
-
-  return { data, isLoading, error };
-}
-
-export function useInitiateTopup() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const initiate = async (amount: number, idempotencyKey?: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      return await initiateWalletTopup(amount, idempotencyKey);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to initiate topup';
-      setError(message);
-      throw e;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return { initiate, isLoading, error };
+  return { wallet, balanceCAD, isLoading, refetch: refresh };
 }

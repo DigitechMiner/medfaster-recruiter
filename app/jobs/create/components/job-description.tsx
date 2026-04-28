@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import { JobDescriptionInput } from "@/stores/api/job-description.api";
-import type { JobFormData } from "@/Interface/job.types";
+import type { JobFormData } from "@/Interface/recruiter.types";
 import { Input } from "@/components/ui/input";
 import { AIDescriptionModal } from "./job-description/ai-modal";
 
@@ -199,7 +199,9 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
     department:         formData.department,  // ✅ already "nursing"
     jobType:            formData.jobType || "Full Time",
     location:           formData.location || undefined,
-    payRange:           `$${formData.payRange[0]} - $${formData.payRange[1]}`,
+    payRange: Array.isArray(formData.payRange)
+  ? `$${formData.payRange[0]} - $${formData.payRange[1]}`
+  : "$0 - $0",
     experienceRequired: formData.experience || undefined,
     qualification:      formData.qualification?.join(", ") || undefined,
     specialization:     formData.specialization?.join(", ") || undefined,

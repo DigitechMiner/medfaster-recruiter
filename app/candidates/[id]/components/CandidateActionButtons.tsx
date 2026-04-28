@@ -2,12 +2,12 @@
 "use client";
 
 import { Download } from "lucide-react";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
+import type { CandidateDetailProfile } from '@/Interface/recruiter.types';
 
 interface Props {
-  c: CandidateListItem;
+  c: CandidateDetailProfile;
   actionType: "hire" | "schedule" | "invite" | "shortlist";
-  onAction: (c: CandidateListItem) => void;
+  onAction: (c: CandidateDetailProfile) => void;
 }
 
 export function CandidateActionButtons({ c, actionType, onAction }: Props) {

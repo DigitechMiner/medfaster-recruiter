@@ -1,38 +1,51 @@
-// client-layout.tsx
 "use client";
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useState } from "react";                                        // ← add
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // ← add
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";      // ← add
 import GoogleOAuthProviderWrapper from "@/provider/GoogleOAuthProvider";
 import { ToastContainer } from "react-toastify";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
-import { useMetadataStore } from "@/stores/metadataStore";   // ← add
+import { useMetadataStore } from "@/stores/metadataStore";
 import { Navbar } from "@/components/global/navbar";
 import { Footer } from "@/components/global/footer";
 
 const NO_NAVBAR_ROUTES = ["/registration", "/login", "/coming-soon"];
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(                                        // ← add
+    () => new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 60 * 1000,
+          retry: 1,
+          refetchOnWindowFocus: false,
+        },
+      },
+    })
+  );
+
   const loadRecruiterProfile = useAuthStore((state) => state.loadRecruiterProfile);
   const isExpanded           = useSidebarStore((s) => s.isExpanded);
-  const loadAll              = useMetadataStore((s) => s.loadAll); // ← add
+  const loadAll              = useMetadataStore((s) => s.loadAll);
   const pathname             = usePathname();
   const showChrome           = !NO_NAVBAR_ROUTES.includes(pathname);
 
   useEffect(() => {
-    // Load profile + metadata in parallel — neither blocks the other
     Promise.all([
       loadRecruiterProfile().catch((error) => {
         useAuthStore.setState({ recruiterProfile: null, recruiterDocuments: null });
         console.log("User not authenticated:", error);
       }),
-      loadAll(), // ← departments, jobTitles, specializations, metadata — once
+      loadAll(),
     ]);
   }, [loadRecruiterProfile, loadAll]);
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>                           {/* ← wrap */}
       <GoogleOAuthProviderWrapper>
         {showChrome && <Navbar />}
         <div
@@ -57,6 +70,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         pauseOnHover
         theme="light"
       />
-    </>
+
+      {process.env.NODE_ENV === "development" && (                       
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
+    </QueryClientProvider>                                               
   );
 }

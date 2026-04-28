@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { BriefcaseBusiness, Users, UserCheck, Layers } from "lucide-react"; // ✅ both from same hook file
-import type { CandidateListItem } from '@/Interface/recruiter.types';          // ✅ correct import
+import { fromCandidateListItem } from "@/lib/transforms/candidate-list.transform";         // ✅ correct import
 import { COLUMNS, KpiView } from "./candidates-board/constants";
 import { MetricCard, MainViewHeader } from "./candidates-board/ui";
 import { HiredCandidatesSection } from "./candidates-board/HiredCandidatesSection";
@@ -11,6 +11,7 @@ import { InHouseCandidatesSection } from "./candidates-board/InHouseCandidatesSe
 import { ActiveCandidatesSection } from "./candidates-board/ActiveCandidatesSection";
 import { CandidatesPoolSection } from "./candidates-board/CandidatesPoolSection";
 import { useCandidatesList, useCandidateSummary } from "@/hooks/useRecruiterData";
+import { CandidateCardVM } from "@/Interface/view-models";
 
 export const CandidatesBoard = () => {
   const [view,           setView]           = useState<"grid" | "list">("grid");
@@ -23,7 +24,7 @@ export const CandidatesBoard = () => {
   const { summary }                = useCandidateSummary();
 
   // ✅ fixed: data.data.candidates
-  const candidates: CandidateListItem[] = data?.data?.candidates ?? [];
+  const candidates: CandidateCardVM[] = (data?.data?.candidates ?? []).map(fromCandidateListItem);
 
   const chunkSize = Math.ceil(candidates.length / 4) || 1;
   const columnCandidates = COLUMNS.map((_, i) =>
@@ -32,12 +33,10 @@ export const CandidatesBoard = () => {
 
   const filtered = columnCandidates.map((group) =>
     group.filter((c) =>
-      search
-        ? `${c.first_name} ${c.last_name} ${
-            Array.isArray(c.specialty) ? c.specialty.join(" ") : (c.specialty ?? "")
-          }`.toLowerCase().includes(search.toLowerCase())
-        : true
-    )
+  `${c.full_name} ${c.designation} ${c.department}`
+    .toLowerCase()
+    .includes(search.toLowerCase())
+)
   );
 
   const toggleKpi = (kpi: KpiView) => {
@@ -92,32 +91,26 @@ export const CandidatesBoard = () => {
           <div className="text-center py-12 text-red-400 text-sm">{error}</div>
         )}
 
-        {!isLoading && !error && (
-          <>
-            {(activeKpi === "candidatesPool" || activeKpi === "none") && candidates.length > 0 && (
-              <CandidatesPoolSection
-                view={view}
-                activeListTab={activeListTab}
-                setActiveListTab={setActiveListTab}
-                expandedColumn={expandedColumn}
-                setExpandedColumn={setExpandedColumn}
-                filtered={filtered}
-                activeKpi={activeKpi}
-                setActiveKpi={setActiveKpi}
-              />
-            )}
-            {(activeKpi === "none" || activeKpi === "candidatesPool") && candidates.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-400 text-sm gap-2">
-                <Users size={36} className="text-gray-300" />
-                <p className="font-medium text-gray-500">No candidates found</p>
-                <p>Candidates will appear here once they apply or are added.</p>
-              </div>
-            )}
-            {activeKpi === "hired"   && <HiredCandidatesSection candidates={candidates} />}
-            {activeKpi === "inHouse" && <InHouseCandidatesSection />}
-            {activeKpi === "active"  && <ActiveCandidatesSection />}
-          </>
-        )}
+       {!isLoading && !error && (
+  <>
+    {/* ✅ Pool section always renders — CandidateColumn has its own mock data */}
+    {(activeKpi === "candidatesPool" || activeKpi === "none") && (
+      <CandidatesPoolSection
+        view={view}
+        activeListTab={activeListTab}
+        setActiveListTab={setActiveListTab}
+        expandedColumn={expandedColumn}
+        setExpandedColumn={setExpandedColumn}
+        filtered={filtered}
+        activeKpi={activeKpi}
+        setActiveKpi={setActiveKpi}
+      />
+    )}
+    {activeKpi === "hired"   && <HiredCandidatesSection candidates={candidates} />}
+    {activeKpi === "inHouse" && <InHouseCandidatesSection />}
+    {activeKpi === "active"  && <ActiveCandidatesSection />}
+  </>
+)}
       </div>
     </div>
   );

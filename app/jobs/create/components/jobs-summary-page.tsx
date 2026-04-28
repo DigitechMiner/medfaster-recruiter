@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import type { JobCreatePayload, JobStatus } from "@/Interface/job.types";
+import type { JobCreatePayload, JobStatus } from "@/Interface/recruiter.types";
 import { getWallet } from '@/stores/api/recruiter-wallet-api';
 import { getJobFeePreview, type JobFeePreview } from '@/stores/api/recruiter-job-api';
 import { convertJobTitleToBackend } from "@/utils/constant/metadata";

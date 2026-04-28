@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { JobFormData } from "@/Interface/job.types";
+import type { JobFormData, Province } from "@/Interface/recruiter.types";
 import { provinces } from "@/utils/constant/metadata"; // ✅ ADD
 
 interface LocationFieldsProps {
@@ -60,7 +60,7 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
           </Label>
           <Select
             value={formData.province || ""}
-            onValueChange={(value) => updateFormData({ province: value })}
+            onValueChange={(value) => updateFormData({ province: value as Province })}
           >
             <SelectTrigger id="province" className="h-11 border-[#F4781B]">
               <SelectValue placeholder="Select Province" />

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
 import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
-import type { JobCreatePayload } from "@/Interface/job.types";
+import type { JobCreatePayload } from "@/Interface/recruiter.types";
 
 function PaymentCompleteContent() {
   const router = useRouter();

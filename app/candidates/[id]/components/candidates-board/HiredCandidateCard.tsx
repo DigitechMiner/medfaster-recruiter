@@ -1,32 +1,28 @@
-"use client";
+'use client';
 
 import { Download, MapPin, Briefcase, Star } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
 import ScoreCard from "@/components/card/scorecard";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
 import { JobTypePill } from "./ui";
-import { CandidateActionModal } from "../CandidateActionModal";
+import type { CandidateCardVM } from "@/Interface/view-models";
 
 export function HiredCandidateCard({ c, leftTag, rightTag }: {
-  c: CandidateListItem;
-  leftTag?: string;
+  c:         CandidateCardVM;
+  leftTag?:  string;
   rightTag?: string;
 }) {
   const router = useRouter();
-  const [showModal, setShowModal] = useState(false);
+  const [_showModal, setShowModal] = useState(false);
 
-  const name       = c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim();
-  const role       = c.specialty?.[0] ?? c.medical_industry ?? "Registered Nurse";
-  const score      = c.highest_job_interview_score ?? c.highest_interview_score ?? 40;
   const isAssigned = (leftTag ?? "Assigned").toLowerCase().includes("assigned");
 
   return (
     <>
       <BaseCard
-        onClick={() => router.push(`/candidates/${c.id}`)}
+        onClick={() => router.push(c.href)}
         className="flex flex-col gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer"
       >
         <CardHeader className="flex items-center justify-between gap-1">
@@ -44,20 +40,26 @@ export function HiredCandidateCard({ c, leftTag, rightTag }: {
 
         <CardIdentity className="flex items-start gap-2">
           <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
-            <Image src={c.profile_image_url || "/svg/Photo.svg"} alt={name} width={40} height={40} className="object-cover w-full h-full" />
+            {c.profile_image_url ? (
+              <Image src={c.profile_image_url} alt={c.full_name} width={40} height={40} className="object-cover w-full h-full" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-sm font-bold text-[#F4781B]">{c.initials}</div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-900 leading-tight">{name}</p>
-            <p className="text-[11px] text-[#F4781B] font-medium mt-0.5">{role}</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">{c.full_name}</p>
+            <p className="text-[11px] text-[#F4781B] font-medium mt-0.5">{c.designation}</p>
             <CardStats className="flex items-center gap-2 text-[10px] text-gray-500 flex-wrap mt-1">
-              <span className="flex items-center gap-1"><Briefcase size={10} className="text-gray-400" /> 5+ yrs</span>
+              <span className="flex items-center gap-1"><Briefcase size={10} className="text-gray-400" /> {c.experience}</span>
               <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-0.5"><MapPin size={9} className="text-green-500" /> 25km</span>
+              <span className="flex items-center gap-0.5"><MapPin size={9} className="text-green-500" /> {c.distance}</span>
               <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-0.5"><Star size={9} className="fill-yellow-400 text-yellow-400" /> 4.8/5</span>
+              <span className="flex items-center gap-0.5"><Star size={9} className="fill-yellow-400 text-yellow-400" /> {c.rating ? `${c.rating}/5` : 'N/A'}</span>
             </CardStats>
           </div>
-          <ScoreCard category="good" score={score} maxScore={100} />
+          {c.interview_score !== null && (
+            <ScoreCard category="good" score={c.interview_score} maxScore={100} />
+          )}
         </CardIdentity>
 
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -73,9 +75,9 @@ export function HiredCandidateCard({ c, leftTag, rightTag }: {
         </div>
       </BaseCard>
 
-      {showModal && (
+      {/* {showModal && (
         <CandidateActionModal actionType="hire" candidate={c} onClose={() => setShowModal(false)} />
-      )}
+      )} */}
     </>
   );
 }

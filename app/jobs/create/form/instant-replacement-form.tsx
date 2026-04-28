@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
-import { JobCreatePayload, JobFormData,} from "@/Interface/job.types";
+import { InstantJobFormData, JobCreatePayload, Province,} from "@/Interface/recruiter.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
 import { SuccessModal } from "@/components/modal";
@@ -14,20 +14,7 @@ interface Props {
   onBack?: () => void;
 }
 
-interface InstantJobFormData extends JobFormData {
-  numberOfHires?: string;
-  amountPerHire?: string;
-  fromDate?: Date;
-  tillDate?: Date;
-  neighborhoodName?: string;
-  neighborhoodType?: string;
-  directNumber?: string;
-  streetAddress?: string;
-  postalCode?: string;
-  province?: string;
-  city?: string;
-  country?: string;
-}
+
 
 const formatDateForBackend = (date?: Date): string | undefined => {
   if (!date) return undefined;
@@ -58,6 +45,8 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
     inPersonInterview: "Yes",
     physicalInterview: "Yes",
     description: "",
+      responsibilities:  [],    // ✅ ADD
+  required_skills:   [],
     status: "DRAFT",
     numberOfHires: "",
     amountPerHire: "",
@@ -70,7 +59,7 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
     directNumber: "",
     streetAddress: "",
     postalCode: "",
-    province: "ontario",
+    province: "ontario" as Province,
     city: "",
     country: "Canada",
   });

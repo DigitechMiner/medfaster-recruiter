@@ -62,9 +62,8 @@ function TopupContent() {
       setError(null);
       const { client_secret, topup_id } = await initiateWalletTopup(numericAmount);
       // encodeURIComponent prevents any special chars in client_secret from breaking the URL
-      router.push(
-        `/wallet/topup/confirm?secret=${encodeURIComponent(client_secret)}&topup_id=${topup_id}&amount=${numericAmount}`
-      );
+     router.push(
+  `/wallet/topup/confirm?secret=${encodeURIComponent(client_secret)}&topup_id=${topup_id}&amount=${numericAmount}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to initiate topup');
       setIsLoading(false);

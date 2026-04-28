@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { JobCreatePayload, JobFormData } from "@/Interface/job.types";
+import type { JobCreatePayload, JobFormData } from "@/Interface/recruiter.types";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
 import { BUTTON_LABELS } from "../../constants/messages";
 import { JobForm } from "../../components/JobForm";
@@ -32,7 +32,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   const [formData, setFormData] = useState<JobFormData>({
     ...DEFAULT_JOB_FORM_DATA,
     urgency:           urgencyMode,
-    aiInterview:       "Yes",
+    aiInterview:       true,
     inPersonInterview: "Yes",
     fromTime:          "07:30",
     toTime:            "11:30",
@@ -59,7 +59,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
             ?.filter((s) => s?.trim())
             .map(convertSpecializationToBackend)
             .filter((s) => Object.values(metadata.specialization_mapping).includes(s)) ?? [],
-          ai_interview: data.aiInterview === "Yes",
+          ai_interview: data.aiInterview === true,
           questions:    data.questions?.filter(Boolean) ?? [],
         }
       : {
@@ -83,9 +83,9 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       city:                 data.city                || undefined,
 
       // ✅ Only send if actually set — never send null to backend
-      ...(data.payRange?.[0]
-        ? { pay_per_hour_cents: Math.round(data.payRange[0] * 100) }
-        : {}),
+      ...(Array.isArray(data.payRange) && data.payRange[0]
+  ? { pay_per_hour_cents: Math.round(Number(data.payRange[0]) * 100) }
+  : {}),
 
       job_urgency:          urgencyMode,
       description:          data.description         || undefined,
