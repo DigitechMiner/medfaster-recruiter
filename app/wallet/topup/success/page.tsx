@@ -79,7 +79,7 @@ function SuccessContent() {
           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Payment Successful</h2>
           <p className="text-sm text-gray-500 mb-2">
-            <span className="font-semibold text-gray-800">CA$ {amount}</span> has been added.
+            <span className="font-semibold text-gray-800">$ {amount}</span> has been added.
           </p>
 
           <p className="text-xs text-gray-400 mb-6">
