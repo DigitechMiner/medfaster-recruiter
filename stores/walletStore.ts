@@ -25,4 +25,4 @@ export const useWalletStore = create<WalletStore>((set) => ({
 }));
 
 export const fmtBalance = (cents: number) =>
-  `CA$ ${(cents / 100).toLocaleString('en-CA', { minimumFractionDigits: 0 })}`;
+  `$ ${(cents / 100).toLocaleString('en-CA', { minimumFractionDigits: 0 })}`;

@@ -38,7 +38,7 @@ export default function TransactionItem({ transaction: tx }: { transaction: Tran
         <p className="text-xs text-gray-400 mt-0.5">{date}</p>
       </div>
       <p className={`text-sm font-semibold ml-4 shrink-0 ${isDebit ? 'text-red-500' : 'text-green-500'}`}>
-        CA$ {formatted}/-
+        $ {formatted}/-
       </p>
     </div>
   );
