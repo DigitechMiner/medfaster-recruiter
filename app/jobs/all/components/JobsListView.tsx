@@ -3,8 +3,7 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { JobStatusBadge } from './JobStatusBadge';
-import type { JobListItem } from '@/Interface/job.types';
-
+import type { JobListItem } from '@/Interface/recruiter.types';
 
 const formatDate = (d?: string | null) => {
   if (!d) return '—';
@@ -51,6 +50,7 @@ export const JobsListView: React.FC<Props> = ({ jobs }) => {
         </thead>
         <tbody>
           {jobs.map((job) => {
+            if (process.env.NODE_ENV === 'development') console.log('JOB FIELDS:', job);
             const urgency  = job.job_urgency === 'instant' ? 'Urgent' : 'Regular';
             const ai       = getInterviewLabel(job);
 

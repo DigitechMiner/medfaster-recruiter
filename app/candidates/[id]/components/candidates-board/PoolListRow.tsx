@@ -4,42 +4,45 @@ import { Calendar, MapPin, Star, Zap } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
-import { CandidateActionModal } from "../CandidateActionModal";
+import type { CandidateCardVM } from '@/Interface/view-models';
 
 type ActionType = "shortlist" | "hire" | "schedule" | "invite";
 
-export function PoolListRow({ c, actionType }: { c: CandidateListItem; actionType: ActionType }) {
-  const router = useRouter();
-  const [showModal, setShowModal] = useState(false);
+export function PoolListRow({ c, actionType }: { c: CandidateCardVM; actionType: ActionType }) {
+  const router     = useRouter();
+  const [_showModal, setShowModal] = useState(false);
 
-  const name  = c.full_name || `${c.first_name} ${c.last_name ?? ""}`.trim();
-  const role  = c.specialty?.[0] ?? c.medical_industry ?? "Healthcare Professional";
-  const score = c.highest_job_interview_score ?? c.highest_interview_score ?? 0;
+  // ✅ all fields from CandidateCardVM — no CandidateListItem fields
+  const score = c.interview_score ?? 0;
 
   return (
     <>
       <tr
-        onClick={() => router.push(`/candidates/${c.id}`)}
+        onClick={() => router.push(c.href)}
         className="border-b border-gray-100 hover:bg-orange-50/40 cursor-pointer transition-colors"
       >
         <td className="py-3 px-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
-              <Image src={c.profile_image_url || "/svg/Photo.svg"} alt={name} width={36} height={36} className="object-cover w-full h-full" />
+              <Image
+                src={c.profile_image_url || "/svg/Photo.svg"}
+                alt={c.full_name}
+                width={36} height={36}
+                className="object-cover w-full h-full"
+              />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">{name}</p>
-              <p className="text-[11px] text-[#F4781B]">{role}</p>
+              <p className="text-sm font-bold text-gray-900">{c.full_name}</p>
+              <p className="text-[11px] text-[#F4781B]">{c.designation}</p>
             </div>
           </div>
         </td>
-        <td className="py-3 px-4 text-xs text-gray-600">{c.medical_industry ?? "Nursing"}</td>
-        <td className="py-3 px-4 text-xs text-gray-600">{role}</td>
-        <td className="py-3 px-4 text-xs text-gray-600">5 to 7 Years</td>
+        <td className="py-3 px-4 text-xs text-gray-600">{c.department}</td>
+        <td className="py-3 px-4 text-xs text-gray-600">{c.designation}</td>
+        <td className="py-3 px-4 text-xs text-gray-600">{c.experience}</td>
         <td className="py-3 px-4">
           <span className="flex items-center gap-1 text-xs text-gray-500">
-            <MapPin size={11} className="text-green-500" /> 25km
+            <MapPin size={11} className="text-green-500" /> {c.distance}
           </span>
         </td>
         <td className="py-3 px-4 text-xs font-semibold text-gray-800">
@@ -47,7 +50,8 @@ export function PoolListRow({ c, actionType }: { c: CandidateListItem; actionTyp
         </td>
         <td className="py-3 px-4">
           <span className="flex items-center gap-1 text-xs text-yellow-600">
-            <Star size={11} className="fill-yellow-400 text-yellow-400" /> 4.8/5
+            <Star size={11} className="fill-yellow-400 text-yellow-400" />
+            {c.rating ? `${c.rating}/5` : "—"}
           </span>
         </td>
         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
@@ -70,10 +74,10 @@ export function PoolListRow({ c, actionType }: { c: CandidateListItem; actionTyp
           </button>
         </td>
       </tr>
-
+{/* 
       {showModal && (
         <CandidateActionModal actionType={actionType} candidate={c} onClose={() => setShowModal(false)} />
-      )}
+      )} */}
     </>
   );
 }

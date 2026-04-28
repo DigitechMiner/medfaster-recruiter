@@ -33,12 +33,12 @@ export const getJobsCalendar = (): Promise<JobsCalendarResponse> =>
 export const getCandidatesList = (
   params?: CandidatesListParams
 ): Promise<CandidatesListResponse> =>
-  getJson<CandidatesListResponse>(ENDPOINTS.CANDIDATES_LIST_V1, params);
+  getJson<CandidatesListResponse>(ENDPOINTS.CANDIDATES_LIST, params);
 
 export const getCandidateDetails = (
   candidateId: string
 ): Promise<CandidateDetailsResponse> =>
-  getJson<CandidateDetailsResponse>(ENDPOINTS.CANDIDATE_DETAIL_V1(candidateId));
+  getJson<CandidateDetailsResponse>(ENDPOINTS.CANDIDATE_DETAIL(candidateId));
 
 export const inviteCandidate = (
   payload: InviteCandidatePayload

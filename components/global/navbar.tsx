@@ -179,11 +179,11 @@ export function Navbar() {
 
         <button
           onClick={() => router.push("/wallet")}
-          className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 h-9 hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 rounded-lg h-9 hover:bg-gray-50 transition-colors"
         >
           <Wallet size={16} className="text-gray-400" />
           <WalletBalance />
-          <span className="text-sm text-[#F4781B] font-semibold ml-1">Top Up</span>
+          <span className="text-sm text-[#F4781B] bg-orange-100 font-semibold p-1.5 rounded-lg">Recharge Wallet</span>
         </button>
 
         {/* ── Bell button — toggles NotificationPanel ── */}

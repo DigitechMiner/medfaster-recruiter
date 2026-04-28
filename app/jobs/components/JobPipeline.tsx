@@ -3,15 +3,15 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { StatusSection, StatusTable } from "./ui";
+import { StatusSection, StatusSectionProps, StatusTable } from "./ui";
 import { STATUS_SECTIONS } from "../constants/jobs";
-import { Job } from "@/Interface/job.types";
-import type { JobListItem } from "@/Interface/job.types";
+import type { JobListItem } from "@/Interface/recruiter.types";
 import type { JobApplicationListResponse } from "@/stores/api/recruiter-job-api";
 import {
   INTERVIEWING_DUMMY,
   HIRED_DUMMY,
 } from "../constants/jobs";
+import type { JobMock } from "../constants/jobs";
 
 type RawApplication = JobApplicationListResponse["applications"][number];
 
@@ -38,7 +38,7 @@ export const JobPipelinePanel: React.FC<JobPipelinePanelProps> = ({ job, applica
       return a.job_id === job.id || a.jobId === job.id;
     });
 
-    const applied: Job[] = jobApps.map((app: RawApplication) => {
+    const applied: JobMock[] = jobApps.map((app: RawApplication) => {
       const a = app as Record<string, unknown>;
       const candidate = (a.candidate ?? a.candidateProfile ?? {}) as Record<string, unknown>;
       const workExps = (candidate.work_experiences ?? candidate.workExperiences ?? []) as Record<string, unknown>[];
@@ -70,7 +70,7 @@ export const JobPipelinePanel: React.FC<JobPipelinePanelProps> = ({ job, applica
     return { applied, interviewing: INTERVIEWING_DUMMY, hired: HIRED_DUMMY };
   }, [applicationsData, job.id]);
 
-  const handleCandidateClick = (candidate: Job) => {
+  const handleCandidateClick = (candidate: JobMock) => {
     if (!candidate.candidateId || !candidate.id) return;
     router.push(`/candidates/${candidate.candidateId}?job_application_id=${candidate.id}`);
   };

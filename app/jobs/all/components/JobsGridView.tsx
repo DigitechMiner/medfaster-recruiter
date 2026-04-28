@@ -6,7 +6,7 @@ import { MapPin, BriefcaseBusiness, Clock, User } from 'lucide-react';
 import { JobStatusBadge } from './JobStatusBadge';
 import { useAuthStore } from '@/stores/authStore';
 import { getBackendImageUrl } from '@/stores/api/api-client';
-import type { JobListItem } from '@/Interface/job.types';
+import type { JobListItem } from '@/Interface/recruiter.types';
 
 const formatJobType = (raw?: string | null) => {
   if (!raw) return null;

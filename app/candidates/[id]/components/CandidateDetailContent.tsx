@@ -1,112 +1,80 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { CandidateHero } from "./candidate-hero";
-import { CalendarCard } from "@/components/card/calendar-card";
-import SuccessModal from "@/components/modal";
-import {
-  fetchRecruiterInterviewRequests,
-} from "@/app/jobs/services/interviewApi";
-import { CandidateDetailsResponse } from "@/stores/api/recruiter-job-api";
-import { TABS, Tab } from "./candidate-detail-content/data";
+import React, { useMemo, useState } from "react";
+import { CandidateHero }            from "./candidate-hero";
+import { CalendarCard }             from "@/components/card/calendar-card";
+import SuccessModal                 from "@/components/modal";
+import { CandidateActionModal }     from "./CandidateActionModal";
+import { fromDetailProfile }        from "@/lib/transforms/candidate-detail.transform";
+import type { CandidateDetailVM }   from "@/Interface/view-models";
+import type { CandidateDetailsResponse } from "@/stores/api/recruiter-job-api";
+import { TABS, Tab }                from "./candidate-detail-content/data";
 import { CandidateDetailTabsContent } from "./candidate-detail-content/TabsContent";
-import { AddInHouseModal, SuccessModal as InviteSuccessModal } from "./candidates-board/InHouseModals";
-
-type InterviewRequestItem = {
-  candidate_id?: string | null;
-  job_application_id?: string | null;
-};
 
 type HeroActionType = "shortlist" | "hire" | "schedule" | "invite";
 
 interface CandidateDetailContentProps {
-  candidate:        CandidateDetailsResponse;
-  status?:          string;
-  onBack:           () => void;
-  candidateId:      string;
+  candidate:         CandidateDetailsResponse;
+  onBack:            () => void;
+  candidateId:       string;
   jobApplicationId?: string;
-  jobId?:           string;   // ← added: needed by AddInHouseModal
+  jobId?:            string;
+  isMock?:           boolean;
 }
 
 export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   candidate,
   onBack,
-  candidateId,
-  jobApplicationId,
-  jobId = "",
+  jobApplicationId: _jobApplicationId,
+  isMock = false,
 }) => {
-  const [activeTab,          setActiveTab]          = useState<Tab>("General score");
-  const [isCalendarOpen,     setIsCalendarOpen]     = useState(false);
-  const [isSuccessOpen,      setIsSuccessOpen]      = useState(false);
-  const [isInviteModalOpen,  setIsInviteModalOpen]  = useState(false);
-  const [isInviteSuccessOpen, setIsInviteSuccessOpen] = useState(false);
-  const [inviteCount,        setInviteCount]        = useState(0);
-  const [scheduledDate,      setScheduledDate]      = useState("");
-  const [_hasExistingRequest, setHasExistingRequest] = useState(false);
-  const [successMessage,     setSuccessMessage]     = useState("");
-  const [_pendingAction,      setPendingAction]      = useState<HeroActionType | null>(null);
+
+  const profile = candidate.data.candidate;
 
   const fullName = useMemo(
-    () =>
-      candidate.data.candidate.full_name ||
-      `${candidate.data.candidate.first_name} ${candidate.data.candidate.last_name ?? ""}`.trim(),
-    [candidate]
+    () => profile.full_name || `${profile.first_name} ${profile.last_name ?? ""}`.trim(),
+    [profile]
   );
 
-  useEffect(() => {
-    const check = async () => {
-      if (!candidateId || !jobApplicationId) return;
-      try {
-        const response = await fetchRecruiterInterviewRequests(undefined, 1, 100);
-        setHasExistingRequest(
-          !!response.interviewRequests?.find(
-            (r: InterviewRequestItem) =>
-              (r.candidate_id ?? undefined) === candidateId &&
-              (r.job_application_id ?? undefined) === jobApplicationId
-          )
-        );
-      } catch {
-        // ignore silently
-      }
-    };
-    check();
-  }, [candidateId, jobApplicationId]);
+  // ✅ Single transform — used for both tabs AND CandidateActionModal
+  const candidateVM = useMemo<CandidateDetailVM | null>(
+    () => (profile ? fromDetailProfile(profile) : null),
+    [profile]
+  );
 
+  // ── NO candidateCardVM memo — CandidateActionModal now accepts CandidateDetailVM directly ──
+
+  const [activeTab,       setActiveTab]       = useState<Tab>("General score");
+  const [isCalendarOpen,  setIsCalendarOpen]  = useState(false);
+  const [isSuccessOpen,   setIsSuccessOpen]   = useState(false);
+  const [successMessage,  setSuccessMessage]  = useState("");
+  const [scheduledDate,   setScheduledDate]   = useState("");
+  const [actionModalType, setActionModalType] = useState<HeroActionType | null>(null);
 
   const handleExportProfile = () => {
-    setSuccessMessage("Export Profile action triggered.");
+    setSuccessMessage("Profile export initiated.");
     setIsSuccessOpen(true);
   };
 
   const handleShortlist = () => {
-    setPendingAction("shortlist");
     setSuccessMessage(`${fullName} shortlisted successfully.`);
     setIsSuccessOpen(true);
   };
 
-  const handlePrimaryAction = async (actionType: HeroActionType) => {
-    setPendingAction(actionType);
-
-    if (actionType === "schedule") {
-      setIsCalendarOpen(true);
+  const handlePrimaryAction = (actionType: HeroActionType) => {
+    if (isMock) {
+      setActionModalType(actionType);
       return;
     }
-
-    // ── "invite" opens the AddInHouseModal — API called inside modal ────────
-    if (actionType === "invite") {
-      setIsInviteModalOpen(true);
-      return;
-    }
-
-    if (actionType === "hire") {
-      setSuccessMessage(`${fullName} moved to hire flow.`);
-      setIsSuccessOpen(true);
-      return;
-    }
-
-    if (actionType === "shortlist") {
-      setSuccessMessage(`${fullName} shortlisted successfully.`);
-      setIsSuccessOpen(true);
+    switch (actionType) {
+      case "schedule":
+        setIsCalendarOpen(true);
+        break;
+      case "invite":
+      case "shortlist":
+      case "hire":
+        setActionModalType(actionType);
+        break;
     }
   };
 
@@ -114,7 +82,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     <>
       <div className="mb-5">
         <CandidateHero
-          candidate={candidate.data.candidate}
+          candidate={profile}
           onBack={onBack}
           onExport={handleExportProfile}
           onShortlist={handleShortlist}
@@ -141,70 +109,49 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
           </div>
         </div>
         <div className="p-5 sm:p-6">
-          <CandidateDetailTabsContent
-            activeTab={activeTab}
-            candidate={candidate}
-            fullName={fullName}
-          />
+          {candidateVM && (
+            <CandidateDetailTabsContent
+              activeTab={activeTab}
+              candidate={candidateVM}
+              fullName={fullName}
+            />
+          )}
         </div>
       </div>
 
-      {/* ── Calendar ── */}
       <CalendarCard
         isOpen={isCalendarOpen}
         onClose={() => setIsCalendarOpen(false)}
         onSchedule={(date) => {
           setScheduledDate(date);
           setIsCalendarOpen(false);
-          setSuccessMessage(`Interview Scheduled on ${date}`);
+          setSuccessMessage(`Interview scheduled for ${date}`);
           setIsSuccessOpen(true);
         }}
       />
 
-      {/* ── General success modal (schedule, shortlist, hire, export) ── */}
       <SuccessModal
         visible={isSuccessOpen}
         onClose={() => {
           setIsSuccessOpen(false);
           setScheduledDate("");
-          setPendingAction(null);
           setSuccessMessage("");
         }}
         title="Success"
         message={
           scheduledDate
-            ? `Interview Scheduled on ${scheduledDate}`
+            ? `Interview scheduled for ${scheduledDate}`
             : successMessage || "Action completed successfully!"
         }
         buttonText="Done"
       />
 
-      {/* ── Invite modal — opened by "invite" action ── */}
-      {isInviteModalOpen && (
-        <AddInHouseModal
-          onClose={() => {
-            setIsInviteModalOpen(false);
-            setPendingAction(null);
-          }}
-          onSuccess={(count) => {
-            setIsInviteModalOpen(false);
-            setInviteCount(count);
-            setIsInviteSuccessOpen(true);
-          }}
-          candidateId={candidateId}
-          jobId={jobId}
-        />
-      )}
-
-      {/* ── Invite success modal ── */}
-      {isInviteSuccessOpen && (
-        <InviteSuccessModal
-          count={inviteCount}
-          onDone={() => {
-            setIsInviteSuccessOpen(false);
-            setInviteCount(0);
-            setPendingAction(null);
-          }}
+      {/* ✅ candidateVM passed directly — no intermediate card mapping */}
+      {actionModalType && candidateVM && (
+        <CandidateActionModal
+          actionType={actionModalType}
+          candidate={candidateVM}
+          onClose={() => setActionModalType(null)}
         />
       )}
     </>

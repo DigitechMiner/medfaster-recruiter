@@ -1,24 +1,31 @@
-"use client";
+'use client';
+
 import { BoardCandidateCard } from "./BoardCandidateCard";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
+import type { CandidateCardVM } from '@/Interface/view-models';
 import { ColumnShell } from "@/components/candidate/ColumnShell";
 import { renderCandidateCards } from "@/components/candidate/renderers";
+// ✅ Import section-specific mock data
+import { MOCK_POOL_BY_SECTION, MOCK_AI_POOL } from "@/app/candidates/data/candidatePoolMocks";
+
+// ── Mock toggle — flip to false when API is wired ─────────────────────────
+export const USE_MOCK = true; // ← exported so CandidatesBoard can read it
 
 type AccentColor = "orange" | "green" | "red" | "neutral";
 type ActionType  = "shortlist" | "hire" | "schedule" | "invite";
 
 interface Props {
-  title: string;
-  count: number;
-  accentColor: AccentColor;
-  dotColor: string;
-  candidates: CandidateListItem[];
-  actionType: ActionType;
-  leftTags?: string[];
-  rightTags?: string[];
-  onViewAll?: () => void;
-  hideHeader?: boolean;
+  title:        string;
+  count:        number;
+  accentColor:  AccentColor;
+  dotColor:     string;
+  candidates:   CandidateCardVM[];
+  actionType:   ActionType;
+  leftTags?:    string[];
+  rightTags?:   string[];
+  onViewAll?:   () => void;
+  hideHeader?:  boolean;
   hideViewAll?: boolean;
+  search?:      string;
 }
 
 const colStyles: Record<AccentColor, {
@@ -32,9 +39,24 @@ const colStyles: Record<AccentColor, {
 
 export const CandidateColumn = ({
   title, count, accentColor, candidates, actionType,
-  leftTags, rightTags, onViewAll, hideHeader, hideViewAll,
+  leftTags, rightTags, onViewAll, hideHeader, hideViewAll, search = "",
 }: Props) => {
   const s = colStyles[accentColor];
+
+  // ✅ Each section gets its own 3 distinct mock candidates
+  const source = USE_MOCK
+    ? (MOCK_POOL_BY_SECTION[title] ?? MOCK_AI_POOL)
+    : candidates;
+
+  const filtered = search
+    ? source.filter((c) =>
+        `${c.full_name} ${c.designation} ${c.department}`
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      )
+    : source;
+
+  const displayCount = USE_MOCK ? filtered.length : count;
 
   return (
     <ColumnShell
@@ -43,21 +65,21 @@ export const CandidateColumn = ({
         <div className={`${s.headerBg} px-4 py-3.5 flex items-center justify-center gap-2`}>
           <span className={`w-2.5 h-2.5 rounded-full ${s.dot} shrink-0`} />
           <h2 className="text-sm font-bold text-gray-900">{title}</h2>
-          <span className="text-xs font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">{count}</span>
+          <span className="text-xs font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">{displayCount}</span>
         </div>
       ) : undefined}
       content={
         <div className="flex flex-col gap-3 p-3">
-          {candidates.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="text-center py-8 text-xs text-gray-400">No candidates</div>
           ) : (
-            renderCandidateCards(candidates, (c, i) => (
+            renderCandidateCards(filtered, (c, i) => (
               <BoardCandidateCard
-                key={c.id ?? i}
+                key={c.id}
                 c={c}
                 actionType={actionType}
-                leftTag={leftTags?.[i]}
-                rightTag={rightTags?.[i]}
+                leftTag={leftTags?.[i % (leftTags?.length ?? 1)]}
+                rightTag={rightTags?.[i % (rightTags?.length ?? 1)]}
               />
             ))
           )}

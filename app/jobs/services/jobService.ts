@@ -11,7 +11,7 @@ import {
 import type {
   JobCreatePayload,
   JobUpdatePayload,
-} from '@/Interface/job.types';
+} from '@/Interface/recruiter.types';
 import { getCandidateDetails } from '@/stores/api/recruiter-candidates-api';
 
 class JobService {

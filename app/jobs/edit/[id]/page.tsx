@@ -16,7 +16,8 @@ import type {
   JobBackendResponse,
   JobCreatePayload,
   JobUpdatePayload,
-} from "@/Interface/job.types";
+  Province,
+} from"@/Interface/recruiter.types";
 import metadata, { convertProvinceToJobBackend } from "@/utils/constant/metadata";
 import {
   convertToFrontendValue,
@@ -73,7 +74,7 @@ export default function EditJobPage() {
 
     // pay_per_hour_cents → dollars for the form slider
     const hourlyDollars = job.pay_per_hour_cents != null
-  ? parseInt(job.pay_per_hour_cents, 10) / 100   // ← parseInt first
+  ? parseInt(String(job.pay_per_hour_cents), 10) / 100   // ✅
   : 0;
 
     return {
@@ -95,7 +96,7 @@ export default function EditJobPage() {
       // ── Location ─────────────────────────────────────
       streetAddress: job.street      || undefined,
       postalCode:    job.postal_code || undefined,
-      province:      convertProvinceToFrontend(job.province),
+      province: convertProvinceToFrontend(job.province) as Province,
       city:          job.city        || undefined,
       country:       undefined,
 
@@ -109,10 +110,15 @@ export default function EditJobPage() {
                             convertSpecializationToFrontend(String(s))
                           )
                         : [],
-      aiInterview:    normalJob?.ai_interview === true ? "Yes" : "No",
+      aiInterview: normalJob?.ai_interview ?? false,
 
       inPersonInterview: "No",
       physicalInterview: "No",
+        responsibilities:  Array.isArray(job.responsibilities)  ? job.responsibilities  : [],
+  required_skills:   Array.isArray(job.required_skills)   ? job.required_skills   : [],
+  experienceList:    Array.isArray(job.experience)        ? job.experience        : [],
+  workingConditions: Array.isArray(job.working_conditions) ? job.working_conditions : [],
+  whyJoin:           Array.isArray(job.why_join)          ? job.why_join          : [],
 
       // ── Shift — from job root (not instantJob) ───────
       fromDate: job.start_date    ? new Date(job.start_date)    : undefined,
@@ -175,9 +181,9 @@ export default function EditJobPage() {
     city:        data.city          || undefined,
 
     // ✅ number, not string
-    pay_per_hour_cents: data.payRange[0]
-      ? Math.round(data.payRange[0] * 100)
-      : undefined,
+    ...(Array.isArray(data.payRange) && data.payRange[0]
+  ? { pay_per_hour_cents: Math.round(Number(data.payRange[0]) * 100) }   // ✅
+  : {}),
 
     job_urgency:  data.urgency,
     description:  data.description || undefined,
@@ -218,7 +224,7 @@ export default function EditJobPage() {
       }
     }
 
-    payload.ai_interview = data.aiInterview === 'Yes';
+    payload.ai_interview = data.aiInterview === true;
   } else {
     if (data.fromDate) payload.start_date    = formatDateForBackend(data.fromDate);
     if (data.tillDate) payload.end_date      = formatDateForBackend(data.tillDate);

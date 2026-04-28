@@ -1,38 +1,28 @@
-// @/stores/walletStore.ts
+// stores/walletStore.ts — make sure refreshWallet exists and updates state:
+
 import { create } from 'zustand';
 import { getWallet, WalletData } from '@/stores/api/recruiter-wallet-api';
 
 interface WalletStore {
-  wallet: WalletData | null;
-  isLoading: boolean;
-  fetchWallet: () => Promise<void>;
-  refreshWallet: () => Promise<void>;
+  wallet:         WalletData | null;
+  isLoading:      boolean;
+  refreshWallet:  () => Promise<void>;
 }
 
-export const useWalletStore = create<WalletStore>((set, get) => ({
-  wallet: null,
+export const useWalletStore = create<WalletStore>((set) => ({
+  wallet:    null,
   isLoading: false,
 
-  // Cached — skips if wallet already loaded
-  fetchWallet: async () => {
-    if (get().wallet) return;
-    return get().refreshWallet();
-  },
-
-  // Force fetch — always hits API
   refreshWallet: async () => {
     set({ isLoading: true });
     try {
-      const data = await getWallet();
-      set({ wallet: data, isLoading: false });
-    } catch (e) {
-      console.error('Failed to fetch wallet:', e);
+      const wallet = await getWallet();
+      set({ wallet, isLoading: false });  // ✅ Updates state → Navbar re-renders
+    } catch {
       set({ isLoading: false });
     }
   },
 }));
 
-export function fmtBalance(cents: string | number | null): string {
-  if (cents === null || cents === undefined) return '$ 0';
-  return `$ ${(Number(cents) / 100).toLocaleString('en-CA', { minimumFractionDigits: 0 })}`;
-}
+export const fmtBalance = (cents: number) =>
+  `CA$ ${(cents / 100).toLocaleString('en-CA', { minimumFractionDigits: 0 })}`;

@@ -2,10 +2,43 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { DetailedJobCardProps, JobCardProps, StatusSectionProps, StatusTableProps, Job, StatusType } from '@/Interface/job.types';
-import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, PRIMARY_BUTTON_COLOR_CLASSES } from '../constants/ui';
+import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, PRIMARY_BUTTON_COLOR_CLASSES, BadgeColor } from '../constants/ui';
 import { MODAL_DEFAULTS } from '../constants/messages';
 import ScoreCard from '@/components/card/scorecard';
+import type { JobListItem } from '@/Interface/recruiter.types';
+import type { JobMock }     from '../constants/jobs';
+export type PipelineStatus = "applied" | "interviewing" | "hired";
+export type StatusType     = PipelineStatus;
+export interface StatusSectionProps {
+  status:     PipelineStatus;   // ✅ was JobStatus — fixes "DRAFT" not assignable error
+  title:      string;
+  count:      number;
+  jobs:       JobMock[];        // ✅ was JobListItem[]
+  badgeColor: BadgeColor;
+  onJobView?:  (id: string) => void;
+}
+
+interface StatusTableProps {
+  status:     PipelineStatus;
+  title:      string;
+  count:      number;
+  jobs:       JobMock[];        // ✅ JobMock[] not JobListItem[]
+  badgeColor: BadgeColor;
+}
+
+interface JobCardProps {
+  job:        JobMock;
+  status:     PipelineStatus;   // ✅ PipelineStatus not JobStatus — fixes L105 "DRAFT" error
+  badgeColor: BadgeColor;
+  index:      number;
+  onView?:     (id: string) => void;
+}
+
+interface DetailedJobCardProps {
+  job:      JobMock;
+  status:   PipelineStatus;
+  onClose:  () => void;
+}
 
 // ============ DETAIL CARD ============
 export const DetailedJobCard: React.FC<DetailedJobCardProps> = ({ job, status, onClose }) => {
@@ -80,7 +113,7 @@ export const JobActionModal: React.FC<JobActionModalProps> = ({ isOpen, onClose,
 
 // ============ STATUS SECTION ============
 interface StatusSectionPropsExtended extends StatusSectionProps {
-  onCandidateClick?: (job: Job, status: StatusType) => void;
+  onCandidateClick?: (job: JobMock, status: StatusType) => void;
 }
 
 export const StatusSection: React.FC<StatusSectionPropsExtended> = ({ status, title, count, jobs, badgeColor, onJobView, onCandidateClick }) => {
@@ -90,7 +123,7 @@ export const StatusSection: React.FC<StatusSectionPropsExtended> = ({ status, ti
       <div className={`rounded-lg p-4 border-2 ${c.border} ${c.bg}`}>
         <div className="flex items-center gap-2 mb-4"><div className={`w-3 h-3 rounded-full ${c.dot}`} /><h2 className="text-lg font-semibold">{title} <span className={c.text}>{count}</span></h2></div>
         <div className="space-y-3">
-          {jobs.map((job: Job, index: number) => (
+          {jobs.map((job: JobMock, index: number) => (
             <div 
               key={job.id} 
               onClick={() => onCandidateClick?.(job, status)}
@@ -241,7 +274,7 @@ export const StatusTable: React.FC<StatusTableProps> = ({ title, count, jobs, ba
 
           {/* Table Body */}
           <div className="divide-y divide-gray-100">
-            {jobs.map((j) => (
+            {jobs.map((j: JobMock) => (
               <div key={j.id}>
                 {/* Desktop View */}
                 <div className="hidden lg:grid grid-cols-12 items-center px-3 py-3 text-sm bg-white">

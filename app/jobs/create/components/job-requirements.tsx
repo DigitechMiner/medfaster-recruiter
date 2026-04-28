@@ -11,7 +11,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import metadata from "@/utils/constant/metadata";
-import type { JobFormData } from "@/Interface/job.types";
+import type { JobFormData } from "@/Interface/recruiter.types";
 
 const EXPERIENCE_MIN = 0;
 const EXPERIENCE_MAX = 20;
@@ -54,7 +54,12 @@ export function JobRequirements({ formData, updateFormData }: JobRequirementsPro
       });
     }
   };
+  const payMin = Array.isArray(formData.payRange) ? formData.payRange[0] : 0;
+const payMax = Array.isArray(formData.payRange) ? formData.payRange[1] : 0;
 
+// ✅ Convert from cents → dollars for display & slider
+const payMinDollars = payMin > 500 ? Math.round(payMin / 100) : payMin;
+const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
   return (
     <div className="space-y-6 mb-6">
       {/* Pay Range & Years of Experience */}
@@ -67,19 +72,22 @@ export function JobRequirements({ formData, updateFormData }: JobRequirementsPro
           <div className="space-y-4 pt-2">
             <div className="flex justify-center text-sm text-gray-600 font-medium">
               <span className="bg-gray-100 px-3 py-1 rounded-md">
-                 ${formData.payRange[0]}
-              </span>
+                ${payMaxDollars}
+             </span>
             </div>
             <Slider
-              min={0}
-              max={100}
-              step={1}
-              value={[formData.payRange[0]]}
-              onValueChange={(value) =>
-                updateFormData({ payRange: [value[0], value[0]] as [number, number] })
-              }
-              className="w-full"
-            />
+      min={0}
+      max={200}
+      step={1}
+      value={[payMinDollars, payMaxDollars]}   // ✅ two handles
+      onValueChange={(values) =>
+        updateFormData({
+          // ✅ Store back as cents
+          payRange: [values[0] * 100, values[1] * 100] as [number, number],
+        })
+      }
+      className="w-full"
+    />
           </div>
         </div>
 

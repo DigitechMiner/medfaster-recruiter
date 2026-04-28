@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { JobBackendResponse } from "@/Interface/job.types";
+import type { JobBackendResponse } from "@/Interface/recruiter.types";
 import { ViewHeader } from "@/components/candidate/ViewHeader";
 import { renderCandidateCards } from "@/components/candidate/renderers";
 import { COLUMNS, DUMMY_CANDIDATES, ColKey } from "./candidates-kanban/config";

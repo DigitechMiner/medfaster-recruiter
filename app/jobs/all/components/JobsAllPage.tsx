@@ -8,9 +8,9 @@ import type { FilterTab } from './JobsFilterTabs';
 import { JobsListView } from './JobsListView';
 import { JobsGridView } from './JobsGridView';
 import { JobsPagination } from './JobsPagination';
-import type { JobsListResponse } from '@/Interface/job.types';
+import type { JobsListResponse } from '@/Interface/recruiter.types';
 import type { GetJobsParams } from '@/stores/api/recruiter-job-api';
-import type { JobListItem } from '@/Interface/job.types';
+import type { JobListItem } from '@/Interface/recruiter.types';
 
 type TabFilter = {
   job_urgency?: 'instant' | 'normal';

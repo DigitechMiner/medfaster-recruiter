@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, BriefcaseBusiness, Clock, MapPin, User } from "lucide-react";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
+import type { CandidateDetailVM } from "@/Interface/view-models"; // ✅ was CandidateCardVM
+import Image from "next/image";
 
 type ActionType = "invite" | "schedule" | "shortlist" | "hire";
 
@@ -64,21 +65,45 @@ const MODAL_CONFIG: Record<
 };
 
 const MOCK_REGULAR_JOBS = [
-  { id: "KRV-123", title: "Registered Nurse", type: "Regular" as const, status: "Open", interviewRequired: true },
-  { id: "KRV-124", title: "Registered Nurse", type: "Regular" as const, status: "Open", interviewRequired: true },
-  { id: "KRV-125", title: "Registered Nurse", type: "Regular" as const, status: "Open", interviewRequired: false },
+  {
+    id: "KRV-123", title: "Registered Nurse", type: "Regular" as const,
+    status: "Open", interviewRequired: true,
+    org_photo: "https://api.dicebear.com/7.x/initials/svg?seed=Anadia Health&backgroundColor=fee2e2&textColor=991b1b",
+  },
+  {
+    id: "KRV-124", title: "Registered Nurse", type: "Regular" as const,
+    status: "Open", interviewRequired: true,
+    org_photo: "https://api.dicebear.com/7.x/initials/svg?seed=Medcare Plus&backgroundColor=dbeafe&textColor=1e40af",
+  },
+  {
+    id: "KRV-125", title: "Registered Nurse", type: "Regular" as const,
+    status: "Open", interviewRequired: false,
+    org_photo: "https://api.dicebear.com/7.x/initials/svg?seed=Ontario Health&backgroundColor=d1fae5&textColor=065f46",
+  },
 ];
 
 const MOCK_URGENT_JOBS = [
-  { id: "KRV-123", title: "Registered Nurse", type: "Urgent" as const, status: "Open", interviewRequired: false },
-  { id: "KRV-124", title: "Registered Nurse", type: "Urgent" as const, status: "Open", interviewRequired: false },
-  { id: "KRV-125", title: "Registered Nurse", type: "Urgent" as const, status: "Open", interviewRequired: false },
+  {
+    id: "KRV-123", title: "Registered Nurse", type: "Urgent" as const,
+    status: "Open", interviewRequired: false,
+    org_photo: "https://api.dicebear.com/7.x/initials/svg?seed=Anadia Health&backgroundColor=fee2e2&textColor=991b1b",
+  },
+  {
+    id: "KRV-124", title: "Registered Nurse", type: "Urgent" as const,
+    status: "Open", interviewRequired: false,
+    org_photo: "https://api.dicebear.com/7.x/initials/svg?seed=Medcare Plus&backgroundColor=dbeafe&textColor=1e40af",
+  },
+  {
+    id: "KRV-125", title: "Registered Nurse", type: "Urgent" as const,
+    status: "Open", interviewRequired: false,
+    org_photo: "https://api.dicebear.com/7.x/initials/svg?seed=Ontario Health&backgroundColor=d1fae5&textColor=065f46",
+  },
 ];
 
 interface Props {
   actionType: ActionType;
-  candidate: CandidateListItem;
-  onClose: () => void;
+  candidate:  CandidateDetailVM; // ✅ was CandidateCardVM
+  onClose:    () => void;
 }
 
 const formatJobType = (raw?: string | null) => {
@@ -87,28 +112,22 @@ const formatJobType = (raw?: string | null) => {
 };
 
 function getInterviewBadge(job: { interviewRequired: boolean; type: "Regular" | "Urgent" }) {
-  if (job.type === "Urgent") {
-    return { label: "No Interview Needed", cls: "bg-[#FEE4E2] text-[#912018]" };
-  }
-  if (job.interviewRequired) {
-    return { label: "Interview Required", cls: "bg-[#D1FAE5] text-[#059669]" };
-  }
-  return { label: "No Interview Required", cls: "bg-[#FEF9C3] text-[#854D0E]" };
+  if (job.type === "Urgent")       return { label: "No Interview Needed",   cls: "bg-[#FEE4E2] text-[#912018]" };
+  if (job.interviewRequired)       return { label: "Interview Required",    cls: "bg-[#D1FAE5] text-[#059669]" };
+  return                                  { label: "No Interview Required", cls: "bg-[#FEF9C3] text-[#854D0E]" };
 }
 
 export function CandidateActionModal({ actionType, candidate, onClose }: Props) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showSuccess,   setShowSuccess]   = useState(false);
 
   const config = MODAL_CONFIG[actionType];
-  const name = candidate.full_name || `${candidate.first_name} ${candidate.last_name ?? ""}`.trim();
+  const name   = candidate.full_name; // ✅ full_name exists on CandidateDetailVM
 
   const jobs =
-    config.jobPool === "urgent"
-      ? MOCK_URGENT_JOBS
-      : config.jobPool === "both"
-      ? [...MOCK_REGULAR_JOBS, ...MOCK_URGENT_JOBS]
-      : MOCK_REGULAR_JOBS;
+    config.jobPool === "urgent" ? MOCK_URGENT_JOBS :
+    config.jobPool === "both"   ? [...MOCK_REGULAR_JOBS, ...MOCK_URGENT_JOBS] :
+                                  MOCK_REGULAR_JOBS;
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
 
@@ -125,6 +144,7 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+
         {/* Header */}
         <div className="flex items-center gap-2 mb-5">
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -140,9 +160,9 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {jobs.map((job) => {
               const isSelected = selectedJobId === job.id;
-              const isUrgent = job.type === "Urgent";
-              const interview = getInterviewBadge(job);
-              const jobType = formatJobType(job.type);
+              const isUrgent   = job.type === "Urgent";
+              const interview  = getInterviewBadge(job);
+              const jobType    = formatJobType(job.type);
 
               return (
                 <div
@@ -160,13 +180,11 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
                       Job ID: {job.id}
                     </span>
                     <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                          isUrgent
-                            ? "bg-orange-50 text-orange-500 border-orange-200"
-                            : "bg-green-50 text-green-600 border-green-200"
-                        }`}
-                      >
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                        isUrgent
+                          ? "bg-orange-50 text-orange-500 border-orange-200"
+                          : "bg-green-50 text-green-600 border-green-200"
+                      }`}>
                         {job.type}
                       </span>
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 border border-blue-200">
@@ -177,19 +195,28 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
 
                   {/* Row 2: Logo + title + meta */}
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 text-center leading-tight">
-                      <span className="text-[10px] font-extrabold text-red-500 uppercase leading-none block">
-                        ANADIA
-                        <br />
-                        HEALTH
-                      </span>
-                    </div>
-
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+  {job.org_photo ? (
+    <Image
+      src={job.org_photo}
+      alt="Organization"
+      width={40}
+      height={40}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    // Fallback: coloured initial block when no photo
+    <div className="w-full h-full flex items-center justify-center bg-orange-50">
+      <span className="text-[10px] font-extrabold text-orange-500 uppercase leading-none text-center">
+        ORG
+      </span>
+    </div>
+  )}
+</div>
                     <div className="min-w-0 flex-1">
                       <h3 className="font-bold text-gray-900 text-[15px] leading-snug truncate">
                         {job.title}
                       </h3>
-
                       <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
                         <span className="flex items-center gap-1 text-gray-400">
                           <BriefcaseBusiness size={12} color="orange" />
@@ -215,10 +242,7 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
                       <MapPin size={13} className="text-[#F4781B] flex-shrink-0" />
                       Toronto, ON
                     </span>
-
-                    <span
-                      className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${interview.cls}`}
-                    >
+                    <span className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${interview.cls}`}>
                       <User size={11} />
                       {interview.label}
                     </span>
@@ -262,15 +286,7 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
   );
 }
 
-function SuccessModal({
-  title,
-  body,
-  onDone,
-}: {
-  title: string;
-  body: string;
-  onDone: () => void;
-}) {
+function SuccessModal({ title, body, onDone }: { title: string; body: string; onDone: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 flex flex-col items-center gap-4 text-center">
@@ -281,12 +297,10 @@ function SuccessModal({
             <CheckCircle2 size={28} className="text-green-500" />
           </div>
         </div>
-
         <div>
           <p className="text-lg font-bold text-gray-900">{title}</p>
           <p className="text-sm text-gray-400 mt-2 max-w-xs">{body}</p>
         </div>
-
         <button
           onClick={onDone}
           className="w-full bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold py-3 rounded-xl transition-colors mt-1"

@@ -1,18 +1,17 @@
 "use client";
 
 import { CandidateColumn } from "../CandidateColumn";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
 import { COLUMNS, colStyles, KpiView } from "./constants";
 import { PaginationBar } from "./ui";
 import { PoolListRow } from "./PoolListRow";
-
+import type { CandidateCardVM } from '@/Interface/view-models';
 interface CandidatesPoolSectionProps {
   view: "grid" | "list";
   activeListTab: number;
   setActiveListTab: (value: number) => void;
   expandedColumn: string | null;
   setExpandedColumn: (value: string | null) => void;
-  filtered: CandidateListItem[][];
+  filtered: CandidateCardVM[][];
   activeKpi: KpiView;
   setActiveKpi: (value: KpiView) => void;
 }

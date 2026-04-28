@@ -5,7 +5,7 @@ import { X, ArrowLeft, ArrowRight, Pencil, Sparkles, Loader2, Check } from "luci
 import { updateRecruiterJob } from "@/stores/api/recruiter-job-api";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import type { JobDescriptionInput } from "@/stores/api/job-description.api";
-import type { JobBackendResponse } from "@/Interface/job.types";
+import type { JobBackendResponse } from "@/Interface/recruiter.types";
 
 // ── Helpers ────────────────────────────────────────────────────
 function htmlToPlainText(html: string): string {

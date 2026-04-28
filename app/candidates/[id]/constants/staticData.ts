@@ -1,158 +1,151 @@
-// app/candidates/[id]/constants/staticData.ts
+"use client";
+
 import type {
-  CandidateDetailsResponse,
-  CandidateListItem,
-  CandidateDocument,
-} from "@/Interface/recruiter.types";
+  QualificationVM,
+  DocumentVM,
+  WorkExperienceVM,
+  WorkHistoryEntryVM,
+  ReviewVM,
+} from "@/Interface/view-models";
 
-
-// ─── Static document lists ────────────────────────────────────────────────────
-
-export const STATIC_PERSONAL_DOCS: CandidateDocument[] = [
-  { id: "pd1", document_type: "personal", title: "Passport" },
-  { id: "pd2", document_type: "personal", title: "PR Card" },
-  { id: "pd3", document_type: "personal", title: "Valid Work Permit" },
-  { id: "pd4", document_type: "personal", title: "Criminal Record Check" },
+// ── Education (QualificationVM) ───────────────────────────────────
+export const STATIC_EDUCATION_FULL: QualificationVM[] = [
+  { id: "ed1", degree: "Master Degree", field: "MD",    institution: "Canadian Red Cross University", start_year: "Jan 2023", end_year: "Dec 2025" },
+  { id: "ed2", degree: "Bachelor",      field: "B.Sc.", institution: "Canadian Special School",      start_year: "Jan 2020", end_year: "Dec 2023" },
+  { id: "ed3", degree: "Diploma",       field: "B.Sc.", institution: "Canadian Special School",      start_year: "Feb 2017", end_year: "Dec 2020" },
 ];
 
-export const STATIC_LICENSE_DOCS: CandidateDocument[] = [
-  { id: "ld1", document_type: "license", title: "LPN License" },
-  { id: "ld2", document_type: "license", title: "First Aid Certificate" },
-  { id: "ld3", document_type: "license", title: "Professional Liability Certificate" },
-  { id: "ld4", document_type: "license", title: "Flu Vaccination Certificate" },
-  { id: "ld5", document_type: "license", title: "Covid Vaccination Certificate" },
-  { id: "ld6", document_type: "license", title: "TB Screening Certificate" },
+// ── Licensing + Registration — no VM yet, keep as plain objects ───
+export const STATIC_LICENSING = [
+  { id: "lic1", exam: "NCLEX-PN (Exam)", score: 235, cleared: "2023" },
 ];
 
+export const STATIC_REGISTRATION = [
+  { id: "reg1", type: "Provisional Nursing Body Registered", body: "College of Nurses of Ontario", number: "ONT-12345", expiry: "Dec 2026" },
+];
 
-// ─── Mock candidate detail ────────────────────────────────────────────────────
+// ── Documents (DocumentVM) ────────────────────────────────────────
+export const STATIC_PERSONAL_DOCS: DocumentVM[] = [
+  { document_id: "pd1", document_type: "passport",              category: "personal", title: "Passport",              file_url: null, signed_url: null },
+  { document_id: "pd2", document_type: "pr_card",               category: "personal", title: "PR Card",               file_url: null, signed_url: null },
+  { document_id: "pd3", document_type: "work_permit",           category: "personal", title: "Valid Work Permit",      file_url: null, signed_url: null },
+  { document_id: "pd4", document_type: "criminal_record_check", category: "personal", title: "Criminal Record Check",  file_url: null, signed_url: null },
+];
 
-export const MOCK_CANDIDATE_DETAILS: CandidateDetailsResponse = {
-  success: true,
-  message: "Candidate details fetched successfully",
-  data: {
-    candidate: {
-      id:                    "cand-001",
-      full_name:             "Ava Patel",
-      first_name:            "Ava",
-      last_name:             "Patel",
-      email:                 "ava.patel@example.com",
-      phone_number:          "+1 416 555 0101",
-      profile_image_url:     "",
-      city:                  "Toronto",
-      state:                 "Ontario",
-      preferred_location:    "Toronto, ON",
-      job_type:              "Full-time",
-      work_eligibility:      "Citizen",
-      skill:                 ["Patient Care", "IV Therapy", "Wound Care"],
-      specialty:             ["ICU", "Emergency"],
-      specializations:       ["geriatriccare"],
-      medical_industry:      "Nursing",
-      completion_percentage: 85,
-      ai_interview_score:    88,
-      ai_interview_summary:  "Strong communicator with excellent clinical knowledge.",
-      is_hired:              false,
-      is_ai_recommended:     true,
-      is_instant_hire:       false,
-      is_currently_available: true,
-      documents:             [...STATIC_PERSONAL_DOCS, ...STATIC_LICENSE_DOCS],
-      work_experiences:      [],
-      educations:            [],
-      applications:          [],
-    },
+export const STATIC_LICENSE_DOCS: DocumentVM[] = [
+  { document_id: "ld1", document_type: "lpn_license",          category: "license_certificate", title: "LPN License",                       file_url: null, signed_url: null },
+  { document_id: "ld2", document_type: "first_aid",            category: "license_certificate", title: "First Aid Certificate",              file_url: null, signed_url: null },
+  { document_id: "ld3", document_type: "liability",            category: "license_certificate", title: "Professional Liability Certificate", file_url: null, signed_url: null },
+  { document_id: "ld4", document_type: "flu_vaccination",      category: "license_certificate", title: "Flu Vaccination Certificate",        file_url: null, signed_url: null },
+  { document_id: "ld5", document_type: "covid_vaccination",    category: "license_certificate", title: "Covid Vaccination Certificate",      file_url: null, signed_url: null },
+  { document_id: "ld6", document_type: "tb_screening",         category: "license_certificate", title: "TB Screening Certificate",           file_url: null, signed_url: null },
+];
+
+// ── Work Experience (WorkExperienceVM) ────────────────────────────
+export const STATIC_WORK_EXPERIENCE: WorkExperienceVM[] = [
+  {
+    id: "we1", organization: "Medfasterrr", role: "Assistant of Audiology",
+    job_type: "Full Time", start_date: "Jan 2025", end_date: null,
+    is_current: true, org_photo: null,
+    description: "Lorem ipsum dolor sit amet consectetur. Augue dolor enim imperdiet placerat vulputate proin leo. Ipsum est nisl pulvinar libero. Quam elementum neque amet odio.",
   },
-};
-
-
-// ─── Mock candidate list ──────────────────────────────────────────────────────
-
-const makeMockCandidate = (
-  id: string,
-  overrides: Partial<CandidateListItem> = {}
-): CandidateListItem => ({
-  candidate_id:            id,
-  first_name:              "Jane",
-  last_name:               "Doe",
-  full_name:               "Jane Doe",
-  profile_image_url:       "",
-  city:                    "Toronto",
-  state:                   "Ontario",
-  department:              "Nursing",
-  job_title:               "Registered Nurse",
-  experience_in_months:    24,
-  distance:                5.2,
-  best_ai_interview_score: 78,
-  avg_rating_score:        4.5,
-  ...overrides,
-});
-
-export const MOCK_CANDIDATES: CandidateListItem[] = [
-  makeMockCandidate("cand-001", { first_name: "Ava",    last_name: "Patel",   full_name: "Ava Patel",    city: "Toronto"   }),
-  makeMockCandidate("cand-002", { first_name: "Noah",   last_name: "Lee",     full_name: "Noah Lee",     city: "Vancouver" }),
-  makeMockCandidate("cand-003", { first_name: "Sofia",  last_name: "Khan",    full_name: "Sofia Khan",   city: "Calgary"   }),
-  makeMockCandidate("cand-004", { first_name: "Liam",   last_name: "Smith",   full_name: "Liam Smith",   city: "Ottawa"    }),
-  makeMockCandidate("cand-005", { first_name: "Emma",   last_name: "Johnson", full_name: "Emma Johnson", city: "Montreal"  }),
-  makeMockCandidate("cand-006", { first_name: "Oliver", last_name: "Brown",   full_name: "Oliver Brown", city: "Edmonton"  }),
-  makeMockCandidate("cand-007", { first_name: "Mia",    last_name: "Davis",   full_name: "Mia Davis",    city: "Winnipeg"  }),
-  makeMockCandidate("cand-008", { first_name: "James",  last_name: "Wilson",  full_name: "James Wilson", city: "Halifax"   }),
+  {
+    id: "we2", organization: "Medfasterrr", role: "Assistant of Audiology",
+    job_type: "Full Time", start_date: "Jan 2024", end_date: "Jan 2025",
+    is_current: false, org_photo: null,
+    description: "Lorem ipsum dolor sit amet consectetur. Augue dolor enim imperdiet placerat vulputate proin leo. Ipsum est nisl pulvinar libero.",
+  },
+  {
+    id: "we3", organization: "Medfasterrr", role: "Assistant of Audiology",
+    job_type: "Full Time", start_date: "Jan 2023", end_date: "Jan 2024",
+    is_current: false, org_photo: null,
+    description: "Lorem ipsum dolor sit amet consectetur. Augue dolor enim imperdiet placerat vulputate proin leo.",
+  },
 ];
 
+// ── Work History (WorkHistoryEntryVM) ─────────────────────────────
+export const STATIC_WORK_HISTORY: WorkHistoryEntryVM[] = [
+  { application_id: "wh1", job_title: "Candidate Behavior", organization: "KRV-JB-8821", job_type: "Regular", completed_date: "Jan 29, 2024", status: "Completed" },
+  { application_id: "wh2", job_title: "Payment Issue",      organization: "KRV-JB-8765", job_type: "Urgent",  completed_date: "Jan 15, 2024", status: "Completed" },
+];
 
-// ─── Helper to get a detail mock by candidate ID ──────────────────────────────
+// ── Reviews (ReviewVM) ────────────────────────────────────────────
+export const STATIC_REVIEWS: ReviewVM[] = [
+  { id: "rv1", rating: 5, comment: "Excellent service, very punctual and safe driving.", job_title: "Registered Nurse", organization: "Canadian Medical",  recruiter_title: "KRV_RCT-8901", created_at: "February 2, 2024" },
+  { id: "rv2", rating: 4, comment: "Good ride, but vehicle could be cleaner.",           job_title: "Care Aide",         organization: "Medical Canada",    recruiter_title: "KRV_RCT-8902", created_at: "February 1, 2024" },
+  { id: "rv3", rating: 5, comment: "Excellent service, very punctual and safe driving.", job_title: "Registered Nurse", organization: "Canadian Medical",  recruiter_title: "KRV_RCT-8901", created_at: "February 2, 2024" },
+  { id: "rv4", rating: 4, comment: "Good ride, but vehicle could be cleaner.",           job_title: "Care Aide",         organization: "Medical Canada",    recruiter_title: "KRV_RCT-8902", created_at: "February 1, 2024" },
+];
 
-export const getMockCandidateById = (id: string): CandidateDetailsResponse => ({
-  ...MOCK_CANDIDATE_DETAILS,
-  data: {
-    candidate: {
-      ...MOCK_CANDIDATE_DETAILS.data.candidate,
-      id,
-    },
+// ── Grievances — no VM yet (TODO: add GrievanceVM when backend ready) ──
+export const STATIC_GRIEVANCES = [
+  {
+    id: "gr1", ticketId: "GRV-456", category: "Candidate Behavior", relatedJob: "KRV-JB-8821",
+    priority: "High",   priorityColor: "bg-red-100 text-red-600",
+    status: "Resolved", statusColor: "bg-green-100 text-green-700",
+    sla: "Met",         slaColor: "bg-green-100 text-green-700",
+    date: "Jan 29, 2024",
+    resolution: "Candidate Counselled And Warned. Fare Refunded To Passenger.",
   },
-});
+  {
+    id: "gr2", ticketId: "GRV-389", category: "Payment Issue", relatedJob: "KRV-JB-8765",
+    priority: "Medium", priorityColor: "bg-yellow-100 text-yellow-700",
+    status: "Closed",   statusColor: "bg-green-100 text-green-700",
+    sla: "Met",         slaColor: "bg-green-100 text-green-700",
+    date: "Jan 15, 2024",
+    resolution: "Payment Gateway Issue Resolved. Amount Refunded.",
+  },
+];
 
+// ── Performance — static mock until AI score rounds are in API ────
 export const STATIC_PERFORMANCE = {
   conversational: {
-    score: 80,
+    score: 82,
+    strength: "Strong verbal communication and rapport building.",
     metrics: [
-      { label: "Live Face Match",       value: 95 },
-      { label: "Communication Skills",  value: 25 },
-      { label: "Confidence",            value: 82 },
-      { label: "Behavioral Signals",    value: 87 },
-      { label: "Accuracy of Answers",   value: 87 },
+      { label: "Clarity",     value: 85 },
+      { label: "Empathy",     value: 80 },
+      { label: "Engagement",  value: 78 },
     ],
-    strength: "Strong communication presence and high face-match accuracy indicate excellent in-person reliability.",
   },
   behavioral: {
-    score: 40,
+    score: 76,
+    strength: "Consistent professional conduct under pressure.",
     metrics: [
-      { label: "Live Face Match",       value: 20 },
-      { label: "Communication Skills",  value: 25 },
-      { label: "Confidence",            value: 32 },
-      { label: "Behavioral Signals",    value: 10 },
-      { label: "Accuracy of Answers",   value: 40 },
+      { label: "Punctuality",  value: 90 },
+      { label: "Team Work",    value: 74 },
+      { label: "Reliability",  value: 65 },
     ],
-    strength: "Shows potential in accuracy of answers with room to improve behavioral consistency.",
   },
   communication: {
-    score: 58,
+    score: 88,
+    strength: "Excellent written and verbal documentation skills.",
     metrics: [
-      { label: "Live Face Match",       value: 95 },
-      { label: "Communication Skills",  value: 25 },
-      { label: "Confidence",            value: 82 },
-      { label: "Behavioral Signals",    value: 87 },
-      { label: "Accuracy of Answers",   value: 87 },
+      { label: "Listening",    value: 92 },
+      { label: "Articulation", value: 85 },
+      { label: "Tone",         value: 87 },
     ],
-    strength: "Balanced communicator with strong technical language usage in clinical contexts.",
   },
   accuracy: {
-    score: 88,
+    score: 71,
+    strength: "Good clinical knowledge with room to improve edge cases.",
     metrics: [
-      { label: "Live Face Match",       value: 95 },
-      { label: "Communication Skills",  value: 25 },
-      { label: "Confidence",            value: 82 },
-      { label: "Behavioral Signals",    value: 87 },
-      { label: "Accuracy of Answers",   value: 87 },
+      { label: "Medical Facts",  value: 75 },
+      { label: "Scenarios",      value: 68 },
+      { label: "Protocols",      value: 70 },
     ],
-    strength: "Highly accurate in clinical knowledge — top 10% among all interviewed candidates.",
   },
 };
+
+// ── Tabs ──────────────────────────────────────────────────────────
+export const TABS = [
+  "General score",
+  "Qualifications",
+  "Documentations",
+  "Job Experience",
+  "Work History",
+  "Reviews & Ratings",
+  "Complaints & Grievances",
+] as const;
+
+export type Tab = typeof TABS[number];

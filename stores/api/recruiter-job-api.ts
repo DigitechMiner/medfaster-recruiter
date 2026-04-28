@@ -14,7 +14,7 @@ import type {
   GenerateQuestionsResponse,
   JobUpdateResponse,
   JobDeleteResponse,
-} from '@/Interface/job.types';
+} from '@/Interface/recruiter.types';
 
 export interface JobApplicationListResponse {
   applications: Array<{

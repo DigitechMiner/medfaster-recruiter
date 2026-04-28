@@ -1,31 +1,37 @@
-import type { JobFormData } from "@/Interface/job.types";
+import type { JobFormData } from "@/Interface/recruiter.types";
 import metadata from "@/utils/constant/metadata";
 
 // ============ DEFAULT FORM VALUES ============
 export const DEFAULT_JOB_FORM_DATA: JobFormData = {
-  jobTitle: "Registered Nurse",        // ← matches job_title array
-  department: "Nursing",               // ← matches department array
-  jobType: "Full Time",                // ← matches job_type array
-  location: "",                        // ← clear this
-  streetAddress: "",                   // ← empty
-  postalCode: "",                      // ← empty
-  province: "",                        // ← empty — this is why province fails!
-  city: "",                            // ← empty
-  payRange: [metadata.pay_range.default_min, metadata.pay_range.default_max] as [number, number],
-  experience: "2-3 Yrs",
-  qualification: [],                   // ← empty, user should select
-  specialization: [],                  // ← empty, user should select
-  urgency: "normal",
+  jobTitle:         "Registered Nurse",
+  department:       "Nursing",
+  jobType:          "Full Time",
+  location:         "",
+  streetAddress:    "",
+  postalCode:       "",
+  province:         "",       // ✅ "" is valid — Province type includes ""
+  city:             "",
+  payRange:         [metadata.pay_range.default_min, metadata.pay_range.default_max] as [number, number],
+  experience:       "2-3 Yrs",
+  qualification:    [],
+  specialization:   [],
+  urgency:          "normal",
   inPersonInterview: "Yes",
   physicalInterview: "Yes",
-  aiInterview: "Yes",
-  description: "",                     // ← empty
-  numberOfHires: "1",
-  fromDate: undefined,
-  tillDate: undefined,
-  fromTime: "",
-  toTime: "",
-  status: "DRAFT",
+  aiInterview:      true,
+  description:      "",
+  responsibilities: [],       // ✅ was missing
+  required_skills:  [],       // ✅ was missing
+  numberOfHires:    "1",
+  fromDate:         undefined,
+  tillDate:         undefined,
+  fromTime:         "",
+  toTime:           "",
+  status:           "DRAFT",
+  workingConditions: [],
+  whyJoin:          [],
+  experienceList:   [],
+  questions:        [],
 };
 
 

@@ -9,7 +9,7 @@ import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_TOPICS, Topic } from "../../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
-import type { JobCreatePayload, } from "@/Interface/job.types";
+import type { JobCreatePayload, } from "@/Interface/recruiter.types";
 
 interface Props {
   pendingPayload?: JobCreatePayload | null;

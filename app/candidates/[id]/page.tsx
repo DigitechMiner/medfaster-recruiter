@@ -1,73 +1,79 @@
-'use client';
+// app/candidates/[id]/page.tsx
+"use client";
 
-import React from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useCandidateDetail } from "@/hooks/useCandidateDetail";
 import { CandidateDetailContent } from "./components/CandidateDetailContent";
-import { AppLayout } from "@/components/global/app-layout";
-import Link from "next/link";
-import { useCandidateDetails } from "@/hooks/useRecruiterData";
+import {
+  MOCK_CANDIDATE_DETAIL_MAP,
+  isMockCandidateId,
+} from "@/app/candidates/data/candidatePoolMocks";
 
 export default function CandidateDetailPage() {
+  const { id }       = useParams<{ id: string }>();
   const router       = useRouter();
-  const params       = useParams();
   const searchParams = useSearchParams();
 
-  const candidateId      = params?.id as string;
-  const jobApplicationId = searchParams.get("job_application_id") || undefined;
+  const isMock = searchParams.get("mock") === "true" || isMockCandidateId(id);
 
-  const { candidate, isLoading, error } = useCandidateDetails(candidateId);
-  const handleBack = () => router.push("/candidates");
-
-  if (isLoading) {
+  // ── Mock path — skip API entirely ──────────────────────────────────────
+  if (isMock) {
+    const mockData = MOCK_CANDIDATE_DETAIL_MAP[id];
+    if (!mockData) {
+      return (
+        <main className="p-6 text-center text-gray-400 text-sm">
+          Mock candidate <code>{id}</code> not found.
+        </main>
+      );
+    }
     return (
-      <AppLayout>
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
-            <p className="text-gray-500 text-sm">Loading candidate...</p>
-          </div>
-        </div>
-      </AppLayout>
+      <main className="p-4 md:p-6">
+        <CandidateDetailContent
+          candidate={mockData}
+          onBack={() => router.back()}
+          candidateId={id}
+          isMock
+        />
+      </main>
     );
   }
 
-  if (error || !candidate) {
+  // ── Real API path ───────────────────────────────────────────────────────
+  return <RealCandidateDetail id={id} onBack={() => router.back()} />;
+}
+
+// Extracted so hooks always run unconditionally
+function RealCandidateDetail({ id, onBack }: { id: string; onBack: () => void }) {
+  // ✅ rawResponse for CandidateHero, isError (not "error")
+  const { rawResponse, isLoading, isError } = useCandidateDetail(id);
+
+  if (isLoading) {
     return (
-      <AppLayout>
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-md mx-auto">
-            <span className="text-4xl">👤</span>
-            <h1 className="text-xl font-bold text-gray-900 mt-3 mb-2">Candidate not found</h1>
-            <p className="text-sm text-gray-500 mb-5">{error ?? "This candidate profile could not be loaded."}</p>
-            <button
-              onClick={handleBack}
-              className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 text-sm font-medium"
-            >
-              Back to Candidates
-            </button>
-          </div>
+      <main className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-48 bg-gray-100 rounded-2xl" />
+          <div className="h-8  bg-gray-100 rounded-xl w-1/3" />
+          <div className="h-32 bg-gray-100 rounded-xl" />
         </div>
-      </AppLayout>
+      </main>
+    );
+  }
+
+  if (isError || !rawResponse) {
+    return (
+      <main className="p-6 text-center text-red-400 text-sm">
+        Failed to load candidate. Please try again.
+      </main>
     );
   }
 
   return (
-    <AppLayout>
-      <nav className="flex items-center gap-1.5 text-xs text-gray-400 px-6 pt-4 pb-0">
-        <Link href="/candidates" className="hover:text-gray-700 transition-colors">Candidates</Link>
-        <span>/</span>
-        <span className="text-gray-700 font-medium">
-          {candidate.data.candidate.full_name ?? candidateId}
-        </span>
-      </nav>
-
+    <main className="p-4 md:p-6">
       <CandidateDetailContent
-        candidate={candidate}
-        status="applied"
-        onBack={handleBack}
-        candidateId={candidateId}
-        jobApplicationId={jobApplicationId}
+        candidate={rawResponse}
+        onBack={onBack}
+        candidateId={id}
       />
-    </AppLayout>
+    </main>
   );
 }

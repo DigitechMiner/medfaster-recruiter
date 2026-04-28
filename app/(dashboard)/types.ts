@@ -1,5 +1,5 @@
 // app/dashboard/types.ts
-import type { JobsListResponse } from "@/Interface/job.types";
+import type { JobsListResponse } from "@/Interface/recruiter.types";
 
 export type MetricType = "openJobs" | "applied" | "interviewing" | "hired" | "pending";
 

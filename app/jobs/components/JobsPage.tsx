@@ -5,25 +5,21 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
 import { StatusSection, StatusTable } from "./ui";
-import { Job, JobListItem } from "@/Interface/job.types";
+import { JobListItem } from "@/Interface/recruiter.types";
+import type { JobMock }  from "../constants/jobs";
+import type { CandidatesData } from "../constants/jobs"; 
 import { STATUS_SECTIONS } from "../constants/jobs";
 import { LayoutMode } from "../constants/form";
 import { useJobs, useJobApplications } from "@/hooks/useJobData";
 
-interface CandidatesData {
-  applied: Job[];
-  interviewing: Job[];
-  hired: Job[];
-}
-
-const INTERVIEWING_DUMMY: Job[] = [
+const INTERVIEWING_DUMMY: JobMock[] = [
   { id: 201, candidateId: "cand-201", doctorName: "Dr. Michael Thompson", experience: 6, position: "Emergency Medicine Physician", score: 90, specialization: ["Emergency Medicine", "Trauma Care"], currentCompany: "Metro Hospital" },
   { id: 202, candidateId: "cand-202", doctorName: "Dr. Priya Sharma", experience: 8, position: "Neurologist", score: 94, specialization: ["Neurology", "Neurosurgery"], currentCompany: "Brain & Spine Institute" },
   { id: 203, candidateId: "cand-203", doctorName: "Dr. David Kim", experience: 5, position: "Radiologist", score: 87, specialization: ["Radiology", "Imaging"], currentCompany: "Diagnostic Center Plus" },
   { id: 204, candidateId: "cand-204", doctorName: "Dr. Lisa Anderson", experience: 9, position: "Anesthesiologist", score: 91, specialization: ["Anesthesiology", "Pain Management"], currentCompany: "University Medical Center" },
 ];
 
-const HIRED_DUMMY: Job[] = [
+const HIRED_DUMMY: JobMock[] = [
   { id: 301, candidateId: "cand-301", doctorName: "Dr. Robert Williams", experience: 10, position: "Chief of Surgery", score: 96, specialization: ["General Surgery", "Laparoscopic Surgery"], currentCompany: "Premier Healthcare System" },
   { id: 302, candidateId: "cand-302", doctorName: "Dr. Maria Garcia", experience: 6, position: "Dermatologist", score: 89, specialization: ["Dermatology", "Cosmetic Dermatology"], currentCompany: "Skin & Beauty Clinic" },
 ];
@@ -87,7 +83,7 @@ const JobsPage: React.FC = () => {
       };
     }
 
-    const applied: Job[] = rawApplications.map((app) => {
+    const applied: JobMock[] = rawApplications.map((app) => {
       const candidate = app.candidate;
       const fullName =
         candidate?.full_name?.trim() ||
@@ -116,7 +112,7 @@ const JobsPage: React.FC = () => {
     };
   }, [applicationsData]);
 
-  const handleCandidateClick = (job: Job) => {
+  const handleCandidateClick = (job: JobMock) => {
     if (!job.candidateId || !job.id) return;
     router.push(`/candidates/${job.candidateId}?job_application_id=${job.id}`);
   };

@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/global/app-layout";
 import { InstantReplacementForm } from "../create/form/instant-replacement-form";
 import { JobSummaryPage } from "../create/components/jobs-summary-page";
 import { useJobsStore } from "@/stores/jobs-store";
-import type { JobCreatePayload } from "@/Interface/job.types";
+import type { JobCreatePayload } from "@/Interface/recruiter.types";
 
 function InstantReplacementContent() {
   const router = useRouter();
