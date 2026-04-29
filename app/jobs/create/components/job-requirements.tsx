@@ -74,7 +74,7 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
             </div>
             <Slider
       min={0}
-      max={200}
+      max={100}
       step={1}
       value={[payMinDollars, payMaxDollars]}   // ✅ two handles
       onValueChange={(values) =>

@@ -51,10 +51,9 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     const normalJobFields: Partial<JobCreatePayload> = isNormalJob
       ? {
           years_of_experience: convertExperienceToBackend(data.experience) ?? undefined,
-          qualifications: data.qualification
-            ?.filter((q) => q?.trim())
-            .map(convertQualificationToBackend)
-            .filter((q) => Object.values(metadata.qualification_mapping).includes(q)) ?? [],
+          qualifications: data.qualification?.filter((q) => q?.trim()).length
+  ? data.qualification.filter((q) => q?.trim())
+  : undefined,
           specializations: data.specialization
             ?.filter((s) => s?.trim())
             .map(convertSpecializationToBackend)
@@ -83,9 +82,9 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       city:                 data.city                || undefined,
 
       // ✅ Only send if actually set — never send null to backend
-      ...(Array.isArray(data.payRange) && data.payRange[0]
-  ? { pay_per_hour_cents: Math.round(Number(data.payRange[0]) * 100) }
-  : {}),
+      pay_per_hour_cents: Array.isArray(data.payRange)
+  ? data.payRange[1]   // already in cents
+  : 0,
 
       job_urgency:          urgencyMode,
       description:          data.description         || undefined,
@@ -125,16 +124,6 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       }
       if (validSpecs.length === 0) {
         setError("Please add at least one specialization");
-        return;
-      }
-
-      const invalidQuals = validQuals.filter(
-        (q) => !Object.keys(metadata.qualification_mapping).includes(q)
-      );
-      if (invalidQuals.length > 0) {
-        setError(
-          `Invalid qualification(s): ${invalidQuals.join(", ")}. Please select from the dropdown.`
-        );
         return;
       }
     }

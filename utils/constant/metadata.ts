@@ -201,17 +201,22 @@ const metadata = {
   },
 
   qualification_mapping: {
-    "Cardiology":         "cardiology",
-    "Orthopedics":        "orthopedics",
-    "Neurology":          "neurology",
-    "Dermatology":        "dermatology",
-    "Pediatrics":         "pediatrics",
-    "Emergency Medicine": "emergency_medicine",
-    "Internal Medicine":  "internal_medicine",
-    "Surgery":            "surgery",
-    "Anesthesiology":     "anesthesiology",
-    "Radiology":          "radiology",
-  },
+  // ✅ Add these two to match the qualification array
+  "Geriatric":              "geriatric",
+  "Geriatric Mental Health": "geriatric_mental_health",
+
+  // ── old entries (commented out since qualification array doesn't use them) ──
+  // "Cardiology":         "cardiology",
+  // "Orthopedics":        "orthopedics",
+  // "Neurology":          "neurology",
+  // "Dermatology":        "dermatology",
+  // "Pediatrics":         "pediatrics",
+  // "Emergency Medicine": "emergency_medicine",
+  // "Internal Medicine":  "internal_medicine",
+  // "Surgery":            "surgery",
+  // "Anesthesiology":     "anesthesiology",
+  // "Radiology":          "radiology",
+},
 
   experience_mapping: {
     "0-1 Yrs":  "0",

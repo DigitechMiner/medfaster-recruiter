@@ -181,9 +181,9 @@ export default function EditJobPage() {
     city:        data.city          || undefined,
 
     // ✅ number, not string
-    ...(Array.isArray(data.payRange) && data.payRange[0]
-  ? { pay_per_hour_cents: Math.round(Number(data.payRange[0]) * 100) }   // ✅
-  : {}),
+    pay_per_hour_cents: Array.isArray(data.payRange)
+  ? data.payRange[1]   // already in cents
+  : 0,
 
     job_urgency:  data.urgency,
     description:  data.description || undefined,

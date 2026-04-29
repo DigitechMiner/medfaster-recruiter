@@ -17,7 +17,6 @@ import type {
   CandidateSummaryData,
   JobsSummaryData,
   CalendarJob,
-  CandidateListItem,
   CandidatesListParams,
   CandidatesListResponse,
   CandidateDetailsResponse,

@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import type { JobCreatePayload, JobStatus } from "@/Interface/recruiter.types";
+import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
 import { getWallet } from '@/stores/api/recruiter-wallet-api';
-import { getJobFeePreview, type JobFeePreview } from '@/stores/api/recruiter-job-api';
-import { convertJobTitleToBackend } from "@/utils/constant/metadata";
+
+
 import { useWalletStore } from "@/stores/walletStore";
+import { getJobFeePreview } from "@/stores/api/recruiter-job-api";
 
 interface JobSummaryPageProps {
   mode: "normal" | "urgent";
@@ -67,7 +68,7 @@ const refreshWallet = useWalletStore((s) => s.refreshWallet);
   const [error, setError]               = useState<string | null>(null);
   const [showSuccess, setShowSuccess]   = useState(false);
   const [successJobId, setSuccessJobId] = useState("");
-  const [feePreview, setFeePreview]     = useState<JobFeePreview | null>(null);
+  const [feePreview, setFeePreview] = useState<JobFeePreviewResponse['data'] | null>(null);
   const [feeLoading, setFeeLoading]     = useState(false);
   const [feeError, setFeeError]         = useState<string | null>(null);
 
@@ -84,7 +85,7 @@ const refreshWallet = useWalletStore((s) => s.refreshWallet);
     setFeeError(null);
 
     getJobFeePreview({
-  job_title:            convertJobTitleToBackend(payload.job_title), // ← wrap this
+  job_title: payload.job_title,
   no_of_hires_required: payload.no_of_hires_required ?? 1,
   start_date:           payload.start_date,
   end_date:             payload.end_date,
@@ -103,11 +104,13 @@ const refreshWallet = useWalletStore((s) => s.refreshWallet);
     payload.check_out_time,
   ]);
 
-const hourlyRate        = feePreview ? feePreview.recruiter_pay_per_hour_cents / 100            : 0;
-const hoursPerCandidate = feePreview ? feePreview.total_working_hours                           : 0;
-const costPerCandidate  = feePreview ? feePreview.per_candidate_shift_recruiter_pay_cents / 100 : 0;
-const totalPayable      = feePreview ? feePreview.total_recruiter_pay_cents / 100               : 0;
+const hourlyRate = payload.pay_per_hour_cents !== undefined
+  ? payload.pay_per_hour_cents / 100
+  : 0;
+const hoursPerCandidate = feePreview ? feePreview.total_working_hours : 0;
+const costPerCandidate  = hourlyRate * hoursPerCandidate; 
 const requiredCandidates = payload.no_of_hires_required ?? 1;  // ← add this back
+const totalPayable      = costPerCandidate * requiredCandidates; 
 
 
   const shifts   = buildShiftRows(payload);
@@ -130,7 +133,7 @@ const requiredCandidates = payload.no_of_hires_required ?? 1;  // ← add this b
     // ← Safe number comparison — no BigInt needed
     const availableBalanceCents = parseInt(wallet.available_balance ?? '0', 10);
     // ✅ snake_case
-const requiredCents = feePreview.per_candidate_shift_recruiter_pay_cents ?? 0;
+const requiredCents = Math.round(totalPayable * 100);
 
     // Guard: if fee came back invalid, block the action
     if (isNaN(requiredCents) || requiredCents <= 0) {
@@ -147,7 +150,7 @@ const requiredCents = feePreview.per_candidate_shift_recruiter_pay_cents ?? 0;
 
     const finalPayload = { ...payload, status: "OPEN" as JobStatus };
 
-    const res = await onSubmit(finalPayload, requiredCents);
+   const res = await onSubmit(finalPayload, Math.round(totalPayable * 100));
 if (res?.success) {
   await refreshWallet();          // ← force-fetch updated balance from backend
   setSuccessJobId(res.jobId ?? '');

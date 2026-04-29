@@ -14,6 +14,8 @@ import type {
   GenerateQuestionsResponse,
   JobUpdateResponse,
   JobDeleteResponse,
+  JobFeePreviewPayload,
+  JobFeePreviewResponse,
 } from '@/Interface/recruiter.types';
 
 export interface JobApplicationListResponse {
@@ -62,28 +64,6 @@ export interface GetJobsParams {
   limit?: number;
   offset?: number;
 }
-export interface JobFeePreview {
-  job_title:                               string;
-  job_title_label:                         string;
-  no_of_hires:                             number;
-  recruiter_pay_per_hour_cents:            number;
-  is_night_shift:                          boolean;
-  shift_summaries:                         string[];
-  total_working_hours_label:               string;
-  total_working_hours:                     number;
-  per_candidate_shift_recruiter_pay_cents: number;
-  total_recruiter_pay_cents:               number;
-}
-
-export interface JobFeePreviewParams {
-  job_title: string;
-  no_of_hires_required: number;
-  start_date: string;
-  end_date: string;
-  check_in_time: string;
-  check_out_time: string;
-}
-
 const extractData = <T>(payload: unknown): T => (payload as { data: T }).data;
 const extractRoot = <T>(payload: unknown): T => payload as T;
 
@@ -141,18 +121,20 @@ export async function generateJobQuestions(
   return extractRoot<GenerateQuestionsResponse>(res.data);
 }
 
-export async function getJobFeePreview(params: JobFeePreviewParams): Promise<JobFeePreview> {
-  const body = {
+export async function getJobFeePreview(
+  params: JobFeePreviewPayload
+): Promise<JobFeePreviewResponse['data']> {
+  const body: JobFeePreviewPayload = {
     job_title:            params.job_title,
     no_of_hires_required: params.no_of_hires_required,
     start_date:           new Date(params.start_date).toISOString(),
     end_date:             new Date(params.end_date).toISOString(),
-    check_in_time:        params.check_in_time,   // ← "07:30" as-is, no replace
-    check_out_time:       params.check_out_time,  // ← "11:30" as-is, no replace
+    check_in_time:        params.check_in_time,
+    check_out_time:       params.check_out_time,
   };
 
   const res = await axiosInstance.post(ENDPOINTS.JOBS_FEE_PREVIEW, body);
-  return extractData<JobFeePreview>(res.data);
+  return extractData<JobFeePreviewResponse['data']>(res.data);
 }
 export type {
   CandidateListItem,
