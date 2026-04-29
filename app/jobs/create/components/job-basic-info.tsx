@@ -27,8 +27,20 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
 
   const today = new Date();
   const fromMinDate = today;
-  const tillMinDate = new Date(today);
-  tillMinDate.setDate(today.getDate() + 1);
+  const tillMinDate = isInstant
+  ? (formData.fromDate
+      ? new Date(                        // allow same day as fromDate
+          typeof formData.fromDate === "string"
+            ? formData.fromDate
+            : formData.fromDate
+        )
+      : today                            // no fromDate yet → today is fine
+    )
+  : (() => {
+      const d = new Date(today);
+      d.setDate(today.getDate() + 1);    // normal jobs must end after they start
+      return d;
+    })();
 
   const [showCalendar1, setShowCalendar1]         = useState(false);
   const [showCalendar2, setShowCalendar2]         = useState(false);

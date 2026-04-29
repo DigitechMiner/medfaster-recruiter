@@ -52,16 +52,16 @@ const metadata = {
   },
 
   qualification: [
-    "Cardiology",
-    "Orthopedics",
-    "Neurology",
-    "Dermatology",
-    "Pediatrics",
-    "Emergency Medicine",
-    "Internal Medicine",
-    "Surgery",
-    "Anesthesiology",
-    "Radiology",
+    "Geriatric",
+    "Geriatric Mental Health",
+    // "Neurology",
+    // "Dermatology",
+    // "Pediatrics",
+    // "Emergency Medicine",
+    // "Internal Medicine",
+    // "Surgery",
+    // "Anesthesiology",
+    // "Radiology",
   ],
 
   specialization: [

@@ -100,7 +100,7 @@ function ListSection({
   onChange: (items: string[]) => void;
 }) {
   // Always maintain exactly 4 rows — pad with empty strings if needed
-  const normalized = [...items, "", "", "", ""].slice(0, Math.max(4, items.length));
+  const normalized = items.length > 0 ? items : [""];
 
   const handleUpdate = (index: number, value: string) => {
     const next = [...normalized];
@@ -109,11 +109,11 @@ function ListSection({
   };
 
   const handleDelete = (index: number) => {
-    const next = normalized.filter((_, i) => i !== index);
-    // Re-pad to 4 if we go below
-    while (next.length < 4) next.push("");
-    onChange(next);
-  };
+  const next = normalized.filter((_, i) => i !== index);
+  // ✅ Keep at least 1 empty row so the section never looks blank
+  if (next.length === 0) next.push("");
+  onChange(next);
+};
 
   const handleAdd = () => {
     onChange([...normalized, ""]);
@@ -256,7 +256,7 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
     reset();
     await handleGenerateWithAI();
   };
-
+const isInstant = formData.urgency === "instant";
   return (
     <>
       <div className="space-y-2 sm:space-y-3 mb-8">
@@ -287,15 +287,17 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
         />
       </div>
 
-      {LIST_SECTIONS.map(({ key, label, required }) => (
-        <ListSection
-          key={key}
-          title={label}
-          required={required}
-          items={(formData[key] as string[]) ?? []}
-          onChange={(items) => updateFormData({ [key]: items })}
-        />
-      ))}
+      {LIST_SECTIONS
+  .filter(() => !isInstant)   // ← hides all 5 sections for instant jobs
+  .map(({ key, label, required }) => (
+    <ListSection
+      key={key}
+      title={label}
+      required={required}
+      items={(formData[key] as string[]) ?? []}
+      onChange={(items) => updateFormData({ [key]: items })}
+    />
+  ))}
 
       <AIDescriptionModal
         open={showModal}

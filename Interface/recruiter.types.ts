@@ -566,7 +566,7 @@ export interface JobFormData {
   province?:          Province;
   city?:              string;
   country?:           string;
-  qualification:      string[];
+  qualification?:      string[];
   specialization:     string[];
   experience:         string;
   experienceList?:    string[];

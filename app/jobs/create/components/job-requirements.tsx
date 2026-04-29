@@ -28,23 +28,20 @@ export function JobRequirements({ formData, updateFormData }: JobRequirementsPro
     ? parseInt(formData.experience.split("-")[0]) || 4
     : 4;
 
-  const removeTag = (
-    field: "qualification" | "specialization",
-    tagToRemove: string
-  ) => {
-    updateFormData({
-      [field]: formData[field].filter((tag) => tag !== tagToRemove),
-    });
-  };
+ const removeTag = (field: "qualification" | "specialization", tagToRemove: string) => {
+  updateFormData({
+    [field]: (formData[field] ?? []).filter((tag) => tag !== tagToRemove),
+  });
+};
 
   // ✅ Add qualification from dropdown — prevent duplicates
   const handleQualificationSelect = (value: string) => {
-    if (value && !formData.qualification.includes(value)) {
-      updateFormData({
-        qualification: [...formData.qualification, value],
-      });
-    }
-  };
+  if (value && !(formData.qualification ?? []).includes(value)) {
+    updateFormData({
+      qualification: [...(formData.qualification ?? []), value],
+    });
+  }
+};
 
   // Add specialization from dropdown — prevent duplicates
   const handleSpecializationSelect = (value: string) => {
@@ -120,7 +117,7 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
         {/* ✅ Qualification — now a dropdown like specialization */}
         <div className="space-y-3">
           <Label htmlFor="qualification" className="text-sm font-medium text-gray-700">
-            Additional Qualification <span className="text-red-500">*</span>
+            Additional Qualification 
           </Label>
 
           <Select value="" onValueChange={handleQualificationSelect}>
@@ -134,7 +131,7 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
             </SelectTrigger>
             <SelectContent className="max-h-60">
               {QUALIFICATIONS.map((qual) => {
-                const alreadyAdded = formData.qualification.includes(qual);
+                const alreadyAdded = (formData.qualification ?? []).includes(qual);
                 return (
                   <SelectItem
                     key={qual}
@@ -153,8 +150,8 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
           </Select>
 
           <div className="flex flex-wrap gap-2">
-            {formData.qualification && formData.qualification.length > 0 ? (
-              formData.qualification.map((tag) => (
+            {(formData.qualification ?? []).length > 0 ? (
+              (formData.qualification ?? []).map((tag) => (
                 <Badge
                   key={tag}
                   variant="secondary"
