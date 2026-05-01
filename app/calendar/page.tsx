@@ -192,7 +192,7 @@ function OverviewPanel({ jobs, view, currentDate }: {
   ];
 
  return (
-    <div className="w-[260px] flex-shrink-0 flex flex-col gap-3 self-start sticky top-6">
+    <div className="w-[260px] flex-shrink-0 flex flex-col gap-7 self-start sticky top-6">
 
       {/* Header card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-5 text-center">

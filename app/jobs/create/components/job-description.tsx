@@ -256,7 +256,6 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
     reset();
     await handleGenerateWithAI();
   };
-const isInstant = formData.urgency === "instant";
   return (
     <>
       <div className="space-y-2 sm:space-y-3 mb-8">
@@ -288,7 +287,6 @@ const isInstant = formData.urgency === "instant";
       </div>
 
       {LIST_SECTIONS
-  .filter(() => !isInstant)   // ← hides all 5 sections for instant jobs
   .map(({ key, label, required }) => (
     <ListSection
       key={key}

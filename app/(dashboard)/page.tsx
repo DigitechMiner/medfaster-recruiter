@@ -46,7 +46,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <AppLayout padding="none">
-      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 max-w-[1440px] mx-auto w-full">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
 
         {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             Header

@@ -140,3 +140,8 @@
     --angle: 360deg;
   }
 }
+
+html,
+body {
+  height: 100%;
+}
