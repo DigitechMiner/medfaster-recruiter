@@ -80,6 +80,7 @@ export async function getJobApplications(params: {
 
 export async function getRecruiterJobs(params?: GetJobsParams): Promise<JobsListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_LIST, { params });
+    console.log("🔍 RAW /recruiter/jobs response:", JSON.stringify(res.data, null, 2));
   return extractRoot<JobsListResponse>(res.data);
 }
 

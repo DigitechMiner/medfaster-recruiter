@@ -63,7 +63,11 @@ export const JobsListView: React.FC<Props> = ({ jobs }) => {
             const timings  = checkIn && checkOut ? `${checkIn} – ${checkOut}` : '—';
 
             return (
-              <tr key={job.id} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors">
+              <tr 
+              key={job.id} 
+              className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors"
+              onClick={() => router.push(`/jobs/${job.id}`)}
+                 >
 
                 {/* Job Title */}
                 <td className="px-4 py-3.5 font-medium text-gray-800 whitespace-nowrap">
@@ -115,7 +119,6 @@ export const JobsListView: React.FC<Props> = ({ jobs }) => {
                 {/* Actions */}
                 <td className="px-4 py-3.5">
                   <button
-                    onClick={() => router.push(`/jobs/${job.id}`)}
                     className="text-gray-400 hover:text-[#F4781B] transition-colors p-1"
                     title="View job"
                   >

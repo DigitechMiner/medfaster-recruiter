@@ -8,6 +8,8 @@ import {
 import {
   fetchChatConversations,
   createOrGetChatConversation,
+  fetchChatMessages,
+  sendChatMessage,
 } from "@/stores/api/chat-api";
 import { initRecruiterChatSocket } from "@/lib/chatSocket";
 import { useAuthStore } from "@/stores/authStore";
@@ -38,50 +40,6 @@ interface ChatMessage {
   time: string;
   duration?: string;
 }
-
-// ── Mock Fallback Data ─────────────────────────────────────────────────────
-
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: "mock-1", recruiter_id: "r1", candidate_id: "c1",
-    last_message: "Hey! Did you finish the Hi-FI wireframes for flora app design?",
-    last_message_at: new Date().toISOString(), recruiter_unread_count: 0,
-    candidate: { first_name: "Jennifer", last_name: "Markus", email: null },
-  },
-  {
-    id: "mock-2", recruiter_id: "r1", candidate_id: "c2",
-    last_message: "Hey! Did you finish the Hi-FI wireframes for flora app design?",
-    last_message_at: new Date().toISOString(), recruiter_unread_count: 2,
-    starred: true,
-    candidate: { first_name: "Iva", last_name: "Ryan", email: null },
-  },
-  {
-    id: "mock-3", recruiter_id: "r1", candidate_id: "c3",
-    last_message: "Hey! Did you finish the Hi-FI wireframes for flora app design?",
-    last_message_at: new Date().toISOString(), recruiter_unread_count: 0,
-    candidate: { first_name: "Jerry", last_name: "Helfer", email: null },
-  },
-  {
-    id: "mock-4", recruiter_id: "r1", candidate_id: "c4",
-    last_message: "Hey! Did you finish the Hi-FI wireframes for flora app design?",
-    last_message_at: new Date().toISOString(), recruiter_unread_count: 0,
-    candidate: { first_name: "David", last_name: "Elson", email: null },
-  },
-  {
-    id: "mock-5", recruiter_id: "r1", candidate_id: "c5",
-    last_message: "Hey! Did you finish the Hi-FI wireframes for flora app design?",
-    last_message_at: new Date().toISOString(), recruiter_unread_count: 0,
-    candidate: { first_name: "Mary", last_name: "Freund", email: null },
-  },
-];
-
-const MOCK_MESSAGES: ChatMessage[] = [
-  { id: "msg-1", type: "text", direction: "received", text: "Oh, hello! All perfectly.\nI will check it and get back to you soon", time: "04:45 PM" },
-  { id: "msg-2", type: "text", direction: "sent",     text: "Oh, hello! All perfectly.\nI will check it and get back to you soon", time: "04:45 PM" },
-  { id: "msg-3", type: "text", direction: "received", text: "Oh, hello! All perfectly.\nI will check it and get back to you soon", time: "04:45 PM" },
-  { id: "msg-4", type: "text", direction: "sent",     text: "Oh, hello! All perfectly.\nI will check it and get back to you soon", time: "04:45 PM" },
-  { id: "msg-5", type: "voice", direction: "received", time: "04:45 PM", duration: "01:24" },
-];
 
 // ── Avatar Color Map ───────────────────────────────────────────────────────
 
@@ -125,13 +83,34 @@ const formatDateLabel = (dateStr: string | null) => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
+// ── Normalize API message → ChatMessage ───────────────────────────────────
+
+// ✅ Maps whatever shape your API returns to the ChatMessage interface
+// Adjust field names here if your API uses different keys
+function normalizeMessage(raw: Record<string, unknown>, currentRecruiterId: string): ChatMessage {
+  const senderId = (raw.sender_id ?? raw.senderId ?? raw.recruiter_id ?? "") as string;
+  const isVoice  = (raw.type ?? raw.message_type ?? "text") === "voice";
+  const sentAt   = (raw.sent_at ?? raw.created_at ?? raw.createdAt ?? null) as string | null;
+
+  return {
+    id:        (raw.id ?? raw.message_id ?? `msg-${Math.random()}`) as string,
+    type:      isVoice ? "voice" : "text",
+    direction: senderId === currentRecruiterId ? "sent" : "received",
+    // ✅ Added `raw.message` to match what your sendChatMessage posts
+    text:      isVoice ? undefined : ((raw.message ?? raw.text ?? raw.content ?? "") as string),
+    duration:  isVoice ? ((raw.duration ?? "0:00") as string) : undefined,
+    time:      sentAt
+      ? new Date(sentAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      : new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
+  };
+}
+
 // ── Voice Message ──────────────────────────────────────────────────────────
 
 const VoiceMessage = ({ duration }: { duration: string }) => {
   const bars = [3, 5, 8, 12, 16, 10, 14, 18, 12, 8, 15, 20, 14, 10, 6, 12, 18, 14, 8, 5, 10, 16, 12, 8, 4];
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 bg-[#FDEBD0] rounded-2xl rounded-bl-sm w-64">
-      {/* ✅ This button is safe — it's NOT inside another button */}
       <button
         type="button"
         className="w-8 h-8 bg-[#F4781B] rounded-full flex items-center justify-center hover:bg-[#e06510] transition-colors flex-shrink-0"
@@ -148,32 +127,59 @@ const VoiceMessage = ({ duration }: { duration: string }) => {
   );
 };
 
+// ── Empty States ───────────────────────────────────────────────────────────
+
+const EmptyConversations = () => (
+  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+      <Search className="w-5 h-5 text-gray-300" />
+    </div>
+    <p className="text-sm font-medium text-gray-600">No conversations</p>
+    <p className="text-xs text-gray-400 mt-1">Use + to start a new chat</p>
+  </div>
+);
+
+const EmptyMessages = () => (
+  <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-16">
+    <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4781B" strokeWidth="1.5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <p className="text-sm text-gray-500">No messages yet. Say hello!</p>
+  </div>
+);
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function MessagesPage() {
   const { recruiterProfile, loadRecruiterProfile } = useAuthStore();
 
-  const [conversations, setConversations]   = useState<Conversation[]>([]);
-  const [loadingList, setLoadingList]        = useState(true);
-  const [listError, setListError]            = useState<string | null>(null);
-  const [search, setSearch]                  = useState("");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loadingList, setLoadingList]     = useState(true);
+  const [listError, setListError]         = useState<string | null>(null);
+  const [search, setSearch]               = useState("");
 
-  const [activeId, setActiveId]              = useState<string | null>(null);
-  const [messages, setMessages]              = useState<ChatMessage[]>([]);
-  const [loadingMsgs, setLoadingMsgs]        = useState(false);
+  const [activeId, setActiveId]           = useState<string | null>(null);
+  const [messages, setMessages]           = useState<ChatMessage[]>([]);
+  const [loadingMsgs, setLoadingMsgs]     = useState(false);
+  const [msgsError, setMsgsError]         = useState<string | null>(null);
 
-  const [inputText, setInputText]            = useState("");
+  const [inputText, setInputText]         = useState("");
+  const [sending, setSending]             = useState(false);
 
-  const [showNewChat, setShowNewChat]        = useState(false);
-  const [candidateId, setCandidateId]        = useState("");
-  const [creatingChat, setCreatingChat]      = useState(false);
+  const [showNewChat, setShowNewChat]     = useState(false);
+  const [candidateId, setCandidateId]     = useState("");
+  const [creatingChat, setCreatingChat]   = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // ── Socket init ──────────────────────────────────────────────────────────
   useEffect(() => {
     initRecruiterChatSocket().catch(console.error);
   }, []);
 
+  // ── Load conversations ───────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -182,15 +188,21 @@ export default function MessagesPage() {
         setListError(null);
         if (!recruiterProfile) await loadRecruiterProfile();
         const data = (await fetchChatConversations()) as Conversation[];
+        console.log("📋 raw conversation:", JSON.stringify(data?.[0], null, 2));
         if (!mounted) return;
-        setConversations(data?.length ? data : MOCK_CONVERSATIONS);
-        if (data?.length) setActiveId(data[0].id);
-        else setActiveId(MOCK_CONVERSATIONS[0].id);
+        if (data?.length) {
+          setConversations(data);
+          setActiveId(data[0].id);
+        } else {
+          // ✅ API returned empty — show empty state, not mock data
+          setConversations([]);
+          setActiveId(null);
+        }
       } catch (err) {
         if (!mounted) return;
-        setListError(err instanceof Error ? err.message : "Failed to load");
-        setConversations(MOCK_CONVERSATIONS);
-        setActiveId(MOCK_CONVERSATIONS[0].id);
+        setListError(err instanceof Error ? err.message : "Failed to load conversations");
+        setConversations([]);
+        setActiveId(null);
       } finally {
         if (mounted) setLoadingList(false);
       }
@@ -200,28 +212,47 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recruiterProfile]);
 
+  // ── Load messages for active conversation ────────────────────────────────
   useEffect(() => {
     if (!activeId) return;
     let mounted = true;
+
     async function loadMessages() {
       setLoadingMsgs(true);
+      setMsgsError(null);
       try {
-        await new Promise((r) => setTimeout(r, 300));
-        if (mounted) setMessages(MOCK_MESSAGES);
-      } catch {
-        if (mounted) setMessages(MOCK_MESSAGES);
+        // ✅ fetchChatMessages must accept a conversationId and return raw messages
+        const raw = (await fetchChatMessages(activeId!)) as Record<string, unknown>[];
+        console.log("💬 raw messages:", JSON.stringify(raw?.[0], null, 2));
+        if (!mounted) return;
+
+        const recruiterId = recruiterProfile?.id ?? "";
+
+        if (raw?.length) {
+          setMessages(raw.map((m) => normalizeMessage(m, recruiterId)));
+        } else {
+          // ✅ Empty messages — show empty state
+          setMessages([]);
+        }
+      } catch (err) {
+        if (!mounted) return;
+        setMsgsError(err instanceof Error ? err.message : "Failed to load messages");
+        setMessages([]);
       } finally {
         if (mounted) setLoadingMsgs(false);
       }
     }
+
     loadMessages();
     return () => { mounted = false; };
-  }, [activeId]);
+  }, [activeId, recruiterProfile?.id]);
 
+  // ── Auto scroll to bottom ────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ── Toggle star (local only — extend with API call if needed) ────────────
   const toggleStar = useCallback((id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -230,29 +261,68 @@ export default function MessagesPage() {
     );
   }, []);
 
-  const handleSend = useCallback(() => {
-    if (!inputText.trim() || !activeId) return;
-    const newMsg: ChatMessage = {
+  // ── Send message ─────────────────────────────────────────────────────────
+  const handleSend = useCallback(async () => {
+    if (!inputText.trim() || !activeId || sending) return;
+
+    const text = inputText.trim();
+    setInputText("");
+
+    // ✅ Optimistic update — append immediately so UI feels instant
+    const optimisticMsg: ChatMessage = {
       id:        `local-${Date.now()}`,
       type:      "text",
       direction: "sent",
-      text:      inputText.trim(),
-      time:      new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
+      text,
+      time: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit", minute: "2-digit", hour12: true,
+      }),
     };
-    setMessages((prev) => [...prev, newMsg]);
-    setInputText("");
-  }, [inputText, activeId]);
+    setMessages((prev) => [...prev, optimisticMsg]);
 
+    try {
+      setSending(true);
+      // ✅ sendChatMessage must accept conversationId + text
+      const saved = (await sendChatMessage(activeId, text)) as Record<string, unknown> | null;
+
+      if (saved) {
+        const recruiterId = recruiterProfile?.id ?? "";
+        const confirmedMsg = normalizeMessage(saved, recruiterId);
+        // ✅ Replace optimistic entry with server-confirmed message
+        setMessages((prev) =>
+          prev.map((m) => (m.id === optimisticMsg.id ? confirmedMsg : m))
+        );
+      }
+
+      // ✅ Update last_message in the conversation list
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === activeId
+            ? { ...c, last_message: text, last_message_at: new Date().toISOString() }
+            : c
+        )
+      );
+    } catch (err) {
+      console.error("❌ Failed to send message:", err);
+      // ✅ Remove optimistic message on failure so user knows it didn't send
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+      setInputText(text); // ✅ Restore input so user can retry
+    } finally {
+      setSending(false);
+    }
+  }, [inputText, activeId, sending, recruiterProfile?.id]);
+
+  // ── Start new chat ───────────────────────────────────────────────────────
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateId.trim()) return;
     setCreatingChat(true);
     try {
-      const conv = (await createOrGetChatConversation(candidateId.trim())) as { id: string };
+      const conv = (await createOrGetChatConversation(candidateId.trim())) as Conversation;
       setConversations((prev) => {
         const exists = prev.find((c) => c.id === conv.id);
         if (exists) return prev;
-        return [{ id: conv.id, recruiter_id: "", candidate_id: candidateId, last_message: null, last_message_at: null, recruiter_unread_count: 0 }, ...prev];
+        return [conv, ...prev];
       });
       setActiveId(conv.id);
       setShowNewChat(false);
@@ -270,9 +340,9 @@ export default function MessagesPage() {
     getCandidateName(c).toLowerCase().includes(search.toLowerCase())
   );
 
+  // ── Loading screen ───────────────────────────────────────────────────────
   if (loadingList) {
     return (
-      // ✅ h-screen + overflow-hidden prevents any page scroll
       <div className="h-full overflow-hidden flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center bg-[#F5F2EE]">
@@ -285,17 +355,14 @@ export default function MessagesPage() {
     );
   }
 
+  // ── Main layout ──────────────────────────────────────────────────────────
   return (
-    // ✅ h-screen + overflow-hidden on the root — no page-level scroll ever
     <div className="h-screen overflow-hidden flex flex-col">
       <Navbar />
 
-      {/* Main chat layout fills exactly the remaining viewport height */}
       <div className="flex flex-1 bg-[#F5F2EE] overflow-hidden min-h-0">
 
-        {/* ══════════════════════════════════════════
-            LEFT PANEL — Conversation List
-        ══════════════════════════════════════════ */}
+        {/* ══ LEFT PANEL ══════════════════════════════════════════════════ */}
         <div className="w-[300px] flex-shrink-0 bg-white flex flex-col border-r border-gray-100 overflow-hidden">
 
           {/* Header */}
@@ -359,94 +426,81 @@ export default function MessagesPage() {
           {/* API error banner */}
           {listError && (
             <div className="mx-4 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex-shrink-0">
-              Showing cached data · {listError}
+              {listError}
             </div>
           )}
 
-          {/* ✅ Only THIS div scrolls — the left conversation list */}
+          {/* Conversation list */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                  <Search className="w-5 h-5 text-gray-300" />
-                </div>
-                <p className="text-sm font-medium text-gray-600">No conversations</p>
-                <p className="text-xs text-gray-400 mt-1">Use + to start a new chat</p>
-              </div>
-            ) : (
-              filtered.map((conv) => {
-                const name     = getCandidateName(conv);
-                const isActive = conv.id === activeId;
-                const color    = getAvatarColor(conv.id);
-                return (
-                  // ✅ FIX: outer row is now a <div> — no more nested <button> error
-                  <div
-                    key={conv.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setActiveId(conv.id)}
-                    onKeyDown={(e) => e.key === "Enter" && setActiveId(conv.id)}
-                    className={`w-full text-left px-4 py-3.5 flex items-start gap-3
-                      border-b border-gray-50 transition-colors relative group cursor-pointer
-                      ${isActive
-                        ? "bg-orange-50 border-l-[3px] border-l-[#F4781B]"
-                        : "hover:bg-gray-50 border-l-[3px] border-l-transparent"
-                      }`}
-                  >
-                    {/* Avatar */}
-                    <div className={`w-11 h-11 rounded-full ${color} flex items-center justify-center font-semibold text-sm flex-shrink-0`}>
-                      {getInitials(name)}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-1">
-                        <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
-
-                        {/* ✅ Star is now a safe standalone <button> inside a <div> */}
-                        <button
-                          type="button"
-                          onClick={(e) => toggleStar(conv.id, e)}
-                          className="flex-shrink-0 mt-0.5 p-0.5"
-                        >
-                          <Star
-                            size={13}
-                            className={conv.starred
-                              ? "fill-[#F4781B] text-[#F4781B]"
-                              : "text-gray-300 group-hover:text-gray-400 transition-colors"
-                            }
-                          />
-                        </button>
+            {filtered.length === 0
+              ? <EmptyConversations />
+              : filtered.map((conv) => {
+                  const name     = getCandidateName(conv);
+                  const isActive = conv.id === activeId;
+                  const color    = getAvatarColor(conv.id);
+                  return (
+                    <div
+                      key={conv.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setActiveId(conv.id)}
+                      onKeyDown={(e) => e.key === "Enter" && setActiveId(conv.id)}
+                      className={`w-full text-left px-4 py-3.5 flex items-start gap-3
+                        border-b border-gray-50 transition-colors relative group cursor-pointer
+                        ${isActive
+                          ? "bg-orange-50 border-l-[3px] border-l-[#F4781B]"
+                          : "hover:bg-gray-50 border-l-[3px] border-l-transparent"
+                        }`}
+                    >
+                      <div className={`w-11 h-11 rounded-full ${color} flex items-center justify-center font-semibold text-sm flex-shrink-0`}>
+                        {getInitials(name)}
                       </div>
 
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
-                        {conv.last_message ?? "No messages yet"}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-1">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleStar(conv.id, e)}
+                            className="flex-shrink-0 mt-0.5 p-0.5"
+                          >
+                            <Star
+                              size={13}
+                              className={conv.starred
+                                ? "fill-[#F4781B] text-[#F4781B]"
+                                : "text-gray-300 group-hover:text-gray-400 transition-colors"
+                              }
+                            />
+                          </button>
+                        </div>
 
-                      <div className="flex items-center justify-between mt-1.5">
-                        <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                          </svg>
-                          {formatDateLabel(conv.last_message_at)} | {formatTime(conv.last_message_at)}
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
+                          {conv.last_message ?? "No messages yet"}
                         </p>
-                        {conv.recruiter_unread_count > 0 && (
-                          <span className="min-w-[18px] h-[18px] px-1 bg-[#F4781B] text-white text-[10px] rounded-full flex items-center justify-center font-medium">
-                            {conv.recruiter_unread_count}
-                          </span>
-                        )}
+
+                        <div className="flex items-center justify-between mt-1.5">
+                          <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"/>
+                              <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            {formatDateLabel(conv.last_message_at)} | {formatTime(conv.last_message_at)}
+                          </p>
+                          {conv.recruiter_unread_count > 0 && (
+                            <span className="min-w-[18px] h-[18px] px-1 bg-[#F4781B] text-white text-[10px] rounded-full flex items-center justify-center font-medium">
+                              {conv.recruiter_unread_count}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+            }
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════
-            RIGHT PANEL — Active Chat
-        ══════════════════════════════════════════ */}
+        {/* ══ RIGHT PANEL ═════════════════════════════════════════════════ */}
         {activeConvo ? (
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
 
@@ -478,12 +532,18 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            {/* ✅ Messages area — flex-1 + overflow-y-auto + min-h-0 makes ONLY this scroll */}
+            {/* Messages area */}
             <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 space-y-4">
               {loadingMsgs ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#F4781B]" />
                 </div>
+              ) : msgsError ? (
+                <div className="flex justify-center py-8">
+                  <p className="text-xs text-red-400">{msgsError}</p>
+                </div>
+              ) : messages.length === 0 ? (
+                <EmptyMessages />
               ) : (
                 <>
                   <div className="flex items-center justify-center">
@@ -519,7 +579,7 @@ export default function MessagesPage() {
               )}
             </div>
 
-            {/* Input Bar — flex-shrink-0 pins it to the bottom */}
+            {/* Input Bar */}
             <div className="bg-white border-t border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0">
               <button type="button" className="text-gray-400 hover:text-[#F4781B] transition-colors p-1">
                 <Smile size={20} />
@@ -545,7 +605,8 @@ export default function MessagesPage() {
                 <button
                   type="button"
                   onClick={handleSend}
-                  className="w-9 h-9 bg-[#F4781B] rounded-full flex items-center justify-center hover:bg-[#d5650e] transition-colors"
+                  disabled={sending}
+                  className="w-9 h-9 bg-[#F4781B] rounded-full flex items-center justify-center hover:bg-[#d5650e] transition-colors disabled:opacity-50"
                 >
                   <Send size={16} className="text-white" />
                 </button>

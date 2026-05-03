@@ -108,7 +108,7 @@ export const UrgentJobDetail: React.FC<Props> = ({ job, jobId, onCloseJob }) => 
         <span>
           <strong className="text-gray-900 font-bold">
            {job.pay_per_hour_cents != null
-  ? `$${(parseInt(job.pay_per_hour_cents, 10) / 100).toFixed(2)}`
+  ? `$${(parseInt(job.pay_per_hour_cents, 10)).toFixed(2)}`
   : '—'}
           </strong>/hr
         </span>

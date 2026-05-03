@@ -10,13 +10,13 @@ import { axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import type { JobCreatePayload } from "@/Interface/recruiter.types";
 
-
 function CreateJobContent() {
-  const router = useRouter();
-  const createJob = useJobsStore((s) => s.createJob);
-  const setHasJobs = useJobsStore((s) => s.setHasJobs);
+  const router         = useRouter();
+  const createJob      = useJobsStore((s) => s.createJob);
+  const setHasJobs     = useJobsStore((s) => s.setHasJobs);
+  const clearDraft     = useJobsStore((s) => s.clearDraft);
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep]                    = useState<1 | 2 | 3>(1);
   const [pendingPayload, setPendingPayload] = useState<JobCreatePayload | null>(null);
 
   return (
@@ -41,29 +41,31 @@ function CreateJobContent() {
             mode="normal"
             payload={pendingPayload}
             onBack={() => setStep(2)}
-           onSubmit={async (finalPayload, feeCents) => {
-  try {
-    console.log("💳 feeCents received:", feeCents);
-    console.log("💳 amount being sent:", feeCents / 100);
+            onSubmit={async (finalPayload, feeCents) => {
+              try {
+                console.log("💳 feeCents received:", feeCents);
+                console.log("💳 amount being sent:", feeCents / 100);
 
-    const payRes = await axiosInstance.post(ENDPOINTS.WALLET_PAY, {
-      amount: feeCents / 100,
-    });
+                const payRes = await axiosInstance.post(ENDPOINTS.WALLET_PAY, {
+                  amount: feeCents / 100,
+                });
+                console.log("✅ WALLET_PAY response:", payRes.data);
 
-    console.log("✅ WALLET_PAY response:", payRes.data);
-
-    const res = await createJob(finalPayload);
-    if (res.success) setHasJobs(true);
-    return { success: res.success, message: res.message, jobId: res.data?.id };
-
-  } catch (err) {
-    console.error("❌ onSubmit error:", err);
-    return {
-      success: false,
-      message: (err as Error).message ?? "Failed. Please try again.",
-    };
-  }
-}}
+                const res = await createJob(finalPayload);
+                if (res.success) {
+                  setHasJobs(true);
+                  clearDraft(); // ✅ wipe only after full success
+                }
+                return { success: res.success, message: res.message, jobId: res.data?.id };
+              } catch (err) {
+                console.error("❌ onSubmit error:", err);
+                // ✅ Draft preserved on error — user retries without re-entering data
+                return {
+                  success: false,
+                  message: (err as Error).message ?? "Failed. Please try again.",
+                };
+              }
+            }}
           />
         )}
       </div>

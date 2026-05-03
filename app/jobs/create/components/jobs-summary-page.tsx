@@ -38,26 +38,29 @@ function diffHours(checkIn?: string | null, checkOut?: string | null): number {
   return Math.abs((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
 }
 
+// ✅ Each shift row spans a single day — end date = same day as start date
 function buildShiftRows(payload: JobCreatePayload) {
   if (!payload.start_date || !payload.end_date) return [];
-  const start  = new Date(payload.start_date);
-  const end    = new Date(payload.end_date);
+
+  const start  = new Date(payload.start_date + "T00:00:00"); // ✅ avoid timezone offset
+  const end    = new Date(payload.end_date   + "T00:00:00");
   const rows   = [];
   const cursor = new Date(start);
   let day = 1;
+
   while (cursor <= end) {
-    const next = new Date(cursor);
-    next.setDate(next.getDate() + 1);
     rows.push({
       day:       `Day ${day}`,
+      // ✅ Start and end are the SAME calendar date
       startDate: cursor.toLocaleDateString("en-CA", { day: "numeric", month: "long", year: "numeric" }),
-      endDate:   next.toLocaleDateString("en-CA",   { day: "numeric", month: "long", year: "numeric" }),
+      endDate:   cursor.toLocaleDateString("en-CA", { day: "numeric", month: "long", year: "numeric" }),
       timing:    `${formatTime(payload.check_in_time)} to ${formatTime(payload.check_out_time)}`,
       duration:  `${diffHours(payload.check_in_time, payload.check_out_time)} hrs`,
     });
     cursor.setDate(cursor.getDate() + 1);
     day++;
   }
+
   return rows;
 }
 
