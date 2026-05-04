@@ -5,7 +5,6 @@ import type { JobCreatePayload, JobFormData } from "@/Interface/recruiter.types"
 import type { JobFormSnapshot } from "@/stores/jobs-store";
 import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";
-import { BUTTON_LABELS } from "../../constants/messages";
 import { JobForm } from "../../components/JobForm";
 import metadata, {
   convertJobTypeToBackend,
@@ -17,7 +16,7 @@ import metadata, {
 
 interface Props {
   urgencyMode: "normal" | "instant";
-  onNext?: (payload: JobCreatePayload) => void;
+  onNext?: (payload: JobCreatePayload, wantsInterview: boolean) => void; // ← added wantsInterview
   onBack?: () => void;
 }
 
@@ -170,55 +169,56 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (urgencyMode === "normal") {
-      const validQuals = formData.qualification?.filter((q) => q?.trim()) ?? [];
-      const validSpecs = formData.specialization?.filter((s) => s?.trim()) ?? [];
+  if (urgencyMode === "normal") {
+    const validQuals = formData.qualification?.filter((q) => q?.trim()) ?? [];
+    const validSpecs = formData.specialization?.filter((s) => s?.trim()) ?? [];
+    if (validQuals.length === 0) { setError("Please add at least one qualification"); return; }
+    if (validSpecs.length === 0) { setError("Please add at least one specialization"); return; }
+  }
 
-      if (validQuals.length === 0) {
-        setError("Please add at least one qualification");
-        return;
+  setIsSubmitting(true);
+  setError(null);
+
+  try {
+    const backendData = convertToBackendFormat(formData);
+
+    // ✅ If interview = Yes → go to AI form (step 2)
+    // ✅ If interview = No  → skip AI form, go straight to summary (step 3)
+    if (onNext) onNext(backendData, formData.inPersonInterview === "Yes");
+  } catch (err) {
+    setError((err as Error).message || "An error occurred");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+ return (
+  <>
+    {error && (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        {error}
+      </div>
+    )}
+    <JobForm
+      mode="create"
+      title={urgencyMode === "instant" ? "Create Instant Job Post" : "Create Regular Job Post"}
+      formData={formData}
+      updateFormData={updateFormData}
+      onSubmit={handleSubmit}
+      onBack={onBack}
+      showBackButton={!!onBack}
+      isSubmitting={isSubmitting}
+      // ✅ Button label changes based on interview selection
+      nextLabel={
+        isSubmitting
+          ? "Processing..."
+          : formData.inPersonInterview === "Yes"
+          ? "Next"           // → goes to AI form
+          : "Create Job Post" // → goes to summary
       }
-      if (validSpecs.length === 0) {
-        setError("Please add at least one specialization");
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const backendData = convertToBackendFormat(formData);
-      console.log("📦 payload to send:", JSON.stringify(backendData, null, 2));
-      if (onNext) onNext(backendData);
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || "An error occurred");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <>
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
-      <JobForm
-        mode="create"
-        title={urgencyMode === "instant" ? "Create Instant Job Post" : "Create Regular Job Post"}
-        formData={formData}
-        updateFormData={updateFormData}
-        onSubmit={handleSubmit}
-        onBack={onBack}
-        showBackButton={!!onBack}
-        showNextButton={!isSubmitting}
-        nextLabel={isSubmitting ? "Creating..." : BUTTON_LABELS.NEXT}
-      />
-    </>
-  );
+    />
+  </>
+);
 }

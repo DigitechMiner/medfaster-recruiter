@@ -196,15 +196,25 @@ export interface CandidatesPageKpisVM {
 // IN-HOUSE CANDIDATES
 // ══════════════════════════════════════════════════════════════════════════════
 
+export interface InHouseInvitedRowVM {
+  candidate_id: string;
+  full_name:    string;
+  email:        string | null;
+  remark:       string;
+  invited_at:   string;
+}
+
 export interface InHouseAcceptedRowVM {
   candidate_id:      string;
   mapping_id:        string;
   full_name:         string;
   profile_image_url: string | null;
-  joined_at:         string;         // ✅ "2026-04-22T10:00:00.000Z"
-  location:          string;         // ✅ "Toronto, Ontario" or "—"
+  location:          string;
+  joined_at:         string;
+  departments:       string[];
+  job_titles:        string[];
+  experience_range:  string;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // JOB — CARD (grid view in /jobs and action modals)

@@ -26,6 +26,7 @@ import type {
   NotificationsParams,
 } from '@/Interface/recruiter.types';
 import type { RecruiterDashboardData } from '@/stores/api/recruiter-candidates-api';
+import { useQuery } from '@tanstack/react-query';
 
 // ─── Generic async hook factory ───────────────────────────────────────────────
 function useAsyncData<T>(
@@ -73,28 +74,17 @@ export function useJobsSummary() {
 }
 
 // ─── 3. Jobs Calendar ─────────────────────────────────────────────────────────
-export function useJobsCalendar() {
-  const [calendarJobs, setCalendarJobs] = useState<CalendarJob[]>([]);
-  const [isLoading,    setIsLoading]    = useState(true);
-  const [error,        setError]        = useState<string | null>(null);
+export function useJobsCalendar(range: 'today' | 'week' | 'month' = 'week') {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['calendar', range],
+    queryFn:  () => getJobsCalendar(range),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-
-    getJobsCalendar()
-      .then((res) => {
-        if (cancelled) return;
-        if (res.success)
-          setCalendarJobs(Array.isArray(res.data.shifts) ? res.data.shifts : []);
-      })
-      .catch(() => { if (!cancelled) setCalendarJobs([]); })
-      .finally(() => { if (!cancelled) setIsLoading(false); });
-
-    return () => { cancelled = true; };
-  }, []);
-
-  return { calendarJobs, isLoading, error };
+  return {
+    calendarJobs: data?.data?.shifts ?? [],
+    isLoading,
+    error,
+  };
 }
 
 // ─── 4. Candidates List ───────────────────────────────────────────────────────

@@ -1,14 +1,8 @@
 "use client";
 
 import React from "react";
-import { CandidateTypePill, JobTypePill, StatusPill } from "./ui";
+import { CandidateTypePill, StatusPill } from "./ui";
 import type { CandidateCardVM } from "@/Interface/view-models";
-
-function fmtExp(months: number | null | undefined): string {
-  if (!months) return "—";
-  const yrs = Math.floor(months / 12);
-  return yrs > 0 ? `${yrs}+ yrs` : `${months} mos`;
-}
 
 export function JobTable({
   jobs,

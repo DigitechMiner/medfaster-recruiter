@@ -167,7 +167,6 @@ export default function EditJobPage() {
 
  const convertToBackendFormat = (
   data: JobFormData,
-  questionsData: Record<string, { title: string; questions: string[] }>
 ): JobUpdatePayload => {
   const isNormalJob = data.urgency === 'normal';
 
@@ -280,7 +279,7 @@ export default function EditJobPage() {
 
     try {
       const questionsData = convertTopicsToBackendFormat(topics);
-      const backendData = convertToBackendFormat(formData, questionsData);
+      const backendData = convertToBackendFormat(formData);
       const response = await updateJob(jobId, backendData);
 
       if (response.success) {

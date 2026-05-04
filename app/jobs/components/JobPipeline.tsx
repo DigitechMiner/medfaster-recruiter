@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { StatusSection, StatusSectionProps, StatusTable } from "./ui";
+import { StatusSection, StatusTable } from "./ui";
 import { STATUS_SECTIONS } from "../constants/jobs";
 import type { JobListItem } from "@/Interface/recruiter.types";
 import type { JobApplicationListResponse } from "@/stores/api/recruiter-job-api";

@@ -42,7 +42,7 @@ function SuccessContent() {
   };
 
   setTimeout(poll, 1500);  // initial delay — give webhook time to fire
-}, []); // eslint-disable-line
+}, []);
 
   const newBalance = wallet
     ? `$ ${(Number(wallet.available_balance) / 100).toLocaleString("en-CA")}`

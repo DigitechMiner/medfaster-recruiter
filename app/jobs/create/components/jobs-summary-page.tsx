@@ -5,24 +5,27 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
-import { getWallet } from '@/stores/api/recruiter-wallet-api';
-
-
+import type { JobBackendResponse, JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
+import { getWallet } from "@/stores/api/recruiter-wallet-api";
 import { useWalletStore } from "@/stores/walletStore";
 import { getJobFeePreview } from "@/stores/api/recruiter-job-api";
+import { JobDescriptionModal, useJobDescriptionModal } from "@/app/jobs/[id]/components/JobDescriptionModal";
+import { EditInterviewQuestionsModal } from "@/app/jobs/[id]/components/EditInterviewQuestionsModal";
+
 
 interface JobSummaryPageProps {
-  mode: "normal" | "urgent";
-  payload: JobCreatePayload;
-  onBack: () => void;
-  onSubmit: (payload: JobCreatePayload, feeCents: number) => Promise<{
-  success: boolean;
-  message?: string;
-  jobId?: string;
-}>;
+  mode:      "normal" | "urgent";
+  payload:   JobCreatePayload;
+  onBack:    () => void;
+  onSubmit:  (payload: JobCreatePayload, feeCents: number) => Promise<{
+    success:  boolean;
+    message?: string;
+    jobId?:   string;
+  }>;
 }
 
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function formatTime(timeStr?: string | null): string {
   if (!timeStr) return "—";
   const [h, m] = timeStr.split(":");
@@ -38,11 +41,10 @@ function diffHours(checkIn?: string | null, checkOut?: string | null): number {
   return Math.abs((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
 }
 
-// ✅ Each shift row spans a single day — end date = same day as start date
 function buildShiftRows(payload: JobCreatePayload) {
   if (!payload.start_date || !payload.end_date) return [];
 
-  const start  = new Date(payload.start_date + "T00:00:00"); // ✅ avoid timezone offset
+  const start  = new Date(payload.start_date + "T00:00:00");
   const end    = new Date(payload.end_date   + "T00:00:00");
   const rows   = [];
   const cursor = new Date(start);
@@ -51,7 +53,6 @@ function buildShiftRows(payload: JobCreatePayload) {
   while (cursor <= end) {
     rows.push({
       day:       `Day ${day}`,
-      // ✅ Start and end are the SAME calendar date
       startDate: cursor.toLocaleDateString("en-CA", { day: "numeric", month: "long", year: "numeric" }),
       endDate:   cursor.toLocaleDateString("en-CA", { day: "numeric", month: "long", year: "numeric" }),
       timing:    `${formatTime(payload.check_in_time)} to ${formatTime(payload.check_out_time)}`,
@@ -64,22 +65,31 @@ function buildShiftRows(payload: JobCreatePayload) {
   return rows;
 }
 
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPageProps) {
-  const router = useRouter();
-const refreshWallet = useWalletStore((s) => s.refreshWallet);
+  const router         = useRouter();
+  const refreshWallet  = useWalletStore((s) => s.refreshWallet);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [showSuccess, setShowSuccess]   = useState(false);
   const [successJobId, setSuccessJobId] = useState("");
-  const [feePreview, setFeePreview] = useState<JobFeePreviewResponse['data'] | null>(null);
+  const [feePreview, setFeePreview]     = useState<JobFeePreviewResponse["data"] | null>(null);
   const [feeLoading, setFeeLoading]     = useState(false);
   const [feeError, setFeeError]         = useState<string | null>(null);
 
+  // ── Modal state ───────────────────────────────────────────────────────────
+  const jobDescModal   = useJobDescriptionModal();
+  const [showQuestions, setShowQuestions] = useState(false);
+
+
+  // ── Fee preview ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (
-      !payload.job_title    ||
-      !payload.start_date   ||
-      !payload.end_date     ||
+      !payload.job_title     ||
+      !payload.start_date    ||
+      !payload.end_date      ||
       !payload.check_in_time ||
       !payload.check_out_time
     ) return;
@@ -88,13 +98,13 @@ const refreshWallet = useWalletStore((s) => s.refreshWallet);
     setFeeError(null);
 
     getJobFeePreview({
-  job_title: payload.job_title,
-  no_of_hires_required: payload.no_of_hires_required ?? 1,
-  start_date:           payload.start_date,
-  end_date:             payload.end_date,
-  check_in_time:        payload.check_in_time,
-  check_out_time:       payload.check_out_time,
-})
+      job_title:            payload.job_title,
+      no_of_hires_required: payload.no_of_hires_required ?? 1,
+      start_date:           payload.start_date,
+      end_date:             payload.end_date,
+      check_in_time:        payload.check_in_time,
+      check_out_time:       payload.check_out_time,
+    })
       .then(setFeePreview)
       .catch(() => setFeeError("Could not load cost estimate. Please go back and try again."))
       .finally(() => setFeeLoading(false));
@@ -107,76 +117,77 @@ const refreshWallet = useWalletStore((s) => s.refreshWallet);
     payload.check_out_time,
   ]);
 
-const hourlyRate = payload.pay_per_hour_cents !== undefined
-  ? payload.pay_per_hour_cents / 100
-  : 0;
-const hoursPerCandidate = feePreview ? feePreview.total_working_hours : 0;
-const costPerCandidate  = hourlyRate * hoursPerCandidate; 
-const requiredCandidates = payload.no_of_hires_required ?? 1;  // ← add this back
-const totalPayable      = costPerCandidate * requiredCandidates; 
+
+  // ── Cost calc ─────────────────────────────────────────────────────────────
+  const hourlyRate         = payload.pay_per_hour_cents !== undefined ? payload.pay_per_hour_cents / 100 : 0;
+  const hoursPerCandidate  = feePreview ? feePreview.total_working_hours : 0;
+  const costPerCandidate   = hourlyRate * hoursPerCandidate;
+  const requiredCandidates = payload.no_of_hires_required ?? 1;
+  const totalPayable       = costPerCandidate * requiredCandidates;
 
 
-  const shifts   = buildShiftRows(payload);
-  const location = [payload.city, payload.province].filter(Boolean).join(", ");
-
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handlePayAndHire = async () => {
-  if (isProcessing) return;
+    if (isProcessing) return;
 
-  if (!feePreview) {
-    setError("Cost estimate not loaded. Please wait or go back and retry.");
-    return;
-  }
-
-  setIsProcessing(true);
-  setError(null);
-
-  try {
-    const wallet = await getWallet();
-
-    // ← Safe number comparison — no BigInt needed
-    const availableBalanceCents = parseInt(wallet.available_balance ?? '0', 10);
-    // ✅ snake_case
-const requiredCents = Math.round(totalPayable * 100);
-
-    // Guard: if fee came back invalid, block the action
-    if (isNaN(requiredCents) || requiredCents <= 0) {
-      setError("Invalid cost estimate. Please go back and try again.");
+    if (!feePreview) {
+      setError("Cost estimate not loaded. Please wait or go back and retry.");
       return;
     }
 
-    if (availableBalanceCents < requiredCents) {
-      sessionStorage.setItem('pending_job_payload', JSON.stringify(payload));
-      sessionStorage.setItem('pending_job_mode', mode);
-      router.push('/wallet/topup');
-      return;
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const wallet = await getWallet();
+
+      const availableBalanceCents = parseInt(wallet.available_balance ?? "0", 10);
+      const requiredCents         = Math.round(totalPayable * 100);
+
+      if (isNaN(requiredCents) || requiredCents <= 0) {
+        setError("Invalid cost estimate. Please go back and try again.");
+        return;
+      }
+
+      if (availableBalanceCents < requiredCents) {
+        sessionStorage.setItem("pending_job_payload", JSON.stringify(payload));
+        sessionStorage.setItem("pending_job_mode", mode);
+        router.push("/wallet/topup");
+        return;
+      }
+
+      const finalPayload = { ...payload, status: "OPEN" as JobStatus };
+      const res          = await onSubmit(finalPayload, requiredCents);
+
+      if (res?.success) {
+        await refreshWallet();
+        setSuccessJobId(res.jobId ?? "");
+        setShowSuccess(true);
+      } else {
+        setError(res?.message ?? "Failed to create job. Please try again.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create job. Please try again.");
+    } finally {
+      setIsProcessing(false);
     }
+  };
 
-    const finalPayload = { ...payload, status: "OPEN" as JobStatus };
 
-   const res = await onSubmit(finalPayload, Math.round(totalPayable * 100));
-if (res?.success) {
-  await refreshWallet();          // ← force-fetch updated balance from backend
-  setSuccessJobId(res.jobId ?? '');
-  setShowSuccess(true);
-} else {
-  setError(res?.message ?? 'Failed to create job. Please try again.');
-}
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Failed to create job. Please try again.');
-  } finally {
-    setIsProcessing(false);
-  }
-};
-
+  // ── Derived labels ────────────────────────────────────────────────────────
   const isUrgent     = mode === "urgent";
   const pageTitle    = isUrgent ? "Request Immediate Staff" : "Create Job Post";
   const summaryTitle = isUrgent ? "Shift Summary"           : "Job Summary";
   const tableTitle   = isUrgent ? "Shift Details"           : "Job Details";
+  const shifts       = buildShiftRows(payload);
+  const location     = [payload.city, payload.province].filter(Boolean).join(", ");
+
 
   return (
     <>
       <div className="space-y-4 w-full max-w-3xl mx-auto px-4 py-4 bg-white rounded-xl">
 
+        {/* Back button */}
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-xl text-gray-600 hover:text-gray-900 transition-colors"
@@ -204,13 +215,21 @@ if (res?.success) {
                 {payload.department}
               </span>
             )}
+
+            {/* ── Modal trigger buttons ── */}
             <div className="ml-auto flex gap-2">
-              <button className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50">
+              <button
+                onClick={jobDescModal.open}
+                className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50"
+              >
                 <FileText className="w-3.5 h-3.5" />
                 {isUrgent ? "Shift Description" : "Job Description"}
               </button>
               {!isUrgent && (
-                <button className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50">
+                <button
+                  onClick={() => setShowQuestions(true)}
+                  className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50"
+                >
                   <Users className="w-3.5 h-3.5" /> Interview Questions
                 </button>
               )}
@@ -291,7 +310,9 @@ if (res?.success) {
                     <span
                       className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
                       title="Hourly pay rate for this role"
-                    >?</span>
+                    >
+                      ?
+                    </span>
                   </span>
                   <span className="font-medium text-gray-900">$ {hourlyRate.toLocaleString()}</span>
                 </div>
@@ -318,6 +339,7 @@ if (res?.success) {
           )}
         </div>
 
+        {/* Error banner */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
@@ -345,6 +367,28 @@ if (res?.success) {
           </Button>
         </div>
       </div>
+
+      {/* ── Modals ── */}
+      <JobDescriptionModal
+        isOpen={jobDescModal.isOpen}
+        onClose={jobDescModal.close}
+        job={payload}
+        onUpdate={(desc) => console.log("Description updated:", desc)}
+      />
+
+      {!isUrgent && (
+  <EditInterviewQuestionsModal
+    isOpen={showQuestions}
+    onClose={() => setShowQuestions(false)}
+    initialQuestions={payload.interview_questions ?? []}
+    onSave={async (questions) => {
+      // questions are only in-memory at this stage (job not saved yet)
+      // store them back into the payload for submission
+      payload.interview_questions = questions;
+      setShowQuestions(false);
+    }}
+  />
+)}
 
       <SuccessModal
         visible={showSuccess}

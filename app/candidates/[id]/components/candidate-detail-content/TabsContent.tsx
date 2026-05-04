@@ -1,7 +1,7 @@
 'use client';
 
 import Image                from "next/image";
-import { DocThumbnail, PerformanceCard, StarRow } from "./shared";
+import { DocThumbnail, StarRow } from "./shared";
 import type { CandidateDetailVM } from "@/Interface/view-models";
 import type { Tab } from "./data";
 import { useCandidateDocumentUrl } from "@/hooks/useApplicationActions";

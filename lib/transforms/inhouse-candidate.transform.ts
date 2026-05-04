@@ -23,14 +23,16 @@ export function fromInHouseToInvited(c: InHouseCandidate): InHouseInvitedRowVM {
 
 export function fromInHouseToAccepted(c: InHouseCandidate): InHouseAcceptedRowVM {
   return {
-    candidate_id:     c.candidate_id,
-    mapping_id:       c.mapping_id,
-    full_name:        c.full_name,
+    candidate_id:      c.candidate_id,
+    mapping_id:        c.mapping_id,
+    full_name:         c.full_name,
     profile_image_url: c.profile_image_url ?? null,
-    departments:      c.department ?? [],
-    job_titles:       c.job_titles ?? [],
-    experience_range: c.experience_in_months
+    departments:       c.department ?? [],
+    job_titles:        c.job_titles ?? [],
+    experience_range:  c.experience_in_months
       ? `${Math.max(1, Math.round(c.experience_in_months / 12))}+ yrs`
       : "—",
+    location:  "—",            // ← InHouseCandidate has no location fields
+    joined_at: c.joined_at ?? "—",
   };
 }

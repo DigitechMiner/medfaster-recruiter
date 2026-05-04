@@ -27,8 +27,8 @@ export const getJobsSummary =
   (): Promise<JobsSummaryResponse> =>
     getJson<JobsSummaryResponse>(ENDPOINTS.JOBS_SUMMARY);
 
-export const getJobsCalendar = (): Promise<JobsCalendarResponse> =>
-  getJson<JobsCalendarResponse>(ENDPOINTS.JOBS_CALENDAR);
+export const getJobsCalendar = (range: 'today' | 'week' | 'month' = 'week'): Promise<JobsCalendarResponse> =>
+  getJson<JobsCalendarResponse>(`${ENDPOINTS.JOBS_CALENDAR}?range=${range}`);
 
 export const getCandidatesList = (
   params?: CandidatesListParams

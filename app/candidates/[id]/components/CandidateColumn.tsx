@@ -34,7 +34,7 @@ const colStyles: Record<AccentColor, {
 };
 
 export const CandidateColumn = ({
-  title, count, accentColor, dotColor: _dotColor, candidates, actionType,
+  title, count, accentColor, candidates, actionType,
   leftTags, rightTags, isLoading = false,
   onViewAll, hideHeader, hideViewAll, search = "",
 }: Props) => {

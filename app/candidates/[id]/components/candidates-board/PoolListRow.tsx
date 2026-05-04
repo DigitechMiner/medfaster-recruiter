@@ -11,7 +11,8 @@ import { ActionType } from "@/Interface/recruiter.types";
 
 export function PoolListRow({ c, actionType }: { c: CandidateCardVM; actionType: ActionType }) {
   const router     = useRouter();
-  const [_showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  void showModal;
 
   // ✅ all fields from CandidateCardVM — no CandidateListItem fields
   const score = c.interview_score ?? 0;

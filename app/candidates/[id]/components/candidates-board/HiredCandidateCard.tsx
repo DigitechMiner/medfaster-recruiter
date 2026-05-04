@@ -15,7 +15,8 @@ export function HiredCandidateCard({ c, leftTag, rightTag }: {
   rightTag?: string;
 }) {
   const router = useRouter();
-  const [_showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  void showModal;
 
   const isAssigned = (leftTag ?? "Assigned").toLowerCase().includes("assigned");
 

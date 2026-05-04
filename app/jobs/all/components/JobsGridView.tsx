@@ -35,7 +35,7 @@ export const JobsGridView: React.FC<{ jobs: JobListItem[] }> = ({ jobs }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {jobs.map((job) => {
         const urgency   = job.job_urgency === 'instant' ? 'Urgent' : 'Regular';
-        const location  = [job.city, job.province].filter(Boolean).join(', ') || null;
+        const location = job.city || null;
         const jobType   = formatJobType(job.job_type);
         const interview = getInterviewBadge(job);
 
@@ -49,7 +49,7 @@ export const JobsGridView: React.FC<{ jobs: JobListItem[] }> = ({ jobs }) => {
           jobType                 ? { icon: <Clock size={12} color="orange" />,             text: jobType }                          : null,
           timings                 ? { icon: <Clock size={12} color="orange" />,             text: timings }                          : null,
         ].filter(Boolean) as { icon: React.ReactNode; text: string }[];
-
+console.log('BRRROOOOOO ----->>>>>', JSON.stringify(jobs[0], null, 2));
         return (
           <div
             key={job.id}

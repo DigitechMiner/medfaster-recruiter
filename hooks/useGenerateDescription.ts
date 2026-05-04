@@ -1,45 +1,33 @@
 // hooks/useGenerateDescription.ts
-import { useState } from 'react';
-import { generateJobDescription, JobDescriptionInput } from '@/stores/api/job-description.api';
+import { useState } from "react";
+import {
+  generateJobDescription,
+  type JobDescriptionInput,
+  type GeneratedDescriptionData,
+} from "@/stores/api/job-description.api";
 
 export function useGenerateDescription() {
-  const [description, setDescription] = useState<string>('');
+  const [result,  setResult]  = useState<GeneratedDescriptionData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error,   setError]   = useState<string | null>(null);
 
-  const generateDescription = async (data: JobDescriptionInput) => {
+  const generateDescription = async (input: JobDescriptionInput) => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await generateJobDescription(data);
-      
-      if (response.description) {
-        setDescription(response.description);
-        return { success: true, description: response.description };
-      } else {
-        throw new Error('No description returned');
-      }
+      const data = await generateJobDescription(input);
+      setResult(data);
     } catch (err) {
-      const error = err as Error;
-      const errorMessage = error.message || 'Failed to generate description';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      setError(err instanceof Error ? err.message : "Failed to generate description");
     } finally {
       setLoading(false);
     }
   };
 
   const reset = () => {
-    setDescription('');
+    setResult(null);
     setError(null);
   };
 
-  return {
-    description,
-    loading,
-    error,
-    generateDescription,
-    reset,
-  };
+  return { result, loading, error, generateDescription, reset };
 }

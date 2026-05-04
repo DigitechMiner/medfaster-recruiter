@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { STATUS_COLORS, STATUS_SECTION_COLORS, STATUS_TABLE_COLORS, PRIMARY_BUTTON_COLOR_CLASSES, BadgeColor } from '../constants/ui';
 import { MODAL_DEFAULTS } from '../constants/messages';
 import ScoreCard from '@/components/card/scorecard';
-import type { JobListItem } from '@/Interface/recruiter.types';
+
 import type { JobMock }     from '../constants/jobs';
 export type PipelineStatus = "applied" | "interviewing" | "hired";
 export type StatusType     = PipelineStatus;

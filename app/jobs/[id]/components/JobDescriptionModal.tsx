@@ -5,7 +5,7 @@ import { X, ArrowLeft, ArrowRight, Pencil, Sparkles, Loader2, Check } from "luci
 import { updateRecruiterJob } from "@/stores/api/recruiter-job-api";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import type { JobDescriptionInput } from "@/stores/api/job-description.api";
-import type { JobBackendResponse } from "@/Interface/recruiter.types";
+import type { JobBackendResponse, JobCreatePayload } from "@/Interface/recruiter.types";
 
 // ── Helpers ────────────────────────────────────────────────────
 function htmlToPlainText(html: string): string {
@@ -34,7 +34,7 @@ interface JobDescriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate?: (description: string) => void;
-  job: JobBackendResponse;
+   job:       JobBackendResponse | JobCreatePayload;
 }
 
 // ── Modal ──────────────────────────────────────────────────────
@@ -51,14 +51,18 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
   const [isSaving, setIsSaving]                   = useState(false);
   const [saveError, setSaveError]                 = useState<string | null>(null);
   const [successMsg, setSuccessMsg]               = useState<string | null>(null);
+  const [desc, setDesc] = useState(job.description ?? "");
+ useEffect(() => {
+    setDesc(job.description ?? "");
+  }, [job.description]);
 
   const {
-    description: aiDescription,
-    loading: aiLoading,
-    error: aiError,
-    generateDescription,
-    reset: resetAI,
-  } = useGenerateDescription();
+  result:              aiResult,
+  loading:             aiLoading,
+  error:               aiError,
+  generateDescription,
+  reset:               resetAI,
+} = useGenerateDescription();
 
   // ✅ useEffect #1 — sync content when job.description changes
   useEffect(() => {
@@ -67,41 +71,24 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
 
   // ✅ useEffect #2 — apply AI result when it arrives
   useEffect(() => {
-    if (aiDescription && !aiLoading) {
-      setContent(aiDescription);
-      setIsEditing(false);
-    }
-  }, [aiDescription, aiLoading]);
+  if (aiResult?.description && !aiLoading) {
+    setContent(aiResult.description);   // ← aiResult.description
+    setIsEditing(false);
+  }
+}, [aiResult, aiLoading]);
 
   // ✅ Early return AFTER all hooks
   if (!isOpen) return null;
 
   // ── Build AI payload ───────────────────────────────────────
-  const buildAIInput = (): JobDescriptionInput => {
-    let jobType = job.job_type?.toLowerCase().replace(/\s+/g, '');
-    if (jobType === 'fulltime')      jobType = 'Full Time';
-    else if (jobType === 'parttime') jobType = 'Part Time';
-    else if (jobType === 'casual')   jobType = 'Casual';
-    else                             jobType = job.job_type || 'Full Time';
-
-     const payRange = job.pay_per_hour_cents
-  ? `$${(parseInt(job.pay_per_hour_cents, 10) / 100).toFixed(2)}/hr`
-  : undefined;
-
-    return {
-      jobTitle:           job.job_title,
-      department:         job.department ?? '',
-      jobType,
-      location:           [job.city, job.province].filter(Boolean).join(', ') || undefined,
-      payRange,
-      experienceRequired: job.normalJob?.years_of_experience || undefined,
-      qualification:      job.normalJob?.qualifications?.join(', ') || undefined,
-      specialization:     job.normalJob?.specializations?.join(', ') || undefined,
-      urgency:            job.job_urgency ?? undefined,
-      inPersonInterview:  false,
-      physicalInterview:  false,
-    };
+ const buildAIInput = (): JobDescriptionInput => {
+  const jobType = job.job_type ?? 'Full Time';
+  return {
+    jobTitle:   job.job_title,
+    department: job.department ?? '',
+    jobType,
   };
+};
 
   // ── Handlers ───────────────────────────────────────────────
   const handleRephrase = async () => {
@@ -121,11 +108,14 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
   };
 
   const handleUpdate = async () => {
-    const finalContent = isEditing ? plainTextToHtml(editableContent) : content;
-    setIsSaving(true);
-    setSaveError(null);
-    setSuccessMsg(null);
-    try {
+  const finalContent = isEditing ? plainTextToHtml(editableContent) : content;
+  setIsSaving(true);
+  setSaveError(null);
+  setSuccessMsg(null);
+
+  try {
+    if ('id' in job && job.id) {
+      // Existing job — persist to backend
       const res = await updateRecruiterJob(job.id, { description: finalContent });
       if (res.success) {
         setContent(finalContent);
@@ -136,12 +126,19 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
       } else {
         setSaveError('Failed to update. Please try again.');
       }
-    } catch {
-      setSaveError('Failed to update. Please try again.');
-    } finally {
-      setIsSaving(false);
+    } else {
+      // New job (summary page) — in-memory only, no API call yet
+      setContent(finalContent);
+      setIsEditing(false);
+      onUpdate?.(finalContent);
+      setTimeout(() => onClose(), 800);
     }
-  };
+  } catch {
+    setSaveError('Failed to update. Please try again.');
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   // ── JSX ────────────────────────────────────────────────────
   return (

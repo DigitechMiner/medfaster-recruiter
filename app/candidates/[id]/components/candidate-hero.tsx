@@ -40,7 +40,7 @@ const getActionConfig = (candidate: CandidateWithExtras): ActionConfig => {
 };
 
 export const CandidateHero: React.FC<CandidateHeroProps> = ({
-  candidate, candidateVM: _candidateVM, onBack, onExport, onShortlist, onPrimaryAction,
+  candidate, onBack, onExport, onShortlist, onPrimaryAction,
 }) => {
   const c        = candidate as CandidateWithExtras;
   const isHired  = c.is_hired === true;

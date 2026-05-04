@@ -470,6 +470,7 @@ export interface JobCreatePayload {
   questions?:           string[];
   pay_per_hour_cents?:  number;
   status?:              JobStatus;
+  interview_questions?: string[];
 }
 
 export type JobUpdatePayload = Partial<JobCreatePayload>;

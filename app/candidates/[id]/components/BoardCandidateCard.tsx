@@ -84,7 +84,8 @@ export const BoardCandidateCard = ({ c, actionType, leftTag, rightTag }: {
   rightTag?:  string;
 }) => {
   const router = useRouter();
-  const [_showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  void showModal;
 
   const score    = c.interview_score ?? 0;
   const hasScore = c.interview_score !== null;

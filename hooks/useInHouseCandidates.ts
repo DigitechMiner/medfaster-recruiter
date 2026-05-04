@@ -43,6 +43,9 @@ function fromRaw(c: RawInHouseCandidate): InHouseAcceptedRowVM {
     profile_image_url: c.profile_image_url ?? null,
     joined_at:         c.joined_at,
     location:          [c.location?.city, c.location?.state].filter(Boolean).join(", ") || "—",
+    departments:       [],   // ← add — not in raw API response
+    job_titles:        [],   // ← add — not in raw API response
+    experience_range:  "—",  // ← add — not in raw API response
   };
 }
 

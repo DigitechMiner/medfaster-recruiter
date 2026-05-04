@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { BriefcaseBusiness, Users, UserCheck, Layers } from 'lucide-react';
-import { COLUMNS, KpiView }           from './candidates-board/constants';
+import { KpiView }           from './candidates-board/constants';
 import { MetricCard, MainViewHeader } from './candidates-board/ui';
 import { HiredCandidatesSection }     from './candidates-board/HiredCandidatesSection';
 import { InHouseCandidatesSection }   from './candidates-board/InHouseCandidatesSection';

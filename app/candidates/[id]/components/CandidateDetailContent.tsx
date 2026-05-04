@@ -26,7 +26,6 @@ interface CandidateDetailContentProps {
 export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   candidate,
   onBack,
-  jobApplicationId: _jobApplicationId,
   isMock = false,
 }) => {
 

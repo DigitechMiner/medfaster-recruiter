@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState } from "react";
 import { ViewHeader }      from "@/components/candidate/ViewHeader";
 
 export const JobTypePill = ({ type }: { type: string }) =>
