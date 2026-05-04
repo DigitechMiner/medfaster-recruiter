@@ -5,8 +5,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CandidateCardVM } from '@/Interface/view-models';
+import { ActionType } from "@/Interface/recruiter.types";
 
-type ActionType = "shortlist" | "hire" | "schedule" | "invite";
+
 
 export function PoolListRow({ c, actionType }: { c: CandidateCardVM; actionType: ActionType }) {
   const router     = useRouter();

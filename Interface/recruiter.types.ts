@@ -1003,3 +1003,4 @@ export interface SpecializationsResponse {
 export type Job = JobListItem;
 export type TopJob = JobListItem;
 
+export type ActionType = "shortlist" | "hire" | "schedule" | "invite";

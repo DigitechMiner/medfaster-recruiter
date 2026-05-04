@@ -1,19 +1,19 @@
-// components/candidate/CandidateActionButtons.tsx
-"use client";
+'use client';
 
-import { Download } from "lucide-react";
-import type { CandidateDetailProfile } from '@/Interface/recruiter.types';
+import { Download }    from "lucide-react";
+import type { ActionType, CandidateDetailProfile } from '@/Interface/recruiter.types';
+  // ← single import
 
 interface Props {
-  c: CandidateDetailProfile;
-  actionType: "hire" | "schedule" | "invite" | "shortlist";
-  onAction: (c: CandidateDetailProfile) => void;
+  c:          CandidateDetailProfile;
+  actionType: ActionType;
+  onAction:   (c: CandidateDetailProfile) => void;
 }
 
 export function CandidateActionButtons({ c, actionType, onAction }: Props) {
   const exportBtn = (
     <button
-      onClick={(e) => { e.stopPropagation(); /* export logic */ }}
+      onClick={(e) => { e.stopPropagation(); }}
       className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors"
     >
       <Download size={11} /> Export Profile
@@ -24,7 +24,6 @@ export function CandidateActionButtons({ c, actionType, onAction }: Props) {
     <div className="flex gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
       {exportBtn}
       {actionType === "hire" && (
-        // AI Recommended gets 3 buttons: Export | Shortlist | Direct Hire
         c.is_ai_recommended ? (
           <>
             <button className="flex-1 border border-orange-200 text-orange-600 hover:bg-orange-50 text-xs font-medium py-1.5 rounded-lg flex items-center justify-center transition-colors">

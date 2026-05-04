@@ -1,4 +1,3 @@
-// stores/sidebarStore.ts
 import { create } from "zustand";
 
 interface SidebarStore {

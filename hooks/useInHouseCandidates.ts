@@ -1,91 +1,91 @@
-// hooks/useInHouseData.ts
-import { useQuery }             from "@tanstack/react-query";
-import { apiRequest }           from "@/stores/api/api-client";
-import { ENDPOINTS }            from "@/stores/api/api-endpoints";
-import { fromInHouseToInvited, fromInHouseToAccepted } from "@/lib/transforms/inhouse-candidate.transform";
-import type { InHouseInvitedRowVM, InHouseAcceptedRowVM } from "@/Interface/view-models";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest }  from "@/stores/api/api-client";
+import { ENDPOINTS }   from "@/stores/api/api-endpoints";
+import type { InHouseAcceptedRowVM } from "@/Interface/view-models";
 
-// ✅ Flip to false when API is ready
-const USE_MOCK = true;
+// ── Raw shape from Swagger ────────────────────────────────────────────────────
+interface RawInHouseCandidate {
+  candidate_id:       string;
+  mapping_id:         string;
+  status:             "active";
+  joined_at:          string;
+  first_name:         string;
+  last_name:          string;
+  full_name:          string;
+  profile_image_url?: string;
+  location?: { city?: string; state?: string; postal_code?: string };
+}
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const MOCK_INVITED: InHouseInvitedRowVM[] = [
-  {
-    candidate_id: "c-001",
-    full_name:    "Arjun Mehta",
-    email:        "arjun.mehta@hospital.com",
-    remark:       "Invitation Sent",
-    invited_at:   "Apr 20, 2026",
-  },
-  {
-    candidate_id: "c-002",
-    full_name:    "Priya Nair",
-    email:        "priya.nair@hospital.com",
-    remark:       "Invitation Accepted",
-    invited_at:   "Apr 18, 2026",
-  },
-  {
-    candidate_id: "c-003",
-    full_name:    "Rohan Das",
-    email:        "rohan.das@hospital.com",
-    remark:       "Invitation Sent",
-    invited_at:   "Apr 22, 2026",
-  },
-];
+interface InHouseListResponse {
+  success: boolean;
+  message: string;
+  data: { candidates: RawInHouseCandidate[] };
+}
 
-const MOCK_ACCEPTED: InHouseAcceptedRowVM[] = [
-  {
-    candidate_id:      "c-004",
-    mapping_id:        "m-001",
-    full_name:         "Sneha Pillai",
-    profile_image_url: null,
-    departments:       ["ICU", "Emergency"],
-    job_titles:        ["Registered Nurse", "Charge Nurse"],
-    experience_range:  "4–6 yrs",
-  },
-  {
-    candidate_id:      "c-005",
-    mapping_id:        "m-002",
-    full_name:         "Karthik Iyer",
-    profile_image_url: null,
-    departments:       ["Radiology"],
-    job_titles:        ["Radiologist"],
-    experience_range:  "2–4 yrs",
-  },
-];
+interface AddInHouseResponse {
+  success: boolean;
+  message: string;
+  data: { candidate_id: string; map_id: string; status: "invited" };
+}
 
-// ── Hooks ─────────────────────────────────────────────────────────────────────
-export function useInHouseInvited() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["inhouse-invited"],
-    queryFn:  () => apiRequest(ENDPOINTS.INHOUSE_CANDIDATES, {
-      method: "GET", params: { status: "PENDING" },
-    }),
-    // skip API call when mocking
-    enabled: !USE_MOCK,
-  });
+interface RemoveInHouseResponse {
+  success: boolean;
+  message: string;
+  data: { candidate_id: string; mapping_id: string; status: "removed" };
+}
 
+// ── Mapper ────────────────────────────────────────────────────────────────────
+function fromRaw(c: RawInHouseCandidate): InHouseAcceptedRowVM {
   return {
-    rows:      USE_MOCK
-                 ? MOCK_INVITED
-                 : (data?.data?.candidates ?? []).map(fromInHouseToInvited) as InHouseInvitedRowVM[],
-    isLoading: USE_MOCK ? false : isLoading,
+    candidate_id:      c.candidate_id,
+    mapping_id:        c.mapping_id,
+    full_name:         c.full_name,
+    profile_image_url: c.profile_image_url ?? null,
+    joined_at:         c.joined_at,
+    location:          [c.location?.city, c.location?.state].filter(Boolean).join(", ") || "—",
   };
 }
 
-export function useInHouseAccepted() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["inhouse-accepted"],
-    queryFn:  () => apiRequest(ENDPOINTS.INHOUSE_CANDIDATES, {
-      method: "GET", params: { status: "ACTIVE" },
-    }),
-    enabled: !USE_MOCK,
+// ── GET /recruiter/in-house-candidates ── active staff, no pagination ─────────
+export function useInHouseCandidates() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["inhouse-candidates"],
+    queryFn:  () => apiRequest<InHouseListResponse>(
+      ENDPOINTS.INHOUSE_CANDIDATES,
+      { method: "GET" }
+    ),
   });
 
   return {
-    rows:      USE_MOCK
-                 ? MOCK_ACCEPTED
-                 : (data?.data?.candidates ?? []).map(fromInHouseToAccepted) as InHouseAcceptedRowVM[],
-    isLoading: USE_MOCK ? false : isLoading,
+    rows:      (data?.data?.candidates ?? []).map(fromRaw),
+    total:     data?.data?.candidates?.length ?? 0,
+    isLoading,
+    isError,
   };
+}
+
+// ── POST /recruiter/candidates/{id}/add-in-house ───────────────────────────────
+export function useAddInHouse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (candidateId: string) =>
+      apiRequest<AddInHouseResponse>(
+        ENDPOINTS.INHOUSE_ADD(candidateId),
+        { method: "POST" }
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inhouse-candidates"] }),
+  });
+}
+
+// ── PATCH /recruiter/in-house-candidates/{id}/remove ──────────────────────────
+export function useRemoveInHouse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (candidateId: string) =>
+      apiRequest<RemoveInHouseResponse>(
+        ENDPOINTS.INHOUSE_REMOVE(candidateId),
+        { method: "PATCH" }
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inhouse-candidates"] }),
+  });
 }

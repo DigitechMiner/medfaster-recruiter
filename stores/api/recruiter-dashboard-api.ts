@@ -25,6 +25,6 @@ export interface DashboardData {
 }
 
 export async function getDashboard(): Promise<DashboardData> {
-  const res = await axiosInstance.get(ENDPOINTS.RECRUITER_DASHBOARD);
+  const res = await axiosInstance.get(ENDPOINTS.DASHBOARD_OVERVIEW);
   return res.data.data;
 }

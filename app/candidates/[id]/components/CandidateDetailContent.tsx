@@ -10,8 +10,9 @@ import type { CandidateDetailVM }   from "@/Interface/view-models";
 import type { CandidateDetailsResponse } from "@/stores/api/recruiter-job-api";
 import { TABS, Tab }                from "./candidate-detail-content/data";
 import { CandidateDetailTabsContent } from "./candidate-detail-content/TabsContent";
+import { ActionType } from "@/Interface/recruiter.types";
 
-type HeroActionType = "shortlist" | "hire" | "schedule" | "invite";
+
 
 interface CandidateDetailContentProps {
   candidate:         CandidateDetailsResponse;
@@ -49,7 +50,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
   const [isSuccessOpen,   setIsSuccessOpen]   = useState(false);
   const [successMessage,  setSuccessMessage]  = useState("");
   const [scheduledDate,   setScheduledDate]   = useState("");
-  const [actionModalType, setActionModalType] = useState<HeroActionType | null>(null);
+  const [actionModalType, setActionModalType] = useState<ActionType | null>(null);
 
   const handleExportProfile = () => {
     setSuccessMessage("Profile export initiated.");
@@ -61,7 +62,7 @@ export const CandidateDetailContent: React.FC<CandidateDetailContentProps> = ({
     setIsSuccessOpen(true);
   };
 
-  const handlePrimaryAction = (actionType: HeroActionType) => {
+  const handlePrimaryAction = (actionType: ActionType) => {
     if (isMock) {
       setActionModalType(actionType);
       return;

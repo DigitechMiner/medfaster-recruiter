@@ -8,7 +8,7 @@ import {
   MessageSquare, Wallet, HelpCircle, Settings,
   Zap, Plus, Bell, User, Building2, LogOut, Search,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
@@ -29,13 +29,10 @@ export function Navbar() {
   const [loggingOut,  setLoggingOut]  = useState(false);
   const [search,      setSearch]      = useState("");
 
-  const pathname = usePathname();
-  const router   = useRouter();
-  const logout   = useAuthStore((s) => s.logout);
+  const pathname        = usePathname();
+  const router          = useRouter();
+  const logout          = useAuthStore((s) => s.logout);
   const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
-
-  const profileRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
 
   const navLinks = [
     { href: "/",           label: "Dashboard", icon: LayoutDashboard },
@@ -60,59 +57,44 @@ export function Navbar() {
     router.push("/");
   };
 
-  // ── Close profile dropdown on outside click
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const collapse = () => {
+    setExpanded(false);
+    setProfileOpen(false);
+  };
 
-  // ── ONLY place the sidebar collapses — clicking outside it
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (
-        isExpanded &&
-        sidebarRef.current &&
-        !sidebarRef.current.contains(e.target as Node)
-      ) {
-        setExpanded(false);
-        setProfileOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [isExpanded, setExpanded]);
-
-  // ── Lock body scroll when notification panel is open
+  // Lock body scroll when notification panel is open
   useEffect(() => {
     document.body.style.overflow = notifOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [notifOpen]);
 
-  const handleExpandClick = () => {
-    if (!isExpanded) setExpanded(true);
-  };
-
   return (
     <>
+      {/* ── Backdrop — clicking outside sidebar collapses it ─────────────
+          Rendered BEHIND the sidebar (z-40), covers the entire screen.
+          No event timing issues — it's just a plain onClick div.        */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={collapse}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ══════════════════════════════════════════
-          SIDEBAR
+          SIDEBAR  (z-50 — above the backdrop)
       ══════════════════════════════════════════ */}
       <aside
-        ref={sidebarRef}
         className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200
           transition-all duration-300 ease-in-out z-50 flex flex-col min-h-0
-          ${isExpanded ? "w-64" : "w-[72px]"}`}
+          ${isExpanded ? "w-64" : "w-[72px] cursor-pointer"}`}
+        onClick={() => { if (!isExpanded) setExpanded(true); }}
       >
-        {/* ── Logo
-            Collapsed → click expands sidebar
-            Expanded  → click navigates home ── */}
+        {/* ── Logo ── */}
         <div
-          onClick={isExpanded ? () => router.push("/") : handleExpandClick}
+          onClick={(e) => {
+            if (isExpanded) { e.stopPropagation(); router.push("/"); }
+          }}
           className="h-16 flex items-center justify-center px-4 border-b border-gray-100 flex-shrink-0 cursor-pointer select-none"
         >
           {isExpanded ? (
@@ -142,6 +124,7 @@ export function Navbar() {
             <Link
               key={href}
               href={href}
+              scroll={false}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group ${
                 isActive(href)
                   ? "bg-orange-50 text-[#F4781B]"
@@ -160,15 +143,6 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* ── Empty gap — clickable to expand when collapsed ── */}
-        {!isExpanded && (
-          <div
-            className="flex-1 cursor-pointer"
-            onClick={handleExpandClick}
-            aria-hidden="true"
-          />
-        )}
-
         {/* ── Bottom Section ── */}
         <div className="border-t border-gray-100 flex-shrink-0">
           <nav className="px-3 py-3 space-y-1">
@@ -176,6 +150,7 @@ export function Navbar() {
               <Link
                 key={href}
                 href={href}
+                scroll={false}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group ${
                   isActive(href)
                     ? "bg-orange-50 text-[#F4781B]"
@@ -193,16 +168,14 @@ export function Navbar() {
           </nav>
 
           {/* ── User Profile ── */}
-          <div className="px-3 py-3 border-t border-gray-100 relative" ref={profileRef}>
+          <div className="px-3 py-3 border-t border-gray-100 relative">
             <button
-              className="flex items-center gap-3 w-full rounded-xl hover:bg-gray-50 p-1.5 transition-colors"
-              onClick={() => {
-                if (!isExpanded) {
-                  setExpanded(true);
-                } else {
-                  setProfileOpen((o) => !o);
-                }
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isExpanded) setExpanded(true);
+                else setProfileOpen((o) => !o);
               }}
+              className="flex items-center gap-3 w-full rounded-xl hover:bg-gray-50 p-1.5 transition-colors"
             >
               <div className="relative w-8 h-8 flex-shrink-0">
                 <Image
@@ -227,7 +200,10 @@ export function Navbar() {
 
             {/* Profile dropdown */}
             {profileOpen && isExpanded && (
-              <div className="absolute bottom-[calc(100%+8px)] left-3 right-3 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-[calc(100%+8px)] left-3 right-3 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+              >
                 <button
                   onClick={() => { router.push("/profile"); setProfileOpen(false); }}
                   className="flex items-center gap-3 w-full px-4 py-3.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -260,14 +236,14 @@ export function Navbar() {
       </aside>
 
       {/* ══════════════════════════════════════════
-          TOP HEADER
+          TOP HEADER  (z-40 — same level as backdrop, above page content)
       ══════════════════════════════════════════ */}
       <header
         className={`fixed top-0 right-0 h-16 bg-white border-b border-gray-200
           flex items-center gap-3 px-6 z-40 transition-all duration-300
           ${isExpanded ? "left-64" : "left-[72px]"}`}
       >
-        {/* Search bar — left side */}
+        {/* Search bar */}
         <div className="flex items-center flex-1 max-w-sm">
           <div className="flex items-center w-full gap-2 bg-gray-50 border border-gray-200
             rounded-lg px-3 h-9 focus-within:border-[#F4781B]
@@ -303,9 +279,10 @@ export function Navbar() {
             <Plus size={14} /> Regular Job
           </button>
 
+          {/* Wallet */}
           <button
-            onClick={() => router.push("/wallet")}
-            className="flex items-center gap-2 rounded-lg h-9 hover:bg-gray-50 transition-colors"
+            onClick={() => router.push('/wallet/topup')}
+            className="flex items-center gap-2 rounded-lg h-9 px-2 hover:bg-gray-50 transition-colors"
           >
             <Wallet size={16} className="text-gray-400" />
             <WalletBalance />
@@ -338,7 +315,6 @@ export function Navbar() {
       ══════════════════════════════════════════ */}
       {notifOpen && (
         <>
-          {/* Blocks all interaction + scroll behind the panel */}
           <div
             className="fixed inset-0 z-[59] bg-black/20 backdrop-blur-[1px]"
             onClick={() => setNotifOpen(false)}

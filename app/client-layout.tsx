@@ -43,7 +43,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       loadAll(),
     ]);
   }, [loadRecruiterProfile, loadAll]);
-
   return (
     <QueryClientProvider client={queryClient}>                           {/* ← wrap */}
       <GoogleOAuthProviderWrapper>

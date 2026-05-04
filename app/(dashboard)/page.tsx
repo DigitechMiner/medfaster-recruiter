@@ -14,20 +14,18 @@ import { RecentActivity }       from './components/RecentActivity';
 import { BottomCandidateCards } from './components/BottomCandidateCards';
 import { Top5CandidatesHired }  from './components/Top5CandidatesHired';
 import { useAuthStore }         from '@/stores/authStore';
-import { useRecruiterDashboard } from '@/hooks/useRecruiterData';
 import { useWalletStore }       from '@/stores/walletStore';
+import { useDashboardOverview } from '@/hooks/useDashboard';
 
 const Skeleton = ({ className = '' }: { className?: string }) => (
   <div className={`bg-white rounded-xl border border-gray-100 animate-pulse ${className}`} />
 );
 
 const DashboardPage: React.FC = () => {
-  const { recruiterProfile }     = useAuthStore();
-  const [period, setPeriod]      = useState('This Month');
-  const { dashboard, isLoading } = useRecruiterDashboard();
-  const wallet                   = useWalletStore((s) => s.wallet);
-
-  const jobs = dashboard?.jobStatusOverview;
+  const { recruiterProfile }              = useAuthStore();
+  const [period, setPeriod]               = useState('This Month');
+  const { jobs, shifts, interviews, isLoading } = useDashboardOverview();
+  const wallet                            = useWalletStore((s) => s.wallet);
 
   const firstName = recruiterProfile?.contact_person_name?.split(' ')[0]
     ?? recruiterProfile?.organization_name
@@ -38,19 +36,21 @@ const DashboardPage: React.FC = () => {
   const fmtCAD = (v: number | null) =>
     v !== null ? `$${v.toLocaleString('en-CA', { minimumFractionDigits: 0 })}` : '—';
 
+  // Derive no-shows and pending check-ins from shift/interview data
+  const noShows        = shifts?.MISSED  ?? 0;
+  const pendingCheckIns = shifts?.UPCOMING ?? 0;
+
   const metrics = useMemo(() => ({
     active:   jobs?.ACTIVE   ?? 0,
     upcoming: jobs?.UPCOMING ?? 0,
     open:     jobs?.OPEN     ?? 0,
-  }), [jobs?.ACTIVE, jobs?.UPCOMING, jobs?.OPEN]);
+  }), [jobs]);
 
   return (
     <AppLayout padding="none">
       <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
 
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            Header
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-lg xl:text-xl font-semibold text-gray-900">
@@ -72,9 +72,7 @@ const DashboardPage: React.FC = () => {
           </select>
         </div>
 
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            6 Metric Cards
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* 6 Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {isLoading ? (
             [...Array(6)].map((_, i) => <Skeleton key={i} className="h-28" />)
@@ -90,17 +88,17 @@ const DashboardPage: React.FC = () => {
                 percentChange={1.10}         isPositive={true} />
               <MetricCard
                 icon={<Layers className="w-4 h-4 text-[#F4781B]" />}
-                title="Open Jobs/Shifts"    value={metrics.open}
-                percentChange={1.10}        isPositive={true} />
+                title="Open Jobs/Shifts"     value={metrics.open}
+                percentChange={1.10}         isPositive={true} />
               <MetricCard
                 icon={<AlertOctagon className="w-4 h-4 text-[#F4781B]" />}
-                title="No-Shows"            value={0}
+                title="No-Shows"             value={noShows}
                 valueColor="text-red-500"
-                percentChange={2.10}        isPositive={false} />
+                percentChange={2.10}         isPositive={false} />
               <MetricCard
                 icon={<ClipboardList className="w-4 h-4 text-[#F4781B]" />}
-                title="Pending Check-Ins"   value={0}
-                percentChange={2.10}        isPositive={false} />
+                title="Pending Check-Ins"    value={pendingCheckIns}
+                percentChange={2.10}         isPositive={false} />
               <MetricCard
                 icon={<Wallet className="w-4 h-4 text-[#F4781B]" />}
                 title="Wallet Balance"
@@ -111,45 +109,29 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            ROW 1 — Top Issues | Today's Operations | Jobs Overview
-            Ratio: 1fr : 2fr : 1fr
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-3 items-stretch">
+          <TopIssues shifts={shifts} interviews={interviews} />
+          <TodaysOperations />
+          <div className="flex flex-col gap-3 h-full">
+            <div className="flex-1 min-h-0">
+              <JobsOverviewChart jobs={jobs} />
+            </div>
+            <div className="shrink-0">
+              <QuickActions />
+            </div>
+          </div>
+        </div>
 
-  {/* Col 1 — Top Issues */}
-  <TopIssues />
+        {/* Row 2 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
+          <PerformanceOverview />
+          <WorkforceStatus jobs={jobs} />
+          <FinancialSnapshot />
+          <RecentActivity />
+        </div>
 
-  {/* Col 2 — Today's Operations */}
-  <TodaysOperations />
-
-  {/* Col 3 — Chart grows to fill, Quick Actions pinned to bottom */}
-  <div className="flex flex-col gap-3 h-full">
-    <div className="flex-1 min-h-0">
-      <JobsOverviewChart jobs={jobs} />
-    </div>
-    <div className="shrink-0">
-      <QuickActions />
-    </div>
-  </div>
-
-</div>
-
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            ROW 2 — Performance Overview | Workforce Status | Financial | Activity
-            4 equal columns
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
-  <PerformanceOverview />
-  <WorkforceStatus jobs={jobs} />
-  <FinancialSnapshot />
-  <RecentActivity />
-</div>
-
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            ROW 3 — Nearby Professionals | Urgent Hires | Top 5 Candidates
-            3 equal columns
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* Row 3 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
           <BottomCandidateCards section="nearby" title="Nearby Professionals (Within 5 kms)" />
           <BottomCandidateCards section="urgent" title="Urgent Hires" />

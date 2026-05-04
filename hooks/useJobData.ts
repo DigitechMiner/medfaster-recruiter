@@ -207,6 +207,7 @@ export function useJobDetail(jobId: string | null) {
   const specializationMap: Record<string, string> = Object.fromEntries(
     (specData?.data ?? []).map((s) => [s.id, s.name])
   );
+  console.log("specData =>", specData);
 
   const header: JobDetailHeaderVM | null = jobData?.data?.job
     ? fromJobBackendResponse(jobData.data.job, specializationMap)

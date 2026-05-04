@@ -6,7 +6,7 @@ export const ENDPOINTS = {
 
   // ── Profile ────────────────────────────────────────────────────────────────
   RECRUITER_PROFILE:              '/recruiter/profile',
-  RECRUITER_PROFILE_UPDATE:              '/recruiter/profile',
+  RECRUITER_PROFILE_UPDATE:       '/recruiter/profile',
   RECRUITER_REGISTER:             '/recruiter/register',
 
   // ── Jobs ───────────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ export const ENDPOINTS = {
   JOBS_SUMMARY:                   '/recruiter/jobs/summary',
   JOBS_CALENDAR:                  '/recruiter/jobs/calendar',
   JOBS_FEE_PREVIEW:               '/recruiter/jobs/preview',
+  JOB_REVIEW:                     (jobId: string) => `/recruiter/jobs/${jobId}/reviews`,
   JOBS_FEES:                      (jobTitle: string) => `/recruiter/jobs/fees/${jobTitle}`,
   GENERATE_JOB_DESCRIPTION:       '/recruiter/jobs/generate-description',
   GENERATE_JOB_QUESTIONS:         '/recruiter/jobs/generate-questions',
@@ -32,11 +33,13 @@ export const ENDPOINTS = {
   CANDIDATE_DETAIL:               (id: string) => `/recruiter/candidates/${id}`,
   CANDIDATE_DOCUMENT_SIGNED_URL:  (candidateId: string, docId: string) =>
                                     `/recruiter/candidates/${candidateId}/documents/${docId}/url`,
-  CANDIDATE_INVITE:  '/recruiter/job-applications/invite',
+  // POST — invite on-platform candidate to apply for a specific job
+  CANDIDATE_JOB_INVITE:           '/recruiter/candidates/invite',
 
   // ── In-House Candidates ────────────────────────────────────────────────────
   INHOUSE_CANDIDATES:             '/recruiter/in-house-candidates',
-  INHOUSE_INVITE:                 '/recruiter/in-house-candidates/invite',
+  INHOUSE_ADD:                    (candidateId: string) => `/recruiter/candidates/${candidateId}/add-in-house`,
+  INHOUSE_REMOVE:                 (candidateId: string) => `/recruiter/in-house-candidates/${candidateId}/remove`,
 
   // ── Interview Requests ─────────────────────────────────────────────────────
   INTERVIEW_REQUESTS:             '/recruiter/interview-requests',
@@ -52,7 +55,9 @@ export const ENDPOINTS = {
   CHAT_CREATE_OR_GET:             '/chat/conversation',
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
-  RECRUITER_DASHBOARD:            '/recruiter/dashboard',
+  DASHBOARD_OVERVIEW:       '/recruiter/dashboard',
+DASHBOARD_TODAY_SHIFTS:   '/recruiter/dashboard/todayshift',
+DASHBOARD_RECENT_ACTIVITY: (activityLength = 10) => `/recruiter/dashboard/recent-activity?activityLength=${activityLength}`,
 
   // ── Wallet ─────────────────────────────────────────────────────────────────
   WALLET:                         '/recruiter/wallet',
@@ -71,8 +76,16 @@ export const ENDPOINTS = {
   // ── Common / Metadata ──────────────────────────────────────────────────────
   COMMON_METADATA:                '/common/metadata',
   COMMON_DEPARTMENTS:             '/common/departments-job-titles',
-  COMMON_SPECIALIZATIONS:         '/common/specializations',   // use to map specialization IDs → labels
+  COMMON_SPECIALIZATIONS:         '/common/specializations',
   COMMON_FCM_REGISTER:            '/common/notifications/register',
   COMMON_DEVICE_ACTIVE:           '/common/notifications/device/active',
   COMMON_NOTIFICATIONS:           '/common/notifications',
+
+  // ── Disputes ───────────────────────────────────────────────────────────────
+  ESCROW_DISPUTE:                 '/recruiter/escrow/disputes',
+
+  // ── Referral Invites ───────────────────────────────────────────────────────
+  // POST — bulk email referral invites to off-platform candidates (1–100 entries)
+  RECRUITER_INVITES:              '/recruiter/invites',
+
 } as const;

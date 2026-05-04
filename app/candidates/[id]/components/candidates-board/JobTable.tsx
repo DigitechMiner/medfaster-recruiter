@@ -2,30 +2,29 @@
 
 import React from "react";
 import { CandidateTypePill, JobTypePill, StatusPill } from "./ui";
+import type { CandidateCardVM } from "@/Interface/view-models";
+
+function fmtExp(months: number | null | undefined): string {
+  if (!months) return "—";
+  const yrs = Math.floor(months / 12);
+  return yrs > 0 ? `${yrs}+ yrs` : `${months} mos`;
+}
 
 export function JobTable({
   jobs,
   showCandidateType = false,
   headerBg = "bg-orange-50/60",
 }: {
-  jobs: Array<{
-    name: string;
-    candidateType: string;
-    dept: string;
-    title: string;
-    exp: string;
-    type: string;
-    date: string;
-    timing: string;
-    duration: string;
-    status: string;
-  }>;
+  jobs:               CandidateCardVM[];   // ✅ fixed
   showCandidateType?: boolean;
-  headerBg?: string;
+  headerBg?:          string;
 }) {
-  const baseHeaders = ["Candidate Name", "Department", "Job Title", "Experience", "Job Type", "Job Start Date", "Job Timing", "Job Duration", "Job Status"];
+  const baseHeaders = [
+    "Candidate Name", "Department", "Designation",
+    "Experience", "Status",
+  ];
   const headers = showCandidateType
-    ? ["Candidate Name", "Candidate Type", "Department", "Job Title", "Experience", "Job Type", "Job Start Date", "Job Timing", "Job Duration", "Job Status"]
+    ? ["Candidate Name", "Candidate Type", ...baseHeaders.slice(1)]
     : baseHeaders;
 
   return (
@@ -48,22 +47,27 @@ export function JobTable({
               </td>
             </tr>
           ) : (
-            jobs.map((job, i) => (
-              <tr key={i} className="border-b border-gray-100 hover:bg-orange-50/30 transition-colors cursor-pointer">
-                <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">{job.name}</td>
+            jobs.map((c) => (
+              <tr
+                key={c.id}
+                className="border-b border-gray-100 hover:bg-orange-50/30 transition-colors cursor-pointer"
+              >
+                <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                  {c.full_name}
+                </td>
+
                 {showCandidateType && (
                   <td className="py-3 px-4">
-                    <CandidateTypePill type={job.candidateType} />
+                    <CandidateTypePill type={c.work_eligibility ?? "—"} />
                   </td>
                 )}
-                <td className="py-3 px-4 text-xs text-gray-600">{job.dept}</td>
-                <td className="py-3 px-4 text-xs text-gray-600">{job.title}</td>
-                <td className="py-3 px-4 text-xs text-gray-600">{job.exp}</td>
-                <td className="py-3 px-4"><JobTypePill type={job.type} /></td>
-                <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{job.date}</td>
-                <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{job.timing}</td>
-                <td className="py-3 px-4 text-xs text-gray-500">{job.duration}</td>
-                <td className="py-3 px-4"><StatusPill status={job.status} /></td>
+
+                <td className="py-3 px-4 text-xs text-gray-600">{c.department || "—"}</td>
+                <td className="py-3 px-4 text-xs text-gray-600">{c.designation || "—"}</td>
+                <td className="py-3 px-4 text-xs text-gray-600">{c.experience || "—"}</td>
+                <td className="py-3 px-4">
+                  <StatusPill status={c.application_status} />
+                </td>
               </tr>
             ))
           )}

@@ -40,10 +40,11 @@ export const getCandidateDetails = (
 ): Promise<CandidateDetailsResponse> =>
   getJson<CandidateDetailsResponse>(ENDPOINTS.CANDIDATE_DETAIL(candidateId));
 
+// ✅ Renamed: CANDIDATE_INVITE → CANDIDATE_JOB_INVITE
 export const inviteCandidate = (
   payload: InviteCandidatePayload
 ): Promise<InviteCandidateResponse> =>
-  postJson<InviteCandidateResponse>(ENDPOINTS.CANDIDATE_INVITE, payload);
+  postJson<InviteCandidateResponse>(ENDPOINTS.CANDIDATE_JOB_INVITE, payload);
 
 export const getNotifications = (
   params?: NotificationsParams
@@ -75,5 +76,9 @@ export interface RecruiterDashboardData {
   };
 }
 
-export const getRecruiterDashboard = (): Promise<{ success: boolean; message: string; data: RecruiterDashboardData }> =>
-  getJson<{ success: boolean; message: string; data: RecruiterDashboardData }>(ENDPOINTS.RECRUITER_DASHBOARD);
+export const getRecruiterDashboard = (): Promise<{
+  success: boolean; message: string; data: RecruiterDashboardData
+}> =>
+  getJson<{ success: boolean; message: string; data: RecruiterDashboardData }>(
+    ENDPOINTS.DASHBOARD_OVERVIEW
+  );

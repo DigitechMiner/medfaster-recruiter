@@ -6,7 +6,7 @@ import { FileText, Filter, Users } from "lucide-react";
 import { JobDescriptionModal, useJobDescriptionModal } from "./JobDescriptionModal";
 import { EditInterviewQuestionsModal } from "./EditInterviewQuestionsModal";
 import { useCandidatesList } from "@/hooks/useRecruiterData";
-import {
+import metadata, {
   convertExperienceToFrontend,
   convertJobTypeToFrontend,
   convertQualificationToFrontend,
@@ -126,7 +126,10 @@ export const NormalJobDetail: React.FC<Props> = ({ job, jobId, onCloseJob }) => 
     setActiveTab(tab);
     setPage(1);
   };
-
+console.log("💰 job pay fields:", {
+  pay_per_hour_cents: job.pay_per_hour_cents,
+  // log any other pay-related fields you find
+});
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white rounded-2xl border border-gray-200 px-6 py-4">
@@ -194,15 +197,16 @@ export const NormalJobDetail: React.FC<Props> = ({ job, jobId, onCloseJob }) => 
         <div className="h-px bg-gray-100 mb-3" />
 
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className="text-sm font-semibold text-[#F4781B]">Required Specialization :</span>
-          {hasSpecs
-            ? job.normalJob!.specializations!.map((specialization, index) => (
-                <span key={index} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">
-                  {convertSpecializationToFrontend(String(specialization))}
-                </span>
-              ))
-            : <span className="text-sm text-gray-400">N/A</span>}
-        </div>
+  <span className="text-sm font-semibold text-[#F4781B]">Required Specialization :</span>
+  {hasSpecs
+    ? job.normalJob!.specializations!.map((specialization, index) => (
+        <span key={index} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">
+          {metadata.specialization[Number(specialization)] 
+            ?? convertSpecializationToFrontend(String(specialization))}
+        </span>
+      ))
+    : <span className="text-sm text-gray-400">N/A</span>}
+</div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-[#F4781B]">Required Qualification :</span>

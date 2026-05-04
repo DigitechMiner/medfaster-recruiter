@@ -1,22 +1,19 @@
 'use client';
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Image           from "next/image";
+import { useRouter }   from "next/navigation";
 import { MapPin, Briefcase, Star, Zap, Calendar } from "lucide-react";
-import { useState } from "react";
-import type { CandidateCardVM } from '@/Interface/view-models';
-import ScoreCard from "@/components/card/scorecard";
+import { useState }    from "react";
+import type { CandidateCardVM } from '@/Interface/view-models';        // ← single import
+import ScoreCard                from "@/components/card/scorecard";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
+import { ActionType } from "@/Interface/recruiter.types";
 
-type ActionType = "shortlist" | "hire" | "schedule" | "invite";
-
-// ── Pills ─────────────────────────────────────────────────────────
 const LeftPill = ({ text }: { text: string }) => {
   const isOnline = text.toLowerCase() === "online";
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full border
-      ${isOnline ? "border-green-400 text-green-600 bg-green-50" : "border-[#F4781B] text-[#F4781B] bg-orange-50"}`}
-    >
+      ${isOnline ? "border-green-400 text-green-600 bg-green-50" : "border-[#F4781B] text-[#F4781B] bg-orange-50"}`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOnline ? "bg-green-500" : "bg-[#F4781B]"}`} />
       {text}
     </span>
@@ -40,11 +37,12 @@ const Verified = () => (
   </svg>
 );
 
-// ── Action buttons ─────────────────────────────────────────────────
-const ActionButtons = ({ actionType, score, onOpenModal }: {
-  actionType:   ActionType;
-  score:        number;
-  onOpenModal:  () => void;
+const ActionButtons = ({
+  actionType, score, onOpenModal,
+}: {
+  actionType:  ActionType;
+  score:       number;
+  onOpenModal: () => void;
 }) => {
   const open = (e: React.MouseEvent) => { e.stopPropagation(); onOpenModal(); };
 
@@ -79,20 +77,17 @@ const ActionButtons = ({ actionType, score, onOpenModal }: {
   );
 };
 
-// ── Card ──────────────────────────────────────────────────────────
 export const BoardCandidateCard = ({ c, actionType, leftTag, rightTag }: {
-  c:            CandidateCardVM;
-  actionType:   ActionType;
-  leftTag?:     string;
-  rightTag?:    string;
+  c:          CandidateCardVM;
+  actionType: ActionType;
+  leftTag?:   string;
+  rightTag?:  string;
 }) => {
   const router = useRouter();
   const [_showModal, setShowModal] = useState(false);
 
   const score    = c.interview_score ?? 0;
   const hasScore = c.interview_score !== null;
-
-  // leftTag overrides → fallback to is_online → fallback to work_eligibility
   const pillLeft  = leftTag  ?? (c.is_online ? "Online" : c.work_eligibility ?? "Active");
   const pillRight = rightTag ?? null;
 
@@ -144,10 +139,6 @@ export const BoardCandidateCard = ({ c, actionType, leftTag, rightTag }: {
           <ActionButtons actionType={actionType} score={score} onOpenModal={() => setShowModal(true)} />
         </div>
       </BaseCard>
-
-      {/* {showModal && (
-        <CandidateActionModal actionType={actionType} candidate={c} onClose={() => setShowModal(false)} />
-      )} */}
     </>
   );
 };

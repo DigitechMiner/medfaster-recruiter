@@ -18,15 +18,15 @@ class JobService {
   static async getAllJobs(params?: {
     page?:   number;
     limit?:  number;
-    status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED';
+    status?: 'DRAFT' | 'OPEN' | 'PAUSED' | 'CLOSED' | 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
   }) {
     return await getRecruiterJobs(params);
   }
 
   static async getJobById(id: string) {
-    const response = await getRecruiterJob(id);
-    return response.data.job;  // ← .data.job based on your JobDetailResponse shape
-  }
+  const response = await getRecruiterJob(id);
+  return response?.data?.job ?? null;
+}
 
   static async getJobDetails(id: string) {
     return await this.getJobById(id);

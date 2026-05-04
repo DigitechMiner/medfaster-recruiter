@@ -50,7 +50,7 @@ export function useCandidateInterviews(candidateId: string | null) {
         setIsLoading(true);
         setError(null);
         const data = await getCandidateInterviews(candidateId);
-        setInterviews(data.interviews);
+        setInterviews(data);
       } catch (err: any) {
         console.error('Error fetching candidate interviews:', err);
         setError(err.response?.data?.message || 'Failed to fetch interviews');
