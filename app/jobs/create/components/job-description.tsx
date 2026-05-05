@@ -10,6 +10,7 @@ import { useGenerateDescription } from "@/hooks/useGenerateDescription";
 import { JobDescriptionInput } from "@/stores/api/job-description.api";
 import type { JobFormData } from "@/Interface/recruiter.types";
 import { AIDescriptionModal } from "./job-description/ai-modal";
+import { toast } from "react-toastify";
 
 
 interface JobDescriptionProps {
@@ -109,21 +110,21 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
   };
 
   const handleGenerateWithAI = async () => {
-    if (!formData.jobTitle) {
-      alert("Please fill in Job Title before generating with AI");
-      return;
-    }
+  if (!formData.jobTitle) {
+    toast.error("Please fill in Job Title before generating with AI");
+    return;
+  }
 
-    setShowModal(true);
+  setShowModal(true);
 
-    const input: JobDescriptionInput = {
-      jobTitle:    formData.jobTitle,
-      department:  formData.department  || "",
-      jobType:     formData.jobType     || "Full Time",
-    };
-
-    await generateDescription(input);
+  const input: JobDescriptionInput = {
+    jobTitle:   formData.jobTitle,
+    department: formData.department || "",
+    jobType:    formData.jobType    || "Full Time",
   };
+
+  await generateDescription(input);
+};
 
   // ── Apply all structured fields directly from API response ─────────────────
   const handleUse = () => {

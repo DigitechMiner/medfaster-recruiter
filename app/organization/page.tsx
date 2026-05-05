@@ -212,7 +212,7 @@ export default function OrganizationPage() {
   return (
     <div className="min-h-screen bg-[#f8f7f5]">
       <div className="p-6 font-sans">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className=" mx-auto space-y-6">
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onSubmit)}>
 

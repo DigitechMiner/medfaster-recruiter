@@ -111,7 +111,7 @@ export default function SettingsPage() {
     <>
       <Navbar />
       <div className="min-h-screen bg-[#f8f7f5] p-6 text-gray-800 font-sans">
-        <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <div className=" mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8">
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Settings & Configurations</h1>

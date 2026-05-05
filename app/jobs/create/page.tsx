@@ -11,17 +11,33 @@ import { axiosInstance }       from "@/stores/api/api-client";
 import { ENDPOINTS }           from "@/stores/api/api-endpoints";
 import type { JobCreatePayload } from "@/Interface/recruiter.types";
 
+
+// ── Lifted AI question type ───────────────────────────────────────────────────
+export interface AIQuestion {
+  id:   string;
+  text: string;
+}
+
+
+const uid = () => crypto.randomUUID();
+
+const makeDefaultQuestions = (): AIQuestion[] =>
+  Array.from({ length: 5 }, () => ({ id: uid(), text: "" }));
+
+
 function CreateJobContent() {
-  const router         = useRouter();
-  const createJob      = useJobsStore((s) => s.createJob);
-  const setHasJobs     = useJobsStore((s) => s.setHasJobs);
-  const clearDraft     = useJobsStore((s) => s.clearDraft);
+  const router     = useRouter();
+  const createJob  = useJobsStore((s) => s.createJob);
+  const setHasJobs = useJobsStore((s) => s.setHasJobs);
+  const clearDraft = useJobsStore((s) => s.clearDraft);
 
   // step 1 = job form, step 2 = AI questions, step 3 = summary
   const [step, setStep]                    = useState<1 | 2 | 3>(1);
   const [pendingPayload, setPendingPayload] = useState<JobCreatePayload | null>(null);
-  // ✅ Track whether recruiter wants interview — determines if step 2 is shown
   const [wantsInterview, setWantsInterview] = useState(true);
+
+  // ✅ Lifted AI questions state — survives step navigation
+  const [aiQuestions, setAiQuestions] = useState<AIQuestion[]>(makeDefaultQuestions);
 
   return (
     <AppLayout>
@@ -33,7 +49,6 @@ function CreateJobContent() {
             onNext={(payload, hasInterview) => {
               setPendingPayload(payload);
               setWantsInterview(hasInterview);
-              // ✅ Skip step 2 entirely if no interview
               setStep(hasInterview ? 2 : 3);
             }}
             onBack={() => router.push("/jobs")}
@@ -43,6 +58,8 @@ function CreateJobContent() {
         {step === 2 && (
           <GenerateAIForm
             pendingPayload={pendingPayload!}
+            questions={aiQuestions}
+            onQuestionsChange={setAiQuestions}
             onBack={() => setStep(1)}
             onNext={(updatedPayload) => {
               setPendingPayload(updatedPayload);
@@ -55,29 +72,31 @@ function CreateJobContent() {
           <JobSummaryPage
             mode="normal"
             payload={pendingPayload}
-            // ✅ Back goes to AI form if interview was chosen, else back to job form
             onBack={() => setStep(wantsInterview ? 2 : 1)}
             onSubmit={async (finalPayload, feeCents) => {
-              try {
-                const payRes = await axiosInstance.post(ENDPOINTS.WALLET_PAY, {
-                  amount: feeCents / 100,
-                });
-                console.log("✅ WALLET_PAY response:", payRes.data);
+  try {
+    // ✅ Skip wallet charge entirely for full time jobs (feeCents === 0)
+    if (feeCents > 0) {
+      const payRes = await axiosInstance.post(ENDPOINTS.WALLET_PAY, {
+        amount: feeCents / 100,
+      });
+      console.log("✅ WALLET_PAY response:", payRes.data);
+    }
 
-                const res = await createJob(finalPayload);
-                if (res.success) {
-                  setHasJobs(true);
-                  clearDraft();
-                }
-                return { success: res.success, message: res.message, jobId: res.data?.id };
-              } catch (err) {
-                console.error("❌ onSubmit error:", err);
-                return {
-                  success: false,
-                  message: (err as Error).message ?? "Failed. Please try again.",
-                };
-              }
-            }}
+    const res = await createJob(finalPayload);
+    if (res.success) {
+      setHasJobs(true);
+      clearDraft();
+    }
+    return { success: res.success, message: res.message, jobId: res.data?.id };
+  } catch (err) {
+    console.error("❌ onSubmit error:", err);
+    return {
+      success: false,
+      message: (err as Error).message ?? "Failed. Please try again.",
+    };
+  }
+}}
           />
         )}
       </div>

@@ -39,6 +39,7 @@ interface JobFormProps {
   customSections?:  React.ReactNode;
   hideRequirements?:boolean;
   hideInterviewSettings?: boolean;
+  fieldErrors?: Partial<Record<keyof JobFormData, string>>;
 }
 
 export function JobForm({
@@ -63,6 +64,7 @@ export function JobForm({
   wrapperClassName,
   customSections,
   hideRequirements = false,
+  fieldErrors = {},
 }: JobFormProps) {
   const isEditMode = mode === "edit";
 
@@ -105,6 +107,7 @@ export function JobForm({
           <JobBasicInfo
             formData={formData}
             updateFormData={updateFormData}
+            fieldErrors={fieldErrors}
           />
 
           {customSections}

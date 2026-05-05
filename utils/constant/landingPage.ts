@@ -116,8 +116,8 @@ export const landingFooterColumns: FooterColumn[] = [
     title: 'Support',
     links: [
       { label: 'Help Center', href: '#help-center' },
-      { label: 'Privacy Policy', href: '#privacy' },
-      { label: 'Terms & Conditions', href: '#terms' },
+      { label: 'Privacy Policy', href: 'https://keraeva.com/privacy-policy' },
+      { label: 'Terms & Conditions', href: 'https://keraeva.com/terms-conditions' },
       { label: 'Refund Policy', href: '#refund' },
       { label: 'Data Protection (HIPAA/GDPR)', href: '#data-protection' },
       { label: 'Report an Issue', href: '#report-issue' },

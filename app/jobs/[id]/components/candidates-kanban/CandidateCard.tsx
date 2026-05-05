@@ -6,6 +6,7 @@ import ScoreCard from "@/components/card/scorecard";
 import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
 import type { Candidate, ColKey } from "./config";
+import { toast } from "react-toastify";
 
 type ActionType = "shortlist" | "hire";
 
@@ -34,7 +35,7 @@ export function CandidateCard({
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })
         ?.response?.data?.message ?? "Action failed";
-      alert(msg);
+      toast.error(msg);
     } finally {
       setLoadingId(null);
     }

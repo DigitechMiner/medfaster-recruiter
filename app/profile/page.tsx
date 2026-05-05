@@ -90,7 +90,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#f8f7f5]">
       <div className="p-6 font-sans">
-        <div className="max-w-5xl mx-auto">
+        <div className=" mx-auto">
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
               <div className="mb-6">

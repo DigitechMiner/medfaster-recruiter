@@ -278,7 +278,6 @@ export default function EditJobPage() {
     setSubmitError(null);
 
     try {
-      const questionsData = convertTopicsToBackendFormat(topics);
       const backendData = convertToBackendFormat(formData);
       const response = await updateJob(jobId, backendData);
 

@@ -6,6 +6,7 @@ import ScoreCard from "@/components/card/scorecard";
 import { useCandidatesList } from "@/hooks/useRecruiterData";
 import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
 import { buildKanbanPages, getVisibleCountRange, TabKey, toCandidate, Candidate } from "./shared";
+import { toast } from "react-toastify";
 
 const KANBAN_COLS = [
   { key: "applied",         label: "Applied",          dotColor: "bg-blue-500",   border: "border-blue-200",   bg: "bg-blue-50/50",   textColor: "text-blue-600",    aiOnly: false },
@@ -56,7 +57,7 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })
         ?.response?.data?.message ?? "Action failed";
-      alert(msg);
+      toast.error(msg);
     } finally {
       setLoadingId(null);
     }

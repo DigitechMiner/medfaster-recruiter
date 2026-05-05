@@ -9,41 +9,37 @@ import { useJobsStore } from "@/stores/jobs-store";
 import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
 import type { JobCreatePayload } from "@/Interface/recruiter.types";
 import { useGenerateQuestions } from "@/hooks/useGenerateQuestions";
+import { toast } from "react-toastify";
+import type { AIQuestion } from "../page";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface Question {
-  id:   string;
-  text: string;
-}
+const MAX_QUESTIONS = 10;
+
+const uid = () => crypto.randomUUID();
 
 interface Props {
-  pendingPayload?: JobCreatePayload | null;
+  pendingPayload?:    JobCreatePayload | null;
+  // ✅ Lifted state from parent — survives navigation
+  questions:          AIQuestion[];
+  onQuestionsChange:  (q: AIQuestion[]) => void;
   onBack?:  () => void;
   onNext?:  (payload: JobCreatePayload) => void;
 }
 
-let _id = 0;
-const uid = () => `q-${++_id}`;
-
-// ── Helper: map string[] → Question[] ────────────────────────────────────────
-function toQuestionRows(texts: string[]): Question[] {
-  return texts.map((text) => ({ id: uid(), text }));
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
+export function GenerateAIForm({
+  pendingPayload,
+  questions,
+  onQuestionsChange,
+  onBack,
+  onNext,
+}: Props) {
   const router     = useRouter();
   const createJob  = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
 
-  // ── Question state — flat list (like the UI shows) ────────────────────────
-  const [questions, setQuestions] = useState<Question[]>(() =>
-    Array.from({ length: 5 }, () => ({ id: uid(), text: "" }))
-  );
-  const [editingId,     setEditingId]     = useState<string | null>(null);
-  const [showSuccess,   setShowSuccess]   = useState(false);
-  const [isSubmitting,  setIsSubmitting]  = useState(false);
-  const [error,         setError]         = useState<string | null>(null);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [showSuccess,  setShowSuccess]  = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
   const {
     loading: aiLoading,
@@ -52,39 +48,47 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
     reset:   resetAI,
   } = useGenerateQuestions();
 
-  // ── AI: Rephrase / Generate ───────────────────────────────────────────────
+  const atLimit = questions.length >= MAX_QUESTIONS;
+
+  // ── AI: Generate / Rephrase ───────────────────────────────────────────────
   const handleRephrase = async () => {
-    if (!pendingPayload?.job_title) {
-      alert("Job title is required to generate questions.");
+  if (!pendingPayload?.job_title) {
+    toast.error("Job title is required to generate questions.");
+    return;
+  }
+  resetAI();
+
+  const generated = await generate({
+  title:          pendingPayload.job_title,
+  department:     pendingPayload.department ?? "",
+  specialization: pendingPayload.specializations?.[0] ?? undefined,
+  count:          Math.max(questions.length, 5),  // ✅ ask for as many as current slots
+});
+
+  if (generated.length === 0) return;
+
+  // ✅ Just replace everything — no merging, no slicing logic
+  onQuestionsChange(
+    generated.slice(0, MAX_QUESTIONS).map((text) => ({ id: uid(), text }))
+  );
+};
+
+  // ── CRUD ──────────────────────────────────────────────────────────────────
+  const handleAdd = () => {
+    if (atLimit) {
+      toast.error("Maximum 10 questions allowed");
       return;
     }
-
-    resetAI();
-
-    const generated = await generate({
-      title:          pendingPayload.job_title,               // slug e.g. "registered_nurse"
-      department:     pendingPayload.department ?? "",        // slug e.g. "nursing"
-      specialization: pendingPayload.specializations?.[0] ?? undefined,
-    });
-
-    if (generated.length > 0) {
-      setQuestions(toQuestionRows(generated));
-    }
+    onQuestionsChange([...questions, { id: uid(), text: "" }]);
   };
 
-  // ── CRUD helpers ──────────────────────────────────────────────────────────
-  const handleAdd = () =>
-    setQuestions((prev) => [...prev, { id: uid(), text: "" }]);
-
   const handleDelete = (id: string) =>
-    setQuestions((prev) => prev.filter((q) => q.id !== id));
+    onQuestionsChange(questions.filter((q) => q.id !== id));
 
   const handleChange = (id: string, text: string) =>
-    setQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, text } : q))
-    );
+    onQuestionsChange(questions.map((q) => (q.id === id ? { ...q, text } : q)));
 
-  // ── Build payload ─────────────────────────────────────────────────────────
+  // ── Build final payload ───────────────────────────────────────────────────
   const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
     ...(pendingPayload ?? {}),
     job_title:        pendingPayload?.job_title        ?? "",
@@ -150,13 +154,12 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
               </h2>
             </div>
 
-            {/* Sub-header: label + Rephrase + Add More */}
-            <div className="flex items-center justify-between mb-5">
+            {/* Sub-header */}
+            <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-gray-900">
                 Write Your Questions Here
               </span>
               <div className="flex items-center gap-3">
-                {/* Rephrase with AI */}
                 <button
                   type="button"
                   onClick={handleRephrase}
@@ -172,11 +175,12 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
 
                 <span className="text-gray-400 text-sm">or</span>
 
-                {/* Add More */}
                 <button
                   type="button"
                   onClick={handleAdd}
-                  className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors"
+                  disabled={atLimit}
+                  title={atLimit ? "Maximum 10 questions allowed" : "Add a question"}
+                  className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <span className="text-lg leading-none">+</span>
                   Add More
@@ -184,17 +188,18 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
               </div>
             </div>
 
+            <p className="text-xs text-gray-400 mb-3 text-right">
+              {questions.length} / {MAX_QUESTIONS} questions
+            </p>
+
             {/* Question list */}
             <div className="flex flex-col gap-5">
               {questions.map((q, idx) => (
                 <div key={q.id} className="flex items-center gap-3">
-
-                  {/* Label */}
                   <span className="text-sm font-semibold text-gray-900 whitespace-nowrap w-28 flex-shrink-0">
                     Questions {idx + 1} )
                   </span>
 
-                  {/* Input / Display */}
                   {editingId === q.id ? (
                     <input
                       autoFocus
@@ -215,7 +220,6 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
                     </div>
                   )}
 
-                  {/* Edit icon */}
                   <button
                     type="button"
                     onClick={() => setEditingId(q.id)}
@@ -228,7 +232,6 @@ export function GenerateAIForm({ pendingPayload, onBack, onNext }: Props) {
                     </svg>
                   </button>
 
-                  {/* Delete icon */}
                   <button
                     type="button"
                     onClick={() => handleDelete(q.id)}

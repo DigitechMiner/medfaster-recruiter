@@ -10,13 +10,13 @@ export function Footer() {
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
             <Link
-              href="/terms"
+              href="https://keraeva.com/terms-conditions"
               className="text-[#F4781B] hover:text-orange-600 transition-colors"
             >
               Terms & Conditions
             </Link>
             <Link
-              href="/privacy"
+              href="https://keraeva.com/privacy-policy"
               className="text-[#F4781B] hover:text-orange-600 transition-colors"
             >
               Privacy Policy

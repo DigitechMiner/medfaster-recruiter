@@ -6,6 +6,7 @@ export interface GenerateQuestionsPayload {
   title:           string;  // job title slug
   department:      string;  // department slug
   specialization?: string;  // optional specialization slug
+  count?:          number;
 }
 
 export interface GenerateQuestionsResponse {

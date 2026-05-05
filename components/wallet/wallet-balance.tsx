@@ -1,22 +1,37 @@
-// components/wallet/wallet-balance.tsx
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useWalletStore, fmtBalance } from '@/stores/walletStore';
+import { useEffect } from "react";
+import { useWalletStore, fmtBalance } from "@/stores/walletStore";
 
 export function WalletBalance() {
   const wallet    = useWalletStore((s) => s.wallet);
   const isLoading = useWalletStore((s) => s.isLoading);
+  const hasError  = useWalletStore((s) => s.hasError);
 
   useEffect(() => {
-    // Re-fetch whenever wallet is wiped (null) — catches success page cache clear
-    if (wallet === null && !isLoading) {
+    // ✅ Cookie-based auth — no token check needed.
+    // If the session is expired the API returns 401 → hasError=true → stops retrying.
+    if (wallet === null && !isLoading && !hasError) {
       useWalletStore.getState().refreshWallet();
     }
-  }, [wallet, isLoading]); // ← watch wallet — triggers when set to null
+  }, [wallet, isLoading, hasError]);
 
-  if (isLoading || !wallet) {
-    return <span className="w-16 h-4 bg-gray-100 rounded animate-pulse inline-block" />;
+  if (hasError) {
+    return (
+      <span
+        className="text-sm text-red-500 cursor-pointer hover:underline"
+        onClick={() => useWalletStore.setState({ hasError: false })}
+        title="Click to retry"
+      >
+        Retry
+      </span>
+    );
+  }
+
+  if (isLoading || wallet === null) {
+    return (
+      <span className="w-16 h-4 bg-gray-100 rounded animate-pulse inline-block" />
+    );
   }
 
   return (

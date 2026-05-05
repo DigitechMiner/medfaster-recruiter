@@ -16,9 +16,10 @@ import { CustomTimePicker } from "../../components/custom-time-picker";
 interface JobBasicInfoProps {
   formData: JobFormData;
   updateFormData: (updates: Partial<JobFormData>) => void;
+   fieldErrors?: Partial<Record<keyof JobFormData, string>>;
 }
 
-export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
+export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
   const isInstant  = formData.urgency === "instant";
   const isFullTime = formData.jobType === "Full Time" || formData.jobType === "full_time";
 

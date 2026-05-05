@@ -228,15 +228,26 @@ export interface WalletTransactionsResponse {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface RecruiterNotification {
-  id:        string;
-  title:     string;
-  body:      string;
-  type:      string;
-  is_read:   boolean;
-  created_at: string;
-  metadata?: Record<string, unknown>;
+  id:                  string;
+  user_id?:            string;
+  app_type?:           string;
+  created_by_user_id?: string;
+  title:               string;
+  body:                string;
+  type:                string;
+  reference_id?:       string;                    // ✅ added
+  payload?:            Record<string, unknown>;   // ✅ added
+  channels?:           string[];
+  priority?:           string;
+  status?:             string;
+  scheduled_at?:       string;
+  is_read:             boolean;
+  read_at?:            string;
+  read_via?:           string;
+  created_at:          string;
+  updated_at?:         string;
+  metadata?:           Record<string, unknown>;
 }
-
 export interface NotificationsParams {
   page?:    number;
   limit?:   number;

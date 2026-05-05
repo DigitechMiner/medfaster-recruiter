@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "react-toastify";
 import type { JobCreatePayload, JobFormData } from "@/Interface/recruiter.types";
 import type { JobFormSnapshot } from "@/stores/jobs-store";
 import { useJobsStore } from "@/stores/jobs-store";
@@ -78,6 +79,41 @@ function buildInitialFormData(
   };
 }
 
+// ── Validation ────────────────────────────────────────────────────────────────
+function validateJobForm(
+  formData: JobFormData,
+  urgencyMode: "normal" | "instant"
+): Partial<Record<keyof JobFormData, string>> {
+  const errors: Partial<Record<keyof JobFormData, string>> = {};
+
+  // ── Job Start Date ────────────────────────────────────────────────────────
+  if (!formData.fromDate) {
+    errors.fromDate = "Job start date is required.";
+  } else {
+    const startDate =
+      typeof formData.fromDate === "string"
+        ? new Date(formData.fromDate)
+        : (formData.fromDate as Date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (isNaN(startDate.getTime())) {
+      errors.fromDate = "Job start date is invalid.";
+    } else if (startDate < today) {
+      errors.fromDate = "Job start date cannot be in the past.";
+    }
+  }
+
+  // ── Province (normal jobs only — instant jobs may not need a province) ────
+  if (urgencyMode === "normal") {
+    if (!formData.province || formData.province.trim() === "") {
+      errors.province = "Province is required.";
+    }
+  }
+
+  return errors;
+}
+
 export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   const setFormSnapshot = useJobsStore((s) => s.setFormSnapshot);
   const formSnapshot    = useJobsStore((s) => s.formSnapshot);
@@ -86,10 +122,22 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
     buildInitialFormData(urgencyMode, formSnapshot)
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError]               = useState<string | null>(null);
+  const [error,        setError]        = useState<string | null>(null);
+
+  // ✅ Field-level validation errors — passed to JobBasicInfo for inline display
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof JobFormData, string>>>({});
 
   const updateFormData = (updates: Partial<JobFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
+
+    // ✅ Clear field errors for updated fields as user corrects them
+    if (Object.keys(updates).some((k) => k in fieldErrors)) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        Object.keys(updates).forEach((k) => delete next[k as keyof JobFormData]);
+        return next;
+      });
+    }
 
     const currentSnapshot = useJobsStore.getState().formSnapshot;
     const nextSnapshot: JobFormSnapshot = {
@@ -121,7 +169,6 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
             .map(convertSpecializationToBackend)
             .filter((s) => Object.values(metadata.specialization_mapping).includes(s)) ?? [],
           ai_interview: wantsInterview ? (data.aiInterview === true) : false,
-          // ✅ null when no interview — backend requires null, not []
           questions: wantsInterview ? (data.questions?.filter(Boolean) ?? []) : null,
         }
       : {
@@ -129,7 +176,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
           qualifications:      [],
           specializations:     [],
           ai_interview:        false,
-          questions:           null,  // ✅ null not []
+          questions:           null,
         };
 
     const raw: Record<string, unknown> = {
@@ -171,8 +218,6 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
       ...normalJobFields,
     };
 
-    // ✅ CRITICAL: preserve `questions: null` — backend needs explicit null
-    // Only strip undefined, keep null values intact
     return Object.fromEntries(
       Object.entries(raw).filter(([, v]) => v !== undefined)
     ) as unknown as JobCreatePayload;
@@ -181,11 +226,28 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // ── Step 1: Field-level validation (date + province) ─────────────────────
+    const fieldValidationErrors = validateJobForm(formData, urgencyMode);
+    if (Object.keys(fieldValidationErrors).length > 0) {
+      setFieldErrors(fieldValidationErrors);
+      // Toast the first error so it's immediately visible
+      toast.error(Object.values(fieldValidationErrors)[0]);
+      return;
+    }
+    setFieldErrors({});
+
+    // ── Step 2: Qualification + Specialization check (normal jobs only) ──────
     if (urgencyMode === "normal") {
       const validQuals = formData.qualification?.filter((q) => q?.trim()) ?? [];
       const validSpecs = formData.specialization?.filter((s) => s?.trim()) ?? [];
-      if (validQuals.length === 0) { setError("Please add at least one qualification"); return; }
-      if (validSpecs.length === 0) { setError("Please add at least one specialization"); return; }
+      if (validQuals.length === 0) {
+        setError("Please add at least one qualification");
+        return;
+      }
+      if (validSpecs.length === 0) {
+        setError("Please add at least one specialization");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -217,6 +279,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
         onBack={onBack}
         showBackButton={!!onBack}
         isSubmitting={isSubmitting}
+        fieldErrors={fieldErrors}  // ✅ passed down for inline error display
         nextLabel={
           isSubmitting
             ? "Processing..."

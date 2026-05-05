@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
+import { toast } from "react-toastify";
 import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
-import { getWallet } from "@/stores/api/recruiter-wallet-api";
 import { useWalletStore } from "@/stores/walletStore";
 import { getJobFeePreview } from "@/stores/api/recruiter-job-api";
 import { JobDescriptionModal, useJobDescriptionModal } from "@/app/jobs/[id]/components/JobDescriptionModal";
@@ -41,13 +41,11 @@ function diffHours(checkIn?: string | null, checkOut?: string | null): number {
 
 function buildShiftRows(payload: JobCreatePayload) {
   if (!payload.start_date || !payload.end_date) return [];
-
   const start  = new Date(payload.start_date + "T00:00:00");
   const end    = new Date(payload.end_date   + "T00:00:00");
   const rows   = [];
   const cursor = new Date(start);
   let day = 1;
-
   while (cursor <= end) {
     rows.push({
       day:       `Day ${day}`,
@@ -59,7 +57,6 @@ function buildShiftRows(payload: JobCreatePayload) {
     cursor.setDate(cursor.getDate() + 1);
     day++;
   }
-
   return rows;
 }
 
@@ -73,6 +70,30 @@ function validateShiftDuration(checkIn?: string | null, checkOut?: string | null
   if (hours < 4)  return "Shift duration must be at least 4 hours. Please go back and adjust the shift times.";
   if (hours > 12) return "Shift duration cannot exceed 12 hours. Please go back and adjust the shift times.";
   return null;
+}
+
+function isInsufficientBalanceError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("insufficient") ||
+    lower.includes("insufficient balance") ||
+    lower.includes("not enough") ||
+    lower.includes("balance too low")
+  );
+}
+
+function redirectToTopup(
+  payload: JobCreatePayload,
+  mode: string,
+  router: ReturnType<typeof useRouter>
+) {
+  try {
+    sessionStorage.setItem("pending_job_payload", JSON.stringify(payload));
+    sessionStorage.setItem("pending_job_mode", mode);
+  } catch {
+    // sessionStorage unavailable (SSR/private browsing) — proceed anyway
+  }
+  router.push("/wallet/topup");
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -92,19 +113,18 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
   const [showQuestions, setShowQuestions] = useState(false);
 
   // ── Derived flags ─────────────────────────────────────────────────────────
-  const isUrgent = mode === "urgent";
+  const isUrgent   = mode === "urgent";
+  const isFullTime = payload.job_type === "full_time";
 
-  // ✅ Interview Questions button only shows when:
-  // - not an urgent/instant job
-  // - ai_interview is true OR questions array has entries
   const wantsInterview = !isUrgent && (
     payload.ai_interview === true ||
     (Array.isArray(payload.interview_questions) && payload.interview_questions.length > 0) ||
     (Array.isArray(payload.questions) && (payload.questions as string[]).length > 0)
   );
 
-  // ── Fee preview ───────────────────────────────────────────────────────────
+  // ── Fee preview (skipped for full time) ───────────────────────────────────
   useEffect(() => {
+    if (isFullTime) return;
     if (
       !payload.job_title     ||
       !payload.start_date    ||
@@ -128,6 +148,7 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
       .catch(() => setFeeError("Could not load cost estimate. Please go back and try again."))
       .finally(() => setFeeLoading(false));
   }, [
+    isFullTime,
     payload.job_title,
     payload.no_of_hires_required,
     payload.start_date,
@@ -147,32 +168,24 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
   const handlePayAndHire = async () => {
     if (isProcessing) return;
 
-    if (!feePreview) {
+    if (!isFullTime && !feePreview) {
       setError("Cost estimate not loaded. Please wait or go back and retry.");
       return;
     }
 
-    const shiftError = validateShiftDuration(payload.check_in_time, payload.check_out_time);
-    if (shiftError) { setError(shiftError); return; }
+    if (!isFullTime) {
+      const shiftError = validateShiftDuration(payload.check_in_time, payload.check_out_time);
+      if (shiftError) { setError(shiftError); return; }
+    }
 
     setIsProcessing(true);
     setError(null);
 
     try {
-      const wallet = await getWallet();
+      const requiredCents = isFullTime ? 0 : Math.round(totalPayable * 100);
 
-      const availableBalanceCents = parseInt(wallet.available_balance ?? "0", 10);
-      const requiredCents         = Math.round(totalPayable * 100);
-
-      if (isNaN(requiredCents) || requiredCents <= 0) {
+      if (!isFullTime && (isNaN(requiredCents) || requiredCents <= 0)) {
         setError("Invalid cost estimate. Please go back and try again.");
-        return;
-      }
-
-      if (availableBalanceCents < requiredCents) {
-        sessionStorage.setItem("pending_job_payload", JSON.stringify(payload));
-        sessionStorage.setItem("pending_job_mode", mode);
-        router.push("/wallet/topup");
         return;
       }
 
@@ -184,13 +197,28 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
         setSuccessJobId(res.jobId ?? "");
         setShowSuccess(true);
       } else {
-        setError(res?.message ?? "Failed to create job. Please try again.");
+        const msg = res?.message ?? "";
+        if (isInsufficientBalanceError(msg)) {
+          toast.error("Insufficient wallet balance. Redirecting to top-up...", {
+            autoClose: 2000,
+            onClose: () => redirectToTopup(payload, mode, router),
+          });
+          return;
+        }
+        setError(msg || "Failed to create job. Please try again.");
       }
     } catch (err) {
       const axiosMsg =
         (err as { response?: { data?: { message?: string } } })
-          ?.response?.data?.message;
-      setError(axiosMsg ?? (err instanceof Error ? err.message : "Failed to create job. Please try again."));
+          ?.response?.data?.message ?? "";
+      if (isInsufficientBalanceError(axiosMsg)) {
+        toast.error("Insufficient wallet balance. Redirecting to top-up...", {
+          autoClose: 2000,
+          onClose: () => redirectToTopup(payload, mode, router),
+        });
+        return;
+      }
+      setError(axiosMsg || (err instanceof Error ? err.message : "Failed to create job. Please try again."));
     } finally {
       setIsProcessing(false);
     }
@@ -236,7 +264,6 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
               </span>
             )}
 
-            {/* ── Modal trigger buttons ── */}
             <div className="ml-auto flex gap-2">
               <button
                 onClick={jobDescModal.open}
@@ -246,7 +273,6 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
                 {isUrgent ? "Shift Description" : "Job Description"}
               </button>
 
-              {/* ✅ Only shown when interview was selected */}
               {wantsInterview && (
                 <button
                   onClick={() => setShowQuestions(true)}
@@ -281,8 +307,8 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
           </div>
         </div>
 
-        {/* ── Shift Details Table ── */}
-        {shifts.length > 0 && (
+        {/* ── Shift Details Table (hidden for full time) ── */}
+        {!isFullTime && shifts.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h3 className="text-base font-bold text-gray-900 mb-4">{tableTitle}</h3>
             <div className="overflow-x-auto rounded-lg border border-gray-100">
@@ -310,60 +336,62 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
           </div>
         )}
 
-        {/* ── Cost Breakdown ── */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-6">
-            <h3 className="text-base font-bold text-gray-900 mb-4">Cost Breakdown</h3>
-          </div>
+        {/* ── Cost Breakdown (hidden for full time) ── */}
+        {!isFullTime && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-base font-bold text-gray-900 mb-4">Cost Breakdown</h3>
+            </div>
 
-          {feeLoading && (
-            <p className="px-6 pb-4 text-sm text-gray-500 animate-pulse">Loading cost estimate...</p>
-          )}
-          {feeError && (
-            <p className="px-6 pb-4 text-sm text-red-600">{feeError}</p>
-          )}
+            {feeLoading && (
+              <p className="px-6 pb-4 text-sm text-gray-500 animate-pulse">Loading cost estimate...</p>
+            )}
+            {feeError && (
+              <p className="px-6 pb-4 text-sm text-red-600">{feeError}</p>
+            )}
 
-          {!feeLoading && !feeError && (
-            <>
-              <div className="divide-y divide-gray-100 px-6">
-                <div className="flex justify-between py-3 text-sm">
-                  <span className="text-gray-700 font-medium flex items-center gap-1.5">
-                    Hourly Rate
-                    <span
-                      className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
-                      title="Hourly pay rate for this role"
-                    >
-                      ?
+            {!feeLoading && !feeError && (
+              <>
+                <div className="divide-y divide-gray-100 px-6">
+                  <div className="flex justify-between py-3 text-sm">
+                    <span className="text-gray-700 font-medium flex items-center gap-1.5">
+                      Hourly Rate
+                      <span
+                        className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
+                        title="Hourly pay rate for this role"
+                      >
+                        ?
+                      </span>
                     </span>
+                    <span className="font-medium text-gray-900">
+                      ${hourlyRate.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-3 text-sm">
+                    <span className="text-gray-700 font-medium">Hours per Candidate</span>
+                    <span className="font-medium text-gray-900">{hoursPerCandidate} hrs</span>
+                  </div>
+                  <div className="flex justify-between py-3 text-sm">
+                    <span className="text-gray-700 font-medium">Cost per Candidate</span>
+                    <span className="font-medium text-gray-900">
+                      ${costPerCandidate.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-3 text-sm">
+                    <span className="text-gray-700 font-medium">Required Candidates</span>
+                    <span className="font-medium text-gray-900">x {requiredCandidates}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
+                  <span className="font-bold text-gray-900">Total Payable</span>
+                  <span className="font-bold text-gray-900 text-xl">
+                    ${totalPayable.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="font-medium text-gray-900">
-                    ${hourlyRate.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
                 </div>
-                <div className="flex justify-between py-3 text-sm">
-                  <span className="text-gray-700 font-medium">Hours per Candidate</span>
-                  <span className="font-medium text-gray-900">{hoursPerCandidate} hrs</span>
-                </div>
-                <div className="flex justify-between py-3 text-sm">
-                  <span className="text-gray-700 font-medium">Cost per Candidate</span>
-                  <span className="font-medium text-gray-900">
-                    ${costPerCandidate.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between py-3 text-sm">
-                  <span className="text-gray-700 font-medium">Required Candidates</span>
-                  <span className="font-medium text-gray-900">x {requiredCandidates}</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
-                <span className="font-bold text-gray-900">Total Payable</span>
-                <span className="font-bold text-gray-900 text-xl">
-                  ${totalPayable.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Error banner */}
         {error && (
@@ -385,10 +413,18 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
           <Button
             type="button"
             onClick={handlePayAndHire}
-            disabled={isProcessing || feeLoading || !!feeError || !feePreview}
+            disabled={
+              isProcessing ||
+              (!isFullTime && (feeLoading || !!feeError || !feePreview))
+            }
             className="flex items-center gap-2 bg-[#f47b20] hover:bg-[#d5650e] text-white px-6 disabled:opacity-60"
           >
-            {isProcessing ? "Processing..." : "Pay & Start Hiring"}
+            {isProcessing
+              ? "Processing..."
+              : isFullTime
+              ? "Create Job Post"
+              : "Pay & Start Hiring"
+            }
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
@@ -402,7 +438,6 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
         onUpdate={(desc) => console.log("Description updated:", desc)}
       />
 
-      {/* ✅ Only mounts when interview was selected — completely gone otherwise */}
       {wantsInterview && (
         <EditInterviewQuestionsModal
           isOpen={showQuestions}

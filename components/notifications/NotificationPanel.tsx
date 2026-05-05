@@ -1,79 +1,128 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { X, User } from 'lucide-react';
+import { X, User, Loader2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import type { NotificationsResponse } from '@/Interface/recruiter.types';
+import { getNotifications } from '@/stores/api/recruiter-candidates-api';
 
-type DotColor = 'red' | 'purple' | 'orange' | 'green' | 'brown';
+type Notification = NotificationsResponse['data']['notifications'][number];
 
-interface NotificationItem {
-  id:          string;
-  message:     string;
-  time:        string;
-  dot:         DotColor;
-  releasePay?: boolean;
-  jobId?:      string;
-}
-
-const DOT_CLASS: Record<DotColor, string> = {
-  red:    'bg-red-500',
-  purple: 'bg-purple-500',
-  orange: 'bg-[#F4781B]',
-  green:  'bg-green-500',
-  brown:  'bg-orange-900',
-};
-
-const MOCK: NotificationItem[] = [
-  { id: '1', dot: 'red',    message: '$ 12,000 locked for job #KRV-123.',           time: '9:01 am' },
-  { id: '2', dot: 'purple', message: 'You Received a Refund of $780.5 from Justin', time: '9:01 am' },
-  { id: '3', dot: 'orange', message: 'Justin just completed a shift.',              time: '9:01 am', releasePay: true,  jobId: 'KRV-123' },
-  { id: '4', dot: 'green',  message: '#KRV-123 job is active now',                  time: '9:01 am' },
-  { id: '5', dot: 'brown',  message: '3 Jobs are upcoming tomorrow',                time: '9:01 am' },
-  { id: '6', dot: 'brown',  message: '2 shifts are activating in 03:12:30 hrs',     time: '9:01 am' },
-  { id: '7', dot: 'red',    message: '#KRV-456 active shift have been ended',       time: '9:01 am' },
-  { id: '8', dot: 'orange', message: 'Emma just completed a Job.',                  time: '9:01 am', releasePay: true, jobId: 'KRV-456' },
-  { id: '9', dot: 'brown',  message: '13 Jobs are scheduled this week',             time: '9:01 am' },
-];
-
-const ANIM_DURATION = 200; // ms — must match CSS duration below
+const ANIM_DURATION = 200;
 
 interface Props {
   onClose: () => void;
 }
 
+// Map notification type/priority to a dot color
+const getDotColor = (n: Notification): string => {
+  const type = n.type?.toLowerCase() ?? '';
+  if (type.includes('payment') || type.includes('lock') || type.includes('end'))  return 'bg-red-500';
+  if (type.includes('refund') || type.includes('complete'))                        return 'bg-purple-500';
+  if (type.includes('shift') || type.includes('release'))                          return 'bg-[#F4781B]';
+  if (type.includes('active') || type.includes('job'))                             return 'bg-green-500';
+  return 'bg-orange-900';
+};
+
+// Check if notification has a "Release Pay" action
+const isReleasePay = (n: Notification): boolean =>
+  n.type?.toLowerCase().includes('complete') ?? false;
+
+// Extract jobId from payload or reference_id
+const getJobId = (n: Notification): string | undefined => {
+  const p = n.payload as Record<string, string> | undefined;
+  return p?.jobId ?? p?.job_id ?? n.reference_id ?? undefined;
+}
+
+// Format ISO date to readable time
+const formatTime = (iso: string): string => {
+  try {
+    return new Date(iso).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return '';
+  }
+};
+
 export const NotificationPanel = ({ onClose }: Props) => {
-  const router     = useRouter();
-  const panelRef   = useRef<HTMLDivElement>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  const router   = useRouter();
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  /* Trigger slide-out, then unmount */
-  const handleClose = useCallback(() => {
-  if (isClosing) return;
-  setIsClosing(true);
-  setTimeout(() => onClose(), ANIM_DURATION);
-}, [isClosing, onClose]);
+  const [isClosing,      setIsClosing]      = useState(false);
+  const [notifications,  setNotifications]  = useState<Notification[]>([]);
+  const [isLoading,      setIsLoading]      = useState(true);
+  const [error,          setError]          = useState<string | null>(null);
+  const [page,           setPage]           = useState(1);
+  const [hasNextPage,    setHasNextPage]    = useState(false);
+  const [loadingMore,    setLoadingMore]    = useState(false);
 
-  /* Outside click */
-  useEffect(() => {
-  const handler = (e: MouseEvent) => {
-    if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-      handleClose();
+  // ── Fetch notifications ────────────────────────────────────────────────────
+  const fetchNotifications = useCallback(async (pageNum: number, append = false) => {
+    try {
+      append ? setLoadingMore(true) : setIsLoading(true);
+      setError(null);
+
+      const res = await getNotifications({ page: pageNum, limit: 15 });
+
+      if (res.success) {
+        setNotifications((prev) =>
+          append ? [...prev, ...res.data.notifications] : res.data.notifications
+        );
+        setHasNextPage(res.data.pagination.hasNextPage);
+      } else {
+        setError(res.message ?? 'Failed to load notifications');
+      }
+    } catch {
+      setError('Failed to load notifications');
+    } finally {
+      setIsLoading(false);
+      setLoadingMore(false);
     }
-  };
-  document.addEventListener('mousedown', handler);
-  return () => document.removeEventListener('mousedown', handler);
-}, [handleClose]);
+  }, []);
 
-useEffect(() => {
-  const handler = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') handleClose();
+  useEffect(() => {
+    fetchNotifications(1);
+  }, [fetchNotifications]);
+
+  // ── Load more ──────────────────────────────────────────────────────────────
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchNotifications(nextPage, true);
   };
-  document.addEventListener('keydown', handler);
-  return () => document.removeEventListener('keydown', handler);
-}, [handleClose]);
+
+  // ── Close logic ────────────────────────────────────────────────────────────
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => onClose(), ANIM_DURATION);
+  }, [isClosing, onClose]);
+
+  // ── Outside click ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        handleClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [handleClose]);
+
+  // ── Escape key ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [handleClose]);
 
   return (
     <>
-      {/* ── Backdrop — fades out in sync ── */}
+      {/* ── Backdrop ── */}
       <div
         className="fixed inset-0 z-50 bg-black/20 backdrop-blur-[1px]"
         style={{
@@ -95,7 +144,6 @@ useEffect(() => {
             : `notif-slide-in  ${ANIM_DURATION}ms cubic-bezier(0, 0, 0.2, 1) forwards`,
         }}
       >
-        {/* ── Keyframes injected once ── */}
         <style>{`
           @keyframes notif-slide-in  { from { transform: translateX(100%); } to { transform: translateX(0); } }
           @keyframes notif-slide-out { from { transform: translateX(0); }    to { transform: translateX(100%); } }
@@ -121,15 +169,47 @@ useEffect(() => {
         {/* Divider */}
         <div className="h-px bg-gray-200 mx-5 shrink-0" />
 
-        {/* Scrollable list */}
+        {/* Content */}
         <div
           className="flex-1 overflow-y-auto px-4 py-4 space-y-3
                      [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {MOCK.map((n) => (
+          {/* Loading skeleton */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="w-6 h-6 text-[#F4781B] animate-spin" />
+              <p className="text-sm text-gray-400">Loading notifications…</p>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!isLoading && error && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <AlertCircle className="w-8 h-8 text-red-400" />
+              <p className="text-sm text-gray-500">{error}</p>
+              <button
+                onClick={() => fetchNotifications(1)}
+                className="text-xs text-[#F4781B] hover:underline font-medium"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoading && !error && notifications.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 gap-2">
+              <p className="text-sm font-medium text-gray-600">No notifications yet</p>
+              <p className="text-xs text-gray-400">You&apos;re all caught up!</p>
+            </div>
+          )}
+
+          {/* Notification list */}
+          {!isLoading && !error && notifications.map((n) => (
             <div
               key={n.id}
-              className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex items-center gap-3 shadow-sm"
+              className={`bg-white rounded-2xl border px-4 py-3.5 flex items-center gap-3 shadow-sm transition-colors
+                ${!n.is_read ? 'border-orange-100 bg-orange-50/30' : 'border-gray-100'}`}
             >
               {/* Avatar */}
               <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 overflow-hidden border-2 border-blue-200">
@@ -138,24 +218,48 @@ useEffect(() => {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 leading-snug">{n.message}</p>
-                <p className="text-xs text-[#F4781B] font-medium mt-0.5">{n.time}</p>
+                {n.title && (
+                  <p className="text-xs font-semibold text-[#F4781B] uppercase tracking-wide mb-0.5">
+                    {n.title}
+                  </p>
+                )}
+                <p className="text-sm font-semibold text-gray-900 leading-snug">{n.body}</p>
+                <p className="text-xs text-[#F4781B] font-medium mt-0.5">
+                  {formatTime(n.created_at)}
+                </p>
               </div>
 
-              {/* Right: Release Pay OR dot */}
+              {/* Right: Release Pay OR unread dot */}
               <div className="flex items-center gap-2 shrink-0">
-                {n.releasePay && (
+                {isReleasePay(n) && getJobId(n) && (
                   <button
-                    onClick={() => { router.push(`/wallet?release=${n.jobId}`); handleClose(); }}
+                    onClick={() => {
+                      router.push(`/wallet?release=${getJobId(n)}`);
+                      handleClose();
+                    }}
                     className="bg-[#F4781B] hover:bg-orange-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
                   >
                     Release Pay
                   </button>
                 )}
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${DOT_CLASS[n.dot]}`} />
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getDotColor(n)}`} />
               </div>
             </div>
           ))}
+
+          {/* Load more */}
+          {!isLoading && !error && hasNextPage && (
+            <div className="flex justify-center pt-2 pb-4">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 text-sm text-[#F4781B] font-medium hover:underline disabled:opacity-50"
+              >
+                {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

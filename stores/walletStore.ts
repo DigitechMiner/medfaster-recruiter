@@ -1,27 +1,30 @@
-// stores/walletStore.ts — make sure refreshWallet exists and updates state:
-
 import { create } from 'zustand';
 import { getWallet, WalletData } from '@/stores/api/recruiter-wallet-api';
 
 interface WalletStore {
   wallet:         WalletData | null;
   isLoading:      boolean;
+  hasError:       boolean;        // ✅ NEW — stops retry loop on 401
   refreshWallet:  () => Promise<void>;
+  clearWallet:    () => void;     // ✅ NEW — call this on logout
 }
 
 export const useWalletStore = create<WalletStore>((set) => ({
   wallet:    null,
   isLoading: false,
+  hasError:  false,
 
   refreshWallet: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, hasError: false });
     try {
       const wallet = await getWallet();
-      set({ wallet, isLoading: false });  // ✅ Updates state → Navbar re-renders
+      set({ wallet, isLoading: false, hasError: false });
     } catch {
-      set({ isLoading: false });
+      set({ isLoading: false, hasError: true });  // ✅ hasError=true stops the loop
     }
   },
+
+  clearWallet: () => set({ wallet: null, isLoading: false, hasError: false }),
 }));
 
 export const fmtBalance = (cents: number) =>

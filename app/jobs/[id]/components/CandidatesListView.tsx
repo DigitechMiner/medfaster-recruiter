@@ -6,6 +6,7 @@ import { useCandidatesList } from "@/hooks/useRecruiterData";
 import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
 import { useState } from "react";
 import type { CandidateListItem } from "@/Interface/recruiter.types";
+import { toast } from "react-toastify";
 
 interface Props { jobId: string; }
 
@@ -45,7 +46,7 @@ export const CandidatesListView: React.FC<Props> = ({ jobId }) => {
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })
         ?.response?.data?.message ?? "Action failed";
-      alert(msg);
+      toast.error(msg);
     } finally {
       setLoadingId(null);
     }

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
 import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
 import { buildTablePages, Candidate, getVisibleCountRange, TabKey } from "./shared";
+import { toast } from "react-toastify";
 
 type ActionType = "shortlist" | "hire";
 
@@ -63,7 +64,7 @@ export function CandidatesTable({ tab, candidates, isLoading, onRefetch }: Candi
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })
         ?.response?.data?.message ?? "Action failed";
-      alert(msg);
+      toast.error(msg);
     } finally {
       setLoadingId(null);
     }

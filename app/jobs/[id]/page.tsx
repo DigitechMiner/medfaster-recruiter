@@ -8,6 +8,7 @@ import { useJobsStore } from "@/stores/jobs-store";
 import { useJob, useJobId } from "@/hooks/useJobData";
 import { UrgentJobDetail } from "./components/UrgentJobDetail";
 import { NormalJobDetail } from "./components/NormalJobDetail";
+import { toast } from "react-toastify";
 
 export default function JobDetailPageRoute() {
   const router              = useRouter();
@@ -21,19 +22,24 @@ export default function JobDetailPageRoute() {
     if (!isLoading && !job && jobId) router.replace("/jobs");
   }, [isLoading, job, jobId, router]);
 
-  const handleCloseJobConfirm = async () => {
-    if (!jobId) return;
-    setIsClosing(true);
-    try {
-      const res = await updateJob(jobId, { status: "CLOSED" });
-      if (res.success) { setShowCloseModal(false); router.push("/jobs"); }
-      else alert(res.message || "Failed to close job");
-    } catch (err) {
-      alert((err as Error).message || "Error closing job");
-    } finally {
-      setIsClosing(false);
+ const handleCloseJobConfirm = async () => {
+  if (!jobId) return;
+  setIsClosing(true);
+  try {
+    const res = await updateJob(jobId, { status: "CLOSED" });
+    if (res.success) {
+      toast.success("Job closed successfully");
+      setShowCloseModal(false);
+      router.push("/jobs");
+    } else {
+      toast.error(res.message || "Failed to close job");
     }
-  };
+  } catch (err) {
+    toast.error((err as Error).message || "Error closing job");
+  } finally {
+    setIsClosing(false);
+  }
+};
 
   if (isLoading) {
     return (

@@ -19,7 +19,6 @@ import type { JobFormData } from "@/Interface/recruiter.types";
 const EXPERIENCE_MIN  = 0;
 const EXPERIENCE_MAX  = 20;
 const PAY_MIN         = 0;
-const PAY_MAX         = 200;
 const QUALIFICATIONS  = metadata.qualification;
 const SPECIALIZATIONS = metadata.specialization;
 
@@ -36,13 +35,6 @@ export function JobRequirements({ formData, updateFormData }: JobRequirementsPro
     ? parseInt(formData.experience.split("-")[0]) || 4
     : 4;
 
-  // ✅ Resolve payRange as single number for full-time slider display
-  const currentPayValue = (() => {
-    const raw = formData.payRange;
-    if (typeof raw === "number") return raw;
-    if (Array.isArray(raw)) return (raw as number[])[1] ?? PAY_MIN;
-    return PAY_MIN;
-  })();
 
   // ── Part-time: fetch rate from backend ────────────────────────────────────
   const [backendRate, setBackendRate]       = useState<number | null>(null);
@@ -102,65 +94,52 @@ export function JobRequirements({ formData, updateFormData }: JobRequirementsPro
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* Fixed Hourly Pay per Hire */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium text-gray-700">
-            Fixed Hourly Pay per Hire
-          </Label>
+<div className="space-y-3">
+  <Label className="text-sm font-medium text-gray-700">
+    Fixed Hourly Pay per Hire
+  </Label>
 
-          {/* ── Part Time: backend rate (read-only) ── */}
-          {isPartTime && (
-            <div className="pt-2">
-              {rateLoading && (
-                <p className="text-sm text-gray-400 animate-pulse">Fetching pay rate...</p>
-              )}
-              {rateError && (
-                <p className="text-sm text-red-500">{rateError}</p>
-              )}
-              {!rateLoading && !rateError && (
-                <div className="flex items-center gap-3">
-                  <span className="bg-gray-100 px-4 py-2 rounded-md text-sm font-semibold text-gray-800">
-                    {backendRate !== null ? `$${backendRate}/hr` : "—"}
-                  </span>
-                  <span className="text-xs text-gray-400 italic">
-                    Rate managed by platform
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Full Time: slider ── */}
-          {isFullTime && (
-            <div className="space-y-4 pt-2">
-              <div className="flex justify-center text-sm text-gray-600 font-medium">
-                <span className="bg-gray-100 px-3 py-1 rounded-md">
-                  ${currentPayValue}/hr
-                </span>
-              </div>
-              <Slider
-                min={PAY_MIN}
-                max={PAY_MAX}
-                step={1}
-                value={[currentPayValue]}
-                onValueChange={(values) =>
-                  updateFormData({ payRange: values[0] })
-                }
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>${PAY_MIN}</span>
-                <span>${PAY_MAX}</span>
-              </div>
-            </div>
-          )}
-
-          {/* ── Neither selected yet ── */}
-          {!isPartTime && !isFullTime && (
-            <p className="text-sm text-gray-400 pt-2 italic">
-              Select a job type to configure pay rate
-            </p>
-          )}
+  {/* ── Part Time: backend rate (read-only) ── */}
+  {isPartTime && (
+    <div className="pt-2">
+      {rateLoading && (
+        <p className="text-sm text-gray-400 animate-pulse">Fetching pay rate...</p>
+      )}
+      {rateError && (
+        <p className="text-sm text-red-500">{rateError}</p>
+      )}
+      {!rateLoading && !rateError && (
+        <div className="flex items-center gap-3">
+          <span className="bg-gray-100 px-4 py-2 rounded-md text-sm font-semibold text-gray-800">
+            {backendRate !== null ? `$${backendRate}/hr` : "—"}
+          </span>
+          <span className="text-xs text-gray-400 italic">
+            Rate managed by platform
+          </span>
         </div>
+      )}
+    </div>
+  )}
+
+  {/* ── Full Time: descriptive message instead of slider ── */}
+  {isFullTime && (
+    <div className="flex items-start gap-3 px-4 py-3 bg-orange-50 border border-orange-200 rounded-lg mt-1">
+  
+      <div>
+        <p className="text-xs text-orange-400 mt-0.5">
+          Full-time compensation is agreed between recruiter and candidate 
+        </p>
+      </div>
+    </div>
+  )}
+
+  {/* ── Neither selected yet ── */}
+  {!isPartTime && !isFullTime && (
+    <p className="text-sm text-gray-400 pt-2 italic">
+      Select a job type to configure pay rate
+    </p>
+  )}
+</div>
 
         {/* Years of Experience */}
         <div className="space-y-3">

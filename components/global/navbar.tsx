@@ -52,10 +52,13 @@ export function Navbar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const handleLogout = async () => {
-    setLoggingOut(true);
-    await logout();
-    router.push("/");
-  };
+  setLoggingOut(true);
+  // Clear wallet first so WalletBalance stops fetching before unmount
+  const { useWalletStore } = await import('@/stores/walletStore');
+  useWalletStore.getState().clearWallet();
+  await logout();
+  router.push("/");
+};
 
   const collapse = () => {
     setExpanded(false);
@@ -281,7 +284,7 @@ export function Navbar() {
 
           {/* Wallet */}
           <button
-            onClick={() => router.push('/wallet/topup')}
+            onClick={() => router.push('/wallet')}
             className="flex items-center gap-2 rounded-lg h-9 px-2 hover:bg-gray-50 transition-colors"
           >
             <Wallet size={16} className="text-gray-400" />
