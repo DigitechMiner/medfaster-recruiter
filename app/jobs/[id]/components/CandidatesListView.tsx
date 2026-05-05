@@ -2,27 +2,75 @@
 
 import React from "react";
 import { Star } from "lucide-react";
-
-const DUMMY_CANDIDATES = [
-  { id: '1', name: 'Michael Liam', department: 'Nursing',    jobTitle: 'RN', skills: ['Clinical decision-making'], exp: '5 to 7 Years', rating: 4.8 },
-  { id: '2', name: 'Michael Liam', department: 'Disability', jobTitle: 'RN', skills: ['Clinical decision-making'], exp: '5 to 7 Years', rating: 4.8 },
-];
-
-const HEADERS = ['Candidate Name', 'Department', 'Job Title', 'Skills', 'Experience', 'Rating', 'Actions'];
+import { useCandidatesList } from "@/hooks/useRecruiterData";
+import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
+import { useState } from "react";
+import type { CandidateListItem } from "@/Interface/recruiter.types";
 
 interface Props { jobId: string; }
 
-export const CandidatesListView: React.FC<Props> = () => {
-  const candidates = DUMMY_CANDIDATES;
+const HEADERS = ["Candidate Name", "Department", "Job Title", "Skills", "Experience", "Rating", "Actions"];
+
+function toListCandidate(raw: CandidateListItem) {
+  return {
+    id:            raw.id ?? raw.candidate_id ?? "",
+    applicationId: raw.job_application_id ?? raw.application_id ?? "",
+    name:          raw.full_name || `${raw.first_name} ${raw.last_name ?? ""}`.trim(),
+    department:    raw.medical_industry ?? raw.department as string ?? "—",
+    jobTitle:      raw.job_title ?? raw.specialty?.[0] ?? "—",
+    skills:        raw.specializations ?? raw.specialty ?? [],
+    exp:           raw.experience_in_months
+                     ? `${Math.round(raw.experience_in_months / 12)}+ yrs`
+                     : "—",
+    rating:        Number(raw.completion_percentage ?? 0) / 20,
+  };
+}
+
+type ListCandidate = ReturnType<typeof toListCandidate>;
+
+export const CandidatesListView: React.FC<Props> = ({ jobId }) => {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const { data, isLoading, refetch } = useCandidatesList({ page: 1, limit: 25, job_id: jobId });
+
+  const handleAction = async (
+    type: "SHORTLISTED" | "HIRE",
+    applicationId: string
+  ) => {
+    if (!applicationId) return;
+    const key = `${type}_${applicationId}`;
+    setLoadingId(key);
+    try {
+      await updateApplicationStatus(applicationId, type);
+      refetch?.();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? "Action failed";
+      alert(msg);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 flex flex-col gap-3">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  const candidates = (data?.data.candidates ?? []).map(toListCandidate);
 
   if (candidates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
         <p className="text-sm font-semibold text-gray-700">No Candidate Yet Accepted This Urgent Shift</p>
         <p className="text-sm text-gray-400">
-          Try Our{' '}
+          Try Our{" "}
           <span className="text-[#F4781B] font-semibold cursor-pointer">✦ KeRaeva&apos;s AI</span>
-          {' '}to Invite Available Candidates For This Shift
+          {" "}to Invite Available Candidates For This Shift
         </p>
       </div>
     );
@@ -34,9 +82,10 @@ export const CandidatesListView: React.FC<Props> = () => {
         <thead>
           <tr>
             {HEADERS.map((h) => (
-              <th key={h}
-                className="text-left px-5 py-3.5 text-xs font-bold text-gray-700 bg-[#FEF3E9] whitespace-nowrap
-                  first:rounded-l-xl last:rounded-r-xl">
+              <th
+                key={h}
+                className="text-left px-5 py-3.5 text-xs font-bold text-gray-700 bg-[#FEF3E9] whitespace-nowrap first:rounded-l-xl last:rounded-r-xl"
+              >
                 {h}
               </th>
             ))}
@@ -44,38 +93,75 @@ export const CandidatesListView: React.FC<Props> = () => {
         </thead>
         <tbody>
           {candidates.map((c, i) => (
-            <tr key={c.id}
-              className={`border-b border-gray-100 hover:bg-orange-50/30 transition-colors
-                ${i === candidates.length - 1 ? 'border-b-0' : ''}`}>
-              <td className="px-5 py-4 font-semibold text-gray-800">{c.name}</td>
-              <td className="px-5 py-4 text-gray-600">{c.department}</td>
-              <td className="px-5 py-4 text-gray-600">{c.jobTitle}</td>
-              <td className="px-5 py-4">
-                <div className="flex flex-wrap gap-1.5">
-                  {c.skills.map((s) => (
-                    <span key={s}
-                      className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </td>
-              <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{c.exp}</td>
-              <td className="px-5 py-4">
-                <span className="flex items-center gap-1 font-medium text-gray-700">
-                  <Star size={13} className="fill-amber-400 text-amber-400" />
-                  {c.rating}/5
-                </span>
-              </td>
-              <td className="px-5 py-4">
-                <button className="text-green-500 underline text-sm font-semibold italic hover:underline whitespace-nowrap">
-                  View Schedule
-                </button>
-              </td>
-            </tr>
+            <ListRow
+              key={c.id}
+              candidate={c}
+              isLast={i === candidates.length - 1}
+              loadingId={loadingId}
+              onAction={handleAction}
+            />
           ))}
         </tbody>
       </table>
     </div>
   );
 };
+
+// ── Row ───────────────────────────────────────────────────────────────────────
+
+function ListRow({
+  candidate: c,
+  isLast,
+  loadingId,
+  onAction,
+}: {
+  candidate: ListCandidate;
+  isLast:    boolean;
+  loadingId: string | null;
+  onAction:  (type: "SHORTLISTED" | "HIRE", applicationId: string) => void;
+}) {
+  const isShortlisting = loadingId === `SHORTLISTED_${c.applicationId}`;
+  const isHiring       = loadingId === `HIRE_${c.applicationId}`;
+
+  return (
+    <tr className={`border-b border-gray-100 hover:bg-orange-50/30 transition-colors ${isLast ? "border-b-0" : ""}`}>
+      <td className="px-5 py-4 font-semibold text-gray-800">{c.name}</td>
+      <td className="px-5 py-4 text-gray-600">{c.department}</td>
+      <td className="px-5 py-4 text-gray-600">{c.jobTitle}</td>
+      <td className="px-5 py-4">
+        <div className="flex flex-wrap gap-1.5">
+          {c.skills.length > 0 ? c.skills.map((s) => (
+            <span key={s} className="px-3 py-1 rounded-full text-xs text-gray-700 bg-white border border-gray-200">
+              {s}
+            </span>
+          )) : <span className="text-gray-400 text-xs">—</span>}
+        </div>
+      </td>
+      <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{c.exp}</td>
+      <td className="px-5 py-4">
+        <span className="flex items-center gap-1 font-medium text-gray-700">
+          <Star size={13} className="fill-amber-400 text-amber-400" />
+          {c.rating.toFixed(1)}/5
+        </span>
+      </td>
+      <td className="px-5 py-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onAction("SHORTLISTED", c.applicationId)}
+            disabled={!c.applicationId || isShortlisting || isHiring}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isShortlisting ? "…" : "Shortlist"}
+          </button>
+          <button
+            onClick={() => onAction("HIRE", c.applicationId)}
+            disabled={!c.applicationId || isShortlisting || isHiring}
+            className="px-3 py-1.5 rounded-lg bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isHiring ? "…" : "Direct Hire"}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}

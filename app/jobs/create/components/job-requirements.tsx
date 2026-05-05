@@ -10,12 +10,17 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { useEffect, useState } from "react";
+import { axiosInstance } from "@/stores/api/api-client";
+import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import metadata from "@/utils/constant/metadata";
 import type { JobFormData } from "@/Interface/recruiter.types";
 
-const EXPERIENCE_MIN = 0;
-const EXPERIENCE_MAX = 20;
-const QUALIFICATIONS  = metadata.qualification;   // ✅ from metadata
+const EXPERIENCE_MIN  = 0;
+const EXPERIENCE_MAX  = 20;
+const PAY_MIN         = 0;
+const PAY_MAX         = 200;
+const QUALIFICATIONS  = metadata.qualification;
 const SPECIALIZATIONS = metadata.specialization;
 
 interface JobRequirementsProps {
@@ -24,68 +29,137 @@ interface JobRequirementsProps {
 }
 
 export function JobRequirements({ formData, updateFormData }: JobRequirementsProps) {
+  const isFullTime = formData.jobType === "Full Time" || formData.jobType === "full_time";
+  const isPartTime = formData.jobType === "Part Time" || formData.jobType === "part_time";
+
   const experienceValue = formData.experience
     ? parseInt(formData.experience.split("-")[0]) || 4
     : 4;
 
- const removeTag = (field: "qualification" | "specialization", tagToRemove: string) => {
-  updateFormData({
-    [field]: (formData[field] ?? []).filter((tag) => tag !== tagToRemove),
-  });
-};
+  // ✅ Resolve payRange as single number for full-time slider display
+  const currentPayValue = (() => {
+    const raw = formData.payRange;
+    if (typeof raw === "number") return raw;
+    if (Array.isArray(raw)) return (raw as number[])[1] ?? PAY_MIN;
+    return PAY_MIN;
+  })();
 
-  // ✅ Add qualification from dropdown — prevent duplicates
-  const handleQualificationSelect = (value: string) => {
-  if (value && !(formData.qualification ?? []).includes(value)) {
+  // ── Part-time: fetch rate from backend ────────────────────────────────────
+  const [backendRate, setBackendRate]       = useState<number | null>(null);
+  const [rateLoading, setRateLoading]       = useState(false);
+  const [rateError, setRateError]           = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isPartTime || !formData.jobTitle) {
+      setBackendRate(null);
+      setRateError(null);
+      return;
+    }
+
+    setRateLoading(true);
+    setRateError(null);
+
+    axiosInstance
+      .get(ENDPOINTS.JOBS_FEES(formData.jobTitle))
+      .then((res) => {
+        // API returns dollars — store as dollars, convert to cents in convertToBackendFormat
+        const dollars: number =
+          res.data?.data?.recruiter_pay_per_hour ??
+          res.data?.recruiter_pay_per_hour ??
+          0;
+        setBackendRate(dollars);
+        // ✅ Sync into formData so convertToBackendFormat picks it up
+        updateFormData({ payRange: dollars });
+      })
+      .catch(() => setRateError("Could not load pay rate for this role"))
+      .finally(() => setRateLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.jobTitle, isPartTime]);
+
+  // ── Tag helpers ───────────────────────────────────────────────────────────
+  const removeTag = (field: "qualification" | "specialization", tagToRemove: string) => {
     updateFormData({
-      qualification: [...(formData.qualification ?? []), value],
+      [field]: (formData[field] ?? []).filter((tag) => tag !== tagToRemove),
     });
-  }
-};
+  };
 
-  // Add specialization from dropdown — prevent duplicates
-  const handleSpecializationSelect = (value: string) => {
-    if (value && !formData.specialization.includes(value)) {
-      updateFormData({
-        specialization: [...formData.specialization, value],
-      });
+  const handleQualificationSelect = (value: string) => {
+    if (value && !(formData.qualification ?? []).includes(value)) {
+      updateFormData({ qualification: [...(formData.qualification ?? []), value] });
     }
   };
-  const payMin = Array.isArray(formData.payRange) ? formData.payRange[0] : 0;
-const payMax = Array.isArray(formData.payRange) ? formData.payRange[1] : 0;
 
-// ✅ Convert from cents → dollars for display & slider
-const payMinDollars = payMin > 500 ? Math.round(payMin / 100) : payMin;
-const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
+  const handleSpecializationSelect = (value: string) => {
+    if (value && !formData.specialization.includes(value)) {
+      updateFormData({ specialization: [...formData.specialization, value] });
+    }
+  };
+
   return (
     <div className="space-y-6 mb-6">
-      {/* Pay Range & Years of Experience */}
+
+      {/* Pay Rate & Years of Experience */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pay Range */}
+
+        {/* Fixed Hourly Pay per Hire */}
         <div className="space-y-3">
           <Label className="text-sm font-medium text-gray-700">
             Fixed Hourly Pay per Hire
           </Label>
-          <div className="space-y-4 pt-2">
-            <div className="flex justify-center text-sm text-gray-600 font-medium">
-              <span className="bg-gray-100 px-3 py-1 rounded-md">
-                ${payMaxDollars}
-             </span>
+
+          {/* ── Part Time: backend rate (read-only) ── */}
+          {isPartTime && (
+            <div className="pt-2">
+              {rateLoading && (
+                <p className="text-sm text-gray-400 animate-pulse">Fetching pay rate...</p>
+              )}
+              {rateError && (
+                <p className="text-sm text-red-500">{rateError}</p>
+              )}
+              {!rateLoading && !rateError && (
+                <div className="flex items-center gap-3">
+                  <span className="bg-gray-100 px-4 py-2 rounded-md text-sm font-semibold text-gray-800">
+                    {backendRate !== null ? `$${backendRate}/hr` : "—"}
+                  </span>
+                  <span className="text-xs text-gray-400 italic">
+                    Rate managed by platform
+                  </span>
+                </div>
+              )}
             </div>
-            <Slider
-      min={0}
-      max={100}
-      step={1}
-      value={[payMinDollars, payMaxDollars]}   // ✅ two handles
-      onValueChange={(values) =>
-        updateFormData({
-          // ✅ Store back as cents
-          payRange: [values[0] * 100, values[1] * 100] as [number, number],
-        })
-      }
-      className="w-full"
-    />
-          </div>
+          )}
+
+          {/* ── Full Time: slider ── */}
+          {isFullTime && (
+            <div className="space-y-4 pt-2">
+              <div className="flex justify-center text-sm text-gray-600 font-medium">
+                <span className="bg-gray-100 px-3 py-1 rounded-md">
+                  ${currentPayValue}/hr
+                </span>
+              </div>
+              <Slider
+                min={PAY_MIN}
+                max={PAY_MAX}
+                step={1}
+                value={[currentPayValue]}
+                onValueChange={(values) =>
+                  updateFormData({ payRange: values[0] })
+                }
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>${PAY_MIN}</span>
+                <span>${PAY_MAX}</span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Neither selected yet ── */}
+          {!isPartTime && !isFullTime && (
+            <p className="text-sm text-gray-400 pt-2 italic">
+              Select a job type to configure pay rate
+            </p>
+          )}
         </div>
 
         {/* Years of Experience */}
@@ -114,12 +188,11 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
       {/* Qualification & Specialization */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* ✅ Qualification — now a dropdown like specialization */}
+        {/* Qualification */}
         <div className="space-y-3">
           <Label htmlFor="qualification" className="text-sm font-medium text-gray-700">
-            Additional Qualification 
+            Additional Qualification
           </Label>
-
           <Select value="" onValueChange={handleQualificationSelect}>
             <SelectTrigger
               id="qualification"
@@ -148,7 +221,6 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
               })}
             </SelectContent>
           </Select>
-
           <div className="flex flex-wrap gap-2">
             {(formData.qualification ?? []).length > 0 ? (
               (formData.qualification ?? []).map((tag) => (
@@ -175,12 +247,11 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
           </div>
         </div>
 
-        {/* Specialization — dropdown from metadata (unchanged) */}
+        {/* Specialization */}
         <div className="space-y-3">
           <Label htmlFor="specialization" className="text-sm font-medium text-gray-700">
             Specialization <span className="text-red-500">*</span>
           </Label>
-
           <Select value="" onValueChange={handleSpecializationSelect}>
             <SelectTrigger
               id="specialization"
@@ -209,7 +280,6 @@ const payMaxDollars = payMax > 500 ? Math.round(payMax / 100) : payMax;
               })}
             </SelectContent>
           </Select>
-
           <div className="flex flex-wrap gap-2">
             {formData.specialization && formData.specialization.length > 0 ? (
               formData.specialization.map((tag) => (

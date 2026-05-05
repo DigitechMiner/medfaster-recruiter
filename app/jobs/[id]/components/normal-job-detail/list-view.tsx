@@ -1,10 +1,18 @@
+'use client';
+
 import React from "react";
 import Image from "next/image";
+import { useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
+import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
 import { buildTablePages, Candidate, getVisibleCountRange, TabKey } from "./shared";
 
+type ActionType = "shortlist" | "hire";
+
+// ── ViewToggle ────────────────────────────────────────────────────────────────
+
 interface ViewToggleProps {
-  view: "list" | "kanban";
+  view:     "list" | "kanban";
   onChange: (view: "list" | "kanban") => void;
 }
 
@@ -29,13 +37,38 @@ export function ViewToggle({ view, onChange }: ViewToggleProps) {
   );
 }
 
+// ── CandidatesTable ───────────────────────────────────────────────────────────
+
 interface CandidatesTableProps {
-  tab: TabKey;
+  tab:        TabKey;
   candidates: Candidate[];
-  isLoading: boolean;
+  isLoading:  boolean;
+  onRefetch?: () => void;
 }
 
-export function CandidatesTable({ tab, candidates, isLoading }: CandidatesTableProps) {
+export function CandidatesTable({ tab, candidates, isLoading, onRefetch }: CandidatesTableProps) {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const handleAction = async (type: ActionType, applicationId: string) => {
+    if (!applicationId) {
+      console.warn("No applicationId — cannot update status");
+      return;
+    }
+    const status = type === "shortlist" ? "SHORTLISTED" : "HIRE";
+    const key    = `${status}_${applicationId}`;
+    setLoadingId(key);
+    try {
+      await updateApplicationStatus(applicationId, status);
+      onRefetch?.();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? "Action failed";
+      alert(msg);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 flex flex-col gap-3">
@@ -68,9 +101,9 @@ export function CandidatesTable({ tab, candidates, isLoading }: CandidatesTableP
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-[#FEF3E9]">
-            {["Candidate Name", "Department", "Job Title", "Experience", "Rating", "Actions"].map((header) => (
-              <th key={header} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap first:rounded-l-lg last:rounded-r-lg">
-                {header}
+            {["Candidate Name", "Department", "Job Title", "Experience", "Rating", "Actions"].map((h) => (
+              <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap first:rounded-l-lg last:rounded-r-lg">
+                {h}
               </th>
             ))}
           </tr>
@@ -108,7 +141,12 @@ export function CandidatesTable({ tab, candidates, isLoading }: CandidatesTableP
                 </span>
               </td>
               <td className="px-4 py-3.5">
-                <TableActionButtons tab={tab} />
+                <TableActionButtons
+                  tab={tab}
+                  candidate={candidate}
+                  loadingId={loadingId}
+                  onAction={handleAction}
+                />
               </td>
             </tr>
           ))}
@@ -118,56 +156,93 @@ export function CandidatesTable({ tab, candidates, isLoading }: CandidatesTableP
   );
 }
 
-function TableActionButtons({ tab }: { tab: TabKey }) {
+// ── TableActionButtons ────────────────────────────────────────────────────────
+
+function TableActionButtons({
+  tab,
+  candidate,
+  loadingId,
+  onAction,
+}: {
+  tab:       TabKey;
+  candidate: Candidate;
+  loadingId: string | null;
+  onAction:  (type: ActionType, applicationId: string) => void;
+}) {
+  const appId          = candidate.applicationId;
+  const isShortlisting = loadingId === `SHORTLISTED_${appId}`;
+  const isHiring       = loadingId === `HIRE_${appId}`;
+
   switch (tab) {
     case "applied":
       return (
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium">Shortlist</button>
-          <button className="px-3 py-1.5 rounded-lg bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10]">Direct Hire</button>
+          <button
+            onClick={() => onAction("shortlist", appId)}
+            disabled={!appId || isShortlisting || isHiring}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isShortlisting ? "…" : "Shortlist"}
+          </button>
+          <button
+            onClick={() => onAction("hire", appId)}
+            disabled={!appId || isShortlisting || isHiring}
+            className="px-3 py-1.5 rounded-lg bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isHiring ? "…" : "Direct Hire"}
+          </button>
         </div>
       );
     case "shortlisted":
       return (
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 rounded-lg border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium">Remove</button>
-          <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium">Request Interview</button>
+          <button className="px-3 py-1.5 rounded-lg border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium transition-colors">Remove</button>
+          <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium transition-colors">Request Interview</button>
         </div>
       );
     case "ai_interviewing":
-      return <button className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600">Abort Interview</button>;
+      return (
+        <button className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors">
+          Abort Interview
+        </button>
+      );
     case "interviewed":
       return (
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 rounded-lg border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium">Reject</button>
-          <button className="px-3 py-1.5 rounded-lg bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10]">Hire Now</button>
+          <button className="px-3 py-1.5 rounded-lg border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium transition-colors">Reject</button>
+          <button
+            onClick={() => onAction("hire", appId)}
+            disabled={!appId || isHiring}
+            className="px-3 py-1.5 rounded-lg bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isHiring ? "…" : "Hire Now"}
+          </button>
         </div>
       );
     case "hired":
-      return <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50">View Schedule</button>;
+      return (
+        <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50 transition-colors">
+          View Schedule
+        </button>
+      );
     default:
       return null;
   }
 }
 
+// ── TablePagination ───────────────────────────────────────────────────────────
+
 interface TablePaginationProps {
-  page: number;
-  totalPages: number;
-  total: number;
-  limit: number;
+  page:         number;
+  totalPages:   number;
+  total:        number;
+  limit:        number;
   onPageChange: (page: number) => void;
-  onLimitChange: (limit: number) => void;
+  onLimitChange:(limit: number) => void;
 }
 
-export function TablePagination({
-  page,
-  totalPages,
-  total,
-  limit,
-  onPageChange,
-  onLimitChange,
-}: TablePaginationProps) {
-  const pages = buildTablePages(totalPages);
+export function TablePagination({ page, totalPages, total, limit, onPageChange, onLimitChange }: TablePaginationProps) {
+  const pages        = buildTablePages(totalPages);
   const visibleRange = getVisibleCountRange(page, limit, total);
 
   return (
@@ -195,7 +270,7 @@ export function TablePagination({
             >
               {item}
             </button>
-          ),
+          )
         )}
       </div>
 
@@ -205,7 +280,7 @@ export function TablePagination({
         </span>
         <select
           value={limit}
-          onChange={(event) => onLimitChange(Number(event.target.value))}
+          onChange={(e) => onLimitChange(Number(e.target.value))}
           className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200"
         >
           <option value={10}>10 per page</option>

@@ -10,7 +10,7 @@ export function useCandidateDetail(id: string) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["candidate-detail", id],
     queryFn:  () => apiRequest<CandidateDetailsResponse>(
-      `${ENDPOINTS.CANDIDATE_DETAIL}/${id}`,
+      ENDPOINTS.CANDIDATE_DETAIL(id),   // ✅ FIX — was: `${ENDPOINTS.CANDIDATE_DETAIL}/${id}` which double-appended the id
       { method: "GET" }
     ),
     enabled: !!id,
@@ -20,6 +20,5 @@ export function useCandidateDetail(id: string) {
     ? fromDetailProfile(data.data.candidate)
     : null;
 
-  // ✅ Expose raw response so CandidateDetailContent can pass it to CandidateHero
   return { detail, rawResponse: data, isLoading, isError };
 }

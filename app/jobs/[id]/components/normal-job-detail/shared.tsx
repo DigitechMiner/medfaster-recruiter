@@ -26,16 +26,17 @@ export const TABS: Tab[] = [
 ];
 
 export interface Candidate {
-  id: string;
-  name: string;
-  department: string;
-  role: string;
-  exp: string;
-  rating: number;
-  score: number;
-  distance: string;
-  online: boolean;
-  avatar: string;
+  id:            string;
+  applicationId: string;   // ✅ NEW — job_application_id from API
+  name:          string;
+  department:    string;
+  role:          string;
+  exp:           string;
+  rating:        number;
+  score:         number;
+  distance:      string;
+  online:        boolean;
+  avatar:        string;
 }
 
 export interface InfoItem {
@@ -56,16 +57,17 @@ export function toCandidate(candidate: CandidateListItem): Candidate {
     ?? "Healthcare Professional";
 
   return {
-    id: candidate.id ?? candidate.candidate_id ?? '',
-    name: candidate.full_name || `${candidate.first_name} ${candidate.last_name ?? ""}`.trim(),
-    department: toTitleCase(candidate.medical_industry) ?? "—",
-    role: specialty,
-    exp: "—",
-    rating: Number(candidate.completion_percentage ?? 0) / 20,
-    score: candidate.highest_job_interview_score ?? candidate.highest_interview_score ?? 0,
-    distance: [candidate.city, candidate.state].filter(Boolean).join(", ") || "N/A",
-    online: false,
-    avatar: candidate.profile_image_url ?? "/icon/card-doctor.svg",
+    id:            candidate.id ?? candidate.candidate_id ?? '',
+    applicationId: candidate.job_application_id ?? candidate.application_id ?? '', // ✅ NEW
+    name:          candidate.full_name || `${candidate.first_name} ${candidate.last_name ?? ""}`.trim(),
+    department:    toTitleCase(candidate.medical_industry) ?? "—",
+    role:          specialty,
+    exp:           "—",
+    rating:        Number(candidate.completion_percentage ?? 0) / 20,
+    score:         candidate.highest_job_interview_score ?? candidate.highest_interview_score ?? 0,
+    distance:      [candidate.city, candidate.state].filter(Boolean).join(", ") || "N/A",
+    online:        false,
+    avatar:        candidate.profile_image_url ?? "/icon/card-doctor.svg",
   };
 }
 

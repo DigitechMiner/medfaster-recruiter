@@ -2,13 +2,13 @@
 
 import { useState }    from "react";
 import Image           from "next/image";
-import { ArrowLeft, ArrowRight, CheckCircle2, BriefcaseBusiness, Clock, MapPin, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, BriefcaseBusiness, Clock, MapPin, User, Loader2 } from "lucide-react";
 import type { CandidateDetailVM }  from "@/Interface/view-models";
-       // ← single import
 import { useQuery }                from "@tanstack/react-query";
 import { apiRequest }              from "@/stores/api/api-client";
 import { ENDPOINTS }               from "@/stores/api/api-endpoints";
-import { ActionType } from "@/Interface/recruiter.types";
+import { ActionType }              from "@/Interface/recruiter.types";
+import { axiosInstance }           from "@/stores/api/api-client";
 
 // ── Job shape from API ────────────────────────────────────────────────────────
 interface JobOption {
@@ -31,9 +31,35 @@ interface JobsResponse {
   };
 }
 
+// ── API calls ─────────────────────────────────────────────────────────────────
+
+// PATCH /recruiter/job-applications/{id}/status
+async function updateApplicationStatus(
+  applicationId: string,
+  status: "SHORTLISTED" | "HIRE"
+) {
+  const res = await axiosInstance.patch(
+    ENDPOINTS.JOB_APPLICATION_STATUS(applicationId),
+    { status }
+  );
+  return res.data;
+}
+
+// POST /recruiter/candidates/invite
+async function inviteCandidateToJob(jobId: string, candidateId: string) {
+  const res = await axiosInstance.post(ENDPOINTS.CANDIDATE_JOB_INVITE, {
+    job_id:       jobId,
+    candidate_id: candidateId,
+  });
+  return res.data;
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────────
 function useJobOptions(pool: "regular" | "urgent" | "both") {
-  const types = pool === "both" ? ["REGULAR", "URGENT"] : pool === "urgent" ? ["URGENT"] : ["REGULAR"];
+  const types =
+    pool === "both"   ? ["REGULAR", "URGENT"] :
+    pool === "urgent" ? ["URGENT"] :
+                        ["REGULAR"];
 
   const { data, isLoading } = useQuery({
     queryKey: ["job-options-modal", pool],
@@ -60,6 +86,8 @@ const MODAL_CONFIG: Record<ActionType, {
   createLinks:  { label: string; href: string }[];
   successTitle: () => string;
   successBody:  (name: string, jobTitle: string, jobId: string) => string;
+  // ✅ which API to call for this action
+  apiAction:    "invite" | "shortlist" | "hire" | "schedule";
 }> = {
   invite: {
     title:        (name) => `Invite ${name} to a Job`,
@@ -67,12 +95,13 @@ const MODAL_CONFIG: Record<ActionType, {
     jobPool:      "both",
     ctaLabel:     "Send Jobs Invitation",
     createLinks:  [
-      { label: "Regular Job Post", href: "/jobs/create?type=regular" },
-      { label: "Urgent Shift Post", href: "/jobs/create?type=urgent" },
+      { label: "Regular Job Post",  href: "/jobs/create?type=regular" },
+      { label: "Urgent Shift Post", href: "/jobs/create?type=urgent"  },
     ],
     successTitle: () => "Job Invitation Sent Successfully",
     successBody:  (name, jobTitle, jobId) =>
       `${jobTitle} – Job ID: ${jobId} Invitation sent and waiting for ${name} response.`,
+    apiAction: "invite",
   },
   schedule: {
     title:        (name) => `Schedule a Interview for ${name}`,
@@ -83,6 +112,7 @@ const MODAL_CONFIG: Record<ActionType, {
     successTitle: () => "Requested Interview For Selected Jobs",
     successBody:  (name, jobTitle, jobId) =>
       `${jobTitle} – Job ID: ${jobId} Invitation sent and waiting for ${name} interview response.`,
+    apiAction: "schedule",
   },
   shortlist: {
     title:        (name) => `Shortlist ${name} For a Job`,
@@ -93,6 +123,7 @@ const MODAL_CONFIG: Record<ActionType, {
     successTitle: () => "Shortlisted Successfully",
     successBody:  (name, jobTitle, jobId) =>
       `${name} have been shortlisted For ${jobTitle} Job ID:${jobId}`,
+    apiAction: "shortlist",
   },
   hire: {
     title:        (name) => `Hire ${name} Instantly For Urgent Shifts`,
@@ -103,6 +134,7 @@ const MODAL_CONFIG: Record<ActionType, {
     successTitle: () => "Shift Request Sent Successfully",
     successBody:  (name, jobTitle, jobId) =>
       `${jobTitle} – Shift ID: ${jobId} Invitation sent and waiting for ${name} shift acceptance.`,
+    apiAction: "hire",
   },
 };
 
@@ -113,9 +145,9 @@ const formatJobType = (raw?: string | null) => {
 };
 
 function getInterviewBadge(job: { interviewRequired: boolean; type: "Regular" | "Urgent" }) {
-  if (job.type === "Urgent")   return { label: "No Interview Needed",   cls: "bg-[#FEE4E2] text-[#912018]" };
-  if (job.interviewRequired)   return { label: "Interview Required",    cls: "bg-[#D1FAE5] text-[#059669]" };
-  return                              { label: "No Interview Required", cls: "bg-[#FEF9C3] text-[#854D0E]" };
+  if (job.type === "Urgent") return { label: "No Interview Needed",   cls: "bg-[#FEE4E2] text-[#912018]" };
+  if (job.interviewRequired) return { label: "Interview Required",    cls: "bg-[#D1FAE5] text-[#059669]" };
+  return                            { label: "No Interview Required", cls: "bg-[#FEF9C3] text-[#854D0E]" };
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -141,20 +173,75 @@ function JobSkeleton() {
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
 interface Props {
-  actionType: ActionType;
-  candidate:  CandidateDetailVM;
-  onClose:    () => void;
+  actionType:    ActionType;
+  candidate:     CandidateDetailVM;
+  // ✅ applicationId needed for shortlist/hire — optional for invite (no existing application)
+  applicationId?: string;
+  onClose:       () => void;
 }
 
-export function CandidateActionModal({ actionType, candidate, onClose }: Props) {
+export function CandidateActionModal({
+  actionType,
+  candidate,
+  applicationId,
+  onClose,
+}: Props) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [showSuccess,   setShowSuccess]   = useState(false);
+  const [isSubmitting,  setIsSubmitting]  = useState(false);
+  const [submitError,   setSubmitError]   = useState<string | null>(null);
 
-  const config            = MODAL_CONFIG[actionType];
-  const name              = candidate.full_name;
+  const config              = MODAL_CONFIG[actionType];
+  const name                = candidate.full_name;
   const { jobs, isLoading } = useJobOptions(config.jobPool);
   const selectedJob         = jobs.find((j) => j.id === selectedJobId);
 
+  // ── CTA handler — calls the correct API per action ────────────────────────
+  const handleCTA = async () => {
+    if (!selectedJobId || !selectedJob) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      switch (config.apiAction) {
+
+        // ── Invite: POST /recruiter/candidates/invite ─────────────────────
+        case "invite":
+          await inviteCandidateToJob(selectedJobId, candidate.id);
+          break;
+
+        // ── Shortlist: PATCH …/status { status: "SHORTLISTED" } ──────────
+        case "shortlist":
+          if (!applicationId) throw new Error("Application ID is required for shortlisting");
+          await updateApplicationStatus(applicationId, "SHORTLISTED");
+          break;
+
+        // ── Direct Hire: PATCH …/status { status: "HIRE" } ───────────────
+        case "hire":
+          if (!applicationId) throw new Error("Application ID is required for hiring");
+          await updateApplicationStatus(applicationId, "HIRE");
+          break;
+
+        // ── Schedule Interview: invite first (creates application), ────────
+        // then status update handled separately by interview flow
+        case "schedule":
+          await inviteCandidateToJob(selectedJobId, candidate.id);
+          break;
+      }
+
+      setShowSuccess(true);
+    } catch (err) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (err instanceof Error ? err.message : "Action failed. Please try again.");
+      setSubmitError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Success screen ────────────────────────────────────────────────────────
   if (showSuccess && selectedJob) {
     return (
       <SuccessModal
@@ -192,7 +279,7 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
                 return (
                   <div
                     key={job.id + job.type}
-                    onClick={() => setSelectedJobId(isSelected ? null : job.id)}
+                    onClick={() => { setSelectedJobId(isSelected ? null : job.id); setSubmitError(null); }}
                     className={`bg-white rounded-2xl p-4 flex flex-col gap-3 cursor-pointer transition-all border ${
                       isSelected
                         ? "border-[#F4781B] shadow-sm bg-orange-50/20"
@@ -220,7 +307,13 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
                         {job.org_photo ? (
-                          <Image src={job.org_photo} alt="Organization" width={40} height={40} className="w-full h-full object-cover" />
+                          <Image
+                            src={job.org_photo}
+                            alt="Organization"
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-orange-50">
                             <span className="text-[10px] font-extrabold text-orange-500 uppercase">ORG</span>
@@ -282,17 +375,27 @@ export function CandidateActionModal({ actionType, candidate, onClose }: Props) 
           ))}
         </p>
 
+        {/* ✅ Error banner */}
+        {submitError && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {submitError}
+          </div>
+        )}
+
         <div className="flex justify-end">
           <button
-            onClick={() => selectedJobId && setShowSuccess(true)}
-            disabled={!selectedJobId}
+            onClick={handleCTA}
+            disabled={!selectedJobId || isSubmitting}
             className={`flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all ${
-              selectedJobId
+              selectedJobId && !isSubmitting
                 ? "bg-[#F4781B] hover:bg-[#e06a10] text-white"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
           >
-            {config.ctaLabel} <ArrowRight size={14} />
+            {isSubmitting
+              ? <><Loader2 size={14} className="animate-spin" /> Processing...</>
+              : <>{config.ctaLabel} <ArrowRight size={14} /></>
+            }
           </button>
         </div>
       </div>

@@ -5,25 +5,23 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import type { JobBackendResponse, JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
+import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
 import { getWallet } from "@/stores/api/recruiter-wallet-api";
 import { useWalletStore } from "@/stores/walletStore";
 import { getJobFeePreview } from "@/stores/api/recruiter-job-api";
 import { JobDescriptionModal, useJobDescriptionModal } from "@/app/jobs/[id]/components/JobDescriptionModal";
 import { EditInterviewQuestionsModal } from "@/app/jobs/[id]/components/EditInterviewQuestionsModal";
 
-
 interface JobSummaryPageProps {
-  mode:      "normal" | "urgent";
-  payload:   JobCreatePayload;
-  onBack:    () => void;
-  onSubmit:  (payload: JobCreatePayload, feeCents: number) => Promise<{
+  mode:     "normal" | "urgent";
+  payload:  JobCreatePayload;
+  onBack:   () => void;
+  onSubmit: (payload: JobCreatePayload, feeCents: number) => Promise<{
     success:  boolean;
     message?: string;
     jobId?:   string;
   }>;
 }
-
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatTime(timeStr?: string | null): string {
@@ -65,11 +63,22 @@ function buildShiftRows(payload: JobCreatePayload) {
   return rows;
 }
 
+function validateShiftDuration(checkIn?: string | null, checkOut?: string | null): string | null {
+  if (!checkIn || !checkOut) return null;
+  const [h1, m1] = checkIn.split(":").map(Number);
+  const [h2, m2] = checkOut.split(":").map(Number);
+  let diffMins = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (diffMins < 0) diffMins += 24 * 60;
+  const hours = diffMins / 60;
+  if (hours < 4)  return "Shift duration must be at least 4 hours. Please go back and adjust the shift times.";
+  if (hours > 12) return "Shift duration cannot exceed 12 hours. Please go back and adjust the shift times.";
+  return null;
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPageProps) {
-  const router         = useRouter();
-  const refreshWallet  = useWalletStore((s) => s.refreshWallet);
+  const router        = useRouter();
+  const refreshWallet = useWalletStore((s) => s.refreshWallet);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError]               = useState<string | null>(null);
@@ -79,10 +88,20 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
   const [feeLoading, setFeeLoading]     = useState(false);
   const [feeError, setFeeError]         = useState<string | null>(null);
 
-  // ── Modal state ───────────────────────────────────────────────────────────
-  const jobDescModal   = useJobDescriptionModal();
+  const jobDescModal                      = useJobDescriptionModal();
   const [showQuestions, setShowQuestions] = useState(false);
 
+  // ── Derived flags ─────────────────────────────────────────────────────────
+  const isUrgent = mode === "urgent";
+
+  // ✅ Interview Questions button only shows when:
+  // - not an urgent/instant job
+  // - ai_interview is true OR questions array has entries
+  const wantsInterview = !isUrgent && (
+    payload.ai_interview === true ||
+    (Array.isArray(payload.interview_questions) && payload.interview_questions.length > 0) ||
+    (Array.isArray(payload.questions) && (payload.questions as string[]).length > 0)
+  );
 
   // ── Fee preview ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -117,14 +136,12 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
     payload.check_out_time,
   ]);
 
-
   // ── Cost calc ─────────────────────────────────────────────────────────────
-  const hourlyRate         = payload.pay_per_hour_cents !== undefined ? payload.pay_per_hour_cents / 100 : 0;
-  const hoursPerCandidate  = feePreview ? feePreview.total_working_hours : 0;
+  const hourlyRate         = (payload.pay_per_hour_cents ?? 0) / 100;
+  const hoursPerCandidate  = feePreview?.total_working_hours ?? 0;
   const costPerCandidate   = hourlyRate * hoursPerCandidate;
   const requiredCandidates = payload.no_of_hires_required ?? 1;
   const totalPayable       = costPerCandidate * requiredCandidates;
-
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handlePayAndHire = async () => {
@@ -134,6 +151,9 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
       setError("Cost estimate not loaded. Please wait or go back and retry.");
       return;
     }
+
+    const shiftError = validateShiftDuration(payload.check_in_time, payload.check_out_time);
+    if (shiftError) { setError(shiftError); return; }
 
     setIsProcessing(true);
     setError(null);
@@ -167,21 +187,21 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
         setError(res?.message ?? "Failed to create job. Please try again.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create job. Please try again.");
+      const axiosMsg =
+        (err as { response?: { data?: { message?: string } } })
+          ?.response?.data?.message;
+      setError(axiosMsg ?? (err instanceof Error ? err.message : "Failed to create job. Please try again."));
     } finally {
       setIsProcessing(false);
     }
   };
 
-
   // ── Derived labels ────────────────────────────────────────────────────────
-  const isUrgent     = mode === "urgent";
   const pageTitle    = isUrgent ? "Request Immediate Staff" : "Create Job Post";
   const summaryTitle = isUrgent ? "Shift Summary"           : "Job Summary";
   const tableTitle   = isUrgent ? "Shift Details"           : "Job Details";
   const shifts       = buildShiftRows(payload);
   const location     = [payload.city, payload.province].filter(Boolean).join(", ");
-
 
   return (
     <>
@@ -225,7 +245,9 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
                 <FileText className="w-3.5 h-3.5" />
                 {isUrgent ? "Shift Description" : "Job Description"}
               </button>
-              {!isUrgent && (
+
+              {/* ✅ Only shown when interview was selected */}
+              {wantsInterview && (
                 <button
                   onClick={() => setShowQuestions(true)}
                   className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-gray-50"
@@ -314,7 +336,9 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
                       ?
                     </span>
                   </span>
-                  <span className="font-medium text-gray-900">$ {hourlyRate.toLocaleString()}</span>
+                  <span className="font-medium text-gray-900">
+                    ${hourlyRate.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
                 <div className="flex justify-between py-3 text-sm">
                   <span className="text-gray-700 font-medium">Hours per Candidate</span>
@@ -322,7 +346,9 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
                 </div>
                 <div className="flex justify-between py-3 text-sm">
                   <span className="text-gray-700 font-medium">Cost per Candidate</span>
-                  <span className="font-medium text-gray-900">$ {costPerCandidate.toLocaleString()}</span>
+                  <span className="font-medium text-gray-900">
+                    ${costPerCandidate.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
                 <div className="flex justify-between py-3 text-sm">
                   <span className="text-gray-700 font-medium">Required Candidates</span>
@@ -332,7 +358,7 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
               <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
                 <span className="font-bold text-gray-900">Total Payable</span>
                 <span className="font-bold text-gray-900 text-xl">
-                  $ {totalPayable.toLocaleString()}
+                  ${totalPayable.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </>
@@ -376,19 +402,18 @@ export function JobSummaryPage({ mode, payload, onBack, onSubmit }: JobSummaryPa
         onUpdate={(desc) => console.log("Description updated:", desc)}
       />
 
-      {!isUrgent && (
-  <EditInterviewQuestionsModal
-    isOpen={showQuestions}
-    onClose={() => setShowQuestions(false)}
-    initialQuestions={payload.interview_questions ?? []}
-    onSave={async (questions) => {
-      // questions are only in-memory at this stage (job not saved yet)
-      // store them back into the payload for submission
-      payload.interview_questions = questions;
-      setShowQuestions(false);
-    }}
-  />
-)}
+      {/* ✅ Only mounts when interview was selected — completely gone otherwise */}
+      {wantsInterview && (
+        <EditInterviewQuestionsModal
+          isOpen={showQuestions}
+          onClose={() => setShowQuestions(false)}
+          initialQuestions={payload.interview_questions ?? []}
+          onSave={async (questions) => {
+            payload.interview_questions = questions;
+            setShowQuestions(false);
+          }}
+        />
+      )}
 
       <SuccessModal
         visible={showSuccess}

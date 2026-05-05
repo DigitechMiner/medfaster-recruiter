@@ -28,7 +28,7 @@ interface CandidateHeroProps {
   candidateVM?:     CandidateDetailVM | null;
   onBack:           () => void;
   onExport?:        () => void;
-  onShortlist?:     () => void;
+  onShortlist?:     () => void;   // kept for backward compat, no longer used internally
   onPrimaryAction?: (actionType: ActionConfig["actionType"]) => void;
 }
 
@@ -40,7 +40,7 @@ const getActionConfig = (candidate: CandidateWithExtras): ActionConfig => {
 };
 
 export const CandidateHero: React.FC<CandidateHeroProps> = ({
-  candidate, onBack, onExport, onShortlist, onPrimaryAction,
+  candidate, onBack, onExport, onPrimaryAction,
 }) => {
   const c        = candidate as CandidateWithExtras;
   const isHired  = c.is_hired === true;
@@ -71,17 +71,16 @@ export const CandidateHero: React.FC<CandidateHeroProps> = ({
     return ["Long-Term Care", "Home Care", "Rehabilitation", "Palliative Care", "Clinics"];
   }, [c]);
 
-  // ── KPIs — derived entirely from CandidateDetailProfile ──────────────────
-  const latestJob      = candidate.work_experiences?.[0];
-  const currentRole = latestJob?.title ?? candidate.job_title ?? "—";
-  const currentOrg     = latestJob?.company ?? "—";
-  const totalExpYears  = candidate.experience_in_months
+  const latestJob     = candidate.work_experiences?.[0];
+  const currentRole   = latestJob?.title ?? candidate.job_title ?? "—";
+  const currentOrg    = latestJob?.company ?? "—";
+  const totalExpYears = candidate.experience_in_months
     ? `${Math.round(candidate.experience_in_months / 12)}+ yrs`
     : candidate.work_experiences?.length
       ? `${candidate.work_experiences.length} role${candidate.work_experiences.length > 1 ? "s" : ""}`
       : "—";
-  const prefLocation   = candidate.preferred_location ?? location;
-  const attendanceAcc  = "N/A"; // not in API yet
+  const prefLocation  = candidate.preferred_location ?? location;
+  const attendanceAcc = "N/A";
 
   return (
     <div className="flex flex-col gap-0">
@@ -103,7 +102,6 @@ export const CandidateHero: React.FC<CandidateHeroProps> = ({
                 <span className="text-[10px]">✦</span> KeRaeva&apos;s AI Recommended
               </span>
             )}
-            {/* ✅ use c.is_online (CandidateWithExtras), not candidate.is_online */}
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
               c.is_online
                 ? "bg-green-50 border border-green-300 text-green-600"
@@ -167,7 +165,12 @@ export const CandidateHero: React.FC<CandidateHeroProps> = ({
                   </span>
                 </div>
               </div>
-              <HeroActionButtons config={config} onExport={onExport} onShortlist={onShortlist} onPrimaryAction={onPrimaryAction} />
+              {/* ✅ onShortlist removed — Shortlist now routes through onPrimaryAction */}
+              <HeroActionButtons
+                config={config}
+                onExport={onExport}
+                onPrimaryAction={onPrimaryAction}
+              />
             </div>
           </div>
         </div>
@@ -183,9 +186,9 @@ export const CandidateHero: React.FC<CandidateHeroProps> = ({
         </div>
       </div>
 
-      {/* ── KPI row — all from CandidateDetailProfile ── */}
+      {/* ── KPI row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-4">
-        <KpiCard label="Attendance Accuracy"   value={attendanceAcc}  sub={undefined} />
+        <KpiCard label="Attendance Accuracy"   value={attendanceAcc} />
         <KpiCard label="Total Work Experience" value={totalExpYears} />
         <KpiCard label="Current Role"          value={currentRole} />
         <KpiCard label="Current Organization"  value={currentOrg} />
@@ -198,12 +201,11 @@ export const CandidateHero: React.FC<CandidateHeroProps> = ({
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const HeroActionButtons = ({
-  config, onExport, onShortlist, onPrimaryAction,
+  config, onExport, onPrimaryAction,
 }: {
-  config:            ActionConfig;
-  onExport?:         () => void;
-  onShortlist?:      () => void;
-  onPrimaryAction?:  (actionType: ActionType) => void;
+  config:           ActionConfig;
+  onExport?:        () => void;
+  onPrimaryAction?: (actionType: ActionType) => void;
 }) => {
   const primaryClassMap = {
     orange:        "bg-[#F4781B] hover:bg-[#e06a10] text-white border border-[#F4781B]",
@@ -221,14 +223,17 @@ const HeroActionButtons = ({
         >
           <FileText size={15} className="text-gray-500" /> Export Profile
         </button>
+
+        {/* ✅ Shortlist now opens modal with "shortlist" actionType */}
         {config.showShortlist && (
           <button
-            onClick={onShortlist}
+            onClick={() => onPrimaryAction?.("shortlist")}
             className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
           >
             Shortlist
           </button>
         )}
+
         <button
           onClick={() => onPrimaryAction?.(config.actionType)}
           className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${primaryClassMap[config.primaryVariant]}`}

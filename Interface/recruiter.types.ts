@@ -467,7 +467,7 @@ export interface JobCreatePayload {
   qualifications?:      string[];
   specializations?:     string[];
   ai_interview?:        boolean;
-  questions?:           string[];
+  questions?:           string[] | null;
   pay_per_hour_cents?:  number;
   status?:              JobStatus;
   interview_questions?: string[];
@@ -585,7 +585,7 @@ export interface JobFormData {
   workingConditions?: string[];
   whyJoin?:           string[];
   location?:          string;
-  payRange?:          [number, number] | string;
+  payRange?: number | string;
   inPersonInterview?: string | boolean;
   physicalInterview?: string | boolean;
 }
@@ -636,6 +636,8 @@ export interface CandidateListItem {
   is_ai_recommended?:           boolean;
   role?:                        string;
   postal_code?:                 string;
+  job_application_id?: string;   // ✅ ADD — used for PATCH status calls
+  application_id?:     string;
 }
 
 export interface CandidatesListParams {

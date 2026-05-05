@@ -1,9 +1,9 @@
 'use client';
 
-import Image                from "next/image";
+import Image                     from "next/image";
 import { DocThumbnail, StarRow } from "./shared";
 import type { CandidateDetailVM } from "@/Interface/view-models";
-import type { Tab } from "./data";
+import type { Tab }               from "./data";
 import { useCandidateDocumentUrl } from "@/hooks/useApplicationActions";
 
 export function CandidateDetailTabsContent({
@@ -18,11 +18,17 @@ export function CandidateDetailTabsContent({
   const { fetchUrl } = useCandidateDocumentUrl();
 
   const handleViewDoc = async (candidateId: string, documentId: string) => {
-    const url = await fetchUrl(candidateId, documentId);
-    window.open(url, "_blank");
+    try {
+      // getCandidateDocumentUrl uses extractData → returns { candidate_id, document_id, file_url }
+      // but fetchUrl in the hook calls getCandidateDocumentUrl and does: return res.url
+      // ✅ Fix is in getCandidateDocumentUrl — map file_url → url (see recruiter-job-api.ts note below)
+      const url = await fetchUrl(candidateId, documentId);
+      if (url) window.open(url, "_blank");
+    } catch {
+      // silently ignore — hook already tracks error state
+    }
   };
 
-  // ── Data straight from API — no static fallbacks ─────────────────────────
   const educations   = candidate.qualifications;
   const personalDocs = candidate.documents.personal;
   const licenseDocs  = candidate.documents.licenses_certificates;
@@ -36,15 +42,17 @@ export function CandidateDetailTabsContent({
 
   return (
     <>
-      {/* ── General Score ─────────────────────────────────────────────────── */}
+      {/* ── General Score ──────────────────────────────────────────────────── */}
       {activeTab === "General score" && (
         <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
           <p className="text-sm">Interview score data is not yet available from the API.</p>
-          <p className="text-xs mt-1 text-gray-300">This section will populate once the backend exposes evaluation endpoints.</p>
+          <p className="text-xs mt-1 text-gray-300">
+            This section will populate once the backend exposes evaluation endpoints.
+          </p>
         </div>
       )}
 
-      {/* ── Qualifications ────────────────────────────────────────────────── */}
+      {/* ── Qualifications ─────────────────────────────────────────────────── */}
       {activeTab === "Qualifications" && (
         <div className="space-y-5">
           <div className="border border-gray-200 rounded-xl p-5">
@@ -78,11 +86,11 @@ export function CandidateDetailTabsContent({
             )}
           </div>
 
-          {/* Licensing & Registration — no API endpoint yet */}
           <div className="border border-gray-200 rounded-xl p-5">
             <h2 className="text-base font-semibold text-gray-900 mb-2">Licensing Exam</h2>
             <p className="text-sm text-gray-400">Not available — endpoint not yet exposed by backend.</p>
           </div>
+
           <div className="border border-gray-200 rounded-xl p-5">
             <h2 className="text-base font-semibold text-gray-900 mb-2">Registration</h2>
             <p className="text-sm text-gray-400">Not available — endpoint not yet exposed by backend.</p>
@@ -90,7 +98,7 @@ export function CandidateDetailTabsContent({
         </div>
       )}
 
-      {/* ── Documentations ────────────────────────────────────────────────── */}
+      {/* ── Documentations ─────────────────────────────────────────────────── */}
       {activeTab === "Documentations" && (
         <div className="space-y-5">
           <div className="border border-gray-200 rounded-xl p-5">
@@ -100,9 +108,13 @@ export function CandidateDetailTabsContent({
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
                 {personalDocs.map((doc) => (
-                  <div key={doc.document_id} onClick={() => handleViewDoc(candidate.id, doc.document_id)}>
+                  <button
+                    key={doc.document_id}
+                    onClick={() => handleViewDoc(candidate.id, doc.document_id)}
+                    className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 rounded-xl"
+                  >
                     <DocThumbnail title={doc.title} name={fullName} />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -115,9 +127,13 @@ export function CandidateDetailTabsContent({
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
                 {licenseDocs.map((doc) => (
-                  <div key={doc.document_id} onClick={() => handleViewDoc(candidate.id, doc.document_id)}>
+                  <button
+                    key={doc.document_id}
+                    onClick={() => handleViewDoc(candidate.id, doc.document_id)}
+                    className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 rounded-xl"
+                  >
                     <DocThumbnail title={doc.title} name={fullName} />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -125,7 +141,7 @@ export function CandidateDetailTabsContent({
         </div>
       )}
 
-      {/* ── Job Experience ────────────────────────────────────────────────── */}
+      {/* ── Job Experience ─────────────────────────────────────────────────── */}
       {activeTab === "Job Experience" && (
         <div className="border border-gray-200 rounded-xl p-4 sm:p-5">
           <div className="flex items-center justify-between mb-5">
@@ -134,12 +150,16 @@ export function CandidateDetailTabsContent({
               {candidate.kpis.total_work_experience || "—"}
             </span>
           </div>
+
           {workExps.length === 0 ? (
             <p className="text-sm text-gray-400">No work experience on record.</p>
           ) : (
             <div className="space-y-5">
               {workExps.map((exp, i) => (
-                <div key={exp.id} className={`pb-5 ${i < workExps.length - 1 ? "border-b border-gray-100" : ""}`}>
+                <div
+                  key={exp.id}
+                  className={`pb-5 ${i < workExps.length - 1 ? "border-b border-gray-100" : ""}`}
+                >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full overflow-hidden bg-red-100 flex-shrink-0 flex items-center justify-center">
@@ -165,40 +185,59 @@ export function CandidateDetailTabsContent({
         </div>
       )}
 
-      {/* ── Work History ──────────────────────────────────────────────────── */}
+      {/* ── Work History ───────────────────────────────────────────────────── */}
       {activeTab === "Work History" && (
         <div className="border border-gray-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 {["Job Title", "Organization", "Status", "Job Type", "Completed Date"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-gray-600 text-xs whitespace-nowrap">{h}</th>
+                  <th
+                    key={h}
+                    className="text-left px-4 py-3 font-medium text-gray-600 text-xs whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {workHistory.length === 0 ? (
-                <tr><td colSpan={5} className="py-8 text-center text-xs text-gray-400">No work history on record.</td></tr>
-              ) : workHistory.map((row) => (
-                <tr key={row.application_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3.5 text-gray-800 text-sm">{row.job_title}</td>
-                  <td className="px-4 py-3.5 text-gray-600 text-sm">{row.organization}</td>
-                  <td className="px-4 py-3.5 text-gray-600 text-sm">{row.status}</td>
-                  <td className="px-4 py-3.5">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium
-                      ${row.job_type === "Regular" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                      {row.job_type}
-                    </span>
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-xs text-gray-400">
+                    No work history on record.
                   </td>
-                  <td className="px-4 py-3.5 text-gray-600 text-sm">{row.completed_date ?? "—"}</td>
                 </tr>
-              ))}
+              ) : (
+                workHistory.map((row) => (
+                  <tr
+                    key={row.application_id}
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
+                  >
+                    <td className="px-4 py-3.5 text-gray-800 text-sm">{row.job_title}</td>
+                    <td className="px-4 py-3.5 text-gray-600 text-sm">{row.organization}</td>
+                    <td className="px-4 py-3.5 text-gray-600 text-sm">{row.status}</td>
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium
+                          ${row.job_type === "Regular"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                          }`}
+                      >
+                        {row.job_type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-gray-600 text-sm">{row.completed_date ?? "—"}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* ── Reviews & Ratings ─────────────────────────────────────────────── */}
+      {/* ── Reviews & Ratings ──────────────────────────────────────────────── */}
       {activeTab === "Reviews & Ratings" && (
         <div className="space-y-5">
           {displayTotal === 0 ? (
@@ -213,6 +252,7 @@ export function CandidateDetailTabsContent({
                   </div>
                   <p className="text-xs text-gray-500">{displayTotal} reviews</p>
                 </div>
+
                 <div className="flex-1 w-full space-y-1.5">
                   {displayDist.map((row) => (
                     <div key={row.stars} className="flex items-center gap-2 text-xs text-gray-600">
@@ -221,7 +261,10 @@ export function CandidateDetailTabsContent({
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-orange-400 rounded-full" style={{ width: `${row.percentage}%` }} />
+                        <div
+                          className="h-full bg-orange-400 rounded-full"
+                          style={{ width: `${row.percentage}%` }}
+                        />
                       </div>
                       <span className="w-3">{row.count}</span>
                     </div>
@@ -249,11 +292,13 @@ export function CandidateDetailTabsContent({
         </div>
       )}
 
-      {/* ── Complaints & Grievances — no endpoint yet ─────────────────────── */}
+      {/* ── Complaints & Grievances ────────────────────────────────────────── */}
       {activeTab === "Complaints & Grievances" && (
         <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
           <p className="text-sm">No grievances endpoint available yet.</p>
-          <p className="text-xs mt-1 text-gray-300">This section will populate once the backend exposes a disputes/grievances API.</p>
+          <p className="text-xs mt-1 text-gray-300">
+            This section will populate once the backend exposes a disputes/grievances API.
+          </p>
         </div>
       )}
     </>

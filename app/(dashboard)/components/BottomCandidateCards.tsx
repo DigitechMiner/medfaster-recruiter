@@ -42,7 +42,7 @@ const CandidateCard = ({
           </button>
         ) : showInviteOnly ? (
           <button
-            onClick={() => router.push(vm.href)}
+            onClick={() => router.push(`/candidates/${vm.id}`)}
             className="w-full flex items-center justify-center gap-2 text-sm font-semibold border border-[#F4781B] text-[#F4781B] hover:bg-orange-50 py-2.5 rounded-xl transition-colors"
           >
             <CalendarCheck size={14} /> Invite For a Job
@@ -50,13 +50,13 @@ const CandidateCard = ({
         ) : (
           <div className="flex gap-2">
             <button
-              onClick={() => router.push(vm.href)}
+              onClick={() => router.push(`/candidates/${vm.id}`)}
               className="flex-1 text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 py-2.5 rounded-xl transition-colors"
             >
               Shortlist
             </button>
             <button
-              onClick={() => router.push(vm.href)}
+              onClick={() => router.push(`/candidates/${vm.id}`)}
               className="flex-1 text-sm font-semibold bg-[#F4781B] hover:bg-orange-600 text-white py-2.5 rounded-xl transition-colors"
             >
               Direct Hire

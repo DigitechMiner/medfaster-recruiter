@@ -84,7 +84,7 @@ export default function EditJobPage() {
       location:    job.city || "",
 
       // ── Pay ──────────────────────────────────────────
-      payRange: [hourlyDollars, hourlyDollars] as [number, number],
+      payRange: hourlyDollars,
 
       urgency:     job.job_urgency || "normal",
       description: job.description || "",

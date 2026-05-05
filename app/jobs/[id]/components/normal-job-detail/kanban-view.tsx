@@ -1,16 +1,21 @@
+'use client';
+
 import React, { useState } from "react";
 import Image from "next/image";
 import ScoreCard from "@/components/card/scorecard";
 import { useCandidatesList } from "@/hooks/useRecruiterData";
-import { buildKanbanPages, getVisibleCountRange, TabKey, toCandidate } from "./shared";
+import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
+import { buildKanbanPages, getVisibleCountRange, TabKey, toCandidate, Candidate } from "./shared";
 
 const KANBAN_COLS = [
-  { key: "applied", label: "Applied", dotColor: "bg-blue-500", border: "border-blue-200", bg: "bg-blue-50/50", textColor: "text-blue-600", aiOnly: false },
-  { key: "shortlisted", label: "Shortlisted", dotColor: "bg-orange-400", border: "border-orange-200", bg: "bg-orange-50/50", textColor: "text-[#F4781B]", aiOnly: false },
-  { key: "ai_interviewing", label: "AI-Interviewing", dotColor: "bg-red-400", border: "border-red-200", bg: "bg-red-50/40", textColor: "text-red-500", aiOnly: true },
-  { key: "interviewed", label: "Interviewed", dotColor: "bg-amber-700", border: "border-amber-200", bg: "bg-amber-50/40", textColor: "text-amber-800", aiOnly: false },
-  { key: "hired", label: "Hired", dotColor: "bg-green-500", border: "border-green-200", bg: "bg-green-50/50", textColor: "text-green-600", aiOnly: false },
+  { key: "applied",         label: "Applied",          dotColor: "bg-blue-500",   border: "border-blue-200",   bg: "bg-blue-50/50",   textColor: "text-blue-600",    aiOnly: false },
+  { key: "shortlisted",     label: "Shortlisted",      dotColor: "bg-orange-400", border: "border-orange-200", bg: "bg-orange-50/50", textColor: "text-[#F4781B]",   aiOnly: false },
+  { key: "ai_interviewing", label: "AI-Interviewing",  dotColor: "bg-red-400",    border: "border-red-200",    bg: "bg-red-50/40",    textColor: "text-red-500",     aiOnly: true  },
+  { key: "interviewed",     label: "Interviewed",      dotColor: "bg-amber-700",  border: "border-amber-200",  bg: "bg-amber-50/40",  textColor: "text-amber-800",   aiOnly: false },
+  { key: "hired",           label: "Hired",            dotColor: "bg-green-500",  border: "border-green-200",  bg: "bg-green-50/50",  textColor: "text-green-600",   aiOnly: false },
 ] as const;
+
+type ActionType = "shortlist" | "hire";
 
 interface KanbanSectionProps {
   hasAI: boolean;
@@ -18,30 +23,51 @@ interface KanbanSectionProps {
 }
 
 export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [kanbanPage, setKanbanPage] = useState(1);
+  const [expanded,    setExpanded]    = useState<string | null>(null);
+  const [kanbanPage,  setKanbanPage]  = useState(1);
   const [kanbanLimit, setKanbanLimit] = useState(10);
+  const [loadingId,   setLoadingId]   = useState<string | null>(null);
 
   const visibleCols = KANBAN_COLS.filter((col) => !col.aiOnly || hasAI);
 
-  const { data, isLoading } = useCandidatesList({
-    page: kanbanPage,
-    limit: kanbanLimit,
-    job_id: jobId,
+  const { data, isLoading, refetch } = useCandidatesList({
+    page:    kanbanPage,
+    limit:   kanbanLimit,
+    job_id:  jobId,
   });
 
-  const totalCount = data?.data.pagination?.total ?? 0;
+  const totalCount       = data?.data.pagination?.total ?? 0;
   const totalKanbanPages = Math.max(1, Math.ceil(totalCount / kanbanLimit));
-  const candidates = (data?.data.candidates ?? []).map(toCandidate);
-  const visibleRange = getVisibleCountRange(kanbanPage, kanbanLimit, totalCount);
-  const pageButtons = buildKanbanPages(totalKanbanPages);
+  const candidates       = (data?.data.candidates ?? []).map(toCandidate);
+  const visibleRange     = getVisibleCountRange(kanbanPage, kanbanLimit, totalCount);
+  const pageButtons      = buildKanbanPages(totalKanbanPages);
+
+  const handleAction = async (type: ActionType, applicationId: string) => {
+    if (!applicationId) {
+      console.warn("No applicationId — cannot update status");
+      return;
+    }
+    const status = type === "shortlist" ? "SHORTLISTED" : "HIRE";
+    const key    = `${status}_${applicationId}`;
+    setLoadingId(key);
+    try {
+      await updateApplicationStatus(applicationId, status);
+      refetch?.();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? "Action failed";
+      alert(msg);
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col">
       <div className="px-4 pt-2 pb-2 overflow-x-auto">
         <div className="flex gap-4 min-w-max">
           {visibleCols.map((col) => {
-            const isExpanded = expanded === col.key;
+            const isExpanded      = expanded === col.key;
             const shownCandidates = isLoading ? [] : candidates.slice(0, isExpanded ? 6 : 3);
 
             return (
@@ -73,14 +99,20 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
 
                 {isLoading ? (
                   <div className="flex flex-col gap-2">
-                    {[...Array(3)].map((_, index) => (
-                      <div key={index} className="h-24 bg-white/60 rounded-xl animate-pulse" />
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-24 bg-white/60 rounded-xl animate-pulse" />
                     ))}
                   </div>
                 ) : (
                   <div className={`grid gap-3 ${isExpanded ? "grid-cols-3" : "grid-cols-1"}`}>
                     {shownCandidates.map((candidate) => (
-                      <KanbanCard key={candidate.id} candidate={candidate} colKey={col.key as TabKey} />
+                      <KanbanCard
+                        key={candidate.id}
+                        candidate={candidate}
+                        colKey={col.key as TabKey}
+                        loadingId={loadingId}
+                        onAction={handleAction}
+                      />
                     ))}
                     {shownCandidates.length === 0 && (
                       <p className="text-xs text-center text-gray-400 py-4">No candidates</p>
@@ -93,9 +125,10 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
         </div>
       </div>
 
+      {/* ── Pagination ── */}
       <div className="bg-[#FEF3E9] px-5 py-3 flex items-center justify-between flex-wrap gap-3 mt-2">
         <button
-          onClick={() => setKanbanPage((current) => Math.max(1, current - 1))}
+          onClick={() => setKanbanPage((p) => Math.max(1, p - 1))}
           disabled={kanbanPage === 1}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -123,10 +156,7 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
           </span>
           <select
             value={kanbanLimit}
-            onChange={(event) => {
-              setKanbanLimit(Number(event.target.value));
-              setKanbanPage(1);
-            }}
+            onChange={(e) => { setKanbanLimit(Number(e.target.value)); setKanbanPage(1); }}
             className="border border-gray-200 rounded-lg px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200"
           >
             <option value={10}>10 per page</option>
@@ -135,7 +165,7 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
         </div>
 
         <button
-          onClick={() => setKanbanPage((current) => Math.min(totalKanbanPages, current + 1))}
+          onClick={() => setKanbanPage((p) => Math.min(totalKanbanPages, p + 1))}
           disabled={kanbanPage === totalKanbanPages}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -149,47 +179,98 @@ export function KanbanSection({ hasAI, jobId }: KanbanSectionProps) {
   );
 }
 
-function KanbanActionButtons({ tab }: { tab: TabKey }) {
+// ── KanbanActionButtons ───────────────────────────────────────────────────────
+
+function KanbanActionButtons({
+  tab,
+  candidate,
+  loadingId,
+  onAction,
+}: {
+  tab:       TabKey;
+  candidate: Candidate;
+  loadingId: string | null;
+  onAction:  (type: ActionType, applicationId: string) => void;
+}) {
+  const appId         = candidate.applicationId;
+  const isShortlisting = loadingId === `SHORTLISTED_${appId}`;
+  const isHiring       = loadingId === `HIRE_${appId}`;
+
   switch (tab) {
     case "applied":
       return (
         <div className="flex gap-2">
-          <button className="flex-1 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium">Shortlist</button>
-          <button className="flex-1 py-2 rounded-xl bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10]">Direct Hire</button>
+          <button
+            onClick={() => onAction("shortlist", appId)}
+            disabled={!appId || isShortlisting || isHiring}
+            className="flex-1 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isShortlisting ? "…" : "Shortlist"}
+          </button>
+          <button
+            onClick={() => onAction("hire", appId)}
+            disabled={!appId || isShortlisting || isHiring}
+            className="flex-1 py-2 rounded-xl bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isHiring ? "…" : "Direct Hire"}
+          </button>
         </div>
       );
     case "shortlisted":
       return (
         <div className="flex gap-2">
-          <button className="flex-1 py-2 rounded-xl border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium">Remove</button>
-          <button className="flex-1 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium">Request Interview</button>
+          <button className="flex-1 py-2 rounded-xl border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium transition-colors">Remove</button>
+          <button className="flex-1 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 font-medium transition-colors">Request Interview</button>
         </div>
       );
     case "ai_interviewing":
-      return <button className="w-full py-2 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600">Abort Interview</button>;
+      return (
+        <button className="w-full py-2 rounded-xl bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors">
+          Abort Interview
+        </button>
+      );
     case "interviewed":
       return (
         <div className="flex gap-2">
-          <button className="flex-1 py-2 rounded-xl border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium">Reject</button>
-          <button className="flex-1 py-2 rounded-xl bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10]">Hire Now</button>
+          <button className="flex-1 py-2 rounded-xl border border-red-300 text-red-500 text-xs hover:bg-red-50 font-medium transition-colors">Reject</button>
+          <button
+            onClick={() => onAction("hire", appId)}
+            disabled={!appId || isHiring}
+            className="flex-1 py-2 rounded-xl bg-[#F4781B] text-white text-xs font-semibold hover:bg-[#e06a10] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {isHiring ? "…" : "Hire Now"}
+          </button>
         </div>
       );
     case "hired":
-      return <button className="w-full py-2 rounded-xl border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50">View Schedule</button>;
+      return (
+        <button className="w-full py-2 rounded-xl border border-gray-200 text-xs text-[#F4781B] font-semibold hover:bg-orange-50 transition-colors">
+          View Schedule
+        </button>
+      );
     default:
       return null;
   }
 }
 
+// ── KanbanCard ────────────────────────────────────────────────────────────────
+
 function KanbanCard({
   candidate,
   colKey,
+  loadingId,
+  onAction,
 }: {
-  candidate: ReturnType<typeof toCandidate>;
-  colKey: TabKey;
+  candidate: Candidate;
+  colKey:    TabKey;
+  loadingId: string | null;
+  onAction:  (type: ActionType, applicationId: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 px-4 pb-2 flex flex-col gap-1 p-2" style={{ boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
+    <div
+      className="bg-white rounded-2xl border border-gray-100 px-4 pb-2 flex flex-col gap-1 p-2"
+      style={{ boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}
+    >
       <div className="flex items-center justify-between -mt-1">
         <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-1 py-px rounded-full border border-green-200 -mt-1">
           <span className={`w-1.5 h-1.5 rounded-full ${candidate.online ? "bg-green-500" : "bg-gray-400"}`} />
@@ -213,16 +294,14 @@ function KanbanCard({
           <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
             <span className="flex items-center gap-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                <rect x="2" y="7" width="20" height="14" rx="2" />
-                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
               </svg>
               {candidate.exp}
             </span>
             <span className="text-gray-300">|</span>
             <span className="flex items-center gap-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
               </svg>
               {candidate.distance}
             </span>
@@ -237,7 +316,12 @@ function KanbanCard({
         </div>
       </div>
 
-      <KanbanActionButtons tab={colKey} />
+      <KanbanActionButtons
+        tab={colKey}
+        candidate={candidate}
+        loadingId={loadingId}
+        onAction={onAction}
+      />
     </div>
   );
 }

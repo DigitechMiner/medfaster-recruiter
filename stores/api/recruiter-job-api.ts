@@ -157,9 +157,16 @@ export async function getCandidateDocumentUrl(
   const res = await axiosInstance.get(
     ENDPOINTS.CANDIDATE_DOCUMENT_SIGNED_URL(candidateId, documentId)
   );
-  return extractData(res.data);
+  const inner = extractData<{ candidate_id: string; document_id: string; file_url: string }>(res.data);
+  return { url: inner.file_url };  // ✅ map file_url → url
 }
-
+export async function inviteCandidateToJob(payload: {
+  job_id: string;
+  candidate_id: string;
+}) {
+  const res = await axiosInstance.post(ENDPOINTS.CANDIDATE_JOB_INVITE, payload);
+  return extractRoot(res.data);
+}
 // ── Re-exports ────────────────────────────────────────────────────────────────
 export type {
   CandidateListItem,

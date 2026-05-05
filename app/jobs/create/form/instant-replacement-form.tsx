@@ -30,7 +30,7 @@ const DEFAULT_INSTANT_FORM: InstantJobFormData = {
   department:        "",
   jobType:           "Full Time",
   location:          "",
-  payRange:          [0, 0],
+  payRange:          0,
   experience:        "",
   qualification:     [],
   specialization:    [],
@@ -75,7 +75,11 @@ function buildInitialInstantForm(snapshot: JobFormSnapshot | null): InstantJobFo
     neighborhoodName: (snapshot.neighborhoodName as string)           ?? DEFAULT_INSTANT_FORM.neighborhoodName,
     neighborhoodType: (snapshot.neighborhoodType as string)           ?? DEFAULT_INSTANT_FORM.neighborhoodType,
     directNumber:     (snapshot.directNumber     as string)           ?? DEFAULT_INSTANT_FORM.directNumber,
-    payRange:         (snapshot.payRange         as [number, number]) ?? DEFAULT_INSTANT_FORM.payRange,
+    payRange: (typeof snapshot.payRange === "number"
+  ? snapshot.payRange
+  : Array.isArray(snapshot.payRange)
+  ? (snapshot.payRange as number[])[1] ?? 0   // backward compat for old snapshots
+  : 0),
     responsibilities: (snapshot.responsibilities as string[])         ?? DEFAULT_INSTANT_FORM.responsibilities,
     required_skills:  (snapshot.required_skills  as string[])         ?? DEFAULT_INSTANT_FORM.required_skills,
     // ✅ amountPerHire intentionally excluded — always fetched fresh from backend
@@ -120,25 +124,25 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
     axiosInstance
       .get(ENDPOINTS.JOBS_FEES(formData.jobTitle))
       .then((res) => {
-  console.log("💰 JOBS_FEES raw response:", JSON.stringify(res.data, null, 2));
+        console.log("💰 JOBS_FEES raw response:", JSON.stringify(res.data, null, 2));
 
-  // ✅ Field is recruiter_pay_per_hour in dollars — convert to cents
-  const dollars: number =
-    res.data?.data?.recruiter_pay_per_hour ??
-    res.data?.recruiter_pay_per_hour ??
-    0;
+        // ✅ Field is recruiter_pay_per_hour in dollars — convert to cents
+        const dollars: number =
+          res.data?.data?.recruiter_pay_per_hour ??
+          res.data?.recruiter_pay_per_hour ??
+          0;
 
-  const cents = Math.round(dollars * 100);
+        const cents = Math.round(dollars * 100);
 
-  console.log("💰 cents extracted:", cents);
-  setPayRateCents(cents);
+        console.log("💰 cents extracted:", cents);
+        setPayRateCents(cents);
 
-  const currentSnapshot = useJobsStore.getState().formSnapshot;
-  setFormSnapshot({
-    ...(currentSnapshot ?? {}),
-    cachedPayRateCents: cents,
-  } as JobFormSnapshot);
-})
+        const currentSnapshot = useJobsStore.getState().formSnapshot;
+        setFormSnapshot({
+          ...(currentSnapshot ?? {}),
+          cachedPayRateCents: cents,
+        } as JobFormSnapshot);
+      })
       .catch(() => setPayRateError("Could not load pay rate for this role"))
       .finally(() => setPayRateLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,8 +190,9 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
       const [h2, m2] = outTime.split(":").map(Number);
       let diffMins = (h2 * 60 + m2) - (h1 * 60 + m1);
       if (diffMins < 0) diffMins += 24 * 60;
-      if (diffMins / 60 < 3 || diffMins / 60 > 12) {
-        setError("Shift duration must be between 3 and 12 hours");
+      // ✅ FIXED: changed from < 3 to < 4 — matches backend enforcement
+      if (diffMins / 60 < 4 || diffMins / 60 > 12) {
+        setError("Shift duration must be between 4 and 12 hours");
         return;
       }
     }
@@ -284,8 +289,6 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
         </div>
       )}
 
-   
-
       <JobForm
         mode="create"
         title="Request Immediate Staff"
@@ -294,19 +297,20 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
         onSubmit={handleSubmit}
         onBack={onBack}
         showBackButton={!!onBack}
-        showNextButton={!isSubmitting}
+        showNextButton={true}
+        isSubmitting={isSubmitting}
         nextLabel={isSubmitting ? "Submitting..." : "Submit Request"}
         hideRequirements={true}
         hideInterviewSettings={true}
         customSections={
-  <InstantJobFields
-    formData={formData}
-    updateFormData={updateFormData}
-    payRateCents={payRateCents}        // ✅ pass backend value
-    payRateLoading={payRateLoading}    // ✅ pass loading state
-    payRateError={payRateError}        // ✅ pass error state
-  />
-}
+          <InstantJobFields
+            formData={formData}
+            updateFormData={updateFormData}
+            payRateCents={payRateCents}
+            payRateLoading={payRateLoading}
+            payRateError={payRateError}
+          />
+        }
       />
     </>
   );

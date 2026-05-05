@@ -5,13 +5,13 @@ import metadata from "@/utils/constant/metadata";
 export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   jobTitle:         "Registered Nurse",
   department:       "Nursing",
-  jobType:          "Full Time",
+  jobType:          "Part Time",   // ✅ changed from "Full Time" — Full Time has no pay slider
   location:         "",
   streetAddress:    "",
   postalCode:       "",
-  province:         "",       // ✅ "" is valid — Province type includes ""
+  province:         "",
   city:             "",
-  payRange:         [metadata.pay_range.default_min, metadata.pay_range.default_max] as [number, number],
+  payRange:         15,            // ✅ changed from tuple to single number ($15 default)
   experience:       "2-3 Yrs",
   qualification:    [],
   specialization:   [],
@@ -20,8 +20,8 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   physicalInterview: "Yes",
   aiInterview:      true,
   description:      "",
-  responsibilities: [],       // ✅ was missing
-  required_skills:  [],       // ✅ was missing
+  responsibilities: [],
+  required_skills:  [],
   numberOfHires:    "1",
   fromDate:         undefined,
   tillDate:         undefined,

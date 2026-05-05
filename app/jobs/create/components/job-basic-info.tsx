@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { JobFormData } from "../../components/JobForm";
-import { DateRangePicker } from "../../components/date-range-picker"; // ✅ replaces CustomCalendar
+import { DateRangePicker } from "../../components/date-range-picker";
 import { CustomTimePicker } from "../../components/custom-time-picker";
 
 interface JobBasicInfoProps {
@@ -19,18 +19,17 @@ interface JobBasicInfoProps {
 }
 
 export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
-  const isInstant = formData.urgency === "instant";
+  const isInstant  = formData.urgency === "instant";
+  const isFullTime = formData.jobType === "Full Time" || formData.jobType === "full_time";
 
   const { departments, jobTitlesForDepartment, loading } = useMetadataStore();
   const jobTitles = jobTitlesForDepartment(formData.department ?? "");
 
   const today = new Date();
-  const fromMinDate = today;
 
-  // ✅ One boolean — both buttons open the same DateRangePicker
-  const [showCalendar, setShowCalendar]               = useState(false);
-  const [showFromTimePicker, setShowFromTimePicker]   = useState(false);
-  const [showToTimePicker, setShowToTimePicker]       = useState(false);
+  const [showCalendar, setShowCalendar]             = useState(false);
+  const [showFromTimePicker, setShowFromTimePicker] = useState(false);
+  const [showToTimePicker, setShowToTimePicker]     = useState(false);
 
   const formatDate = (date?: Date | string) => {
     if (!date) return "MM/DD/YYYY";
@@ -56,7 +55,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
     <>
       <div className="space-y-6 mb-6">
 
-        {/* Row 1: Department & Job Title — unchanged */}
+        {/* Row 1: Department & Job Title */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="department" className="text-sm font-medium text-gray-700">
@@ -95,7 +94,7 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
         </div>
 
-        {/* Row 2: Normal job only — unchanged */}
+        {/* Row 2: Normal job only */}
         {!isInstant && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -128,7 +127,10 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
                         id={type.toLowerCase().replace(" ", "-")}
                         className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
                       />
-                      <Label htmlFor={type.toLowerCase().replace(" ", "-")} className="font-normal cursor-pointer text-sm text-gray-700">
+                      <Label
+                        htmlFor={type.toLowerCase().replace(" ", "-")}
+                        className="font-normal cursor-pointer text-sm text-gray-700"
+                      >
                         {type === "Full Time" ? "Full-Time" : type}
                       </Label>
                     </div>
@@ -155,7 +157,10 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
                         id={`interview-${opt.toLowerCase()}`}
                         className="border-[#F4781B] text-white data-[state=checked]:bg-[#F4781B] data-[state=checked]:border-[#F4781B]"
                       />
-                      <Label htmlFor={`interview-${opt.toLowerCase()}`} className="font-normal cursor-pointer text-sm text-gray-700">
+                      <Label
+                        htmlFor={`interview-${opt.toLowerCase()}`}
+                        className="font-normal cursor-pointer text-sm text-gray-700"
+                      >
                         {opt}
                       </Label>
                     </div>
@@ -166,38 +171,52 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
           </div>
         )}
 
-        {/* Row 3: Dates — same layout, both buttons open single DateRangePicker */}
+        {/* Row 3: Dates */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
               {isInstant ? "Shift Start Date" : "Job Start Date"} <span className="text-red-500">*</span>
             </Label>
-            <button type="button" onClick={() => setShowCalendar(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
+            <button
+              type="button"
+              onClick={() => setShowCalendar(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
               <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
               <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
-              {isInstant ? "Shift End Date" : "Job End Date"} <span className="text-red-500">*</span>
+              {isInstant
+                ? "Shift End Date"
+                : isFullTime
+                ? "Job End Date (Optional)"
+                : "Job End Date"}{" "}
+              {!isFullTime && <span className="text-red-500">*</span>}
             </Label>
-            <button type="button" onClick={() => setShowCalendar(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
+            <button
+              type="button"
+              onClick={() => setShowCalendar(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
               <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
               <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
           </div>
         </div>
 
-        {/* Row 4: Times — unchanged */}
+        {/* Row 4: Times */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
               {isInstant ? "Shift Check-In Time" : "Job Check-In Time"} <span className="text-red-500">*</span>
             </Label>
-            <button type="button" onClick={() => setShowFromTimePicker(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
+            <button
+              type="button"
+              onClick={() => setShowFromTimePicker(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
               <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
               <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
@@ -206,8 +225,11 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
             <Label className="text-sm font-medium text-gray-700">
               {isInstant ? "Shift Check-Out Time" : "Job Check-Out Time"} <span className="text-red-500">*</span>
             </Label>
-            <button type="button" onClick={() => setShowToTimePicker(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left">
+            <button
+              type="button"
+              onClick={() => setShowToTimePicker(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 border border-gray-300 rounded-md text-sm h-11 hover:bg-gray-50 bg-white text-left"
+            >
               <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
               <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
@@ -216,13 +238,13 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
 
       </div>
 
-      {/* ✅ Single DateRangePicker modal — both date buttons open this */}
+      {/* Modals */}
       {showCalendar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <DateRangePicker
             fromDate={formData.fromDate}
             tillDate={formData.tillDate}
-            minDate={fromMinDate}
+            minDate={today}
             onChange={(from, till) => updateFormData({ fromDate: from, tillDate: till })}
             onCancel={() => setShowCalendar(false)}
             onSchedule={() => setShowCalendar(false)}
@@ -232,14 +254,23 @@ export function JobBasicInfo({ formData, updateFormData }: JobBasicInfoProps) {
 
       {showFromTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <CustomTimePicker selectedTime={formData.fromTime} onSelect={(time) => updateFormData({ fromTime: time })}
-            onCancel={() => setShowFromTimePicker(false)} onSelectTime={() => setShowFromTimePicker(false)} />
+          <CustomTimePicker
+            selectedTime={formData.fromTime}
+            onSelect={(time) => updateFormData({ fromTime: time })}
+            onCancel={() => setShowFromTimePicker(false)}
+            onSelectTime={() => setShowFromTimePicker(false)}
+          />
         </div>
       )}
+
       {showToTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <CustomTimePicker selectedTime={formData.toTime} onSelect={(time) => updateFormData({ toTime: time })}
-            onCancel={() => setShowToTimePicker(false)} onSelectTime={() => setShowToTimePicker(false)} />
+          <CustomTimePicker
+            selectedTime={formData.toTime}
+            onSelect={(time) => updateFormData({ toTime: time })}
+            onCancel={() => setShowToTimePicker(false)}
+            onSelectTime={() => setShowToTimePicker(false)}
+          />
         </div>
       )}
     </>

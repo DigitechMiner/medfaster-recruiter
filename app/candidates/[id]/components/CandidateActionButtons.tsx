@@ -1,13 +1,12 @@
 'use client';
 
-import { Download }    from "lucide-react";
+import { Download } from "lucide-react";
 import type { ActionType, CandidateDetailProfile } from '@/Interface/recruiter.types';
-  // ← single import
 
 interface Props {
   c:          CandidateDetailProfile;
   actionType: ActionType;
-  onAction:   (c: CandidateDetailProfile) => void;
+  onAction:   (c: CandidateDetailProfile, overrideAction?: ActionType) => void;
 }
 
 export function CandidateActionButtons({ c, actionType, onAction }: Props) {
@@ -23,14 +22,19 @@ export function CandidateActionButtons({ c, actionType, onAction }: Props) {
   return (
     <div className="flex gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
       {exportBtn}
+
       {actionType === "hire" && (
         c.is_ai_recommended ? (
           <>
-            <button className="flex-1 border border-orange-200 text-orange-600 hover:bg-orange-50 text-xs font-medium py-1.5 rounded-lg flex items-center justify-center transition-colors">
+            {/* ✅ Shortlist opens modal with "shortlist" action, not "hire" */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onAction(c, "shortlist"); }}
+              className="flex-1 border border-orange-200 text-orange-600 hover:bg-orange-50 text-xs font-medium py-1.5 rounded-lg flex items-center justify-center transition-colors"
+            >
               Shortlist
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); onAction(c); }}
+              onClick={(e) => { e.stopPropagation(); onAction(c, "hire"); }}
               className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center transition-colors"
             >
               Direct Hire
@@ -38,32 +42,35 @@ export function CandidateActionButtons({ c, actionType, onAction }: Props) {
           </>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); onAction(c); }}
+            onClick={(e) => { e.stopPropagation(); onAction(c, "hire"); }}
             className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center transition-colors"
           >
             Hire Instantly
           </button>
         )
       )}
+
       {actionType === "schedule" && (
         <button
-          onClick={(e) => { e.stopPropagation(); onAction(c); }}
+          onClick={(e) => { e.stopPropagation(); onAction(c, "schedule"); }}
           className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center transition-colors"
         >
           Schedule Interview
         </button>
       )}
+
       {actionType === "invite" && (
         <button
-          onClick={(e) => { e.stopPropagation(); onAction(c); }}
+          onClick={(e) => { e.stopPropagation(); onAction(c, "invite"); }}
           className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center transition-colors"
         >
           Invite for Job
         </button>
       )}
+
       {actionType === "shortlist" && (
         <button
-          onClick={(e) => { e.stopPropagation(); onAction(c); }}
+          onClick={(e) => { e.stopPropagation(); onAction(c, "shortlist"); }}
           className="flex-1 bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center transition-colors"
         >
           Shortlist
