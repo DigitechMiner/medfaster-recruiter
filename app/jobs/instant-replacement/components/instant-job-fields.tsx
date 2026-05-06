@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { provinces } from "@/utils/constant/metadata";
 import { useMetadataStore } from "@/stores/metadataStore";
 import type { InstantJobFormData, Province } from "@/Interface/recruiter.types";
 
@@ -42,7 +41,7 @@ export function InstantJobFields({
   payRateLoading = false,
   payRateError   = null,
 }: InstantJobFieldsProps) {
-  const { jobTitles, jobTitlesForDepartment } = useMetadataStore();
+  const { jobTitles, jobTitlesForDepartment, provinceOptions } = useMetadataStore();
 
   const deptTitles         = jobTitlesForDepartment(formData.department ?? "");
   const allTitles          = deptTitles.length ? deptTitles : jobTitles;
@@ -204,7 +203,7 @@ export function InstantJobFields({
               <SelectValue placeholder="Select Province" />
             </SelectTrigger>
             <SelectContent>
-              {provinces.map((p) => (
+              {provinceOptions.map((p) => (
                 <SelectItem key={p.value} value={p.value}>
                   {p.label}
                 </SelectItem>

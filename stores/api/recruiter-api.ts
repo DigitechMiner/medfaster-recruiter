@@ -61,6 +61,19 @@ export interface UpdateProfileResponse {
   };
 }
 
+export interface RecruiterDocumentViewResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    document_id?: string;
+    document_type?: string;
+    file_url?: string;
+    view_url?: string;
+    url?: string;
+    signed_url?: string;
+  };
+}
+
 const multipartHeaders = { headers: { "Content-Type": "multipart/form-data" } } as const;
 
 // ============================================================================
@@ -95,6 +108,13 @@ export async function registerRecruiterStep(
     `${ENDPOINTS.RECRUITER_REGISTER}?step=${step}`,
     formData,
     multipartHeaders
+  );
+  return res.data;
+}
+
+export async function viewRecruiterDocument(id: string): Promise<RecruiterDocumentViewResponse> {
+  const res = await axiosInstance.get<RecruiterDocumentViewResponse>(
+    ENDPOINTS.RECRUITER_DOCUMENT_VIEW(id)
   );
   return res.data;
 }

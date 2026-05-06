@@ -8,6 +8,7 @@ export const ENDPOINTS = {
   RECRUITER_PROFILE:              '/recruiter/profile',
   RECRUITER_PROFILE_UPDATE:       '/recruiter/profile',
   RECRUITER_REGISTER:             '/recruiter/register',
+  RECRUITER_DOCUMENT_VIEW:        (id: string) => `/recruiter/documents/${id}/view`,
 
   // ── Jobs ───────────────────────────────────────────────────────────────────
   JOBS_LIST:                      '/recruiter/jobs',

@@ -2,19 +2,21 @@
 
 import { useEffect } from "react";
 import { useWalletStore, fmtBalance } from "@/stores/walletStore";
+import { useAuthStore } from "@/stores/authStore";
 
 export function WalletBalance() {
   const wallet    = useWalletStore((s) => s.wallet);
   const isLoading = useWalletStore((s) => s.isLoading);
   const hasError  = useWalletStore((s) => s.hasError);
+  const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
 
   useEffect(() => {
-    // ✅ Cookie-based auth — no token check needed.
-    // If the session is expired the API returns 401 → hasError=true → stops retrying.
+    // Call wallet API only after profile has been loaded successfully.
+    if (!recruiterProfile) return;
     if (wallet === null && !isLoading && !hasError) {
       useWalletStore.getState().refreshWallet();
     }
-  }, [wallet, isLoading, hasError]);
+  }, [recruiterProfile, wallet, isLoading, hasError]);
 
   if (hasError) {
     return (

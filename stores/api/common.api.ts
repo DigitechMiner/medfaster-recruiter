@@ -12,12 +12,44 @@ export interface Department extends MetadataOption {
   jobTitles?: MetadataOption[];
 }
 
+export interface MetadataValueOption {
+  id: number | string;
+  label: string;
+  value: string;
+  [key: string]: unknown;
+}
+
+export interface MetadataDocumentOption {
+  id?: number | string;
+  type: string;
+  label: string;
+  sides: number;
+  personal_dropdown: boolean;
+  unique: boolean;
+  countries_allowed: string[];
+  isRequired: boolean;
+}
+
 export interface AppMetadata {
-  gender:           string[];
-  jobTypes:         string[];
-  specialization:   string[];
-  work_eligibility: string[];
-  shiftTypes:       string[];
+  gender?: MetadataValueOption[];
+  job_types?: MetadataValueOption[];
+  work_experience_employment_types?: MetadataValueOption[];
+  countryList?: MetadataValueOption[];
+  social_media_platforms?: MetadataValueOption[];
+  organisation_type?: MetadataValueOption[];
+  location_options?: MetadataValueOption[];
+  canadian_provinces?: MetadataValueOption[];
+  work_eligibility?: MetadataValueOption[];
+  shift_types?: MetadataValueOption[];
+  interview_types?: MetadataValueOption[];
+  candidateCommonRequiredIdentityDocument?: MetadataDocumentOption[];
+  nonCanadianCandidateDocument?: MetadataDocumentOption[];
+  professionalCertificates?: MetadataDocumentOption[];
+
+  // legacy keys kept optional for backward compatibility
+  jobTypes?: MetadataValueOption[];
+  shiftTypes?: MetadataValueOption[];
+  specialization?: MetadataValueOption[];
 }
 
 export interface RegisterFcmPayload {

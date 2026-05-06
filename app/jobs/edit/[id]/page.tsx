@@ -288,7 +288,6 @@ export default function EditJobPage() {
       }
     } catch (err) {
       const error = err as Error;
-      console.error("Error updating job:", error);
       setSubmitError(error.message || "An error occurred while updating the job");
     } finally {
       setIsSubmitting(false);

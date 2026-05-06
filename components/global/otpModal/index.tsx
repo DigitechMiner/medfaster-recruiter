@@ -25,6 +25,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
     sendOtp,
     verifyOtp,
     otpSending,
+    otpVerifying,
     otpError,
     setOtpError,
   } = useAuthStore();
@@ -124,6 +125,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
       countryCode={countryCode}
       otp={otp}
       otpSending={otpSending}
+      otpVerifying={otpVerifying}
       otpError={otpError}
       onOtpChange={handleOtpChange}
       onOtpKeyDown={handleOtpKeyDown}

@@ -90,6 +90,7 @@ export default function FileUpload({
 
   const iconClass = iconSize === "small" ? "w-5 h-5 sm:w-6 sm:h-6" : "w-6 h-6 sm:w-8 sm:h-8";
   const paddingClass = iconSize === "small" ? "p-4 sm:p-6" : "p-6 sm:p-8";
+  const minHeightClass = iconSize === "small" ? "min-h-[126px]" : "min-h-[148px]";
 
   return (
     <FormField
@@ -100,14 +101,14 @@ export default function FileUpload({
         const selectedFile = value as File | null; // ✅ driven by RHF, not useState
 
         return (
-          <FormItem>
+          <FormItem className="w-full min-w-0">
             <FormLabel className="text-sm font-medium text-gray-700">
               {label} {required && <span className="text-[#F4781B]">*</span>}
             </FormLabel>
             <FormControl>
-              <div>
+              <div className="w-full max-w-full min-w-0">
                 <div
-                  className={`border-2 border-dashed rounded-lg ${paddingClass} text-center transition-colors cursor-pointer ${
+                  className={`w-full max-w-full min-w-0 border-2 border-dashed rounded-lg ${paddingClass} ${minHeightClass} overflow-hidden text-center transition-colors cursor-pointer ${
                     error ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-gray-300"
                   }`}
                   onDragOver={handleDragOver}
@@ -116,13 +117,18 @@ export default function FileUpload({
                 >
                   {selectedFile ? (
                     <div
-                      className="flex items-center justify-between"
+                      className="flex h-full min-h-[76px] items-center justify-between gap-3 min-w-0 overflow-hidden"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center gap-2">
-                        <Upload className="w-5 h-5 text-green-600" />
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Upload className="w-5 h-5 text-green-600 shrink-0" />
+                        <div className="text-left min-w-0 flex-1">
+                          <p
+                            className="block w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-gray-900"
+                            title={selectedFile.name}
+                          >
+                            {selectedFile.name}
+                          </p>
                           <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
                         </div>
                       </div>
@@ -132,7 +138,7 @@ export default function FileUpload({
                           e.stopPropagation();
                           handleRemove(onChange);
                         }}
-                        className="text-gray-400 hover:text-red-600"
+                        className="text-gray-400 hover:text-red-600 shrink-0"
                       >
                         <X className="w-5 h-5" />
                       </button>

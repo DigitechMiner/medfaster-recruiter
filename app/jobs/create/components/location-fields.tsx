@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { JobFormData, Province } from "@/Interface/recruiter.types";
-import { provinces } from "@/utils/constant/metadata"; // ✅ ADD
+import { useMetadataStore } from "@/stores/metadataStore";
 
 interface LocationFieldsProps {
   formData: JobFormData;
@@ -18,6 +18,7 @@ interface LocationFieldsProps {
 }
 
 export function LocationFields({ formData, updateFormData }: LocationFieldsProps) {
+  const provinceOptions = useMetadataStore((state) => state.provinceOptions);
   return (
     <div className="space-y-6 mb-6">
       {/* Street Address & Postal Code */}
@@ -68,7 +69,7 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
         <SelectValue placeholder="Select Province" />
       </SelectTrigger>
       <SelectContent>
-        {provinces.map((p) => (
+        {provinceOptions.map((p) => (
           <SelectItem key={p.value} value={p.value}>
             {p.label}
           </SelectItem>

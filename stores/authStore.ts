@@ -25,6 +25,7 @@ interface OtpCredential {
 interface AuthState {
   otpCredential: OtpCredential | null;
   otpSending: boolean;
+  otpVerifying: boolean;
   otpError: string | null;
   recruiterProfile: RecruiterProfile | null;
   recruiterDocuments: RecruiterDocument[] | null;
@@ -72,6 +73,7 @@ export type AuthStore = AuthState & AuthActions;
 const initialState: AuthState = {
   otpCredential: null,
   otpSending: false,
+  otpVerifying: false,
   otpError: null,
   recruiterProfile: null,
   recruiterDocuments: null,
@@ -162,6 +164,7 @@ export const useAuthStore = create<AuthStore>()(
         if (!otpCredential) {
           return { ok: false, message: 'OTP session expired. Please resend the code.' };
         }
+        set({ otpVerifying: true });
         try {
           let target = otpCredential.target;
           const countryCode = otpCredential.countryCode ?? '1';
@@ -204,6 +207,8 @@ export const useAuthStore = create<AuthStore>()(
           return { ok: true, message: res.data.message || 'Login successful' };
         } catch (error: unknown) {
           return { ok: false, message: getErrorMessage(error, 'Invalid OTP') };
+        } finally {
+          set({ otpVerifying: false });
         }
       },
 
@@ -226,9 +231,8 @@ export const useAuthStore = create<AuthStore>()(
             recruiterDocuments: res.data.data.documents,
           });
         } catch (error: unknown) {
-          const parsedError = asApiError(error);
           set({ recruiterProfile: null, recruiterDocuments: null });
-          console.error('loadRecruiterProfile error:', parsedError.response?.data || error);
+          console.log(error);
         }
       },
 
@@ -276,8 +280,7 @@ export const useAuthStore = create<AuthStore>()(
       logout: async () => {
         try {
           await axiosInstance.post(ENDPOINTS.RECRUITER_LOGOUT);
-        } catch (error) {
-          console.error('Logout error:', error);
+        } catch {
         } finally {
           // ✅ Clear the Authorization header on logout
           delete axiosInstance.defaults.headers.common['Authorization'];

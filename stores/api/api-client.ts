@@ -24,7 +24,6 @@ axiosInstance.interceptors.response.use(
       (error.response?.data as { message?: string })?.message ||
       error.message ||
       `HTTP ${error.response?.status || 'Unknown'}`;
-    console.error(`API Error [${error.config?.url}]:`, message); // ✅ console.error
     return Promise.reject(new Error(message));
   }
 );
@@ -41,7 +40,7 @@ export async function apiRequest<T = any>(
     return response.data;
   } catch (error) {
     const err = error as Error;
-    console.error(`API Error [${endpoint}]:`, err.message); // ✅ console.error
+    console.log(err);
     throw err;
   }
 }

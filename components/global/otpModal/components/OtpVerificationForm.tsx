@@ -10,6 +10,7 @@ interface OtpVerificationFormProps {
   countryCode?: string;        // ✅ ADDED
   otp: string[];
   otpSending: boolean;
+  otpVerifying: boolean;
   otpError: string | null;
   onOtpChange: (index: number, value: string) => void;
   onOtpKeyDown: (index: number, e: React.KeyboardEvent) => void;
@@ -22,6 +23,7 @@ export default function OtpVerificationForm({
   countryCode = '+1',          // ✅ Default Canada
   otp,
   otpSending,
+  otpVerifying,
   otpError,
   onOtpChange,
   onOtpKeyDown,
@@ -190,7 +192,7 @@ export default function OtpVerificationForm({
               onChange={(e) => handleInputChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
-              disabled={otpSending}
+              disabled={otpSending || otpVerifying}
               className="w-16 h-16 text-center text-2xl font-bold border-2 border-[#F4781B] rounded-lg focus:outline-none focus:border-[3px] focus:border-[#F4781B] text-[#F4781B] disabled:opacity-50"
             />
           ))}
@@ -205,13 +207,13 @@ export default function OtpVerificationForm({
         <CustomButton
           type="submit"
           className="w-full justify-center py-3 text-base font-semibold"
-          disabled={otpSending}
+          disabled={otpSending || otpVerifying}
         >
-          {otpSending ? (
-            <>
+          {otpVerifying ? (
+            <span className="inline-flex items-center whitespace-nowrap">
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
               Verifying...
-            </>
+            </span>
           ) : (
             "Sign In"
           )}

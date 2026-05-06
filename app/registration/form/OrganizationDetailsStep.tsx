@@ -1,106 +1,146 @@
 "use client";
 
+import { useEffect } from "react";
+import { useFormContext } from "react-hook-form";
 import FileUpload from "../components/FileUpload";
 import FormInput from "../components/FormInput";
 import FormSelect from "../components/FormSelect";
-import { provinces, orgTypes } from "@/utils/constant/metadata";
+import { useMetadataStore } from "@/stores/metadataStore";
+
+const DEFAULT_ROW_CLASS = "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4";
+const FIRST_ROW_CLASS = "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5";
+
+type BaseField = {
+  name: string;
+  label: string;
+  required?: boolean;
+};
+
+type InputField = BaseField & {
+  type: "input";
+  typeInput?: string;
+};
+
+type SelectField = BaseField & {
+  type: "select";
+  placeholder?: string;
+  options: { label: string; value: string }[];
+};
+
+type StandardField = InputField | SelectField;
+
+const standardRows: StandardField[][] = [
+  [
+    { type: "input", name: "orgName", label: "Organization / Company Name", required: true },
+    { type: "input", name: "registeredBusinessName", label: "Registered Business Name", required: true },
+  ],
+  [
+    {
+      type: "select",
+      name: "orgType",
+      label: "Organization Type",
+      required: true,
+      placeholder: "Select type",
+      options: [],
+    },
+    { type: "input", name: "email", label: "Official Email Address", typeInput: "email" },
+  ],
+  [
+    { type: "input", name: "website", label: "Organisation Website" },
+    { type: "input", name: "contactNumber", label: "Contact Number (landline or mobile)" },
+  ],
+  [
+    { type: "input", name: "businessNumber", label: "Canadian Business Number", required: true },
+    { type: "input", name: "gstNo", label: "GST No", required: true },
+  ],
+  [
+    { type: "input", name: "address", label: "Street Address" },
+    { type: "input", name: "postalCode", label: "Postal Code", required: true },
+  ],
+] as const;
 
 export default function OrganizationDetailsStep() {
+  const { setValue, getValues } = useFormContext();
+  const organizationTypeOptions = useMetadataStore((state) => state.organizationTypeOptions);
+  const provinceOptions = useMetadataStore((state) => state.provinceOptions);
+
+  const orgTypeSelectOptions = organizationTypeOptions.map((item) => ({
+    label: item.label,
+    value: item.value,
+  }));
+  const provinceSelectOptions = provinceOptions.map((item) => ({
+    label: item.label,
+    value: item.value,
+  }));
+
+  useEffect(() => {
+    if (!getValues("country")) {
+      setValue("country", "Canada", { shouldDirty: false, shouldValidate: false });
+    }
+  }, [getValues, setValue]);
+
   return (
     <>
-      <div className="mb-6">
-        <FileUpload
-          name="organization_photo"
-          label="Upload Organization Photo"
-          fileType="photo"
-          accept="image/*"
-          description="Supports images, max 5MB per file."
-          required
-        />
+      <div className="mb-6 flex justify-center">
+        <div className="w-full max-w-xl">
+          <FileUpload
+            name="organization_photo"
+            label="Upload Organization Logo"
+            fileType="photo"
+            accept="image/*"
+            description="Supports images, max 5MB per file."
+          />
+        </div>
       </div>
 
-      {/* Row 1: 3 columns - Org Name, Registered Business Name, Org Type */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-        <FormInput
-          name="orgName"
-          label="Organization / Company Name"
-          required
-        />
-        <FormInput
-          name="registeredBusinessName"
-          label="Registered Business Name"
-        />
-        <FormSelect
-          name="orgType"
-          label="Organization Type"
-          options={orgTypes}
-          required
-          placeholder="Select type"
-        />
-      </div>
+      {standardRows.map((row, rowIndex) => (
+        <div key={`row-${rowIndex}`} className={rowIndex === 0 ? FIRST_ROW_CLASS : DEFAULT_ROW_CLASS}>
+          {row.map((field) =>
+            field.type === "select" ? (
+              <FormSelect
+                key={field.name}
+                name={field.name}
+                label={field.label}
+                options={field.name === "orgType" ? orgTypeSelectOptions : field.options}
+                required={field.required}
+                placeholder={field.placeholder}
+              />
+            ) : (
+              <FormInput
+                key={field.name}
+                name={field.name}
+                label={field.label}
+                required={field.required}
+                type={field.typeInput}
+              />
+            )
+          )}
+        </div>
+      ))}
 
-      {/* Row 2: 2 columns - Email, Contact Number */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
-        <FormInput
-          name="email"
-          label="Official Email Address"
-          type="email"
-        />
-        <FormInput
-          name="contactNumber"
-          label="Contact Number (landline or mobile)"
-        />
-      </div>
-
-      {/* Row 3: 3 columns - Website, Business Number, GST No */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-4">
-        <FormInput
-          name="website"
-          label="Organisation Website"
-        />
-        <FormInput
-          name="businessNumber"
-          label="Canadian Business Number"
-          required
-        />
-        <FormInput
-          name="gstNo"
-          label="GST No"
-          required
-        />
-      </div>
-
-      {/* Row 4: 2 columns - Street Address, Postal Code */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
-        <FormInput
-          name="address"
-          label="Street Address"
-        />
-        <FormInput
-          name="postalCode"
-          label="Postal Code"
-          required
-        />
-      </div>
-
-      {/* Row 5: 3 columns - Province, City, Country */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-4">
+      {/* Row 6: Province (wide) / City / Country */}
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-5 mt-4">
         <FormSelect
           name="province"
           label="Province"
-          options={provinces}
+          options={provinceSelectOptions}
           required
           placeholder="Select Province"
+          wrapperClassName="sm:col-span-6"
         />
         <FormInput
           name="city"
           label="City"
           required
+          wrapperClassName="sm:col-span-3"
         />
         <FormInput
           name="country"
           label="Country"
           required
+          value="Canada"
+          wrapperClassName="sm:col-span-3"
+          readOnly
         />
       </div>
     </>

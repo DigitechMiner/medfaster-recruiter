@@ -23,53 +23,6 @@ import LoginModal from "@/components/global/otpModal";
 type FormValues = (typeof allDefaultValues)[number];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Province camelCase map (API requires camelCase, UI stores snake_case or abbrev)
-// ─────────────────────────────────────────────────────────────────────────────
-const PROVINCE_MAP: Record<string, string> = {
-  alberta:                    "alberta",
-  AB:                         "alberta",
-  britishcolumbia:            "britishColumbia",
-  british_columbia:           "britishColumbia",
-  BC:                         "britishColumbia",
-  manitoba:                   "manitoba",
-  MB:                         "manitoba",
-  newbrunswick:               "newBrunswick",
-  new_brunswick:              "newBrunswick",
-  NB:                         "newBrunswick",
-  newfoundlandandlabrador:    "newfoundlandAndLabrador",
-  newfoundland_and_labrador:  "newfoundlandAndLabrador",
-  NL:                         "newfoundlandAndLabrador",
-  novascotia:                 "novaScotia",
-  nova_scotia:                "novaScotia",
-  NS:                         "novaScotia",
-  northwestterritories:       "northwestTerritories",
-  northwest_territories:      "northwestTerritories",
-  NT:                         "northwestTerritories",
-  nunavut:                    "nunavut",
-  NU:                         "nunavut",
-  ontario:                    "ontario",
-  ON:                         "ontario",
-  princeedwardisland:         "princeEdwardIsland",
-  prince_edward_island:       "princeEdwardIsland",
-  PE:                         "princeEdwardIsland",
-  quebec:                     "quebec",
-  QC:                         "quebec",
-  saskatchewan:               "saskatchewan",
-  SK:                         "saskatchewan",
-  yukon:                      "yukon",
-  YT:                         "yukon",
-};
-
-function toApiProvince(value: string): string {
-  if (!value) return value;
-  return (
-    PROVINCE_MAP[value] ??
-    PROVINCE_MAP[value.toLowerCase().replace(/\s/g, "")] ??
-    value
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 function SmartFormInner() {
   const router = useRouter();
@@ -82,6 +35,7 @@ function SmartFormInner() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingStepSubmission, setPendingStepSubmission] = useState<0 | 1 | 2 | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const registerStep   = useAuthStore((s) => s.registerStep);
@@ -138,14 +92,34 @@ function SmartFormInner() {
     }
 
     methods.clearErrors();
-    setCompletedSteps((prev) => new Set(prev).add(step));
     return true;
   };
 
-  const goToNextStep = async () => {
+  const submitAndProceedCurrentStep = async () => {
     const isValid = await validateCurrentStep();
     if (!isValid) return;
-    if (step < steps.length - 1) saveAndGoToStep(step + 1);
+    allStepData.current[step] = methods.getValues();
+    const currentStep = step as 0 | 1 | 2;
+
+    if (!recruiterProfile) {
+      setPendingStepSubmission(currentStep);
+      setShowLoginModal(true);
+      return;
+    }
+
+    const result = await submitCurrentStep(currentStep);
+    if (!result.ok) {
+      goToStep(currentStep);
+      return;
+    }
+
+    if (currentStep < steps.length - 1) {
+      saveAndGoToStep(currentStep + 1);
+      return;
+    }
+
+    toast.success("Profile registered successfully!");
+    router.push("/");
   };
 
   const goToPrevStep = () => {
@@ -171,94 +145,77 @@ function SmartFormInner() {
     saveAndGoToStep(newStep);
   };
 
-  // ── Core submission ────────────────────────────────────────────────────────
-  const submitForm = async () => {
+  const buildStepPayload = (stepIndex: 0 | 1 | 2): FormData => {
+    if (stepIndex === 0) {
+      const s0 = allStepData.current[0] as OrgDetailsType;
+      const step1 = new FormData();
+      step1.append("organization_name", s0.orgName ?? "");
+      step1.append("registered_business_name", s0.registeredBusinessName ?? "");
+      step1.append("organization_type", s0.orgType ?? "");
+      step1.append("official_email_address", s0.email ?? "");
+      step1.append("contact_number", s0.contactNumber ?? "");
+      step1.append("canadian_business_number", s0.businessNumber ?? "");
+      step1.append("gst_no", s0.gstNo ?? "");
+      step1.append("street_address", s0.address ?? "");
+      step1.append("postal_code", s0.postalCode ?? "");
+      step1.append("province", s0.province ?? "");
+      step1.append("city", s0.city ?? "");
+      step1.append("country", s0.country ?? "");
+      if (s0?.website) step1.append("organization_website", s0.website);
+      if (s0?.organization_photo instanceof File) {
+        step1.append("organization_photo", s0.organization_photo);
+      }
+      return step1;
+    }
+
+    if (stepIndex === 1) {
+      const s1 = allStepData.current[1] as ContactType;
+      const step2 = new FormData();
+      step2.append("contact_person_name", s1.contactName ?? "");
+      step2.append("contact_person_designation", s1.designation ?? "");
+      step2.append("contact_person_email", s1.contactEmail ?? "");
+      step2.append("contact_person_phone", s1.primaryContact ?? "");
+      return step2;
+    }
+
+    const s2 = allStepData.current[2] as ComplianceType;
+    const step3 = new FormData();
+    if (s2?.business_registration_certificate instanceof File) {
+      step3.append("business_registration_certificate", s2.business_registration_certificate);
+    }
+    if (s2?.operating_license instanceof File) {
+      step3.append("operating_license", s2.operating_license);
+    }
+    if (s2?.certificate instanceof File) {
+      step3.append("certificate", s2.certificate);
+    }
+    return step3;
+  };
+
+  const submitCurrentStep = async (
+    stepIndex: 0 | 1 | 2
+  ): Promise<{ ok: boolean }> => {
     setIsSubmitting(true);
     try {
-      const s0 = allStepData.current[0] as OrgDetailsType;
-      const s1 = allStepData.current[1] as ContactType;
-      const s2 = allStepData.current[2] as ComplianceType;
+      const payload = buildStepPayload(stepIndex);
 
-      // ── STEP 1: org & address + optional photo ──────────────────────────
-      const step1 = new FormData();
-
-      // Required text fields
-      step1.append("organization_name",           s0.orgName ?? "");
-      step1.append("registered_business_name",    s0.registeredBusinessName ?? "");
-      step1.append("organization_type",           s0.orgType ?? "");
-      step1.append("official_email_address",      s0.email ?? "");
-      step1.append("contact_number",              s0.contactNumber ?? "");
-      step1.append("canadian_business_number",    s0.businessNumber ?? "");
-      step1.append("gst_no",                      s0.gstNo ?? "");
-      step1.append("street_address",              s0.address ?? "");
-      step1.append("postal_code",                 s0.postalCode ?? "");
-      step1.append("province",                    toApiProvince(s0.province ?? ""));
-      step1.append("city",                        s0.city ?? "");
-      step1.append("country",                     s0.country ?? "");
-
-      // Optional text fields
-      if (s0?.website) step1.append("organization_website", s0.website);
-
-      // Optional file — ONLY organization_photo allowed at step 1
-      if (s0?.organization_photo instanceof File)
-        step1.append("organization_photo", s0.organization_photo);
-
-      const r1 = await registerStep(step1, 1);
-      if (!r1.ok) {
-        toast.error(r1.message || "Step 1 failed");
-        goToStep(0); // send user back to fix errors
-        return;
-      }
-
-      // ── STEP 2: contact person — NO files allowed ───────────────────────
-      const step2 = new FormData();
-
-      step2.append("contact_person_name",        s1.contactName ?? "");
-      step2.append("contact_person_designation", s1.designation ?? "");
-      step2.append("contact_person_email",       s1.contactEmail ?? "");
-      step2.append("contact_person_phone",       s1.primaryContact ?? "");
-
-      const r2 = await registerStep(step2, 2);
-      if (!r2.ok) {
-        toast.error(r2.message || "Step 2 failed");
-        goToStep(1);
-        return;
-      }
-
-      // ── STEP 3: documents ONLY — no text fields allowed ─────────────────
-      // Required: business_registration_certificate
-      // Optional: operating_license, certificate
-      const step3 = new FormData();
-
-      if (s2?.business_registration_certificate instanceof File)
-        step3.append("business_registration_certificate", s2.business_registration_certificate);
-      if (s2?.operating_license instanceof File)
-        step3.append("operating_license", s2.operating_license);
-      if (s2?.certificate instanceof File)
-        step3.append("certificate", s2.certificate);
-
-      // Guard: business_registration_certificate is required at step 3
-      if (!step3.has("business_registration_certificate")) {
+      if (stepIndex === 2 && !payload.has("business_registration_certificate")) {
         toast.error("Business Registration Certificate is required.");
-        goToStep(2);
-        return;
+        return { ok: false };
       }
 
-      const r3 = await registerStep(step3, 3);
-      if (!r3.ok) {
-        toast.error(r3.message || "Step 3 failed");
-        goToStep(2);
-        return;
+      const apiStep = (stepIndex + 1) as 1 | 2 | 3;
+      const response = await registerStep(payload, apiStep);
+      if (!response.ok) {
+        toast.error(response.message || `Step ${apiStep} failed`);
+        return { ok: false };
       }
 
-      // ── All 3 steps done ────────────────────────────────────────────────
-      toast.success("Profile registered successfully!");
-      router.push("/");
-    } catch (error: unknown) {
-      console.error("Submission error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to submit form"
-      );
+      setCompletedSteps((prev) => new Set(prev).add(stepIndex));
+      return { ok: true };
+    } catch {
+      toast.error("Failed to submit form");
+      return { ok: false };
     } finally {
       setIsSubmitting(false);
     }
@@ -266,20 +223,7 @@ function SmartFormInner() {
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    const isValid = await validateCurrentStep();
-    if (!isValid) return;
-
-    // Save current step data before submitting
-    allStepData.current[step] = methods.getValues();
-
-    // If not logged in, show OTP modal first, then submit after auth
-    if (!recruiterProfile) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    await submitForm();
+    await submitAndProceedCurrentStep();
   };
 
   const renderStepContent = () => {
@@ -299,7 +243,22 @@ function SmartFormInner() {
         onClose={() => setShowLoginModal(false)}
         onSuccess={async () => {
           setShowLoginModal(false);
-          await submitForm();
+          const stepToSubmit = pendingStepSubmission ?? (step as 0 | 1 | 2);
+          setPendingStepSubmission(null);
+
+          const result = await submitCurrentStep(stepToSubmit);
+          if (!result.ok) {
+            goToStep(stepToSubmit);
+            return;
+          }
+
+          if (stepToSubmit < steps.length - 1) {
+            saveAndGoToStep(stepToSubmit + 1);
+            return;
+          }
+
+          toast.success("Profile registered successfully!");
+          router.push("/");
         }}
       />
 
@@ -319,18 +278,14 @@ function SmartFormInner() {
                   currentStep={step}
                   totalSteps={steps.length}
                   onPrev={goToPrevStep}
-                  onNext={goToNextStep}
+                  onNext={submitAndProceedCurrentStep}
                 />
               </div>
 
               <FormProvider {...methods}>
                 <form
                   className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl border border-gray-200"
-                  onSubmit={
-                    step < steps.length - 1
-                      ? (e) => { e.preventDefault(); goToNextStep(); }
-                      : onSubmit
-                  }
+                  onSubmit={onSubmit}
                   encType="multipart/form-data"
                   noValidate
                 >

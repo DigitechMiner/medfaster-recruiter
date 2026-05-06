@@ -7,16 +7,22 @@ import {
   MetadataOption,
   Department,
   AppMetadata,
+  MetadataValueOption,
 } from "@/stores/api/common.api";
 
 interface MetadataStore {
   departments:            Department[];
   jobTitles:              MetadataOption[];
   specializations:        MetadataOption[];
-  genderOptions:          string[];
-  jobTypeOptions:         string[];
-  workEligibilityOptions: string[];
-  shiftTypeOptions:       string[];
+  metadata:               AppMetadata | null;
+  metadataVersion:        string | null;
+  genderOptions:          MetadataValueOption[];
+  jobTypeOptions:         MetadataValueOption[];
+  workEligibilityOptions: MetadataValueOption[];
+  shiftTypeOptions:       MetadataValueOption[];
+  organizationTypeOptions: MetadataValueOption[];
+  provinceOptions:        MetadataValueOption[];
+  countryOptions:         MetadataValueOption[];
   loaded:                 boolean;
   loading:                boolean;
   loadAll:                () => Promise<void>;
@@ -27,10 +33,15 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
   departments:            [],
   jobTitles:              [],
   specializations:        [],
+  metadata:               null,
+  metadataVersion:        null,
   genderOptions:          [],
   jobTypeOptions:         [],
   workEligibilityOptions: [],
   shiftTypeOptions:       [],
+  organizationTypeOptions: [],
+  provinceOptions:        [],
+  countryOptions:         [],
   loaded:  false,
   loading: false,
 
@@ -45,26 +56,25 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
         fetchAppMetadata(),
       ]);
 
-      const meta: AppMetadata = metaRes.data ?? {
-        gender:           [],
-        jobTypes:         [],
-        specialization:   [],
-        work_eligibility: [],
-        shiftTypes:       [],
-      };
+      const meta: AppMetadata = metaRes.data ?? {};
 
       set({
         departments,
         jobTitles,
         specializations,
-        genderOptions:          meta.gender,
-        jobTypeOptions:         meta.jobTypes,
-        workEligibilityOptions: meta.work_eligibility,
-        shiftTypeOptions:       meta.shiftTypes,
+        metadata:               meta,
+        metadataVersion:        metaRes.version ?? null,
+        genderOptions:          meta.gender ?? [],
+        jobTypeOptions:         meta.job_types ?? meta.jobTypes ?? [],
+        workEligibilityOptions: meta.work_eligibility ?? [],
+        shiftTypeOptions:       meta.shift_types ?? meta.shiftTypes ?? [],
+        organizationTypeOptions: meta.organisation_type ?? [],
+        provinceOptions:        meta.canadian_provinces ?? [],
+        countryOptions:         meta.countryList ?? [],
         loaded: true,
       });
     } catch (e) {
-      console.error("[metadataStore] loadAll failed:", e);
+      console.log("[metadataStore] loadAll failed:", e);
     } finally {
       set({ loading: false });
     }

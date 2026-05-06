@@ -90,7 +90,7 @@ function CreateJobContent() {
     }
     return { success: res.success, message: res.message, jobId: res.data?.id };
   } catch (err) {
-    console.error("❌ onSubmit error:", err);
+    console.log(err);
     return {
       success: false,
       message: (err as Error).message ?? "Failed. Please try again.",

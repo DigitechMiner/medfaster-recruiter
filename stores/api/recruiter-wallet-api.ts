@@ -1,20 +1,8 @@
 import { axiosInstance } from './api-client';
 import { ENDPOINTS }     from './api-endpoints';
+import type { RecruiterWallet } from '@/Interface/recruiter.types';
 
-export interface WalletData {
-  id:                  string;
-  user_id:             string;
-  platform:            'RECRUITER';
-  currency:            'CAD';
-  is_active:           boolean;
-  wallet_lock_reason:  string | null;
-  available_balance:   string;
-  held_balance:        string;
-  pending_balance:     string;
-  balance_version:     number;
-  created_at:          string;
-  updated_at:          string;
-}
+export type WalletData = RecruiterWallet;
 
 export interface WalletTopupInitResponse {
   client_secret:            string;

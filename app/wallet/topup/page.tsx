@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams }             from 'next/navigation';
 import { loadStripe }                             from '@stripe/stripe-js';
 import {
   Elements, PaymentElement,
   useStripe, useElements,
 } from '@stripe/react-stripe-js';
-import { getWallet, initiateWalletTopup }         from '@/stores/api/recruiter-wallet-api';
+import { initiateWalletTopup }                     from '@/stores/api/recruiter-wallet-api';
+import { useWallet }                               from '@/hooks/useWallet';
 import { Minus, Plus, Wallet, AlertCircle }        from 'lucide-react';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -271,19 +272,15 @@ function PaymentForm({
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 function TopupPageContent() {
   const router = useRouter();
+  const { wallet, balanceCAD, isLoading } = useWallet();
 
-  const [availableBalance,  setAvailableBalance]  = useState<number | null>(null);
   const [step,              setStep]              = useState<'pick' | 'pay'>('pick');
   const [clientSecret,      setClientSecret]      = useState<string | null>(null);
   const [topupId,           setTopupId]           = useState<string | null>(null);
   const [selectedAmount,    setSelectedAmount]    = useState<number>(0);
   const [isProceedLoading,  setIsProceedLoading]  = useState(false); // ← lifted from AmountPicker
 
-  useEffect(() => {
-    getWallet()
-      .then((w) => setAvailableBalance(Number(w.available_balance) / 100))
-      .catch(() => {});
-  }, []);
+  const availableBalance = wallet ? balanceCAD : isLoading ? null : 0;
 
   const handleProceed = async (amount: number) => {
     setIsProceedLoading(true);

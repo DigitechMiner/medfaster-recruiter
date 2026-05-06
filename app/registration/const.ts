@@ -55,7 +55,7 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
     postalCode: "",
     city: "",
     province: "",
-    country: "",
+    country: "Canada",
   },
   {
     primaryContact: "",

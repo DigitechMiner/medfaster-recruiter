@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -11,27 +11,28 @@ import { FormInput, FormSelect } from "../registration/components";
 import { Button } from "@/components/ui/button";
 
 import { useAuthStore } from "@/stores/authStore";
+import { useMetadataStore } from "@/stores/metadataStore";
 import { complianceFields, orgSchema, type OrgDetailsType } from "../registration/const";
 import { getBackendImageUrl } from "@/stores/api/api-client";
-import type { RecruiterDocument, RecruiterProfile } from "@/stores/api/recruiter-api";
+import {
+  viewRecruiterDocument,
+  type RecruiterDocument,
+  type RecruiterProfile,
+} from "@/stores/api/recruiter-api";
 
 import {
-  orgTypes,
-  provinces,
-  convertOrganizationTypeToFrontend,
-  convertOrganizationTypeToBackend,
   convertProvinceToFrontend,
-  convertProvinceToBackend,
 } from "@/utils/constant/metadata";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function profileToOrgForm(profile: RecruiterProfile): OrgDetailsType {
+  const mappedProvince = convertProvinceToFrontend(profile.province);
   return {
     organization_photo:     null,
     orgName:                profile.organization_name        ?? "",
     registeredBusinessName: profile.registered_business_name ?? "",
-    orgType:                convertOrganizationTypeToFrontend(profile.organization_type),
+    orgType:                profile.organization_type        ?? "",
     email:                  profile.official_email_address   ?? "",
     website:                profile.organization_website     ?? "",
     contactNumber:          profile.contact_number           ?? "",
@@ -39,37 +40,71 @@ function profileToOrgForm(profile: RecruiterProfile): OrgDetailsType {
     gstNo:                  profile.gst_no                   ?? "",
     address:                profile.street_address           ?? "",
     postalCode:             profile.postal_code              ?? "",
-    province:               convertProvinceToFrontend(profile.province) ?? "",
+    province:               mappedProvince ?? profile.province ?? "",
     city:                   profile.city                     ?? "",
     country:                profile.country                  ?? "",
   };
 }
 
-function buildOrgFormData(data: OrgDetailsType): FormData {
+const normalizeValue = (value?: string | null) =>
+  (value ?? "").toLowerCase().replace(/[\s_-]/g, "");
+
+const findMatchingOptionValue = (
+  currentValue: string,
+  options: Array<{ label: string; value: string }>
+) => {
+  const normalizedCurrent = normalizeValue(currentValue);
+  const matched = options.find((option) => {
+    const normalizedOptionValue = normalizeValue(option.value);
+    const normalizedOptionLabel = normalizeValue(option.label);
+    return (
+      normalizedOptionValue === normalizedCurrent ||
+      normalizedOptionLabel === normalizedCurrent ||
+      normalizedOptionLabel.includes(normalizedCurrent) ||
+      normalizedCurrent.includes(normalizedOptionLabel) ||
+      normalizedOptionValue.includes(normalizedCurrent) ||
+      normalizedCurrent.includes(normalizedOptionValue)
+    );
+  });
+  return matched?.value;
+};
+
+function buildOrgFormData(
+  data: OrgDetailsType,
+  dirtyFields: Partial<Record<keyof OrgDetailsType, boolean>>
+): FormData {
   const fd = new FormData();
-  fd.append("organization_name",        data.orgName);
-  fd.append("registered_business_name", data.registeredBusinessName ?? "");
-  fd.append("organization_type",        convertOrganizationTypeToBackend(data.orgType));
-  fd.append("official_email_address",   data.email);
-  fd.append("contact_number",           data.contactNumber);
-  fd.append("organization_website",     data.website);
-  fd.append("canadian_business_number", data.businessNumber);
-  fd.append("gst_no",                   data.gstNo ?? "");
-  fd.append("street_address",           data.address);
-  fd.append("postal_code",              data.postalCode);
-  fd.append("province",                 convertProvinceToBackend(data.province) ?? "");
-  fd.append("city",                     data.city);
-  fd.append("country",                  data.country);
-  if (data.organization_photo instanceof File) {
+
+  const appendIfDirty = (formKey: keyof OrgDetailsType, apiKey: string, value: string) => {
+    if (dirtyFields[formKey]) {
+      fd.append(apiKey, value);
+    }
+  };
+
+  appendIfDirty("orgName", "organization_name", data.orgName);
+  appendIfDirty("registeredBusinessName", "registered_business_name", data.registeredBusinessName ?? "");
+  appendIfDirty("orgType", "organization_type", data.orgType ?? "");
+  appendIfDirty("email", "official_email_address", data.email);
+  appendIfDirty("contactNumber", "contact_number", data.contactNumber);
+  appendIfDirty("website", "organization_website", data.website);
+  appendIfDirty("businessNumber", "canadian_business_number", data.businessNumber);
+  appendIfDirty("gstNo", "gst_no", data.gstNo ?? "");
+  appendIfDirty("address", "street_address", data.address);
+  appendIfDirty("postalCode", "postal_code", data.postalCode);
+  appendIfDirty("province", "province", data.province ?? "");
+  appendIfDirty("city", "city", data.city);
+  appendIfDirty("country", "country", data.country);
+
+  if (dirtyFields.organization_photo && data.organization_photo instanceof File) {
     fd.append("organization_photo", data.organization_photo);
   }
+
   return fd;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function OrganizationPage() {
-  const [isLoading, setIsLoading]             = useState(true);
   const [orgPhotoUrl, setOrgPhotoUrl]         = useState<string | null>(null);
   const [documents, setDocuments]             = useState<RecruiterDocument[]>([]); // ✅ typed
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -80,7 +115,14 @@ export default function OrganizationPage() {
   const docInputRef  = useRef<HTMLInputElement>(null);
 
   // ✅ Use store actions — not raw API calls
-  const { loadRecruiterProfile, updateProfile } = useAuthStore();
+  const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
+  const recruiterDocuments = useAuthStore((state) => state.recruiterDocuments);
+  const updateProfile = useAuthStore((state) => state.updateProfile);
+  const organizationTypeOptions = useMetadataStore((state) => state.organizationTypeOptions);
+  const provinceOptions = useMetadataStore((state) => state.provinceOptions);
+  const metadataLoaded = useMetadataStore((state) => state.loaded);
+  const isPageLoading = !metadataLoaded || !recruiterProfile;
+  const fieldClassName = "h-10 text-sm";
 
   const methods = useForm<OrgDetailsType>({
     resolver: zodResolver(orgSchema),
@@ -93,31 +135,93 @@ export default function OrganizationPage() {
   });
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        await loadRecruiterProfile();
-        const { recruiterProfile, recruiterDocuments } = useAuthStore.getState();
+    if (!recruiterProfile) return;
+    methods.reset(profileToOrgForm(recruiterProfile));
+    if (recruiterProfile.organization_photo_url) {
+      setOrgPhotoUrl(getBackendImageUrl(recruiterProfile.organization_photo_url));
+    }
+  }, [recruiterProfile, methods]);
 
-        if (recruiterProfile) {
-          methods.reset(profileToOrgForm(recruiterProfile));
-          if (recruiterProfile.organization_photo_url) {
-            setOrgPhotoUrl(getBackendImageUrl(recruiterProfile.organization_photo_url));
-          }
-        }
-        if (recruiterDocuments) setDocuments(recruiterDocuments);
-      } catch {
-        toast.error("Failed to load organization data");
-      } finally {
-        setIsLoading(false);
+  const organizationTypeSelectOptions = useMemo(
+    () => organizationTypeOptions.map((item) => ({ label: item.label, value: item.value })),
+    [organizationTypeOptions]
+  );
+
+  const provinceSelectOptions = useMemo(
+    () => provinceOptions.map((item) => ({ label: item.label, value: item.value })),
+    [provinceOptions]
+  );
+
+  useEffect(() => {
+    if (!metadataLoaded || !recruiterProfile) return;
+
+    const profileOrgType = recruiterProfile.organization_type ?? methods.getValues("orgType");
+    if (profileOrgType && organizationTypeSelectOptions.length > 0) {
+      const matchedOrgTypeValue = findMatchingOptionValue(profileOrgType, organizationTypeSelectOptions);
+      if (matchedOrgTypeValue) {
+        methods.setValue("orgType", matchedOrgTypeValue, { shouldDirty: false, shouldTouch: false });
       }
-    };
-    load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }
+
+    const profileProvinceRaw = recruiterProfile.province ?? methods.getValues("province");
+    if (profileProvinceRaw && provinceSelectOptions.length > 0) {
+      const matchedProvinceValue =
+        findMatchingOptionValue(profileProvinceRaw, provinceSelectOptions) ??
+        findMatchingOptionValue(convertProvinceToFrontend(profileProvinceRaw) ?? "", provinceSelectOptions);
+      if (matchedProvinceValue) {
+        methods.setValue("province", matchedProvinceValue, { shouldDirty: false, shouldTouch: false });
+      }
+    }
+  }, [metadataLoaded, recruiterProfile, organizationTypeSelectOptions, provinceSelectOptions, methods]);
+
+  useEffect(() => {
+    setDocuments(recruiterDocuments ?? []);
+  }, [recruiterDocuments]);
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f7f5] p-6 font-sans animate-pulse">
+        <div className="mx-auto space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-6">
+            <div className="h-7 w-64 bg-gray-200 rounded mb-8" />
+            <div className="flex flex-col items-center mb-10">
+              <div className="h-5 w-36 bg-gray-200 rounded mb-3" />
+              <div className="border border-dashed border-gray-300 rounded-lg p-6 w-full max-w-sm">
+                <div className="h-20 w-full bg-gray-200 rounded mb-4" />
+                <div className="h-4 w-40 mx-auto bg-gray-200 rounded" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              {Array.from({ length: 13 }).map((_, index) => (
+                <div key={index} className={index === 12 ? "md:col-start-2" : ""}>
+                  <div className="h-4 w-40 bg-gray-200 rounded mb-2" />
+                  <div className="h-10 w-full bg-gray-100 rounded-md border border-gray-200" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="h-7 w-72 bg-gray-200 rounded mb-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="h-4 w-40 bg-gray-200 rounded mb-3" />
+                  <div className="h-14 w-full bg-gray-100 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Submit org text fields ─────────────────────────────────────────────────
   const onSubmit = async (data: OrgDetailsType) => {
     try {
-      const res = await updateProfile(buildOrgFormData(data)); // ✅ store action
+      const dirtyFields = methods.formState.dirtyFields as Partial<Record<keyof OrgDetailsType, boolean>>;
+      const payload = buildOrgFormData(data, dirtyFields);
+      const res = await updateProfile(payload); // ✅ send only changed fields
       if (res.ok) {
         toast.success("Organization details updated successfully!");
         methods.reset(data);
@@ -128,6 +232,25 @@ export default function OrganizationPage() {
       }
     } catch {
       toast.error("An error occurred while updating organization");
+    }
+  };
+
+  const handleViewDocument = async (doc: RecruiterDocument) => {
+    try {
+      const res = await viewRecruiterDocument(doc.id);
+      const viewUrl =
+        res.data?.file_url ??
+        res.data?.view_url ??
+        res.data?.url ??
+        res.data?.signed_url ??
+        doc.file_url;
+      if (!viewUrl) {
+        toast.error("Document URL is not available");
+        return;
+      }
+      window.open(viewUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to view document");
     }
   };
 
@@ -199,16 +322,6 @@ export default function OrganizationPage() {
     e.target.value = "";
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#f8f7f5]">
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <p className="text-gray-500 text-sm animate-pulse">Loading organization...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#f8f7f5]">
       <div className="p-6 font-sans">
@@ -248,20 +361,32 @@ export default function OrganizationPage() {
 
                 {/* Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                  <FormInput  name="orgName"                label="Organization / Company Name"         required />
-                  <FormInput  name="registeredBusinessName" label="Registered Business Name" />
-                  <FormSelect name="orgType"                label="Organization Type"                   options={orgTypes}    required />
-                  <FormInput  name="email"                  label="Official Email Address"              type="email" />
-                  <FormInput  name="website"                label="Organisation Website" />
-                  <FormInput  name="contactNumber"          label="Contact Number (landline or mobile)" required />
-                  <FormInput  name="businessNumber"         label="Canadian Business Number"            required />
-                  <FormInput  name="gstNo"                  label="GST No" />
-                  <FormInput  name="address"                label="Street Address"                      required />
-                  <FormInput  name="postalCode"             label="Postal Code"                         required />
-                  <FormSelect name="province"               label="Province"                            options={provinces}   required />
-                  <FormInput  name="city"                   label="City"                                required />
+                  <FormInput  name="orgName"                label="Organization / Company Name"         required className={fieldClassName} />
+                  <FormInput  name="registeredBusinessName" label="Registered Business Name" className={fieldClassName} />
+                  <FormSelect
+                    name="orgType"
+                    label="Organization Type"
+                    options={organizationTypeSelectOptions}
+                    required
+                    className={fieldClassName}
+                  />
+                  <FormInput  name="email"                  label="Official Email Address"              type="email" className={fieldClassName} />
+                  <FormInput  name="website"                label="Organisation Website" className={fieldClassName} />
+                  <FormInput  name="contactNumber"          label="Contact Number (landline or mobile)" required className={fieldClassName} />
+                  <FormInput  name="businessNumber"         label="Canadian Business Number"            required className={fieldClassName} />
+                  <FormInput  name="gstNo"                  label="GST No" className={fieldClassName} />
+                  <FormInput  name="address"                label="Street Address"                      required className={fieldClassName} />
+                  <FormInput  name="postalCode"             label="Postal Code"                         required className={fieldClassName} />
+                  <FormSelect
+                    name="province"
+                    label="Province"
+                    options={provinceSelectOptions}
+                    required
+                    className={fieldClassName}
+                  />
+                  <FormInput  name="city"                   label="City"                                required className={fieldClassName} />
                   <div className="md:col-start-2">
-                    <FormInput name="country" label="Country" required />
+                    <FormInput name="country" label="Country" required className={fieldClassName} />
                   </div>
                 </div>
 
@@ -311,13 +436,7 @@ export default function OrganizationPage() {
                             {/* ✅ file_url — already a full presigned S3 URL */}
                             <button
                               type="button"
-                              onClick={() => {
-                                if (!doc.file_url) {
-                                  toast.error("Document URL is not available");
-                                  return;
-                                }
-                                window.open(doc.file_url, "_blank", "noopener,noreferrer");
-                              }}
+                              onClick={() => void handleViewDocument(doc)}
                               className="text-green-600 flex items-center gap-1 hover:underline"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

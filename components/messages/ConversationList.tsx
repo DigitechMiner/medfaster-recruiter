@@ -30,7 +30,7 @@ export const ConversationList = ({
   );
 
   return (
-    <div className="w-[300px] flex-shrink-0 bg-white flex flex-col border-r border-gray-100 overflow-hidden">
+    <div className="w-[300px] h-full min-h-0 flex-shrink-0 bg-white flex flex-col border-r border-gray-100 overflow-hidden">
 
       {/* Header */}
       <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">

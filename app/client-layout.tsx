@@ -8,12 +8,12 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";      // ←
 import GoogleOAuthProviderWrapper from "@/provider/GoogleOAuthProvider";
 import { ToastContainer } from "react-toastify";
 import { useAuthStore } from "@/stores/authStore";
-import { useSidebarStore } from "@/stores/sidebarStore";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { Navbar } from "@/components/global/navbar";
 import { Footer } from "@/components/global/footer";
 
 const NO_NAVBAR_ROUTES = ["/registration", "/login", "/coming-soon"];
+const NO_SIDEBAR_ROUTES = ["/messages"];
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(                                        // ← add
@@ -27,33 +27,64 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       },
     })
   );
+  const [isProfileResolving, setIsProfileResolving] = useState(true);
 
   const loadRecruiterProfile = useAuthStore((state) => state.loadRecruiterProfile);
-  const isExpanded           = useSidebarStore((s) => s.isExpanded);
   const loadAll              = useMetadataStore((s) => s.loadAll);
   const pathname             = usePathname();
   const showChrome           = !NO_NAVBAR_ROUTES.includes(pathname);
+  const showSidebar          = !NO_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
 
   useEffect(() => {
-    Promise.all([
-      loadRecruiterProfile().catch((error) => {
+    let isMounted = true;
+
+    const bootstrap = async () => {
+      await loadRecruiterProfile().catch((error) => {
         useAuthStore.setState({ recruiterProfile: null, recruiterDocuments: null });
         console.log("User not authenticated:", error);
-      }),
-      loadAll(),
-    ]);
+      });
+
+      if (isMounted) {
+        setIsProfileResolving(false);
+      }
+
+      // Metadata can keep loading in parallel after profile has resolved.
+      void loadAll();
+    };
+
+    void bootstrap();
+
+    return () => {
+      isMounted = false;
+    };
   }, [loadRecruiterProfile, loadAll]);
+
+  if (isProfileResolving) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <GoogleOAuthProviderWrapper>
+          <div className="min-h-screen w-full flex items-center justify-center bg-[#F7F5F1]">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 rounded-full border-2 border-[#F4781B] border-t-transparent animate-spin" />
+              <p className="text-sm text-gray-500">Loading...</p>
+            </div>
+          </div>
+        </GoogleOAuthProviderWrapper>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>                           {/* ← wrap */}
       <GoogleOAuthProviderWrapper>
         {showChrome && <Navbar />}
         <div
           className={`transition-all duration-300 ease-in-out flex flex-col min-h-screen ${
-            showChrome ? `pt-16 ${isExpanded ? "ml-64" : "ml-[72px]"}` : ""
+            showChrome ? `pt-16 ${showSidebar ? "md:ml-64" : ""}` : ""
           }`}
         >
           <main className="flex-1">{children}</main>
-          {showChrome && <Footer />}
+          {showChrome && showSidebar && <Footer />}
         </div>
       </GoogleOAuthProviderWrapper>
 

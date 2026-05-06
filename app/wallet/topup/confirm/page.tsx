@@ -52,7 +52,7 @@ function TopupForm({ amount, topupId }: { amount: string; topupId: string }) {
       <div className="mb-6">
         <PaymentElement
   onLoadError={(event) => {
-    console.error("PaymentElement load error:", event.error);
+    console.log(event);
     // Redirect back to topup page so a fresh PI is created
     router.replace('/wallet/topup?error=payment_load_failed');
   }}

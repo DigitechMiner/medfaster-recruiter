@@ -20,7 +20,6 @@ export function useInterview(interviewId: string | null) {
         const data = await getInterviewById(interviewId);
         setInterview(data);
       } catch (err: any) {
-        console.error('Error fetching interview:', err);
         setError(err.response?.data?.message || 'Failed to fetch interview');
       } finally {
         setIsLoading(false);
@@ -52,7 +51,6 @@ export function useCandidateInterviews(candidateId: string | null) {
         const data = await getCandidateInterviews(candidateId);
         setInterviews(data);
       } catch (err: any) {
-        console.error('Error fetching candidate interviews:', err);
         setError(err.response?.data?.message || 'Failed to fetch interviews');
       } finally {
         setIsLoading(false);

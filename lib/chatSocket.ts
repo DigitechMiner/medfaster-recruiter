@@ -28,7 +28,6 @@ export const initRecruiterChatSocket = (): Promise<Socket | null> => {
       });
 
       socket.on('connect_error', (err) => {
-        console.error('❌ Socket error:', err.message);
         initPromise = null;
         recruiterSocket = null;
         resolve(null);
@@ -39,8 +38,7 @@ export const initRecruiterChatSocket = (): Promise<Socket | null> => {
         initPromise = null;
       });
 
-    } catch (error) {
-      console.error('Socket init failed:', error);
+    } catch {
       initPromise = null;
       recruiterSocket = null;
       resolve(null);

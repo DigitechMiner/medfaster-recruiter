@@ -16,6 +16,7 @@ interface FormSelectProps {
   required?: boolean;
   placeholder?: string;
   className?: string;
+  wrapperClassName?: string;
 }
 
 export default function FormSelect({
@@ -25,6 +26,7 @@ export default function FormSelect({
   required = false,
   placeholder = "Select...",
   className = "",
+  wrapperClassName = "",
 }: FormSelectProps) {
   const methods = useFormContext();
 
@@ -33,7 +35,7 @@ export default function FormSelect({
       control={methods.control}
       name={name}
       render={({ field }) => (
-        <FormItem>
+        <FormItem className={wrapperClassName}>
           <FormLabel className="text-sm font-medium text-gray-700">
             {label} {required && <span className="text-[#F4781B]">*</span>}
           </FormLabel>

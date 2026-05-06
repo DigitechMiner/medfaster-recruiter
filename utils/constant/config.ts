@@ -12,7 +12,7 @@ const config = {
   // OTP & AUTHENTICATION
   // ============================================================================
   otp: {
-    resend_timer_seconds: 120,        // 2 minutes
+    resend_timer_seconds: 60,        // 1 minutes
     expiry_seconds: 600,              // 10 minutes
     default_country_code: "1",        // USA/Canada
     phone_min_length: 5,

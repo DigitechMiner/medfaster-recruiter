@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { JobsAllPage } from '@/app/jobs/all/components/JobsAllPage';
 import { useJobsStore } from '@/stores/jobs-store';
 
@@ -49,11 +49,11 @@ interface StatCounts {
 }
 
 export const JobsDashboard: React.FC = () => {
+  const router = useRouter();
   const [counts, setCounts] = useState<StatCounts>({
     regular: 0, urgent: 0, noShow: 0, active: 0,
   });
   const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
-  const [search, setSearch] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -103,25 +103,25 @@ export const JobsDashboard: React.FC = () => {
     <div className="flex flex-col gap-6">
 
       {/* Top Bar */}
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold text-gray-900 whitespace-nowrap">Jobs</h1>
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search"
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
-          />
-        </div>
-        <div className="relative">
-          <select className="appearance-none border border-gray-200 rounded-lg pl-4 pr-9 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer font-medium">
-            <option>This Month</option>
-            <option>This Week</option>
-            <option>Today</option>
-          </select>
-          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900">Jobs</h1>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.push('/jobs/instant-replacement')}
+            className="px-4 py-2.5 rounded-lg border border-[#F4781B] text-[#F4781B] text-sm font-semibold bg-white hover:bg-orange-50 transition-colors inline-flex items-center gap-2"
+          >
+            <span className="text-xl leading-none font-bold">+</span>
+            <span>Instant Job</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/jobs/create')}
+            className="px-4 py-2.5 rounded-lg bg-[#F4781B] text-white text-sm font-semibold hover:bg-[#df6c16] transition-colors inline-flex items-center gap-2"
+          >
+            <span className="text-xl leading-none font-bold">+</span>
+            <span>Normal Job</span>
+          </button>
         </div>
       </div>
 
@@ -181,7 +181,6 @@ export const JobsDashboard: React.FC = () => {
       <JobsAllPage
         filterStatus={activeFilter?.status}
         filterUrgency={activeFilter?.job_urgency}
-        search={search}
       />
     </div>
   );

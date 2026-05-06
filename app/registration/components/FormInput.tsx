@@ -12,6 +12,9 @@ interface FormInputProps {
   type?: string;
   className?: string;
   wrapperClassName?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  value?: string;
 }
 
 export default function FormInput({
@@ -22,6 +25,9 @@ export default function FormInput({
   type = "text",
   className = "",
   wrapperClassName = "",
+  disabled = false,
+  readOnly = false,
+  value,
 }: FormInputProps) {
   const methods = useFormContext();
 
@@ -37,9 +43,11 @@ export default function FormInput({
           <FormControl>
             <Input
               {...field}
-              value={field.value ?? ""}
+              value={value ?? field.value ?? ""}
               type={type}
               placeholder={placeholder}
+              disabled={disabled}
+              readOnly={readOnly}
               className={`mt-1 ${className}`}
             />
           </FormControl>
