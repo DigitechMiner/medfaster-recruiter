@@ -452,23 +452,6 @@ export function convertQualificationToFrontend(backendValue: string | null | und
 // ============================================================================
 
 /**
- * Convert frontend snake_case province value → camelCase backend value
- * Used in ALL create/update payloads before sending to API
- *
- * "new_brunswick"             → "newBrunswick"
- * "newfoundland_and_labrador" → "newfoundlandAndLabrador"
- * "prince_edward_island"      → "princeEdwardIsland"
- * Already camelCase values pass through unchanged
- */
-export function convertProvinceToBackend(frontendValue: string | null | undefined): string | null {
-  if (!frontendValue) return null;
-  // Already a valid camelCase backend value — pass through
-  if (PROVINCE_BACKEND_TO_VALUE[frontendValue]) return frontendValue;
-  // Map from snake_case frontend value
-  return PROVINCE_VALUE_TO_BACKEND[frontendValue] ?? frontendValue;
-}
-
-/**
  * Convert camelCase backend province value → snake_case frontend value
  * Used when populating form from API response
  *
@@ -488,28 +471,6 @@ export function convertProvinceToFrontend(backendValue: string | null | undefine
 // ============================================================================
 // OTHER HELPERS
 // ============================================================================
-
-export const orgTypes = [
-  { value: "hospital",       label: "Hospital" },
-  { value: "nursing_home",   label: "Continuing Care Facility" },
-  { value: "clinic",         label: "Medical Clinic" },
-  { value: "medical_center", label: "Community Health Care Center" },
-  { value: "other",          label: "Other" },
-];
-
-export function extractProvinceCode(provinceDisplay: string): string {
-  const match = provinceDisplay.match(/\(([A-Z]{2})\)/);
-  if (match) return match[1];
-  if (provinceDisplay.length === 2 && /^[A-Z]{2}$/.test(provinceDisplay)) return provinceDisplay;
-  const found = provinces.find(
-    (p) => provinceDisplay.includes(p.label) || provinceDisplay === p.value
-  );
-  return found?.value ?? "ON";
-}
-
-export function getJobTypeLabels(): string[] {
-  return [...metadata.job_type];
-}
 
 // ============================================================================
 // FILE VALIDATION HELPERS

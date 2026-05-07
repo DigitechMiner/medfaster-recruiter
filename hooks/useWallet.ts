@@ -8,15 +8,13 @@ export function useWallet() {
   const wallet     = useWalletStore((s) => s.wallet);
   const isLoading  = useWalletStore((s) => s.isLoading);
   const refresh    = useWalletStore((s) => s.refreshWallet);
+  const ensureWalletLoaded = useWalletStore((s) => s.ensureWalletLoaded);
   const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
 
   useEffect(() => {
     if (!recruiterProfile) return;
-    // Only fetch if not already loaded and profile is authenticated
-    if (!wallet && !isLoading) {
-      refresh();
-    }
-  }, [recruiterProfile, wallet, isLoading, refresh]);
+    ensureWalletLoaded();
+  }, [recruiterProfile, ensureWalletLoaded]);
 
   const balanceCAD = wallet ? Number(wallet.available_balance) / 100 : 0;
 

@@ -11,38 +11,38 @@ import {
 } from "@/stores/api/common.api";
 
 interface MetadataStore {
-  departments:            Department[];
-  jobTitles:              MetadataOption[];
-  specializations:        MetadataOption[];
-  metadata:               AppMetadata | null;
-  metadataVersion:        string | null;
-  genderOptions:          MetadataValueOption[];
-  jobTypeOptions:         MetadataValueOption[];
+  departments: Department[];
+  jobTitles: MetadataOption[];
+  specializations: MetadataOption[];
+  metadata: AppMetadata | null;
+  metadataVersion: string | null;
+  genderOptions: MetadataValueOption[];
+  jobTypeOptions: MetadataValueOption[];
   workEligibilityOptions: MetadataValueOption[];
-  shiftTypeOptions:       MetadataValueOption[];
+  shiftTypeOptions: MetadataValueOption[];
   organizationTypeOptions: MetadataValueOption[];
-  provinceOptions:        MetadataValueOption[];
-  countryOptions:         MetadataValueOption[];
-  loaded:                 boolean;
-  loading:                boolean;
-  loadAll:                () => Promise<void>;
+  provinceOptions: MetadataValueOption[];
+  countryOptions: MetadataValueOption[];
+  loaded: boolean;
+  loading: boolean;
+  loadAll: () => Promise<void>;
   jobTitlesForDepartment: (departmentValue: string) => MetadataOption[];
 }
 
 export const useMetadataStore = create<MetadataStore>((set, get) => ({
-  departments:            [],
-  jobTitles:              [],
-  specializations:        [],
-  metadata:               null,
-  metadataVersion:        null,
-  genderOptions:          [],
-  jobTypeOptions:         [],
+  departments: [],
+  jobTitles: [],
+  specializations: [],
+  metadata: null,
+  metadataVersion: null,
+  genderOptions: [],
+  jobTypeOptions: [],
   workEligibilityOptions: [],
-  shiftTypeOptions:       [],
+  shiftTypeOptions: [],
   organizationTypeOptions: [],
-  provinceOptions:        [],
-  countryOptions:         [],
-  loaded:  false,
+  provinceOptions: [],
+  countryOptions: [],
+  loaded: false,
   loading: false,
 
   loadAll: async () => {
@@ -50,11 +50,12 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
 
     set({ loading: true });
     try {
-      const [{ departments, jobTitles }, specializations, metaRes] = await Promise.all([
-        fetchDepartmentsAndJobTitles(),
-        fetchSpecializations(),
-        fetchAppMetadata(),
-      ]);
+      const [{ departments, jobTitles }, specializations, metaRes] =
+        await Promise.all([
+          fetchDepartmentsAndJobTitles(),
+          fetchSpecializations(),
+          fetchAppMetadata(),
+        ]);
 
       const meta: AppMetadata = metaRes.data ?? {};
 
@@ -62,15 +63,15 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
         departments,
         jobTitles,
         specializations,
-        metadata:               meta,
-        metadataVersion:        metaRes.version ?? null,
-        genderOptions:          meta.gender ?? [],
-        jobTypeOptions:         meta.job_types ?? meta.jobTypes ?? [],
+        metadata: meta,
+        metadataVersion: metaRes.version ?? null,
+        genderOptions: meta.gender ?? [],
+        jobTypeOptions: meta.job_types ?? meta.jobTypes ?? [],
         workEligibilityOptions: meta.work_eligibility ?? [],
-        shiftTypeOptions:       meta.shift_types ?? meta.shiftTypes ?? [],
+        shiftTypeOptions: meta.shift_types ?? meta.shiftTypes ?? [],
         organizationTypeOptions: meta.organisation_type ?? [],
-        provinceOptions:        meta.canadian_provinces ?? [],
-        countryOptions:         meta.countryList ?? [],
+        provinceOptions: meta.canadian_provinces ?? [],
+        countryOptions: meta.countryList ?? [],
         loaded: true,
       });
     } catch (e) {

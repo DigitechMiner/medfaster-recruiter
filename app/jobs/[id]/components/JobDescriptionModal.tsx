@@ -51,10 +51,6 @@ export const JobDescriptionModal: React.FC<JobDescriptionModalProps> = ({
   const [isSaving, setIsSaving]                   = useState(false);
   const [saveError, setSaveError]                 = useState<string | null>(null);
   const [successMsg, setSuccessMsg]               = useState<string | null>(null);
-  const [desc, setDesc] = useState(job.description ?? "");
- useEffect(() => {
-    setDesc(job.description ?? "");
-  }, [job.description]);
 
   const {
   result:              aiResult,

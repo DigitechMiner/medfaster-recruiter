@@ -9,9 +9,6 @@ export const EMAIL_REGEX = regex.email;
 // Minimum digits to detect as phone number
 export const PHONE_DETECT_MIN_LENGTH = otp.phone_min_length;
 
-// Default country code (USA/Canada)
-export const DEFAULT_COUNTRY_CODE = otp.default_country_code;
-
 /**
  * Validates if a string is a valid email address
  * @param value - The string to validate

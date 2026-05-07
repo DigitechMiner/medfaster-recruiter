@@ -6,20 +6,31 @@ import {
   getRecruiterJobs,
   getRecruiterJob,
   createRecruiterJob,
-  updateRecruiterJob,
-  deleteRecruiterJob,
 } from '@/stores/api/recruiter-job-api';
 import type { GetJobsParams } from '@/stores/api/recruiter-job-api';
 import type {
   JobsListResponse,
   JobDetailResponse,
   JobCreateResponse,
-  JobUpdateResponse,
-  JobDeleteResponse,
   JobCreatePayload,
-  JobUpdatePayload,
   JobFormData,
 } from '@/Interface/recruiter.types';
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+};
+
+const asApiError = (error: unknown): ApiError => error as ApiError;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const parsed = asApiError(error);
+  return parsed.response?.data?.message || parsed.message || fallback;
+};
 
 // ✅ Covers both JobFormData and InstantJobFormData fields
 // Dates serialized as ISO strings for safe plain-object storage in Zustand
@@ -56,11 +67,17 @@ interface JobsActions {
   getJobsSilent: (params?: GetJobsParams) => Promise<JobsListResponse>;
   getJob:        (jobId: string) => Promise<JobDetailResponse>;
   createJob:     (jobData: JobCreatePayload) => Promise<JobCreateResponse>;
-  updateJob:     (jobId: string, jobData: JobUpdatePayload) => Promise<JobUpdateResponse>;
-  deleteJob:     (jobId: string) => Promise<JobDeleteResponse>;
 }
 
 export type JobsStore = JobsState & JobsActions;
+
+const initialState: JobsState = {
+  hasJobs: false,
+  isLoading: false,
+  error: null,
+  draftPayload: null,
+  formSnapshot: null,
+};
 
 export const useJobsStore = create<JobsStore>()(
   devtools(
@@ -69,10 +86,10 @@ export const useJobsStore = create<JobsStore>()(
         set({ isLoading: true, error: null });
         try {
           return await operation();
-        } catch (error) {
-          const err = error as Error;
-          set({ error: err.message });
-          throw err;
+        } catch (error: unknown) {
+          const message = getErrorMessage(error, 'Request failed');
+          set({ error: message });
+          throw error;
         } finally {
           set({ isLoading: false });
         }
@@ -81,19 +98,15 @@ export const useJobsStore = create<JobsStore>()(
       const runWithErrorOnly = async <T>(operation: () => Promise<T>): Promise<T> => {
         try {
           return await operation();
-        } catch (error) {
-          const err = error as Error;
-          set({ error: err.message });
-          throw err;
+        } catch (error: unknown) {
+          const message = getErrorMessage(error, 'Request failed');
+          set({ error: message });
+          throw error;
         }
       };
 
       return {
-        hasJobs:      false,
-        isLoading:    false,
-        error:        null,
-        draftPayload: null,
-        formSnapshot: null,
+        ...initialState,
 
         setHasJobs:  (hasJobs)  => set({ hasJobs }),
         setLoading:  (isLoading) => set({ isLoading }),
@@ -115,7 +128,6 @@ export const useJobsStore = create<JobsStore>()(
         getJobs: async (params) =>
           runWithLoading(async () => {
             const response = await getRecruiterJobs(params);
-            console.log("📋 raw jobs response:", JSON.stringify(response?.data?.jobs?.[0], null, 2));
             if (response.success && response.data?.jobs) {
               set({ hasJobs: response.data.jobs.length > 0 });
             }
@@ -134,12 +146,6 @@ export const useJobsStore = create<JobsStore>()(
             if (response.success) set({ hasJobs: true });
             return response;
           }),
-
-        updateJob: async (jobId, jobData) =>
-          runWithLoading(async () => updateRecruiterJob(jobId, jobData)),
-
-        deleteJob: async (jobId) =>
-          runWithLoading(async () => deleteRecruiterJob(jobId)),
       };
     },
     { name: 'JobsStore' }

@@ -92,31 +92,6 @@ export function useJob(jobId: string | null) {
   return { job, isLoading, error };
 }
 
-// ─── useDeleteJob ─────────────────────────────────────────────────────────────
-export function useDeleteJob() {
-  const deleteJobFromStore = useJobsStore((state) => state.deleteJob);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
-
-  const deleteJob = async (jobId: string): Promise<boolean> => {
-    try {
-      setIsDeleting(true);
-      setError(null);
-      const res = await deleteJobFromStore(jobId);
-      if (res.success) return true;
-      setError(res.message);
-      return false;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete job');
-      return false;
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  return { deleteJob, isDeleting, error };
-}
-
 // ─── useCandidate (single candidate detail) ───────────────────────────────────
 export function useCandidate(candidateId: string | null) {
   const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);

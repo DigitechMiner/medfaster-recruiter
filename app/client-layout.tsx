@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { useState } from "react";                                        // ← add
+import { useState } from "react"; // ← add
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // ← add
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";      // ← add
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"; // ← add
 import GoogleOAuthProviderWrapper from "@/provider/GoogleOAuthProvider";
 import { ToastContainer } from "react-toastify";
 import { useAuthStore } from "@/stores/authStore";
@@ -16,34 +16,47 @@ import { Footer } from "@/components/global/footer";
 const NO_NAVBAR_ROUTES = ["/registration", "/login", "/coming-soon", "/auth"];
 const NO_SIDEBAR_ROUTES = ["/messages"];
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(                                        // ← add
-    () => new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: 60 * 1000,
-          retry: 1,
-          refetchOnWindowFocus: false,
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [queryClient] = useState(
+    // ← add
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+            retry: 1,
+            refetchOnWindowFocus: false,
+          },
         },
-      },
-    })
+      }),
   );
   const [isProfileResolving, setIsProfileResolving] = useState(true);
 
-  const loadRecruiterProfile = useAuthStore((state) => state.loadRecruiterProfile);
-  const recruiterProfile     = useAuthStore((state) => state.recruiterProfile);
-  const loadAll              = useMetadataStore((s) => s.loadAll);
-  const pathname             = usePathname();
-  const router               = useRouter();
-  const showChrome           = !NO_NAVBAR_ROUTES.includes(pathname);
-  const showSidebar          = !NO_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
+  const loadRecruiterProfile = useAuthStore(
+    (state) => state.loadRecruiterProfile,
+  );
+  const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
+  const loadAll = useMetadataStore((s) => s.loadAll);
+  const pathname = usePathname();
+  const router = useRouter();
+  const showChrome = !NO_NAVBAR_ROUTES.includes(pathname);
+  const showSidebar = !NO_SIDEBAR_ROUTES.some((route) =>
+    pathname.startsWith(route),
+  );
 
   useEffect(() => {
     let isMounted = true;
 
     const bootstrap = async () => {
       await loadRecruiterProfile().catch((error) => {
-        useAuthStore.setState({ recruiterProfile: null, recruiterDocuments: null });
+        useAuthStore.setState({
+          recruiterProfile: null,
+          recruiterDocuments: null,
+        });
         console.log("User not authenticated:", error);
       });
 
@@ -91,7 +104,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <QueryClientProvider client={queryClient}>                           {/* ← wrap */}
+    <QueryClientProvider client={queryClient}>
+      {" "}
+      {/* ← wrap */}
       <GoogleOAuthProviderWrapper>
         {showChrome && <Navbar />}
         <div
@@ -103,7 +118,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           {showChrome && showSidebar && <Footer />}
         </div>
       </GoogleOAuthProviderWrapper>
-
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -116,10 +130,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         pauseOnHover
         theme="light"
       />
-
-      {process.env.NODE_ENV === "development" && (                       
+      {process.env.NODE_ENV === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}
-    </QueryClientProvider>                                               
+    </QueryClientProvider>
   );
 }

@@ -295,7 +295,7 @@ export function Navbar() {
         <div className="ml-auto flex items-center gap-1 md:gap-3">
           <button
             onClick={() => router.push("/jobs/instant-replacement")}
-            className="hidden lg:flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B]
+            className="hidden md:flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B]
               hover:bg-orange-50 rounded-lg px-4 py-1.5 text-sm font-semibold
               transition-colors whitespace-nowrap h-9"
           >
