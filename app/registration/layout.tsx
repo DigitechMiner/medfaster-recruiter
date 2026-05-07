@@ -94,8 +94,8 @@ export function Sidebar({ step, completedSteps = new Set(), onStepChange }: Side
             src="/img/brand/new_logo.svg"
             alt="KeRaeva"
             width={220}
-            height={70}
-            className="w-full h-auto max-w-[180px] lg:max-w-[200px] xl:max-w-[220px] object-contain mx-auto lg:mx-0"
+            height={50}
+            className="w-full h-auto max-w-[180px] object-contain mx-auto lg:mx-0"
             priority
           />
         </div>

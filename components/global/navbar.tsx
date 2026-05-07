@@ -66,7 +66,7 @@ export function Navbar() {
   const { useWalletStore } = await import('@/stores/walletStore');
   useWalletStore.getState().clearWallet();
   await logout();
-  router.push("/");
+  router.push("/auth");
 };
 
   const collapse = () => {
