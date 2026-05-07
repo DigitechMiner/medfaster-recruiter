@@ -16,10 +16,10 @@ import { CustomTimePicker } from "../../components/custom-time-picker";
 interface JobBasicInfoProps {
   formData: JobFormData;
   updateFormData: (updates: Partial<JobFormData>) => void;
-   fieldErrors?: Partial<Record<keyof JobFormData, string>>;
+  fieldErrors?: Partial<Record<keyof JobFormData, string>>;
 }
 
-export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
+export function JobBasicInfo({ formData, updateFormData, fieldErrors = {} }: JobBasicInfoProps) {
   const isInstant  = formData.urgency === "instant";
   const isFullTime = formData.jobType === "Full Time" || formData.jobType === "full_time";
 
@@ -72,6 +72,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.department && (
+              <p className="text-xs text-red-600">{fieldErrors.department}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -92,6 +95,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.jobTitle && (
+              <p className="text-xs text-red-600">{fieldErrors.jobTitle}</p>
+            )}
           </div>
         </div>
 
@@ -110,6 +116,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
                 className="h-11"
                 required
               />
+              {fieldErrors.numberOfHires && (
+                <p className="text-xs text-red-600">{fieldErrors.numberOfHires}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -137,6 +146,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
                     </div>
                   ))}
                 </RadioGroup>
+                {fieldErrors.jobType && (
+                  <p className="text-xs text-red-600">{fieldErrors.jobType}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">
@@ -186,6 +198,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
               <span className="text-gray-600">{formatDate(formData.fromDate)}</span>
               <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
+            {fieldErrors.fromDate && (
+              <p className="text-xs text-red-600">{fieldErrors.fromDate}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
@@ -204,6 +219,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
               <span className="text-gray-600">{formatDate(formData.tillDate)}</span>
               <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
+            {fieldErrors.tillDate && (
+              <p className="text-xs text-red-600">{fieldErrors.tillDate}</p>
+            )}
           </div>
         </div>
 
@@ -221,6 +239,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
               <span className="text-gray-600">{formatTimeDisplay(formData.fromTime)}</span>
               <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
+            {fieldErrors.fromTime && (
+              <p className="text-xs text-red-600">{fieldErrors.fromTime}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">
@@ -234,6 +255,9 @@ export function JobBasicInfo({ formData, updateFormData, }: JobBasicInfoProps) {
               <span className="text-gray-600">{formatTimeDisplay(formData.toTime)}</span>
               <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
             </button>
+            {fieldErrors.toTime && (
+              <p className="text-xs text-red-600">{fieldErrors.toTime}</p>
+            )}
           </div>
         </div>
 

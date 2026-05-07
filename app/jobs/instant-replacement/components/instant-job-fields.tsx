@@ -28,6 +28,7 @@ const CDSW_NEIGHBOURHOOD_TYPES = [
 interface InstantJobFieldsProps {
   formData:       InstantJobFormData;
   updateFormData: (updates: Partial<InstantJobFormData>) => void;
+  fieldErrors?:   Partial<Record<keyof InstantJobFormData, string>>;
   // ✅ Pay rate passed down from parent — never editable here
   payRateCents?:    number | null;
   payRateLoading?:  boolean;
@@ -37,6 +38,7 @@ interface InstantJobFieldsProps {
 export function InstantJobFields({
   formData,
   updateFormData,
+  fieldErrors = {},
   payRateCents   = null,
   payRateLoading = false,
   payRateError   = null,
@@ -85,6 +87,9 @@ export function InstantJobFields({
             className="h-11"
             required
           />
+          {fieldErrors.numberOfHires && (
+            <p className="text-xs text-red-600">{fieldErrors.numberOfHires}</p>
+          )}
         </div>
 
         {/* ✅ Read-only pay rate — set by platform, not editable */}
@@ -129,6 +134,9 @@ export function InstantJobFields({
             placeholder="Enter Neighbourhood Name"
             className="h-11"
           />
+          {fieldErrors.neighborhoodName && (
+            <p className="text-xs text-red-600">{fieldErrors.neighborhoodName}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="neighborhood-type" className="text-sm font-medium text-gray-700">
@@ -155,6 +163,9 @@ export function InstantJobFields({
               ))}
             </SelectContent>
           </Select>
+          {fieldErrors.neighborhoodType && (
+            <p className="text-xs text-red-600">{fieldErrors.neighborhoodType}</p>
+          )}
         </div>
       </div>
 
@@ -172,6 +183,9 @@ export function InstantJobFields({
             placeholder="1234 Maple Street"
             className="h-11"
           />
+          {fieldErrors.streetAddress && (
+            <p className="text-xs text-red-600">{fieldErrors.streetAddress}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="city" className="text-sm font-medium text-gray-700">
@@ -186,6 +200,9 @@ export function InstantJobFields({
             className="h-11"
             required
           />
+          {fieldErrors.city && (
+            <p className="text-xs text-red-600">{fieldErrors.city}</p>
+          )}
         </div>
       </div>
 
@@ -210,6 +227,9 @@ export function InstantJobFields({
               ))}
             </SelectContent>
           </Select>
+          {fieldErrors.province && (
+            <p className="text-xs text-red-600">{fieldErrors.province}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="country" className="text-sm font-medium text-gray-700">
@@ -222,6 +242,9 @@ export function InstantJobFields({
             disabled
             className="h-11 bg-gray-50 text-gray-500"
           />
+          {fieldErrors.postalCode && (
+            <p className="text-xs text-red-600">{fieldErrors.postalCode}</p>
+          )}
         </div>
       </div>
 
@@ -240,6 +263,9 @@ export function InstantJobFields({
             className="h-11"
             required
           />
+          {fieldErrors.directNumber && (
+            <p className="text-xs text-red-600">{fieldErrors.directNumber}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="direct-number" className="text-sm font-medium text-gray-700">

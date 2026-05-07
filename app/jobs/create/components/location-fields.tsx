@@ -15,9 +15,10 @@ import { useMetadataStore } from "@/stores/metadataStore";
 interface LocationFieldsProps {
   formData: JobFormData;
   updateFormData: (updates: Partial<JobFormData>) => void;
+  fieldErrors?: Partial<Record<keyof JobFormData, string>>;
 }
 
-export function LocationFields({ formData, updateFormData }: LocationFieldsProps) {
+export function LocationFields({ formData, updateFormData, fieldErrors = {} }: LocationFieldsProps) {
   const provinceOptions = useMetadataStore((state) => state.provinceOptions);
   return (
     <div className="space-y-6 mb-6">
@@ -36,6 +37,9 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
       placeholder="1234 Maple Street"
       className="h-11"
     />
+    {fieldErrors.streetAddress && (
+      <p className="text-xs text-red-600">{fieldErrors.streetAddress}</p>
+    )}
   </div>
 
   {/* City */}
@@ -52,6 +56,9 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
       className="h-11"
       required
     />
+    {fieldErrors.city && (
+      <p className="text-xs text-red-600">{fieldErrors.city}</p>
+    )}
   </div>
 </div>
 
@@ -76,6 +83,9 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
         ))}
       </SelectContent>
     </Select>
+    {fieldErrors.province && (
+      <p className="text-xs text-red-600">{fieldErrors.province}</p>
+    )}
   </div>
 
   <div className="space-y-2">
@@ -89,6 +99,9 @@ export function LocationFields({ formData, updateFormData }: LocationFieldsProps
       disabled
       className="h-11 bg-gray-50 text-gray-500"
     />
+    {fieldErrors.postalCode && (
+      <p className="text-xs text-red-600">{fieldErrors.postalCode}</p>
+    )}
   </div>
 
   <div className="space-y-2">

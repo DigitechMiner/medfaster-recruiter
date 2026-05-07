@@ -95,6 +95,7 @@ export function JobForm({
     <div className={wrapperClassName || "space-y-3 sm:space-y-4"}>
       <form
         onSubmit={handleSubmit}
+        noValidate
         className="bg-white rounded-lg shadow-sm border border-gray-200"
       >
         {/* ── Form body ── */}
@@ -123,12 +124,14 @@ export function JobForm({
             <LocationFields
               formData={formData}
               updateFormData={updateFormData}
+              fieldErrors={fieldErrors}
             />
           )}
 
           <JobDescription
             formData={formData}
             updateFormData={updateFormData}
+            fieldErrors={fieldErrors}
           />
 
           {/* ── AI Interview Questions ──────────────────────────────────────

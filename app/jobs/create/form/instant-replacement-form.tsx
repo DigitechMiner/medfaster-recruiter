@@ -2,14 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import { useJobsStore } from "@/stores/jobs-store";
 import type { JobFormSnapshot } from "@/stores/jobs-store";
-import { InstantJobFormData, JobCreatePayload, Province } from "@/Interface/recruiter.types";
+import {
+  InstantJobFormData,
+  JobCreatePayload,
+  Province,
+} from "@/Interface/recruiter.types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
 import { SuccessModal } from "@/components/modal";
 import { axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
+import {
+  validateJobPayload,
+  toFormFieldErrors,
+} from "../../utils/validate-job-payload";
 
 interface Props {
   urgencyMode: "instant";
@@ -19,95 +28,118 @@ interface Props {
 
 const formatDateForBackend = (date?: Date): string | undefined => {
   if (!date) return undefined;
-  const year  = date.getFullYear();
+  const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day   = String(date.getDate()).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 const DEFAULT_INSTANT_FORM: InstantJobFormData = {
-  jobTitle:          "",
-  department:        "",
-  jobType:           "Full Time",
-  location:          "",
-  payRange:          0,
-  experience:        "",
-  qualification:     [],
-  specialization:    [],
-  urgency:           "instant",
+  jobTitle: "",
+  department: "",
+  jobType: "Part Time",
+  location: "",
+  payRange: 0,
+  experience: "",
+  qualification: [],
+  specialization: [],
+  urgency: "instant",
   inPersonInterview: "Yes",
   physicalInterview: "Yes",
-  description:       "",
-  responsibilities:  [],
-  required_skills:   [],
-  status:            "DRAFT",
-  numberOfHires:     "",
-  amountPerHire:     "",
-  fromDate:          undefined,
-  tillDate:          undefined,
-  fromTime:          "08:00",
-  toTime:            "16:00",
-  neighborhoodName:  "",
-  neighborhoodType:  "",
-  directNumber:      "",
-  streetAddress:     "",
-  postalCode:        "",
-  province:          "ontario" as Province,
-  city:              "",
-  country:           "Canada",
+  description: "",
+  responsibilities: [],
+  required_skills: [],
+  status: "DRAFT",
+  numberOfHires: "",
+  amountPerHire: "",
+  fromDate: undefined,
+  tillDate: undefined,
+  fromTime: "08:00",
+  toTime: "16:00",
+  neighborhoodName: "",
+  neighborhoodType: "",
+  directNumber: "",
+  streetAddress: "",
+  postalCode: "",
+  province: "",
+  city: "",
+  country: "Canada",
 };
 
 // ✅ Pure function — no side effects, safe inside useState initializer
-function buildInitialInstantForm(snapshot: JobFormSnapshot | null): InstantJobFormData {
+function buildInitialInstantForm(
+  snapshot: JobFormSnapshot | null,
+): InstantJobFormData {
   if (!snapshot) return DEFAULT_INSTANT_FORM;
   return {
     ...DEFAULT_INSTANT_FORM,
-    jobTitle:         (snapshot.jobTitle         as string)           ?? DEFAULT_INSTANT_FORM.jobTitle,
-    department:       (snapshot.department       as string)           ?? DEFAULT_INSTANT_FORM.department,
-    description:      (snapshot.description      as string)           ?? DEFAULT_INSTANT_FORM.description,
-    numberOfHires:    (snapshot.numberOfHires    as string)           ?? DEFAULT_INSTANT_FORM.numberOfHires,
-    fromTime:         (snapshot.fromTime         as string)           ?? DEFAULT_INSTANT_FORM.fromTime,
-    toTime:           (snapshot.toTime           as string)           ?? DEFAULT_INSTANT_FORM.toTime,
-    streetAddress:    (snapshot.streetAddress    as string)           ?? DEFAULT_INSTANT_FORM.streetAddress,
-    postalCode:       (snapshot.postalCode       as string)           ?? DEFAULT_INSTANT_FORM.postalCode,
-    province:         (snapshot.province         as Province)         ?? DEFAULT_INSTANT_FORM.province,
-    city:             (snapshot.city             as string)           ?? DEFAULT_INSTANT_FORM.city,
-    neighborhoodName: (snapshot.neighborhoodName as string)           ?? DEFAULT_INSTANT_FORM.neighborhoodName,
-    neighborhoodType: (snapshot.neighborhoodType as string)           ?? DEFAULT_INSTANT_FORM.neighborhoodType,
-    directNumber:     (snapshot.directNumber     as string)           ?? DEFAULT_INSTANT_FORM.directNumber,
-    payRange: (typeof snapshot.payRange === "number"
-  ? snapshot.payRange
-  : Array.isArray(snapshot.payRange)
-  ? (snapshot.payRange as number[])[1] ?? 0   // backward compat for old snapshots
-  : 0),
-    responsibilities: (snapshot.responsibilities as string[])         ?? DEFAULT_INSTANT_FORM.responsibilities,
-    required_skills:  (snapshot.required_skills  as string[])         ?? DEFAULT_INSTANT_FORM.required_skills,
+    jobTitle: (snapshot.jobTitle as string) ?? DEFAULT_INSTANT_FORM.jobTitle,
+    department:
+      (snapshot.department as string) ?? DEFAULT_INSTANT_FORM.department,
+    description:
+      (snapshot.description as string) ?? DEFAULT_INSTANT_FORM.description,
+    numberOfHires:
+      (snapshot.numberOfHires as string) ?? DEFAULT_INSTANT_FORM.numberOfHires,
+    fromTime: (snapshot.fromTime as string) ?? DEFAULT_INSTANT_FORM.fromTime,
+    toTime: (snapshot.toTime as string) ?? DEFAULT_INSTANT_FORM.toTime,
+    streetAddress:
+      (snapshot.streetAddress as string) ?? DEFAULT_INSTANT_FORM.streetAddress,
+    postalCode:
+      (snapshot.postalCode as string) ?? DEFAULT_INSTANT_FORM.postalCode,
+    province: (snapshot.province as Province) ?? DEFAULT_INSTANT_FORM.province,
+    city: (snapshot.city as string) ?? DEFAULT_INSTANT_FORM.city,
+    neighborhoodName:
+      (snapshot.neighborhoodName as string) ??
+      DEFAULT_INSTANT_FORM.neighborhoodName,
+    neighborhoodType:
+      (snapshot.neighborhoodType as string) ??
+      DEFAULT_INSTANT_FORM.neighborhoodType,
+    directNumber:
+      (snapshot.directNumber as string) ?? DEFAULT_INSTANT_FORM.directNumber,
+    payRange:
+      typeof snapshot.payRange === "number"
+        ? snapshot.payRange
+        : Array.isArray(snapshot.payRange)
+          ? ((snapshot.payRange as number[])[1] ?? 0) // backward compat for old snapshots
+          : 0,
+    responsibilities:
+      (snapshot.responsibilities as string[]) ??
+      DEFAULT_INSTANT_FORM.responsibilities,
+    required_skills:
+      (snapshot.required_skills as string[]) ??
+      DEFAULT_INSTANT_FORM.required_skills,
     // ✅ amountPerHire intentionally excluded — always fetched fresh from backend
-    fromDate: snapshot.fromDate ? new Date(snapshot.fromDate as string) : undefined,
-    tillDate: snapshot.tillDate ? new Date(snapshot.tillDate as string) : undefined,
+    fromDate: snapshot.fromDate
+      ? new Date(snapshot.fromDate as string)
+      : undefined,
+    tillDate: snapshot.tillDate
+      ? new Date(snapshot.tillDate as string)
+      : undefined,
   };
 }
 
 export function InstantReplacementForm({ onBack, onNext }: Props) {
-  const router          = useRouter();
-  const createJob       = useJobsStore((state) => state.createJob);
+  const router = useRouter();
+  const createJob = useJobsStore((state) => state.createJob);
   const setFormSnapshot = useJobsStore((s) => s.setFormSnapshot);
-  const formSnapshot    = useJobsStore((s) => s.formSnapshot);
+  const formSnapshot = useJobsStore((s) => s.formSnapshot);
 
-  const [isSubmitting, setIsSubmitting]         = useState(false);
-  const [error, setError]                       = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof InstantJobFormData, string>>
+  >({});
 
   // ✅ Backend-fetched pay rate — readonly, never in formData
-  const [payRateCents, setPayRateCents]         = useState<number | null>(
-    (formSnapshot?.cachedPayRateCents as number) ?? null
+  const [payRateCents, setPayRateCents] = useState<number | null>(
+    (formSnapshot?.cachedPayRateCents as number) ?? null,
   );
-  const [payRateLoading, setPayRateLoading]     = useState(false);
-  const [payRateError, setPayRateError]         = useState<string | null>(null);
+  const [payRateLoading, setPayRateLoading] = useState(false);
+  const [payRateError, setPayRateError] = useState<string | null>(null);
 
   // ✅ Pure initializer — no store writes during render
   const [formData, setFormData] = useState<InstantJobFormData>(() =>
-    buildInitialInstantForm(formSnapshot)
+    buildInitialInstantForm(formSnapshot),
   );
 
   // ✅ Fetch pay rate whenever jobTitle changes
@@ -124,7 +156,10 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
     axiosInstance
       .get(ENDPOINTS.JOBS_FEES(formData.jobTitle))
       .then((res) => {
-        console.log("💰 JOBS_FEES raw response:", JSON.stringify(res.data, null, 2));
+        console.log(
+          "💰 JOBS_FEES raw response:",
+          JSON.stringify(res.data, null, 2),
+        );
 
         // ✅ Field is recruiter_pay_per_hour in dollars — convert to cents
         const dollars: number =
@@ -145,24 +180,41 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
       })
       .catch(() => setPayRateError("Could not load pay rate for this role"))
       .finally(() => setPayRateLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.jobTitle]);
 
   const updateFormData = (updates: Partial<InstantJobFormData>) => {
     // ✅ Step 1: pure React state update
     setFormData((prev) => ({ ...prev, ...updates }));
 
+    // ✅ Clear inline errors for any fields the user just edited
+    if (Object.keys(updates).some((k) => k in fieldErrors)) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        Object.keys(updates).forEach(
+          (k) => delete next[k as keyof InstantJobFormData],
+        );
+        return next;
+      });
+    }
+
     // ✅ Step 2: sync to Zustand imperatively — no side effect inside setState updater
     const currentSnapshot = useJobsStore.getState().formSnapshot;
     const nextSnapshot: JobFormSnapshot = {
       ...(currentSnapshot ?? {}),
       ...updates,
-      fromDate: updates.fromDate instanceof Date
-        ? updates.fromDate.toISOString()
-        : (updates.fromDate !== undefined ? (updates.fromDate as string) : currentSnapshot?.fromDate),
-      tillDate: updates.tillDate instanceof Date
-        ? updates.tillDate.toISOString()
-        : (updates.tillDate !== undefined ? (updates.tillDate as string) : currentSnapshot?.tillDate),
+      fromDate:
+        updates.fromDate instanceof Date
+          ? updates.fromDate.toISOString()
+          : updates.fromDate !== undefined
+            ? (updates.fromDate as string)
+            : currentSnapshot?.fromDate,
+      tillDate:
+        updates.tillDate instanceof Date
+          ? updates.tillDate.toISOString()
+          : updates.tillDate !== undefined
+            ? (updates.tillDate as string)
+            : currentSnapshot?.tillDate,
     } as JobFormSnapshot;
 
     setFormSnapshot(nextSnapshot);
@@ -171,67 +223,39 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.fromDate || !formData.tillDate) {
-      setError("Shift Start Date and Shift End Date are required");
-      return;
-    }
-
-    const fromDay = new Date(formData.fromDate).setHours(0, 0, 0, 0);
-    const tillDay = new Date(formData.tillDate).setHours(0, 0, 0, 0);
-    if (tillDay < fromDay) {
-      setError("Shift End Date cannot be before Shift Start Date");
-      return;
-    }
-
-    const inTime  = formData.fromTime;
-    const outTime = formData.toTime;
-    if (inTime && outTime) {
-      const [h1, m1] = inTime.split(":").map(Number);
-      const [h2, m2] = outTime.split(":").map(Number);
-      let diffMins = (h2 * 60 + m2) - (h1 * 60 + m1);
-      if (diffMins < 0) diffMins += 24 * 60;
-      // ✅ FIXED: changed from < 3 to < 4 — matches backend enforcement
-      if (diffMins / 60 < 4 || diffMins / 60 > 12) {
-        setError("Shift duration must be between 4 and 12 hours");
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
-    setError(null);
 
     const jobTitleLabel = (formData.jobTitle ?? "")
       .replace(/_/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
 
     const backendData: JobCreatePayload = {
-      job_title:            formData.jobTitle ?? "",
-      status:               "DRAFT",
-      job_type:             "casual",
-      job_urgency:          "instant",
-      department:           formData.department       || undefined,
-      street:               formData.streetAddress    || undefined,
-      postal_code:          formData.postalCode       || undefined,
-      province:             formData.province         || undefined,
-      city:                 formData.city             || undefined,
-      neighborhood_name:    formData.neighborhoodName || undefined,
-      neighborhood_type:    formData.neighborhoodType || undefined,
-      direct_number:        formData.directNumber     || undefined,
+      job_title: formData.jobTitle ?? "",
+      status: "DRAFT",
+      job_type: "casual",
+      job_urgency: "instant",
+      department: formData.department || undefined,
+      street: formData.streetAddress || undefined,
+      postal_code: formData.postalCode || undefined,
+      province: formData.province || undefined,
+      city: formData.city || undefined,
+      neighborhood_name: formData.neighborhoodName || undefined,
+      neighborhood_type: formData.neighborhoodType || undefined,
+      direct_number: formData.directNumber || undefined,
       // ✅ Always use backend-fetched rate — never trust user input
-      pay_per_hour_cents:   payRateCents ?? 0,
-      years_of_experience:  undefined,
-      qualifications:       undefined,
-      specializations:      undefined,
-      ai_interview:         false,
-      questions:            undefined,
-      description:          formData.description      || undefined,
+      pay_per_hour_cents: payRateCents ?? 0,
+      years_of_experience: undefined,
+      qualifications: undefined,
+      specializations: undefined,
+      ai_interview: false,
+      questions: undefined,
+      description: formData.description || undefined,
       no_of_hires_required: formData.numberOfHires
-                              ? parseInt(formData.numberOfHires)
-                              : undefined,
-      start_date:           formatDateForBackend(formData.fromDate),
-      end_date:             formatDateForBackend(formData.tillDate),
-      check_in_time:        formData.fromTime || undefined,
-      check_out_time:       formData.toTime   || undefined,
+        ? parseInt(formData.numberOfHires)
+        : undefined,
+      start_date: formatDateForBackend(formData.fromDate),
+      end_date: formatDateForBackend(formData.tillDate),
+      check_in_time: formData.fromTime || undefined,
+      check_out_time: formData.toTime || undefined,
       responsibilities: formData.responsibilities?.filter(Boolean).length
         ? formData.responsibilities.filter(Boolean)
         : [`Provide ${jobTitleLabel} duties as assigned`],
@@ -249,6 +273,22 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
         : ["Competitive hourly pay"],
     };
 
+    // ── Run shared validator (mirrors backend `validateCreateJob`) ──────────
+    const validationErrors = validateJobPayload(backendData);
+    if (validationErrors.length > 0) {
+      const allMessages = validationErrors.map((v) => v.message);
+      setFieldErrors(toFormFieldErrors(validationErrors));
+      toast.error(
+        allMessages.length === 1
+          ? allMessages[0]
+          : `Please fix ${allMessages.length} issues below.`,
+      );
+      return;
+    }
+    setFieldErrors({});
+
+    setIsSubmitting(true);
+
     if (onNext) {
       setIsSubmitting(false);
       onNext(backendData);
@@ -261,10 +301,10 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
         sessionStorage.setItem("createdJobId", response.data.id);
         setShowSuccessModal(true);
       } else {
-        setError(response.message || "Failed to create instant replacement");
+        toast.error(response.message || "Failed to create instant replacement");
       }
     } catch (err) {
-      setError((err as Error).message || "An error occurred");
+      toast.error((err as Error).message || "An error occurred");
     } finally {
       setIsSubmitting(false);
     }
@@ -283,12 +323,6 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
         buttonText="Done"
       />
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
-
       <JobForm
         mode="create"
         title="Request Immediate Staff"
@@ -299,6 +333,7 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
         showBackButton={!!onBack}
         showNextButton={true}
         isSubmitting={isSubmitting}
+        fieldErrors={fieldErrors}
         nextLabel={isSubmitting ? "Submitting..." : "Submit Request"}
         hideRequirements={true}
         hideInterviewSettings={true}
@@ -306,6 +341,7 @@ export function InstantReplacementForm({ onBack, onNext }: Props) {
           <InstantJobFields
             formData={formData}
             updateFormData={updateFormData}
+            fieldErrors={fieldErrors}
             payRateCents={payRateCents}
             payRateLoading={payRateLoading}
             payRateError={payRateError}

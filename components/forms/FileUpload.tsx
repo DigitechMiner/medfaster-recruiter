@@ -1,11 +1,22 @@
 "use client";
 
-import { Upload, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { useFormContext } from "react-hook-form";
-import { FormItem, FormLabel, FormMessage, FormField, FormControl } from "@/components/ui/form";
+import { Upload, X } from "lucide-react";
+
+import {
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormField,
+  FormControl,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { validateOrganizationPhoto, validateDocumentFile, formatFileSize } from "@/utils/constant/metadata";
-import { useState, useRef } from "react";
+import {
+  validateOrganizationPhoto,
+  validateDocumentFile,
+  formatFileSize,
+} from "@/utils/constant/metadata";
 
 interface FileUploadProps {
   name: string;
@@ -30,62 +41,50 @@ export default function FileUpload({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: File | null) => void) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
+  const validateFile = (file: File) =>
+    fileType === "photo" ? validateOrganizationPhoto(file) : validateDocumentFile(file);
 
-      const validation = fileType === "photo"
-        ? validateOrganizationPhoto(file)
-        : validateDocumentFile(file);
-
-      if (!validation.valid) {
-        setError(validation.error || "Invalid file");
-        onChange(null);
-        return;
-      }
-
-      setError(null);
-      onChange(file);
-    } else {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    onChange: (value: File | null) => void
+  ) => {
+    if (!e.target.files?.length) {
       onChange(null);
+      return;
     }
-  };
 
-  const handleRemove = (onChange: (value: File | null) => void) => {
-    onChange(null);
+    const file = e.target.files[0];
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      setError(validation.error || "Invalid file");
+      onChange(null);
+      return;
+    }
+
     setError(null);
+    onChange(file);
   };
 
-  const handleBoxClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, onChange: (value: File | null) => void) => {
+  const handleDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    onChange: (value: File | null) => void
+  ) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
+    if (!e.dataTransfer.files?.length) return;
 
-      const validation = fileType === "photo"
-        ? validateOrganizationPhoto(file)
-        : validateDocumentFile(file);
-
-      if (!validation.valid) {
-        setError(validation.error || "Invalid file");
-        onChange(null);
-        return;
-      }
-
-      setError(null);
-      onChange(file);
-      e.dataTransfer.clearData();
+    const file = e.dataTransfer.files[0];
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      setError(validation.error || "Invalid file");
+      onChange(null);
+      return;
     }
+
+    setError(null);
+    onChange(file);
+    e.dataTransfer.clearData();
   };
 
   const iconClass = iconSize === "small" ? "w-5 h-5 sm:w-6 sm:h-6" : "w-6 h-6 sm:w-8 sm:h-8";
@@ -98,7 +97,7 @@ export default function FileUpload({
       name={name}
       render={({ field }) => {
         const { onChange, value } = field;
-        const selectedFile = value as File | null; // ✅ driven by RHF, not useState
+        const selectedFile = value as File | null;
 
         return (
           <FormItem className="w-full min-w-0">
@@ -111,9 +110,12 @@ export default function FileUpload({
                   className={`w-full max-w-full min-w-0 border-2 border-dashed rounded-lg ${paddingClass} ${minHeightClass} overflow-hidden text-center transition-colors cursor-pointer ${
                     error ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-gray-300"
                   }`}
-                  onDragOver={handleDragOver}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onDrop={(e) => handleDrop(e, onChange)}
-                  onClick={handleBoxClick}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   {selectedFile ? (
                     <div
@@ -129,14 +131,17 @@ export default function FileUpload({
                           >
                             {selectedFile.name}
                           </p>
-                          <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatFileSize(selectedFile.size)}
+                          </p>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemove(onChange);
+                          onChange(null);
+                          setError(null);
                         }}
                         className="text-gray-400 hover:text-red-600 shrink-0"
                       >
@@ -145,7 +150,11 @@ export default function FileUpload({
                     </div>
                   ) : (
                     <>
-                      <Upload className={`${iconClass} mx-auto mb-2 ${error ? "text-red-400" : "text-gray-400"}`} />
+                      <Upload
+                        className={`${iconClass} mx-auto mb-2 ${
+                          error ? "text-red-400" : "text-gray-400"
+                        }`}
+                      />
                       <p className="text-xs sm:text-sm">
                         <span className="text-orange-600 font-medium">Click to upload</span>{" "}
                         <span className="hidden sm:inline">or drag and drop</span>
@@ -162,9 +171,7 @@ export default function FileUpload({
                     onChange={(e) => handleFileChange(e, onChange)}
                   />
                 </div>
-                {error && (
-                  <p className="text-red-600 text-xs font-medium mt-1">{error}</p>
-                )}
+                {error && <p className="text-red-600 text-xs font-medium mt-1">{error}</p>}
               </div>
             </FormControl>
             <FormMessage className="text-red-600 text-xs font-medium mt-1" />

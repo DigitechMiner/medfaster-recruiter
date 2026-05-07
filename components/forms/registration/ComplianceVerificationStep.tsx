@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import FileUpload from "../components/FileUpload";
-import { complianceFields } from "../const";
+
+import { FileUpload } from "@/components/forms";
+import { complianceFields } from "./form-config";
 
 export default function ComplianceVerificationStep() {
   const [showOptionalCertificate, setShowOptionalCertificate] = useState(false);
@@ -46,18 +47,8 @@ export default function ComplianceVerificationStep() {
             onClick={() => setShowOptionalCertificate(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add More Documents
           </button>
@@ -66,4 +57,3 @@ export default function ComplianceVerificationStep() {
     </>
   );
 }
-

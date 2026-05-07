@@ -1,7 +1,13 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { FormItem, FormLabel, FormControl, FormMessage, FormField } from "@/components/ui/form";
+import {
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormField,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
 interface FormInputProps {
@@ -57,4 +63,3 @@ export default function FormInput({
     />
   );
 }
-

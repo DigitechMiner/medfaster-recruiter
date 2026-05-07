@@ -5,7 +5,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-toastify";
-import { FormInput } from "../registration/components";
+import { FormInput, FormPageLayout } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 
 import { useAuthStore } from "@/stores/authStore";
@@ -79,52 +79,48 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8f7f5]">
+      <FormPageLayout>
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <p className="text-gray-500 text-sm animate-pulse">Loading profile...</p>
         </div>
-      </div>
+      </FormPageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f7f5]">
-      <div className="p-6 font-sans">
-        <div className=" mx-auto">
-          <FormProvider {...methods}>
-            <form onSubmit={methods.handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Profile Overview</h2>
-                <p className="text-sm text-gray-500 mt-1">Your contact information from registration</p>
-              </div>
+    <FormPageLayout>
+      <FormProvider {...methods}>
+        <form onSubmit={methods.handleSubmit(onSubmit)} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Profile Overview</h2>
+            <p className="text-sm text-gray-500 mt-1">Your contact information from registration</p>
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormInput name="fullName"    label="Full Name"    placeholder="Enter full name" />
-                <FormInput name="designation" label="Designation"  placeholder="Enter designation" />
-                <FormInput name="emailId"     label="Email Id"     type="email" placeholder="Enter email address" />
-                <FormInput name="phoneNumber" label="Phone Number" placeholder="Enter phone number" />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormInput name="fullName"    label="Full Name"    placeholder="Enter full name" />
+            <FormInput name="designation" label="Designation"  placeholder="Enter designation" />
+            <FormInput name="emailId"     label="Email Id"     type="email" placeholder="Enter email address" />
+            <FormInput name="phoneNumber" label="Phone Number" placeholder="Enter phone number" />
+          </div>
 
-              <div className="flex justify-end mt-8 border-t border-gray-100 pt-6">
-                <Button
-                  type="submit"
-                  disabled={!methods.formState.isDirty || methods.formState.isSubmitting}
-                  className={`px-6 py-2 flex items-center gap-2 rounded-md font-medium transition-colors ${
-                    methods.formState.isDirty
-                      ? "bg-[#f47b20] text-white hover:bg-[#d5650e]"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  }`}
-                >
-                  {methods.formState.isSubmitting ? "Updating..." : "Update & continue"}
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </Button>
-              </div>
-            </form>
-          </FormProvider>
-        </div>
-      </div>
-    </div>
+          <div className="flex justify-end mt-8 border-t border-gray-100 pt-6">
+            <Button
+              type="submit"
+              disabled={!methods.formState.isDirty || methods.formState.isSubmitting}
+              className={`px-6 py-2 flex items-center gap-2 rounded-md font-medium transition-colors ${
+                methods.formState.isDirty
+                  ? "bg-[#f47b20] text-white hover:bg-[#d5650e]"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              {methods.formState.isSubmitting ? "Updating..." : "Update & continue"}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </Button>
+          </div>
+        </form>
+      </FormProvider>
+    </FormPageLayout>
   );
 }

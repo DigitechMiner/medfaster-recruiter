@@ -11,25 +11,16 @@ export default function JobsPageWrapper() {
   const router           = useRouter();
   const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
 
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [initialChecked, setInitialChecked] = useState(false);
-
-  // Auth check
+  // Redirect if unauthenticated
   useEffect(() => {
-    const t = setTimeout(() => {
-      setIsCheckingAuth(false);
-      if (!useAuthStore.getState().recruiterProfile) router.replace("/");
-    }, 300);
-    return () => clearTimeout(t);
-  }, [router]);
-
-  useEffect(() => {
-    if (recruiterProfile) setIsCheckingAuth(false);
+    if (!recruiterProfile) {
+      router.replace("/");
+    }
   }, [recruiterProfile]);
 
-  // One silent initial check — just to know if jobs exist for empty state
+  // One silent check in background to know if jobs exist for empty state
   useEffect(() => {
-    if (!recruiterProfile || initialChecked) return;
+    if (!recruiterProfile) return;
 
     useJobsStore.getState().getJobsSilent({ page: 1, limit: 1 })
       .then((res) => {
@@ -39,35 +30,18 @@ export default function JobsPageWrapper() {
       })
       .catch(() => {
         useJobsStore.getState().setHasJobs(false);
-      })
-      .finally(() => {
-        setInitialChecked(true);
       });
-  }, [recruiterProfile, initialChecked]);
-
-  if (isCheckingAuth || !initialChecked) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </AppLayout>
-    );
-  }
+  }, [recruiterProfile]);
 
   if (!recruiterProfile) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-gray-600">Redirecting...</p>
-        </div>
-      </AppLayout>
-    );
+    return null;
   }
 
   return (
-    <AppLayout>
-      <JobsDashboard />
+    <AppLayout padding="none">
+      <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
+        <JobsDashboard />
+      </div>
     </AppLayout>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
-import { OtpGate } from "./components/OtpGate";
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -24,5 +23,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [recruiterProfile, isProfileComplete, pathname, router]);
 
-  return <OtpGate>{children}</OtpGate>;
+  return <>{children}</>;
 }

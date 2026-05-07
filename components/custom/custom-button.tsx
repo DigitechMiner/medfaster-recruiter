@@ -57,7 +57,7 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "flex items-center relative overflow-hidden w-fit my-2 rounded-full",
+          "flex items-center relative overflow-hidden w-fit my-2 rounded-md",
           "bg-[#F4781B] text-white font-normal shadow hover:opacity-90 transition-colors",
           "focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
           buttonPaddingClass,

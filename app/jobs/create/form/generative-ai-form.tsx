@@ -1,12 +1,16 @@
 "use client";
 
-import { useState }     from "react";
-import { useRouter }    from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
-import { Button }       from "@/components/ui/button";
-import SuccessModal     from "@/components/modal";
+import { Button } from "@/components/ui/button";
+import SuccessModal from "@/components/modal";
 import { useJobsStore } from "@/stores/jobs-store";
-import { PAGE_TITLES, BUTTON_LABELS, SUCCESS_MESSAGES } from "../../constants/messages";
+import {
+  PAGE_TITLES,
+  BUTTON_LABELS,
+  SUCCESS_MESSAGES,
+} from "../../constants/messages";
 import type { JobCreatePayload } from "@/Interface/recruiter.types";
 import { useGenerateQuestions } from "@/hooks/useGenerateQuestions";
 import { toast } from "react-toastify";
@@ -17,12 +21,12 @@ const MAX_QUESTIONS = 10;
 const uid = () => crypto.randomUUID();
 
 interface Props {
-  pendingPayload?:    JobCreatePayload | null;
+  pendingPayload?: JobCreatePayload | null;
   // ✅ Lifted state from parent — survives navigation
-  questions:          AIQuestion[];
-  onQuestionsChange:  (q: AIQuestion[]) => void;
-  onBack?:  () => void;
-  onNext?:  (payload: JobCreatePayload) => void;
+  questions: AIQuestion[];
+  onQuestionsChange: (q: AIQuestion[]) => void;
+  onBack?: () => void;
+  onNext?: (payload: JobCreatePayload) => void;
 }
 
 export function GenerateAIForm({
@@ -32,46 +36,46 @@ export function GenerateAIForm({
   onBack,
   onNext,
 }: Props) {
-  const router     = useRouter();
-  const createJob  = useJobsStore((s) => s.createJob);
+  const router = useRouter();
+  const createJob = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
 
-  const [editingId,    setEditingId]    = useState<string | null>(null);
-  const [showSuccess,  setShowSuccess]  = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     loading: aiLoading,
-    error:   aiError,
+    error: aiError,
     generate,
-    reset:   resetAI,
+    reset: resetAI,
   } = useGenerateQuestions();
 
   const atLimit = questions.length >= MAX_QUESTIONS;
 
   // ── AI: Generate / Rephrase ───────────────────────────────────────────────
   const handleRephrase = async () => {
-  if (!pendingPayload?.job_title) {
-    toast.error("Job title is required to generate questions.");
-    return;
-  }
-  resetAI();
+    if (!pendingPayload?.job_title) {
+      toast.error("Job title is required to generate questions.");
+      return;
+    }
+    resetAI();
 
-  const generated = await generate({
-  title:          pendingPayload.job_title,
-  department:     pendingPayload.department ?? "",
-  specialization: pendingPayload.specializations?.[0] ?? undefined,
-  count:          Math.max(questions.length, 5),  // ✅ ask for as many as current slots
-});
+    const generated = await generate({
+      title: pendingPayload.job_title,
+      department: pendingPayload.department ?? "",
+      specialization: pendingPayload.specializations?.[0] ?? undefined,
+      count: Math.max(questions.length, 5), // ✅ ask for as many as current slots
+    });
 
-  if (generated.length === 0) return;
+    if (generated.length === 0) return;
 
-  // ✅ Just replace everything — no merging, no slicing logic
-  onQuestionsChange(
-    generated.slice(0, MAX_QUESTIONS).map((text) => ({ id: uid(), text }))
-  );
-};
+    // ✅ Just replace everything — no merging, no slicing logic
+    onQuestionsChange(
+      generated.slice(0, MAX_QUESTIONS).map((text) => ({ id: uid(), text })),
+    );
+  };
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const handleAdd = () => {
@@ -91,14 +95,14 @@ export function GenerateAIForm({
   // ── Build final payload ───────────────────────────────────────────────────
   const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
     ...(pendingPayload ?? {}),
-    job_title:        pendingPayload?.job_title        ?? "",
-    job_type:         pendingPayload?.job_type         ?? "casual",
-    job_urgency:      pendingPayload?.job_urgency      ?? "normal",
+    job_title: pendingPayload?.job_title ?? "",
+    job_type: pendingPayload?.job_type ?? "casual",
+    job_urgency: pendingPayload?.job_urgency ?? "normal",
     responsibilities: pendingPayload?.responsibilities ?? [],
-    required_skills:  pendingPayload?.required_skills  ?? [],
-    questions:        questions.map((q) => q.text).filter(Boolean),
-    status:           withStatusOpen ? "OPEN" : "DRAFT",
-    ai_interview:     true,
+    required_skills: pendingPayload?.required_skills ?? [],
+    questions: questions.map((q) => q.text).filter(Boolean),
+    status: withStatusOpen ? "OPEN" : "DRAFT",
+    ai_interview: true,
   });
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -137,7 +141,10 @@ export function GenerateAIForm({
       {aiError && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm flex items-center justify-between">
           <span>{aiError}</span>
-          <button onClick={handleRephrase} className="underline font-medium ml-3">
+          <button
+            onClick={handleRephrase}
+            className="underline font-medium ml-3"
+          >
             Try Again
           </button>
         </div>
@@ -146,7 +153,6 @@ export function GenerateAIForm({
       <div className="space-y-3 sm:space-y-4 w-full overflow-x-hidden">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 min-w-0">
           <div className="px-6 pt-6 pb-4">
-
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base sm:text-lg font-bold text-gray-900">
@@ -166,10 +172,11 @@ export function GenerateAIForm({
                   disabled={aiLoading}
                   className="flex items-center gap-1.5 text-[#F4781B] text-sm font-semibold italic hover:opacity-75 transition-opacity disabled:opacity-50"
                 >
-                  {aiLoading
-                    ? <Loader2 size={14} className="animate-spin" />
-                    : <Sparkles size={14} />
-                  }
+                  {aiLoading ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={14} />
+                  )}
                   Rephrase Questions with KeReaeva&apos;s AI
                 </button>
 
@@ -179,7 +186,9 @@ export function GenerateAIForm({
                   type="button"
                   onClick={handleAdd}
                   disabled={atLimit}
-                  title={atLimit ? "Maximum 10 questions allowed" : "Add a question"}
+                  title={
+                    atLimit ? "Maximum 10 questions allowed" : "Add a question"
+                  }
                   className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <span className="text-lg leading-none">+</span>
@@ -216,7 +225,8 @@ export function GenerateAIForm({
                       className="flex-1 px-4 py-3 text-sm text-gray-400 bg-gray-50 border border-gray-200 rounded-xl cursor-text select-none"
                       onClick={() => setEditingId(q.id)}
                     >
-                      {q.text || "Lorem ipsum dolor sit amet consectetur Non commodo tellus non enim sit?"}
+                      {q.text ||
+                        "Lorem ipsum dolor sit amet consectetur Non commodo tellus non enim sit?"}
                     </div>
                   )}
 
@@ -226,9 +236,18 @@ export function GenerateAIForm({
                     className="flex-shrink-0 text-green-500 hover:text-green-600 transition-colors"
                     title="Edit"
                   >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
 
@@ -238,11 +257,21 @@ export function GenerateAIForm({
                     className="flex-shrink-0 text-red-400 hover:text-red-500 transition-colors"
                     title="Delete"
                   >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                     </svg>
                   </button>
                 </div>
@@ -269,10 +298,16 @@ export function GenerateAIForm({
               disabled={isSubmitting}
               className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-7 py-2.5 rounded-xl disabled:opacity-60"
             >
-              {isSubmitting
-                ? <><Loader2 size={14} className="animate-spin" /> Creating...</>
-                : <>{BUTTON_LABELS.CREATE} <ArrowLeft className="w-4 h-4 rotate-180" /></>
-              }
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Creating...
+                </>
+              ) : (
+                <>
+                  {BUTTON_LABELS.CREATE}{" "}
+                  <ArrowLeft className="w-4 h-4 rotate-180" />
+                </>
+              )}
             </Button>
           </div>
         </div>

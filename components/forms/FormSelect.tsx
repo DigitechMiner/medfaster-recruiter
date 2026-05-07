@@ -1,8 +1,20 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { FormItem, FormLabel, FormControl, FormMessage, FormField } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormField,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SelectOption {
   label: string;
@@ -40,10 +52,7 @@ export default function FormSelect({
             {label} {required && <span className="text-[#F4781B]">*</span>}
           </FormLabel>
           <FormControl>
-            <Select 
-              onValueChange={field.onChange} 
-              value={field.value ?? ""}
-            >
+            <Select onValueChange={field.onChange} value={field.value ?? ""}>
               <SelectTrigger className={`mt-1 ${className}`}>
                 <SelectValue placeholder={placeholder} />
               </SelectTrigger>
@@ -62,4 +71,3 @@ export default function FormSelect({
     />
   );
 }
-

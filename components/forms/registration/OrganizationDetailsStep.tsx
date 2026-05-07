@@ -2,9 +2,8 @@
 
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import FileUpload from "../components/FileUpload";
-import FormInput from "../components/FormInput";
-import FormSelect from "../components/FormSelect";
+
+import { FileUpload, FormInput, FormSelect } from "@/components/forms";
 import { useMetadataStore } from "@/stores/metadataStore";
 
 const DEFAULT_ROW_CLASS = "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4";
@@ -110,6 +109,7 @@ export default function OrganizationDetailsStep() {
                 key={field.name}
                 name={field.name}
                 label={field.label}
+                placeholder={field.label}
                 required={field.required}
                 type={field.typeInput}
               />
@@ -118,7 +118,6 @@ export default function OrganizationDetailsStep() {
         </div>
       ))}
 
-      {/* Row 6: Province (wide) / City / Country */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-5 mt-4">
         <FormSelect
           name="province"
@@ -131,6 +130,7 @@ export default function OrganizationDetailsStep() {
         <FormInput
           name="city"
           label="City"
+          placeholder="Enter City"
           required
           wrapperClassName="sm:col-span-3"
         />

@@ -2,24 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/authStore';
-import SignInForm from './components/SignInForm';
-import OtpVerificationForm from './components/OtpVerificationForm';
-import { Logo, CloseButton } from './components';
+import { Logo, OtpVerificationForm, SignInForm } from './components';
 
-interface LoginModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess?: () => void;
-  forceOpen?: boolean;
-}
+const OTP_LENGTH = 4;
+const DEFAULT_COUNTRY_CODE = '+1';
 
-export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = false }: LoginModalProps) {
+export default function AuthPage() {
   const [contactValue, setContactValue] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '']);
+  const router = useRouter();
 
   const {
     sendOtp,
@@ -28,19 +24,14 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
     otpVerifying,
     otpError,
     setOtpError,
+    recruiterProfile,
   } = useAuthStore();
 
   useEffect(() => {
-    if (!isOpen) {
-      setContactValue('');
-      setCountryCode('+1');
-      setShowOTP(false);
-      setOtp(['', '', '', '']);
-      setOtpError(null);
+    if (recruiterProfile) {
+      router.replace('/');
     }
-  }, [isOpen, setOtpError]);
-
-  if (!isOpen) return null;
+  }, [recruiterProfile, router]);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,20 +69,16 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
     setOtpError(null);
 
     const otpCode = otp.join('');
-    if (otpCode.length !== 4) {
-      setOtpError('Please enter a 4-digit OTP');
+    if (otpCode.length !== OTP_LENGTH) {
+      setOtpError(`Please enter a ${OTP_LENGTH}-digit OTP`);
       return;
     }
 
-    // ✅ Pass loadProfile=true — verifyOtp sets the token then loads profile internally.
-    //    Do NOT call loadRecruiterProfile() again here — that was causing the 401
-    //    race condition (profile fetch fired before token was committed).
     const result = await verifyOtp(otpCode, true);
 
     if (result.ok) {
       toast.success('Login successful!');
-      onSuccess?.();
-      onClose();
+      router.replace('/');
     } else {
       setOtpError(result.message ?? 'Failed to verify OTP');
       setOtp(['', '', '', '']);
@@ -135,55 +122,30 @@ export default function LoginModal({ isOpen, onClose, onSuccess, forceOpen = fal
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-100/80 md:bg-black/50 p-4 md:p-0"
-      onClick={forceOpen ? undefined : onClose}
-    >
-      {/* Mobile View */}
-      <div
-        className="md:hidden relative w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {!forceOpen && (
-          <CloseButton
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            onClose={onClose}
-          />
-        )}
-        <Logo />
-        {formContent}
-      </div>
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-0 overflow-hidden">
+      <Image
+        src="/img/people/modalDoctor.png"
+        alt="Healthcare professional with patient"
+        fill
+        className="object-cover"
+        priority
+      />
+      <div className="absolute inset-0 bg-black/50" />
 
-      {/* Desktop View */}
-      <div
-        className="hidden md:flex fixed inset-0 w-full h-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {!forceOpen && (
-          <CloseButton
-            className="absolute top-6 right-6 z-10 text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-2 shadow-md"
-            onClose={onClose}
-          />
-        )}
-
-        {/* Left image */}
-        <div className="w-[45%] h-full bg-white p-8">
-          <div className="relative w-full h-full rounded-2xl overflow-hidden">
-            <Image
-              src="/img/people/modalDoctor.png"
-              alt="Healthcare professional with patient"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
+      <div className="relative z-10 w-full">
+        <div className="md:hidden w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+          <Logo />
+          {formContent}
         </div>
 
-        {/* Right form */}
-        <div className="w-[55%] h-full flex items-center justify-center bg-white p-8 overflow-y-auto">
-          <div className="w-full max-w-md bg-white rounded-2xl border-[1.5px] border-gray-200 p-8 overflow-visible">
-            <Logo />
-            {formContent}
+        <div className="hidden md:flex fixed inset-0 w-full h-full">
+          <div className="w-[45%] h-full p-8" />
+
+          <div className="w-[55%] h-full flex items-center justify-center p-8 overflow-y-auto">
+            <div className="w-full max-w-md bg-white rounded-2xl border-[1.5px] border-gray-200 p-8 overflow-visible">
+              <Logo />
+              {formContent}
+            </div>
           </div>
         </div>
       </div>

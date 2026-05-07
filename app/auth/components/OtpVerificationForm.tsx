@@ -5,9 +5,11 @@ import { Mail, Loader2 } from "lucide-react";
 import { CustomButton } from "@/components/custom/custom-button";
 import { OTP_RESEND_TIMER_SECONDS } from "@/utils/otp";
 
+const OTP_LENGTH = 4;
+
 interface OtpVerificationFormProps {
   contactValue: string;
-  countryCode?: string;        // ✅ ADDED
+  countryCode?: string;
   otp: string[];
   otpSending: boolean;
   otpVerifying: boolean;
@@ -20,7 +22,7 @@ interface OtpVerificationFormProps {
 
 export default function OtpVerificationForm({
   contactValue,
-  countryCode = '+1',          // ✅ Default Canada
+  countryCode = "+1",
   otp,
   otpSending,
   otpVerifying,
@@ -33,12 +35,10 @@ export default function OtpVerificationForm({
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [resendTimer, setResendTimer] = useState(0);
 
-  // ✅ FIXED: Format display with country code
-  const displayContact = contactValue.includes("@") 
-    ? contactValue 
-    : `${countryCode} ${contactValue}`;  // +1 4165551234
+  const displayContact = contactValue.includes("@")
+    ? contactValue
+    : `${countryCode} ${contactValue}`;
 
-  // ... ALL YOUR EXISTING LOGIC UNCHANGED ...
   useEffect(() => {
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
@@ -64,13 +64,13 @@ export default function OtpVerificationForm({
 
   const handleInputChange = (index: number, value: string) => {
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, "").slice(0, 4);
+      const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH);
       digits.split("").forEach((digit, i) => {
-        if (index + i < 4) {
+        if (index + i < OTP_LENGTH) {
           onOtpChange(index + i, digit);
         }
       });
-      const nextIndex = Math.min(index + digits.length, 3);
+      const nextIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
       setTimeout(() => {
         inputRefs.current[nextIndex]?.focus();
       }, 0);
@@ -81,7 +81,7 @@ export default function OtpVerificationForm({
 
     onOtpChange(index, value);
 
-    if (value && index < 3) {
+    if (value && index < OTP_LENGTH - 1) {
       setTimeout(() => {
         inputRefs.current[index + 1]?.focus();
       }, 0);
@@ -108,7 +108,7 @@ export default function OtpVerificationForm({
       return;
     }
 
-    if (e.key === "ArrowRight" && index < 3) {
+    if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
       e.preventDefault();
       inputRefs.current[index + 1]?.focus();
       return;
@@ -125,19 +125,19 @@ export default function OtpVerificationForm({
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text");
-    const digits = pastedData.replace(/\D/g, "").slice(0, 4);
+    const digits = pastedData.replace(/\D/g, "").slice(0, OTP_LENGTH);
 
     if (digits.length > 0) {
       const firstEmptyIndex = otp.findIndex((digit) => !digit);
       const startIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : 0;
 
       digits.split("").forEach((digit, i) => {
-        if (startIndex + i < 4) {
+        if (startIndex + i < OTP_LENGTH) {
           onOtpChange(startIndex + i, digit);
         }
       });
 
-      const nextIndex = Math.min(startIndex + digits.length, 3);
+      const nextIndex = Math.min(startIndex + digits.length, OTP_LENGTH - 1);
       setTimeout(() => {
         inputRefs.current[nextIndex]?.focus();
       }, 0);
@@ -168,8 +168,7 @@ export default function OtpVerificationForm({
       <h2 className="text-2xl font-bold text-[#252B37] mb-2 text-center">
         Check your {contactValue.includes("@") ? "email" : "phone"}
       </h2>
-      
-      {/* ✅ FIXED: Shows +1 4165551234 */}
+
       <p className="text-[#717680] text-sm mb-6 text-center">
         We sent a verification OTP to
         <br />
@@ -221,7 +220,7 @@ export default function OtpVerificationForm({
       </form>
 
       <p className="mt-4 text-center text-sm text-[#717680]">
-          Didn&apos;t receive the code?{" "}
+        Didn&apos;t receive the code?{" "}
         <button
           type="button"
           onClick={handleResendClick}

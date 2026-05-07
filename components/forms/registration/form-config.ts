@@ -1,16 +1,15 @@
 import { z } from "zod";
 
-// Schemas
 export const orgSchema = z.object({
   organization_photo: z.any().optional(),
   orgName: z.string().min(1, "Organization Name is required"),
-  registeredBusinessName: z.string().optional(),
+  registeredBusinessName: z.string().min(1, "Registered Business Name is required"),
   orgType: z.string().min(1, "Organization Type is required"),
   email: z.string().email({ message: "Invalid email" }),
   contactNumber: z.string().min(1, "Contact Number is required"),
   website: z.string().min(1, "Website is required"),
   businessNumber: z.string().min(1, "Business Number is required"),
-  gstNo: z.string().optional(),
+  gstNo: z.string().min(1, "GST No is required"),
   address: z.string().min(1, "Street Address is required"),
   postalCode: z.string().min(1, "Postal Code is required"),
   city: z.string().min(1, "City is required"),
@@ -26,25 +25,24 @@ export const contactSchema = z.object({
 });
 
 export const complianceSchema = z.object({
-  business_registration_certificate: z.any(),           // required at step 3
-  operating_license:                 z.any().optional(),
-  certificate:                       z.any().optional(),
+  business_registration_certificate: z.any(),
+  operating_license: z.any().optional(),
+  certificate: z.any().optional(),
 });
 
-// Types
-export type OrgDetailsType = z.infer<typeof orgSchema>;
-export type ContactType = z.infer<typeof contactSchema>;
-export type ComplianceType = z.infer<typeof complianceSchema>;
+export const steps = [
+  "Organization Details",
+  "Contact Information",
+  "Compliance Verification",
+];
 
-// Constants
-export const steps = ["Organization Details", "Contact Information", "Compliance Verification"];
 export const schemas = [orgSchema, contactSchema, complianceSchema];
 
-export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
+export const allDefaultValues = [
   {
     organization_photo: null,
     orgName: "",
-    registeredBusinessName:  "",
+    registeredBusinessName: "",
     orgType: "",
     email: "",
     contactNumber: "",
@@ -64,27 +62,26 @@ export const allDefaultValues: [OrgDetailsType, ContactType, ComplianceType] = [
     contactEmail: "",
   },
   {
-  business_registration_certificate: null,
-  operating_license:                 null,
-  certificate:                       null,
-}
-
-];
+    business_registration_certificate: null,
+    operating_license: null,
+    certificate: null,
+  },
+] as const;
 
 export const complianceFields = [
   {
-    name: "business_registration_certificate",  // ← was "businessRegistration"
+    name: "business_registration_certificate",
     label: "Business Registration Certificate",
     required: true,
   },
   {
-    name: "operating_license",                  // ← this one was already correct
+    name: "operating_license",
     label: "Operating License",
     required: false,
   },
   {
-    name: "certificate",                        // ← was "accreditationCertificate" / "provincialLicense" etc.
+    name: "certificate",
     label: "Other Certificate",
     required: false,
   },
-];
+] as const;

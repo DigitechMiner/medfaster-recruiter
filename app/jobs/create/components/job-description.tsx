@@ -16,6 +16,7 @@ import { toast } from "react-toastify";
 interface JobDescriptionProps {
   formData:       JobFormData;
   updateFormData: (updates: Partial<JobFormData>) => void;
+  fieldErrors?:   Partial<Record<keyof JobFormData, string>>;
 }
 
 const LIST_SECTIONS: { key: keyof JobFormData; label: string; required?: boolean }[] = [
@@ -32,11 +33,13 @@ function ListSection({
   required,
   items,
   onChange,
+  error,
 }: {
   title:     string;
   required?: boolean;
   items:     string[];
   onChange:  (items: string[]) => void;
+  error?:    string;
 }) {
   const normalized = items.length > 0 ? items : [""];
 
@@ -95,12 +98,13 @@ function ListSection({
           </div>
         ))}
       </div>
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
     </div>
   );
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function JobDescription({ formData, updateFormData }: JobDescriptionProps) {
+export function JobDescription({ formData, updateFormData, fieldErrors = {} }: JobDescriptionProps) {
   const [showModal, setShowModal] = useState(false);
   const { result, loading, error, generateDescription, reset } = useGenerateDescription();
 
@@ -188,6 +192,9 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
           className="w-full min-h-[120px] sm:min-h-[140px] resize-none text-sm"
           rows={5}
         />
+        {fieldErrors.description && (
+          <p className="text-xs text-red-600">{fieldErrors.description}</p>
+        )}
       </div>
 
       {LIST_SECTIONS.map(({ key, label, required }) => (
@@ -197,6 +204,7 @@ export function JobDescription({ formData, updateFormData }: JobDescriptionProps
           required={required}
           items={(formData[key] as string[]) ?? []}
           onChange={(items) => updateFormData({ [key]: items })}
+          error={fieldErrors[key]}
         />
       ))}
 
