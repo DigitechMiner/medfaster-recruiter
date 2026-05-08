@@ -16,6 +16,10 @@ import metadata, {
   convertJobTitleToBackend,
 } from "@/utils/constant/metadata";
 
+const VALID_SPECIALIZATION_VALUES = new Set<string>(
+  Object.values(metadata.specialization_mapping)
+);
+
 interface Props {
   urgencyMode: "normal" | "instant";
   onNext?: (payload: JobCreatePayload, wantsInterview: boolean) => void;
@@ -131,7 +135,7 @@ export function CreateJobForm({ urgencyMode, onNext, onBack }: Props) {
           specializations: data.specialization
             ?.filter((s) => s?.trim())
             .map(convertSpecializationToBackend)
-            .filter((s) => Object.values(metadata.specialization_mapping).includes(s)) ?? [],
+            .filter((s): s is string => VALID_SPECIALIZATION_VALUES.has(s)) ?? [],
           ai_interview: wantsInterview ? (data.aiInterview === true) : false,
           questions: wantsInterview ? (data.questions?.filter(Boolean) ?? []) : null,
         }
