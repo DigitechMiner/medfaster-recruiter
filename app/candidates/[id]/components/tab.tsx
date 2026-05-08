@@ -3,7 +3,7 @@
 import ScoreCard from "@/components/card/scorecard";
 import { useCandidateDocumentUrl } from "@/hooks/useApplicationActions";
 import type { CandidateDetailVM, ScoreRound } from "@/Interface/view-models";
-import { CheckCircle2, Eye, XCircle } from "lucide-react";
+import { BriefcaseBusiness, CheckCircle2, Eye, Star, XCircle } from "lucide-react";
 
 export const CANDIDATE_DETAIL_TABS = [
   "General score",
@@ -483,35 +483,76 @@ export function JobExperienceTab({ candidate }: { candidate: CandidateDetailVM }
     </div>
   );
 }
-
-export function WorkHistoryTab({ candidate }: { candidate: CandidateDetailVM }) {
+// ── Reusable Empty State ──────────────────────────────────────────────────────
+function EmptyState({ icon, title, description }: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <tbody>
-          {candidate.work_history.map((row) => (
-            <tr key={row.application_id} className="border-b border-gray-100">
-              <td className="px-4 py-3.5 text-gray-800 text-sm">{row.job_title}</td>
-              <td className="px-4 py-3.5 text-gray-600 text-sm">{row.organization}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+      <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center mb-3 text-gray-400">
+        {icon}
+      </div>
+      <p className="text-sm font-semibold text-gray-700 mb-1">{title}</p>
+      <p className="text-xs text-gray-400 max-w-[200px] leading-relaxed">{description}</p>
     </div>
   );
 }
 
+
+// ── WorkHistoryTab ────────────────────────────────────────────────────────────
+export function WorkHistoryTab({ candidate }: { candidate: CandidateDetailVM }) {
+  const hasHistory = candidate.work_history?.length > 0;
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      {hasHistory ? (
+        <table className="w-full text-sm">
+          <tbody>
+            {candidate.work_history.map((row) => (
+              <tr key={row.application_id} className="border-b border-gray-100 last:border-b-0">
+                <td className="px-4 py-3.5 text-gray-800 text-sm font-medium">{row.job_title}</td>
+                <td className="px-4 py-3.5 text-gray-500 text-sm">{row.organization}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <EmptyState
+          icon={<BriefcaseBusiness className="w-5 h-5" />}
+          title="No work history yet"
+          description="Past assignments and jobs will appear here once completed."
+        />
+      )}
+    </div>
+  );
+}
+
+
+// ── ReviewsRatingsTab ─────────────────────────────────────────────────────────
 export function ReviewsRatingsTab({ candidate }: { candidate: CandidateDetailVM }) {
   const displayScore =
-    candidate.general_score.avg_rating_score ?? candidate.ratings.average_score ?? 0;
+    candidate.general_score?.avg_rating_score ?? candidate.ratings?.average_score ?? 0;
+  const totalReviews = candidate.ratings?.total_reviews ?? 0;
+  const hasReviews   = totalReviews > 0;
 
   return (
     <div className="space-y-5">
       <div className="border border-gray-200 rounded-xl p-5">
-        <p className="text-5xl font-bold text-gray-900">{displayScore.toFixed(1)}</p>
-        <p className="text-xs text-gray-500">{candidate.ratings.total_reviews} reviews</p>
+        {hasReviews ? (
+          <>
+            <p className="text-5xl font-bold text-gray-900">{displayScore.toFixed(1)}</p>
+            <p className="text-xs text-gray-500 mt-1">{totalReviews} reviews</p>
+          </>
+        ) : (
+          <EmptyState
+            icon={<Star className="w-5 h-5" />}
+            title="No reviews yet"
+            description="Ratings from completed shifts will show up here."
+          />
+        )}
       </div>
     </div>
   );
 }
-

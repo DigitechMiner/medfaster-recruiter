@@ -24,6 +24,7 @@ import type {
   InviteCandidateResponse,
   RecruiterNotification,
   NotificationsParams,
+  CalendarSummary,
 } from '@/Interface/recruiter.types';
 import type { RecruiterDashboardData } from '@/stores/api/recruiter-candidates-api';
 import { useQuery } from '@tanstack/react-query';
@@ -75,16 +76,34 @@ export function useJobsSummary() {
 
 // ─── 3. Jobs Calendar ─────────────────────────────────────────────────────────
 export function useJobsCalendar(range: 'today' | 'week' | 'month' = 'week') {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['calendar', range],
-    queryFn:  () => getJobsCalendar(range),
-  });
+  const [calendarJobs, setCalendarJobs] = useState<CalendarJob[]>([]);
+  const [calendarSummary, setCalendarSummary] = useState<CalendarSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  return {
-    calendarJobs: data?.data?.shifts ?? [],
-    isLoading,
-    error,
-  };
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    getJobsCalendar(range)
+      .then((res) => {
+        if (cancelled) return;
+        setCalendarJobs(res.data?.shifts ?? []);
+        setCalendarSummary(res.data?.summary ?? null);
+         console.log("getJobsCalendar res:", JSON.stringify(res).slice(0, 300));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [range]);
+
+  return { calendarJobs, calendarSummary, isLoading, error };
 }
 
 // ─── 4. Candidates List ───────────────────────────────────────────────────────

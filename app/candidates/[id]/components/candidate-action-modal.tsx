@@ -19,6 +19,7 @@ import { useAuthStore } from "@/stores/authStore";
 import type { ActionType } from "@/Interface/recruiter.types";
 import type { CandidateDetailVM } from "@/Interface/view-models";
 import type { JobApiItem, JobOption, JobsResponse } from "../interfaces";
+import { inviteCandidate } from "@/stores/api/recruiter-candidates-api";
 
 const MODAL_CONFIG: Record<
   ActionType,
@@ -141,31 +142,31 @@ export function CandidateActionModal({
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
 
   const handleCTA = async () => {
-    if (!selectedJobId || !selectedJob) return;
-    setIsSubmitting(true);
-    setSubmitError(null);
-    try {
-      if (config.apiAction === "invite" || config.apiAction === "schedule") {
-        await axiosInstance.post(ENDPOINTS.CANDIDATE_JOB_INVITE, {
-          job_id: selectedJobId,
-          candidate_id: candidate.id,
-        });
-      } else if (config.apiAction === "shortlist" || config.apiAction === "hire") {
-        if (!applicationId) throw new Error("Application ID is required");
-        await axiosInstance.patch(ENDPOINTS.JOB_APPLICATION_STATUS(applicationId), {
-          status: config.apiAction === "shortlist" ? "SHORTLISTED" : "HIRE",
-        });
-      }
-      setShowSuccess(true);
-    } catch (err) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        (err instanceof Error ? err.message : "Action failed. Please try again.");
-      setSubmitError(msg);
-    } finally {
-      setIsSubmitting(false);
+  if (!selectedJobId || !selectedJob) return;
+  setIsSubmitting(true);
+  setSubmitError(null);
+  try {
+    if (config.apiAction === "invite" || config.apiAction === "schedule") {
+      await inviteCandidate({
+        job_id: selectedJobId,
+        candidate_id: candidate.id,
+      });
+    } else if (config.apiAction === "shortlist" || config.apiAction === "hire") {
+      if (!applicationId) throw new Error("Application ID is required");
+      await axiosInstance.patch(ENDPOINTS.JOB_APPLICATION_STATUS(applicationId), {
+        status: config.apiAction === "shortlist" ? "SHORTLISTED" : "HIRE",
+      });
     }
-  };
+    setShowSuccess(true);
+  } catch (err) {
+    const msg =
+      (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+      (err instanceof Error ? err.message : "Action failed. Please try again.");
+    setSubmitError(msg);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   if (showSuccess && selectedJob) {
     return (

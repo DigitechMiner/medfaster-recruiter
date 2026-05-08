@@ -1,4 +1,4 @@
-// app/schedule/page.tsx  (or wherever your CalendarPage lives)
+
 "use client";
 
 import React, { useState } from "react";
@@ -8,7 +8,7 @@ import {
   Timer, LogOut, TriangleAlert,
 } from "lucide-react";
 import { useJobsCalendar } from "@/hooks/useRecruiterData";
-import type { CalendarJob } from "@/Interface/recruiter.types";
+import type { CalendarJob, CalendarSummary } from "@/Interface/recruiter.types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type CalendarView = "day" | "week" | "month";
@@ -141,36 +141,22 @@ function MonthBadge({ count, type }: { count: number; type: BadgeType }) {
 }
 
 // ── OverviewPanel ─────────────────────────────────────────────────────────────
-function OverviewPanel({ jobs, view, currentDate }: {
-  jobs:        CalendarJob[];
-  view:        CalendarView;
+function OverviewPanel({ jobs, summary, view, currentDate }: {
+  
+  jobs: CalendarJob[];
+  summary: CalendarSummary | null;
+  view: CalendarView;
   currentDate: Date;
 }) {
   const today = new Date();
-
-  const relevantJobs =
-    view === "day"
-      ? jobs.filter(j => j.shift_date && isSameDate(new Date(j.shift_date), currentDate))
-      : view === "week"
-      ? (() => {
-          const days = getWeekDays(currentDate);
-          return jobs.filter(j => j.shift_date && days.some(d => isSameDate(new Date(j.shift_date!), d)));
-        })()
-      : jobs.filter(j => {
-          if (!j.shift_date) return false;
-          const d = new Date(j.shift_date);
-          return d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth();
-        });
-
-  const active    = relevantJobs.filter(j => j.shift_status === "ACTIVE").length;
-  const upcoming  = relevantJobs.filter(j => j.shift_status === "UPCOMING").length;
-  const completed = relevantJobs.filter(j => j.shift_status === "COMPLETED").length;
-  const noshow    = relevantJobs.filter(j => j.shift_status === "CANCELLED").length;
-  const pending   = relevantJobs.filter(j => j.shift_status === "UPCOMING" && !j.check_in).length;
-  const early     = relevantJobs.filter(j => {
-    if (!j.check_out || !j.planned_check_out) return false;
-    return new Date(j.check_out) < new Date(`${j.shift_date}T${j.planned_check_out}`);
-  }).length;
+ console.log("OverviewPanel summary:", summary);
+  // Always prefer API summary; only fall back to local compute when summary is absent
+  const active    = summary?.active_shift    ?? jobs.filter(j => j.shift_status === "ACTIVE").length;
+  const upcoming  = summary?.upcoming_shift  ?? jobs.filter(j => j.shift_status === "UPCOMING").length;
+  const completed = summary?.complete_shift || jobs.filter(j => j.shift_status === "COMPLETED").length;
+  const noshow    = summary?.no_show_missed  ?? jobs.filter(j => j.shift_status === "CANCELLED").length;
+  const pending   = summary?.pending_checkin ?? jobs.filter(j => !j.check_in).length;
+  const early     = summary?.early_checkout  ?? 0;
 
   const titles    = { day: "Today's Overview", week: "Weekly Overview", month: "Monthly Overview" };
   const subtitles = {
@@ -189,27 +175,31 @@ function OverviewPanel({ jobs, view, currentDate }: {
   ];
 
   return (
-    <div className="w-[260px] flex-shrink-0 flex flex-col gap-4 self-start sticky top-6">
-      {/* Header card */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-5 text-center">
-        <h3 className="text-[15px] font-bold text-gray-900">{titles[view]}</h3>
-        <p className="text-[12px] text-gray-400 mt-1">{subtitles[view]}</p>
+    // On mobile: horizontal scrollable row of stat cards
+    // On lg+: vertical sidebar panel
+    <div className="w-full lg:w-[260px] lg:flex-shrink-0 lg:self-start lg:sticky lg:top-6">
+      {/* Header */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 sm:px-5 py-4 text-center mb-3">
+        <h3 className="text-[14px] sm:text-[15px] font-bold text-gray-900">{titles[view]}</h3>
+        <p className="text-[11px] sm:text-[12px] text-gray-400 mt-1">{subtitles[view]}</p>
       </div>
 
-      {/* One card per stat */}
-      {stats.map((s, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-3">
-          <div className="flex-shrink-0">{s.icon}</div>
-          <div>
-            <div className={`text-[26px] font-bold leading-none tracking-tight ${s.red ? "text-red-500" : "text-gray-900"}`}>
-              {String(s.count).padStart(2, "0")}
-            </div>
-            <div className={`text-[11px] mt-0.5 leading-tight ${s.red ? "text-red-400" : "text-gray-400"}`}>
-              {s.label}
+      {/* Stats — horizontal scroll on mobile, vertical stack on lg */}
+      <div className="flex lg:flex-col gap-3 overflow-x-auto pb-1 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {stats.map((s, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3 flex-shrink-0 min-w-[160px] lg:min-w-0 lg:w-full">
+            <div className="flex-shrink-0">{s.icon}</div>
+            <div>
+              <div className={`text-[22px] sm:text-[26px] font-bold leading-none tracking-tight ${s.red ? "text-red-500" : "text-gray-900"}`}>
+                {String(s.count).padStart(2, "0")}
+              </div>
+              <div className={`text-[10px] sm:text-[11px] mt-0.5 leading-tight ${s.red ? "text-red-400" : "text-gray-400"}`}>
+                {s.label}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -482,7 +472,7 @@ export default function CalendarPage() {
 
   // ── Pass view-mapped range to hook so API gets correct data ───────────────
   const apiRange = view === "day" ? "today" : view === "week" ? "week" : "month";
-  const { calendarJobs, isLoading } = useJobsCalendar(apiRange);
+  const { calendarJobs, calendarSummary, isLoading } = useJobsCalendar(apiRange);
 
   const navigate = (dir: "prev" | "next") => {
     const d = new Date(currentDate);
@@ -496,56 +486,42 @@ export default function CalendarPage() {
   const calendarSubtitle = view === "month" ? "" : view === "week" ? formatWeekRange(currentDate) : formatDayTitle(currentDate);
 
   return (
-    <div className="w-full min-h-screen bg-[#F9F8F6] px-6 py-6">
+    <div className="w-full min-h-screen bg-[#F9F8F6] px-3 sm:px-6 py-4 sm:py-6">
       <div className="max-w-[1400px] mx-auto">
-        <h1 className="text-[20px] font-bold text-gray-900 mb-5">Schedule Overview</h1>
+        <h1 className="text-[18px] sm:text-[20px] font-bold text-gray-900 mb-4 sm:mb-5">
+          Schedule Overview
+        </h1>
 
-        <div className="flex gap-5 items-start">
-          {/* ── Main calendar panel ── */}
-          <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
+          {/* Main calendar panel */}
+          <div className="w-full flex-1 min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Toolbar */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-4">
-                {/* Prev / Next */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => navigate("prev")}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition border border-gray-200"
-                  >
+                  <button onClick={() => navigate("prev")} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 border border-gray-200">
                     <ChevronLeft className="w-4 h-4 text-gray-600" />
                   </button>
-                  <button
-                    onClick={() => navigate("next")}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition border border-gray-200"
-                  >
+                  <button onClick={() => navigate("next")} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 border border-gray-200">
                     <ChevronRight className="w-4 h-4 text-gray-600" />
                   </button>
                 </div>
-
-                {/* Title */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[14px] font-bold text-gray-900">{calendarTitle}</span>
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 min-w-0">
+                  <span className="text-[13px] sm:text-[14px] font-bold text-gray-900 whitespace-nowrap">{calendarTitle}</span>
                   {calendarSubtitle && (
-                    <span className="text-[14px] text-gray-400 font-medium">{calendarSubtitle}</span>
+                    <span className="text-[12px] sm:text-[14px] text-gray-400 font-medium truncate">{calendarSubtitle}</span>
                   )}
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                {isLoading && (
-                  <span className="text-[11px] text-gray-400 animate-pulse">Loading...</span>
-                )}
-                {/* View toggle */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {isLoading && <span className="text-[11px] text-gray-400 animate-pulse">Loading...</span>}
                 <div className="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
                   {(["day", "week", "month"] as CalendarView[]).map((option) => (
                     <button
                       key={option}
                       onClick={() => setView(option)}
-                      className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all capitalize ${
-                        view === option
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
+                      className={`px-2.5 sm:px-4 py-1.5 rounded-md text-[12px] sm:text-[13px] font-medium transition-all capitalize ${
+                        view === option ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
                       }`}
                     >
                       {option.charAt(0).toUpperCase() + option.slice(1)}
@@ -555,14 +531,13 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* View content */}
             {view === "day"   && <CalendarDayView   currentDate={currentDate} jobs={calendarJobs} />}
             {view === "week"  && <CalendarWeekView  currentDate={currentDate} jobs={calendarJobs} />}
             {view === "month" && <CalendarMonthView currentDate={currentDate} jobs={calendarJobs} />}
           </div>
 
-          {/* ── Right overview panel ── */}
-          <OverviewPanel jobs={calendarJobs} view={view} currentDate={currentDate} />
+          {/* Overview panel */}
+          <OverviewPanel jobs={calendarJobs} summary={calendarSummary} view={view} currentDate={currentDate} />
         </div>
       </div>
     </div>

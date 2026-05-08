@@ -142,7 +142,7 @@ export function CandidateHero({
     <Download size={14} /> Export Profile
   </button>
   <button
-    onClick={() => onPrimaryAction?.("shortlist")}
+    onClick={() => onPrimaryAction?.("invite")}
     className="inline-flex items-center gap-2 rounded-lg border border-[#F3B378] bg-[#FFF7F1] px-4 py-2 text-sm font-semibold text-[#C87521] whitespace-nowrap"
   >
     <Briefcase size={14} /> Invite For a Job

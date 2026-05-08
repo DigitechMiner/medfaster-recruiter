@@ -421,35 +421,45 @@ export interface JobsSummaryResponse {
 
 // CalendarShift is the new name; CalendarJob is the alias for old code
 export interface CalendarShift {
-  assignment_id:     string;
-  job_id:            string;
-  shift_id:          string;
-  shift_date:        string;
-  shift_status:      'UPCOMING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-  candidate_id:      string;
-  candidate_name:    string;
-  check_in:          string | null;
-  check_out:         string | null;
-  check_out_source:  string | null;
-  planned_check_in:  string;
-  planned_check_out: string;
-  job_title:         string;
-  job_type:          string;
-}
+    assignment_id: string;
+  job_id: string;
+  shift_id: string;
+  shift_date: string;
+  shift_status: "ACTIVE" | "UPCOMING" | "COMPLETED" | "CANCELLED";
+  candidate_id: string;
+  candidate_name: string;
+  check_in: string | null;
+  check_out: string | null;
+  check_out_source: string | null;
+  planned_check_in: string | null;
+  planned_check_out: string | null;
+  job_title: string;
+  job_type: string;
+};
 
 // ← alias so old imports don't break
 export type CalendarJob = CalendarShift;
 
-export interface JobsCalendarResponse {
+export type CalendarSummary = {
+  active_shift: number;
+  upcoming_shift: number;
+  complete_shift: number;
+  pending_checkin: number;
+  early_checkout: number;
+  no_show_missed: number;
+};
+
+export type JobsCalendarResponse = {
   success: boolean;
   message: string;
   data: {
-    range:     string;
+    range: string;
     date_from: string;
-    date_to:   string;
-    shifts:    CalendarShift[];
+    date_to: string;
+    summary: CalendarSummary;
+    shifts: CalendarJob[];
   };
-}
+};
 
 export interface JobCreatePayload {
   job_title:            string;
