@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
-const HOST = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'; // ✅ http not https
+const HOST = process.env.NEXT_PUBLIC_API_URL
 export const BASE_URL = `${HOST}/api/v1`;
 
 const axiosInstance: AxiosInstance = axios.create({

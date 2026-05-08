@@ -136,7 +136,42 @@ export interface RatingsBlockVM {
   star_distribution:  StarDistributionVM[];
   reviews:            ReviewVM[];
 }
-
+export type ScoreRound = {
+  score: number;
+  strengths: string | null;
+  // conversational_intelligence
+  engagement?: number;
+  adaptability?: number;
+  responsiveness?: number;
+  clarity_of_thought?: number;
+  // behavioral_professionalism
+  empathy?: number;
+  ethical_reasoning?: number;
+  stress_management?: number;
+  team_collaboration?: number;
+  // communication_clarity
+  confidence?: number;
+  articulation?: number;
+  active_listening?: number;
+  structure_of_answers?: number;
+  // clinical_competency
+  medical_accuracy?: number;
+  clinical_reasoning?: number;
+  evidence_based_decision?: number;
+  patient_safety_awareness?: number;
+  
+} | null;
+export type InterviewSummaryBlock = {
+  strengths: string[];
+  risk_flags: {
+    communication_red_flag: boolean;
+    unsafe_decision_detected: boolean;
+    critical_safety_violation: boolean;
+  };
+  interview_summary: string | null;
+  recommendation: string | null;
+  areas_to_improve: string[];
+} | null;
 export interface CandidateDetailVM {
   // Header
   id:                  string;
@@ -162,13 +197,14 @@ export interface CandidateDetailVM {
 
   // General score
   general_score: {
-    overall_score:          number | null;
-    avg_rating_score:       number | null;
-    conversational_round:   null;       // ❌ not in API
-    behavioral_round:       null;       // ❌ not in API
-    communication_analysis: null;       // ❌ not in API
-    accuracy_of_answers:    null;       // ❌ not in API
-  };
+  overall_score: number | null;
+  avg_rating_score: number | null;
+  interview_summary_block: InterviewSummaryBlock;  // ← add this
+  conversational_round: ScoreRound;
+  behavioral_round: ScoreRound;
+  communication_analysis: ScoreRound;
+  accuracy_of_answers: ScoreRound;
+};
 
   qualifications:   QualificationVM[];
   documents: {

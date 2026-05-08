@@ -2,7 +2,7 @@ import type {
   CandidateDetailProfile,
   CandidateDetailsResponse,
 } from "@/Interface/recruiter.types";
-import type { CandidateDetailVM } from "@/Interface/view-models";
+import type { CandidateDetailVM, InterviewSummaryBlock, ScoreRound } from "@/Interface/view-models";
 import type { CandidateDetailApiResponse } from "./interfaces";
 
 type CandidateApiData = CandidateDetailApiResponse["data"];
@@ -163,9 +163,12 @@ export function normalizeCandidateResponse(
       : basic.ratings,
     general_score: {
       best_ai_interview_score:
-        apiData.data.general_score?.best_ai_interview_evaluation ?? basic.general_score?.best_ai_interview_score ?? null,
-      avg_rating_score: apiData.data.ratings?.avg_rating ?? basic.general_score?.avg_rating_score ?? null,
-    },
+        (apiData.data.general_score as unknown as number | null) ??
+        basic.general_score?.best_ai_interview_score ??
+        null,
+      avg_rating_score:
+        apiData.data.ratings?.avg_rating ?? basic.general_score?.avg_rating_score ?? null,
+      },
   };
 
   return {
@@ -175,7 +178,37 @@ export function normalizeCandidateResponse(
   };
 }
 
+function mapRound(
+  round: Record<string, unknown>,
+  strengthsText: string | null
+): ScoreRound {
+  if (!round) return null;
+  const sub = (round.sub_metrics ?? {}) as Record<string, number>;
+  return {
+    score: Number(round.score ?? 0),
+    strengths: strengthsText,
+    ...sub,
+  };
+}
+
+function mapSummaryBlock(result: Record<string, unknown> | null): InterviewSummaryBlock {
+  if (!result) return null;
+  const riskFlags = (result.risk_flags ?? {}) as Record<string, boolean>;
+  return {
+    strengths: Array.isArray(result.strengths) ? (result.strengths as string[]) : [],
+    risk_flags: {
+      communication_red_flag: Boolean(riskFlags.communication_red_flag),
+      unsafe_decision_detected: Boolean(riskFlags.unsafe_decision_detected),
+      critical_safety_violation: Boolean(riskFlags.critical_safety_violation),
+    },
+    interview_summary: typeof result.interview_summary === 'string' ? result.interview_summary : null,
+    recommendation: typeof result.recommendation === 'string' ? result.recommendation : null,
+    areas_to_improve: Array.isArray(result.areas_to_improve) ? (result.areas_to_improve as string[]) : [],
+  };
+}
+
 export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM {
+  
   const currentJob = p.work_experiences?.find((w) => w.is_current) ?? null;
   const educationById = new Map((p.educations ?? []).map((edu) => [edu.id, edu]));
   const allDocs = (p.documents ?? []).map((doc) => ({
@@ -202,6 +235,43 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
     count: ratings.filter((r) => r.rating === star).length,
   }));
 
+  // ── AI interview evaluation ──────────────────────────────────────────────
+ const rawEval = p.general_score?.best_ai_interview_score as Record<string, unknown> | null;
+
+const overallScore =
+  rawEval !== null && typeof rawEval === "object"
+    ? Number(rawEval.overall_score ?? 0)
+    : null;
+
+const result = rawEval?.result as Record<string, unknown> | null ?? null;
+const breakdown = result?.score_breakdown as Record<string, unknown> | null ?? null;
+
+// Strengths is an array in this API — join into a string
+const strengthsRaw = result?.strengths;
+const strengthsText = Array.isArray(strengthsRaw)
+  ? (strengthsRaw as string[]).join(" • ")
+  : typeof strengthsRaw === "string"
+  ? strengthsRaw
+  : null;
+
+const conversationalRound = breakdown?.conversational_intelligence
+  ? mapRound(breakdown.conversational_intelligence as Record<string, unknown>, strengthsText)
+  : null;
+
+const behavioralRound = breakdown?.behavioral_professionalism
+  ? mapRound(breakdown.behavioral_professionalism as Record<string, unknown>, strengthsText)
+  : null;
+
+const communicationAnalysis = breakdown?.communication_clarity
+  ? mapRound(breakdown.communication_clarity as Record<string, unknown>, strengthsText)
+  : null;
+
+const accuracyOfAnswers = breakdown?.clinical_competency
+  ? mapRound(breakdown.clinical_competency as Record<string, unknown>, strengthsText)
+  : null;
+  // ────────────────────────────────────────────────────────────────────────
+const summaryBlock = mapSummaryBlock(result);
+
   return {
     id: p.candidate_id ?? "",
     display_id: toDisplayId(p.candidate_id ?? ""),
@@ -225,13 +295,14 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
       preferred_location: null,
     },
     general_score: {
-      overall_score: p.general_score?.best_ai_interview_score ?? null,
-      avg_rating_score: p.general_score?.avg_rating_score ?? null,
-      conversational_round: null,
-      behavioral_round: null,
-      communication_analysis: null,
-      accuracy_of_answers: null,
-    },
+  overall_score: overallScore,
+  avg_rating_score: p.general_score?.avg_rating_score ?? null,
+  interview_summary_block: summaryBlock,   // ← add this
+  conversational_round: conversationalRound,
+  behavioral_round: behavioralRound,
+  communication_analysis: communicationAnalysis,
+  accuracy_of_answers: accuracyOfAnswers,
+},
     qualifications:
       (p.educations ?? []).length > 0
         ? (p.educations ?? []).map((edu) => ({
