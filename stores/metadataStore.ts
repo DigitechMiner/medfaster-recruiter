@@ -9,6 +9,32 @@ import {
   AppMetadata,
   MetadataValueOption,
 } from "@/stores/api/common.api";
+import { metaData as initialMetaData } from "@/utils/constant/metadata";
+
+const dedupeMetadataOptions = (options: MetadataOption[] = []): MetadataOption[] => {
+  const seen = new Set<string>();
+  return options.filter((option) => {
+    const key = `${option.uuid}::${option.value}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const dedupeDepartments = (departments: Department[] = []): Department[] => {
+  const seen = new Set<string>();
+  return departments
+    .filter((department) => {
+      const key = `${department.uuid}::${department.value}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((department) => ({
+      ...department,
+      jobTitles: dedupeMetadataOptions(department.jobTitles ?? []),
+    }));
+};
 
 interface MetadataStore {
   departments: Department[];
@@ -33,15 +59,15 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
   departments: [],
   jobTitles: [],
   specializations: [],
-  metadata: null,
-  metadataVersion: null,
-  genderOptions: [],
-  jobTypeOptions: [],
-  workEligibilityOptions: [],
-  shiftTypeOptions: [],
-  organizationTypeOptions: [],
-  provinceOptions: [],
-  countryOptions: [],
+  metadata: (initialMetaData.data as AppMetadata) ?? null,
+  metadataVersion: initialMetaData.version ?? null,
+  genderOptions: initialMetaData.data.gender ?? [],
+  jobTypeOptions: initialMetaData.data.job_types ?? [],
+  workEligibilityOptions: initialMetaData.data.work_eligibility ?? [],
+  shiftTypeOptions: initialMetaData.data.shift_types ?? [],
+  organizationTypeOptions: initialMetaData.data.organisation_type ?? [],
+  provinceOptions: initialMetaData.data.canadian_provinces ?? [],
+  countryOptions: initialMetaData.data.countryList ?? [],
   loaded: false,
   loading: false,
 
@@ -54,17 +80,25 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
         await Promise.all([
           fetchDepartmentsAndJobTitles(),
           fetchSpecializations(),
-          fetchAppMetadata(),
+          fetchAppMetadata(get().metadataVersion ?? initialMetaData.version),
         ]);
 
-      const meta: AppMetadata = metaRes.data ?? {};
+      const meta: AppMetadata =
+        metaRes.data ??
+        get().metadata ??
+        (initialMetaData.data as AppMetadata) ??
+        {};
+
+      const normalizedDepartments = dedupeDepartments(departments);
+      const normalizedJobTitles = dedupeMetadataOptions(jobTitles);
+      const normalizedSpecializations = dedupeMetadataOptions(specializations);
 
       set({
-        departments,
-        jobTitles,
-        specializations,
+        departments: normalizedDepartments,
+        jobTitles: normalizedJobTitles,
+        specializations: normalizedSpecializations,
         metadata: meta,
-        metadataVersion: metaRes.version ?? null,
+        metadataVersion: metaRes.version ?? get().metadataVersion ?? initialMetaData.version,
         genderOptions: meta.gender ?? [],
         jobTypeOptions: meta.job_types ?? meta.jobTypes ?? [],
         workEligibilityOptions: meta.work_eligibility ?? [],

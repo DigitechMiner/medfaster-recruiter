@@ -67,8 +67,8 @@ export function JobBasicInfo({ formData, updateFormData, fieldErrors = {} }: Job
                 <SelectValue placeholder={loading ? "Loading..." : "Select"} />
               </SelectTrigger>
               <SelectContent>
-                {departments.map(({ uuid, label, value }) => (
-                  <SelectItem key={uuid} value={value}>{label}</SelectItem>
+                {departments.map(({ uuid, label, value }, index) => (
+                  <SelectItem key={`${uuid}-${value}-${index}`} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -90,8 +90,8 @@ export function JobBasicInfo({ formData, updateFormData, fieldErrors = {} }: Job
                 <SelectValue placeholder={loading ? "Loading..." : "Select"} />
               </SelectTrigger>
               <SelectContent>
-                {jobTitles.map(({ uuid, label, value }) => (
-                  <SelectItem key={uuid} value={value}>{label}</SelectItem>
+                {jobTitles.map(({ uuid, label, value }, index) => (
+                  <SelectItem key={`${uuid}-${value}-${index}`} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

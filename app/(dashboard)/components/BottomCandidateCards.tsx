@@ -97,7 +97,7 @@ export const BottomCandidateCards = ({ section, title }: Props) => {
           <p className="text-sm text-gray-400 text-center py-6">No candidates found.</p>
         ) : (
           cards.map((vm, i) => (
-            <CandidateCard key={vm.id} vm={vm} section={section} index={i} />
+            <CandidateCard key={`${vm.application_id}-${vm.id}-${i}`} vm={vm} section={section} index={i} />
           ))
         )}
       </div>

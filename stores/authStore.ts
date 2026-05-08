@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { axiosInstance } from '@/stores/api/api-client';
 import { ENDPOINTS } from '@/stores/api/api-endpoints';
-import { formatPhoneToE164 } from '@/utils/phone';
+import { formatPhoneToE164 } from '@/utils/auth';
 import {
   updateRecruiterProfile as apiUpdateProfile,
   registerRecruiterStep,

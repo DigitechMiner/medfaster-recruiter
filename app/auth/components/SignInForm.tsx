@@ -5,8 +5,8 @@ import { Loader2, ChevronDown } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import Image from 'next/image';
 import { CustomButton } from '@/components/custom/custom-button';
-import { detectContactType } from '@/utils/otp';
-import { countryList } from '@/utils/constant/countryCode';
+import { detectContactType } from '@/utils/auth';
+import { metaData } from '@/utils/constant/metadata';
 
 interface Country {
   name: string;
@@ -15,7 +15,12 @@ interface Country {
   flag: string;
 }
 
-const countries = countryList as Country[];
+const countries: Country[] = metaData.data.countryList.map((country) => ({
+  name: country.label,
+  code: country.value,
+  dial_code: country.dial_code as string,
+  flag: country.flag as string,
+}));
 const DEFAULT_COUNTRY_CODE = 'CA';
 
 interface SignInFormProps {

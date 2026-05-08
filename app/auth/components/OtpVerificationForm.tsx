@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { Mail, Loader2 } from "lucide-react";
 import { CustomButton } from "@/components/custom/custom-button";
-import { OTP_RESEND_TIMER_SECONDS } from "@/utils/otp";
+import { OTP_RESEND_TIMER_SECONDS } from "@/utils/auth";
 
 const OTP_LENGTH = 4;
 

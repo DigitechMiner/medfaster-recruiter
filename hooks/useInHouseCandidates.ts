@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest }  from "@/stores/api/api-client";
 import { ENDPOINTS }   from "@/stores/api/api-endpoints";
 import type { InHouseAcceptedRowVM } from "@/Interface/view-models";
@@ -20,18 +20,6 @@ interface InHouseListResponse {
   success: boolean;
   message: string;
   data: { candidates: RawInHouseCandidate[] };
-}
-
-interface AddInHouseResponse {
-  success: boolean;
-  message: string;
-  data: { candidate_id: string; map_id: string; status: "invited" };
-}
-
-interface RemoveInHouseResponse {
-  success: boolean;
-  message: string;
-  data: { candidate_id: string; mapping_id: string; status: "removed" };
 }
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -65,30 +53,4 @@ export function useInHouseCandidates() {
     isLoading,
     isError,
   };
-}
-
-// ── POST /recruiter/candidates/{id}/add-in-house ───────────────────────────────
-export function useAddInHouse() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (candidateId: string) =>
-      apiRequest<AddInHouseResponse>(
-        ENDPOINTS.INHOUSE_ADD(candidateId),
-        { method: "POST" }
-      ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["inhouse-candidates"] }),
-  });
-}
-
-// ── PATCH /recruiter/in-house-candidates/{id}/remove ──────────────────────────
-export function useRemoveInHouse() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (candidateId: string) =>
-      apiRequest<RemoveInHouseResponse>(
-        ENDPOINTS.INHOUSE_REMOVE(candidateId),
-        { method: "PATCH" }
-      ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["inhouse-candidates"] }),
-  });
 }

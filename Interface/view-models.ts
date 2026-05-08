@@ -2,30 +2,28 @@
 // UI-owned shapes. Backend never sees these.
 // Change freely when designs change.
 
-
 // ══════════════════════════════════════════════════════════════════════════════
 // CANDIDATE — CARD (grid/kanban view everywhere)
 // Source: fromJobApplication()
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface CandidateCardVM {
-  id:                  string;
-  application_id:      string;
-  full_name:           string;
-  initials:            string;
-  profile_image_url:   string | null;
-  designation:         string;          // "Registered Nurse"
-  department:          string;          // "Nursing"
-  experience:          string;          // "3+ yrs"
-  distance:            string;          // "12km" or "N/A"
-  interview_score:     number | null;   // 0–100
-  rating:              number | null;   // 0–5
-  work_eligibility:    string | null;
-  is_online:           boolean;         // always false until WebSocket added
-  application_status:  string;
-  href:                string;
+  id: string;
+  application_id: string;
+  full_name: string;
+  initials: string;
+  profile_image_url: string | null;
+  designation: string; // "Registered Nurse"
+  department: string; // "Nursing"
+  experience: string; // "3+ yrs"
+  distance: string; // "12km" or "N/A"
+  interview_score: number | null; // 0–100
+  rating: number | null; // 0–5
+  work_eligibility: string | null;
+  is_online: boolean; // always false until WebSocket added
+  application_status: string;
+  href: string;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CANDIDATE — TABLE ROW (list view)
@@ -33,19 +31,18 @@ export interface CandidateCardVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface CandidateTableRowVM {
-  id:               string;
-  application_id:   string;
-  full_name:        string;
-  department:       string;
-  designation:      string;
-  experience:       string;
-  distance:         string;
-  general_score:    number | null;
-  rating:           number | null;
+  id: string;
+  application_id: string;
+  full_name: string;
+  department: string;
+  designation: string;
+  experience: string;
+  distance: string;
+  general_score: number | null;
+  rating: number | null;
   application_status: string;
-  href:             string;
+  href: string;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CANDIDATE — DETAIL PAGE (/candidates/[id])
@@ -53,66 +50,66 @@ export interface CandidateTableRowVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface QualificationVM {
-  id:          string;
-  degree:      string;
-  field:       string;
+  id: string;
+  degree: string;
+  field: string;
   institution: string | null;
-  start_year:  string | null;
-  end_year:    string | null;
+  start_year: string | null;
+  end_year: string | null;
 }
 
 export interface DocumentVM {
-  document_id:   string;
-  title:         string;
+  document_id: string;
+  title: string;
   document_type: string;
-  verified:      boolean;
-  category:      'personal' | 'license_certificate';
-  file_url:      string | null;
-  signed_url:    string | null;   // fetch on-demand
+  verified: boolean;
+  category: "personal" | "license_certificate";
+  file_url: string | null;
+  signed_url: string | null; // fetch on-demand
 }
 
 export interface WorkExperienceVM {
-  id:           string;
+  id: string;
   organization: string;
-  role:         string;
-  job_type:     string | null;
-  start_date:   string;
-  end_date:     string | null;
-  is_current:   boolean;
-  description:  string | null;
-  org_photo:    null;             // ❌ not in API
+  role: string;
+  job_type: string | null;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean;
+  description: string | null;
+  org_photo: null; // ❌ not in API
 }
 
 export interface WorkHistoryEntryVM {
   application_id: string;
-  job_title:      string;
-  organization:   string;
-  job_type:       string;
+  job_title: string;
+  organization: string;
+  job_type: string;
   completed_date: string | null;
-  status:         string;
+  status: string;
 }
 
 export interface ReviewVM {
-  id:              string;
-  rating:          number;
-  comment:         string | null;
-  job_title:       string;
-  organization:    string | null;
+  id: string;
+  rating: number;
+  comment: string | null;
+  job_title: string;
+  organization: string | null;
   recruiter_title: string | null;
-  created_at:      string;
+  created_at: string;
 }
 
 export interface StarDistributionVM {
-  stars:      5 | 4 | 3 | 2 | 1;
-  count:      number;
+  stars: 5 | 4 | 3 | 2 | 1;
+  count: number;
   percentage: number;
 }
 
 export interface RatingsBlockVM {
-  average_score:      number;
-  total_reviews:      number;
-  star_distribution:  StarDistributionVM[];
-  reviews:            ReviewVM[];
+  average_score: number;
+  total_reviews: number;
+  star_distribution: StarDistributionVM[];
+  reviews: ReviewVM[];
 }
 export type ScoreRound = {
   score: number;
@@ -137,7 +134,6 @@ export type ScoreRound = {
   clinical_reasoning?: number;
   evidence_based_decision?: number;
   patient_safety_awareness?: number;
-  
 } | null;
 export type InterviewSummaryBlock = {
   strengths: string[];
@@ -152,48 +148,47 @@ export type InterviewSummaryBlock = {
 } | null;
 export interface CandidateDetailVM {
   // Header
-  id:                  string;
-  display_id:          string;          // "KRV-A1B2C3"
-  full_name:           string;
-  profile_image_url:   string | null;
-  job_title:           string;
-  city:                string | null;
-  province:            string | null;
-  work_eligibility:    string | null;
-  specializations:     string[];        // ❌ not in API — always []
-  job_type:            string | null;   // ❌ not in detail API
+  id: string;
+  display_id: string; // "KRV-A1B2C3"
+  full_name: string;
+  profile_image_url: string | null;
+  job_title: string;
+  city: string | null;
+  province: string | null;
+  work_eligibility: string | null;
+  specializations: string[]; // ❌ not in API — always []
+  job_type: string | null; // ❌ not in detail API
 
   // KPI cards
   kpis: {
-    attendance_accuracy:   null;        // ❌ not in API
+    attendance_accuracy: null; // ❌ not in API
     total_work_experience_months: number | null;
-    total_work_experience: string;      // "4 yrs 2 mos"
-    current_role:          string | null;
-    current_organization:  string | null;
-    preferred_location:    null;        // ❌ not in API
+    total_work_experience: string; // "4 yrs 2 mos"
+    current_role: string | null;
+    current_organization: string | null;
+    preferred_location: null; // ❌ not in API
   };
 
   // General score
   general_score: {
-  overall_score: number | null;
-  avg_rating_score: number | null;
-  interview_summary_block: InterviewSummaryBlock;  // ← add this
-  conversational_round: ScoreRound;
-  behavioral_round: ScoreRound;
-  communication_analysis: ScoreRound;
-  accuracy_of_answers: ScoreRound;
-};
+    overall_score: number | null;
+    avg_rating_score: number | null;
+    interview_summary_block: InterviewSummaryBlock; // ← add this
+    conversational_round: ScoreRound;
+    behavioral_round: ScoreRound;
+    communication_analysis: ScoreRound;
+    accuracy_of_answers: ScoreRound;
+  };
 
-  qualifications:   QualificationVM[];
+  qualifications: QualificationVM[];
   documents: {
-    personal:              DocumentVM[];
+    personal: DocumentVM[];
     licenses_certificates: DocumentVM[];
   };
   work_experiences: WorkExperienceVM[];
-  work_history:     WorkHistoryEntryVM[];
-  ratings:          RatingsBlockVM;
+  work_history: WorkHistoryEntryVM[];
+  ratings: RatingsBlockVM;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CANDIDATES PAGE — KPIs
@@ -201,12 +196,11 @@ export interface CandidateDetailVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface CandidatesPageKpisVM {
-  hired_candidates:   number;
+  hired_candidates: number;
   inhouse_candidates: number;
-  active_candidates:  number;
-  candidates_pool:    number;
+  active_candidates: number;
+  candidates_pool: number;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IN-HOUSE CANDIDATES
@@ -214,22 +208,22 @@ export interface CandidatesPageKpisVM {
 
 export interface InHouseInvitedRowVM {
   candidate_id: string;
-  full_name:    string;
-  email:        string | null;
-  remark:       string;
-  invited_at:   string;
+  full_name: string;
+  email: string | null;
+  remark: string;
+  invited_at: string;
 }
 
 export interface InHouseAcceptedRowVM {
-  candidate_id:      string;
-  mapping_id:        string;
-  full_name:         string;
+  candidate_id: string;
+  mapping_id: string;
+  full_name: string;
   profile_image_url: string | null;
-  location:          string;
-  joined_at:         string;
-  departments:       string[];
-  job_titles:        string[];
-  experience_range:  string;
+  location: string;
+  joined_at: string;
+  departments: string[];
+  job_titles: string[];
+  experience_range: string;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -238,27 +232,26 @@ export interface InHouseAcceptedRowVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface JobCardVM {
-  id:                  string;
-  display_id:          string;          // "KRV-A1B2C3"
-  job_title:           string;
-  department:          string;
-  job_type:            string;
-  job_urgency:         'normal' | 'instant';
-  status:              string;
-  status_label:        string;
-  urgency_label:       string;          // "Regular" | "Urgent"
+  id: string;
+  display_id: string; // "KRV-A1B2C3"
+  job_title: string;
+  department: string;
+  job_type: string;
+  job_urgency: "normal" | "instant";
+  status: string;
+  status_label: string;
+  urgency_label: string; // "Regular" | "Urgent"
   experience_required: string;
-  province:            string;
-  budget:              string;          // "$24.50/hr"
-  interview_required:  boolean | null;
-  application_count:   number;
-  org_photo:           string | null;
-  start_date:          string | null;
-  href:                string;
+  province: string;
+  budget: string; // "$24.50/hr"
+  interview_required: boolean | null;
+  application_count: number;
+  org_photo: string | null;
+  start_date: string | null;
+  href: string;
   // Specializations — requires mapping IDs via /common/specializations
-  specialization_labels: string[];      // ["Long-Term Care", "Home Care"]
+  specialization_labels: string[]; // ["Long-Term Care", "Home Care"]
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // JOB — TABLE ROW (list view in /jobs)
@@ -266,20 +259,19 @@ export interface JobCardVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface JobTableRowVM {
-  id:           string;
-  job_title:    string;
+  id: string;
+  job_title: string;
   requirements: number;
-  start_date:   string | null;
-  end_date:     string | null;
-  timings:      string | null;
-  job_type:     string;
-  budget:       string;
+  start_date: string | null;
+  end_date: string | null;
+  timings: string | null;
+  job_type: string;
+  budget: string;
   ai_interview: boolean | null;
-  status:       string;
+  status: string;
   status_label: string;
-  href:         string;
+  href: string;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // JOBS PAGE — KPIs
@@ -287,12 +279,11 @@ export interface JobTableRowVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface JobsPageKpisVM {
-  regular_job_openings:  number;
+  regular_job_openings: number;
   urgent_shift_openings: number;
-  no_show_alerts:        number;
-  active_jobs_shifts:    number;
+  no_show_alerts: number;
+  active_jobs_shifts: number;
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // JOB DETAIL PAGE — HEADER
@@ -300,21 +291,21 @@ export interface JobsPageKpisVM {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface JobDetailHeaderVM {
-  id:                    string;
-  job_title:             string;
-  department:            string;
-  province:              string;
-  recruiter_email:       string | null;
-  recruiter_phone:       string | null;
-  job_type:              string;
-  pay_per_hour:          string;
-  specialization_labels: string[];     // mapped from NormalJobDetails.specializations (IDs)
-  qualifications:        string[];
-  total_requirements:    number;
-  total_hired:           number;
-  experience_required:   string;
-  start_date:            string | null;
-  timings:               string | null;
+  id: string;
+  job_title: string;
+  department: string;
+  province: string;
+  recruiter_email: string | null;
+  recruiter_phone: string | null;
+  job_type: string;
+  pay_per_hour: string;
+  specialization_labels: string[]; // mapped from NormalJobDetails.specializations (IDs)
+  qualifications: string[];
+  total_requirements: number;
+  total_hired: number;
+  experience_required: string;
+  start_date: string | null;
+  timings: string | null;
   is_requirements_filled: boolean;
-  status:                string;
+  status: string;
 }
