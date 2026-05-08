@@ -4,7 +4,11 @@ import { useEffect } from "react";
 import { useWalletStore, fmtBalance } from "@/stores/walletStore";
 import { useAuthStore } from "@/stores/authStore";
 
-export function WalletBalance() {
+interface WalletBalanceProps {
+  suspendRefresh?: boolean;
+}
+
+export function WalletBalance({ suspendRefresh = false }: WalletBalanceProps) {
   const wallet    = useWalletStore((s) => s.wallet);
   const isLoading = useWalletStore((s) => s.isLoading);
   const hasError  = useWalletStore((s) => s.hasError);
@@ -12,11 +16,12 @@ export function WalletBalance() {
 
   useEffect(() => {
     // Call wallet API only after profile has been loaded successfully.
+    if (suspendRefresh) return;
     if (!recruiterProfile) return;
     if (wallet === null && !isLoading && !hasError) {
       useWalletStore.getState().refreshWallet();
     }
-  }, [recruiterProfile, wallet, isLoading, hasError]);
+  }, [suspendRefresh, recruiterProfile, wallet, isLoading, hasError]);
 
   if (hasError) {
     return (

@@ -31,7 +31,7 @@ const isReleasePay = (n: Notification): boolean =>
 const getJobId = (n: Notification): string | undefined => {
   const p = n.payload as Record<string, string> | undefined;
   return p?.jobId ?? p?.job_id ?? n.reference_id ?? undefined;
-}
+};
 
 // Format ISO date to readable time
 const formatTime = (iso: string): string => {
@@ -47,16 +47,16 @@ const formatTime = (iso: string): string => {
 };
 
 export const NotificationPanel = ({ onClose }: Props) => {
-  const router   = useRouter();
+  const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const [isClosing,      setIsClosing]      = useState(false);
-  const [notifications,  setNotifications]  = useState<Notification[]>([]);
-  const [isLoading,      setIsLoading]      = useState(true);
-  const [error,          setError]          = useState<string | null>(null);
-  const [page,           setPage]           = useState(1);
-  const [hasNextPage,    setHasNextPage]    = useState(false);
-  const [loadingMore,    setLoadingMore]    = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // ── Fetch notifications ────────────────────────────────────────────────────
   const fetchNotifications = useCallback(async (pageNum: number, append = false) => {

@@ -38,6 +38,9 @@ import { AppLayout } from '@/components/global/app-layout';
 import { useCandidateCards } from '@/hooks/useCandidateCards';
 import { useInHouseCandidates } from '@/hooks/useInHouseCandidates';
 import { useCandidateSummary, useInviteCandidate } from '@/hooks/useRecruiterData';
+import { DataTable } from '@/components/table/DataTable';
+import { PaginationFooter } from '@/components/table/PaginationFooter';
+import { TableTabs } from '@/components/table/TableTabs';
 
 type KpiView = 'none' | 'candidatesPool' | 'hired' | 'inHouse' | 'active';
 type AccentColor = 'orange' | 'green' | 'red' | 'neutral';
@@ -49,7 +52,6 @@ type LocalInvite = { id: string; full_name: string; email: string; invited_at: s
 
 const PAGE_LIMIT = 10;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-const TH = 'text-[12px] font-semibold text-gray-700 py-3 px-4 text-left';
 const TD = 'text-[13px] text-gray-700 py-3.5 px-4 border-t border-gray-100';
 
 const COLUMNS = [
@@ -93,25 +95,6 @@ function MetricCard({ icon, title, value, change, isPositive, onClick, isActive 
   );
 }
 
-function PaginationBar({ total, page, perPage = 10, onPageChange }: { total: number; page: number; perPage?: number; onPageChange: (page: number) => void }) {
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-  const pages: (number | '...')[] = [];
-  if (totalPages <= 6) {
-    for (let i = 1; i <= totalPages; i += 1) pages.push(i);
-  } else {
-    pages.push(1, 2, 3, '...', totalPages - 2, totalPages - 1, totalPages);
-  }
-  const start = total === 0 ? 0 : (page - 1) * perPage + 1;
-  const end = Math.min(page * perPage, total);
-  return (
-    <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 bg-orange-50/40 border-t border-orange-100 rounded-b-2xl">
-      <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium">← Previous</button>
-      <div className="flex items-center gap-1">{pages.map((p, i) => p === '...' ? <span key={`dots-${i}`} className="px-2 text-gray-400 text-[12px]">...</span> : <button key={`${p}-${i}`} onClick={() => onPageChange(p as number)} className={`w-7 h-7 rounded-lg text-[12px] font-medium transition-colors ${page === p ? 'bg-[#F4781B] text-white' : 'text-gray-500 hover:bg-gray-100'}`}>{p}</button>)}</div>
-      <div className="flex items-center gap-3"><span className="text-[12px] text-gray-500">Showing <b>{start}</b>–<b>{end}</b> of <b>{total}</b></span><button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium">Next →</button></div>
-    </div>
-  );
-}
-
 function MainViewHeader({ view, setView }: { view: 'grid' | 'list'; setView: (view: 'grid' | 'list') => void }) {
   return <ViewHeader wrapperClassName="flex items-center gap-3" filterButtonClassName="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap" toggleWrapperClassName="flex bg-white border border-gray-200 rounded-xl overflow-hidden" gridButtonClassName={`p-2.5 transition-colors ${view === 'grid' ? 'bg-orange-50 text-[#F4781B]' : 'text-gray-400 hover:bg-gray-50'}`} listButtonClassName={`p-2.5 transition-colors ${view === 'list' ? 'bg-orange-50 text-[#F4781B]' : 'text-gray-400 hover:bg-gray-50'}`} filterSize={16} gridSize={16} listSize={16} onGrid={() => setView('grid')} onList={() => setView('list')} />;
 }
@@ -120,23 +103,24 @@ function JobTable({ jobs, showCandidateType = false, headerBg = 'bg-orange-50/60
   const baseHeaders = ['Candidate Name', 'Department', 'Designation', 'Experience', 'Status'];
   const headers = showCandidateType ? ['Candidate Name', 'Candidate Type', ...baseHeaders.slice(1)] : baseHeaders;
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100">
-      <table className="w-full text-left">
-        <thead><tr className={headerBg}>{headers.map((h) => <th key={h} className="py-3 px-4 text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>)}</tr></thead>
-        <tbody>
-          {jobs.length === 0 ? <tr><td colSpan={headers.length} className="py-8 text-center text-xs text-gray-400">No records found</td></tr> : jobs.map((c) => (
-            <tr key={c.id} className="border-b border-gray-100 hover:bg-orange-50/30 transition-colors cursor-pointer">
-              <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">{c.full_name}</td>
-              {showCandidateType && <td className="py-3 px-4"><CandidateTypePill type={c.work_eligibility ?? '—'} /></td>}
-              <td className="py-3 px-4 text-xs text-gray-600">{c.department || '—'}</td>
-              <td className="py-3 px-4 text-xs text-gray-600">{c.designation || '—'}</td>
-              <td className="py-3 px-4 text-xs text-gray-600">{c.experience || '—'}</td>
-              <td className="py-3 px-4"><StatusPill status={c.application_status} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      headers={headers}
+      minWidthClassName="min-w-full"
+      tableClassName="text-left"
+      headerRowClassName={headerBg}
+      wrapperClassName="overflow-x-auto rounded-xl border border-gray-100"
+    >
+      {jobs.length === 0 ? <tr><td colSpan={headers.length} className="py-8 text-center text-xs text-gray-400">No records found</td></tr> : jobs.map((c) => (
+        <tr key={c.id} className="border-b border-gray-100 hover:bg-orange-50/30 transition-colors cursor-pointer">
+          <td className="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap">{c.full_name}</td>
+          {showCandidateType && <td className="py-3 px-4"><CandidateTypePill type={c.work_eligibility ?? '—'} /></td>}
+          <td className="py-3 px-4 text-xs text-gray-600">{c.department || '—'}</td>
+          <td className="py-3 px-4 text-xs text-gray-600">{c.designation || '—'}</td>
+          <td className="py-3 px-4 text-xs text-gray-600">{c.experience || '—'}</td>
+          <td className="py-3 px-4"><StatusPill status={c.application_status} /></td>
+        </tr>
+      ))}
+    </DataTable>
   );
 }
 
@@ -325,14 +309,14 @@ function HiredCandidatesSection({ search = '' }: { search?: string }) {
       {isLoading ? <div className="h-32 bg-gray-100 rounded-xl animate-pulse" /> : localView === 'list' ? (
         <div className="rounded-xl border border-gray-100 overflow-hidden">
           <JobTable jobs={cards} headerBg="bg-orange-50/60" />
-          <PaginationBar total={total} page={page} perPage={PAGE_LIMIT} onPageChange={setPage} />
+          <PaginationFooter totalItems={total} page={page} perPage={PAGE_LIMIT} onPageChange={setPage} itemLabel="candidates" />
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
             {cards.length === 0 ? <p className="text-sm text-gray-400 col-span-full text-center py-8">No hired candidates found.</p> : cards.map((c) => <HiredCandidateCard key={c.id} c={c} />)}
           </div>
-          <PaginationBar total={total} page={page} perPage={PAGE_LIMIT} onPageChange={setPage} />
+          <PaginationFooter totalItems={total} page={page} perPage={PAGE_LIMIT} onPageChange={setPage} itemLabel="candidates" />
         </>
       )}
     </div>
@@ -352,7 +336,7 @@ function ActiveCandidatesSection() {
       {isLoading ? <div className="h-32 bg-gray-100 rounded-xl animate-pulse" /> : (
         <div className="rounded-xl border border-gray-100 overflow-hidden">
           <JobTable jobs={cards} showCandidateType headerBg="bg-blue-50/40" />
-          <PaginationBar total={total} page={page} perPage={PAGE_LIMIT} onPageChange={setPage} />
+          <PaginationFooter totalItems={total} page={page} perPage={PAGE_LIMIT} onPageChange={setPage} itemLabel="candidates" />
         </div>
       )}
     </div>
@@ -464,11 +448,10 @@ function AcceptedTable({ rows, total, page, isLoading, onPageChange }: { rows: I
   if (!isLoading && rows.length === 0) return <EmptyState message="No Invitations Accepted Yet" sub="Once a candidate accepts your in-house request on the KeRaeva app, they will appear here." />;
   return (
     <>
-      <table className="w-full">
-        <thead><tr className="bg-orange-50/60"><th className={TH}>Candidate Name</th><th className={TH}>Location</th><th className={TH}>Joined</th><th className={`${TH} text-center`}>Action</th></tr></thead>
-        <tbody>{isLoading ? <SkeletonRows cols={4} /> : rows.map((c) => <tr key={c.candidate_id} className="hover:bg-gray-50/60 transition-colors"><td className={TD}><div className="flex items-center gap-2.5">{c.profile_image_url ? <Image src={c.profile_image_url} alt={c.full_name} width={30} height={30} className="rounded-full object-cover flex-shrink-0" /> : <div className="w-[30px] h-[30px] rounded-full bg-orange-100 text-orange-500 text-[11px] font-bold flex items-center justify-center flex-shrink-0">{c.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}</div>}<span>{c.full_name}</span></div></td><td className={TD}><span className="text-gray-500">{c.location}</span></td><td className={TD}>{new Date(c.joined_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td><td className={`${TD} text-center`}><button className="text-blue-400 hover:text-blue-600 transition-colors"><Eye size={18} /></button></td></tr>)}</tbody>
-      </table>
-      {!isLoading && total > PAGE_LIMIT && <PaginationBar total={total} page={page} perPage={PAGE_LIMIT} onPageChange={onPageChange} />}
+      <DataTable headers={['Candidate Name', 'Location', 'Joined', 'Action']} minWidthClassName="min-w-full" headerRowClassName="bg-orange-50/60">
+        {isLoading ? <SkeletonRows cols={4} /> : rows.map((c) => <tr key={c.candidate_id} className="hover:bg-gray-50/60 transition-colors"><td className={TD}><div className="flex items-center gap-2.5">{c.profile_image_url ? <Image src={c.profile_image_url} alt={c.full_name} width={30} height={30} className="rounded-full object-cover flex-shrink-0" /> : <div className="w-[30px] h-[30px] rounded-full bg-orange-100 text-orange-500 text-[11px] font-bold flex items-center justify-center flex-shrink-0">{c.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}</div>}<span>{c.full_name}</span></div></td><td className={TD}><span className="text-gray-500">{c.location}</span></td><td className={TD}>{new Date(c.joined_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td><td className={`${TD} text-center`}><button className="text-blue-400 hover:text-blue-600 transition-colors"><Eye size={18} /></button></td></tr>)}
+      </DataTable>
+      {!isLoading && total > PAGE_LIMIT && <PaginationFooter totalItems={total} page={page} perPage={PAGE_LIMIT} onPageChange={onPageChange} itemLabel="candidates" />}
     </>
   );
 }
@@ -478,11 +461,10 @@ function InvitedTable({ rows, page, onPageChange }: { rows: LocalInvite[]; page:
   const paged = rows.slice((page - 1) * PAGE_LIMIT, page * PAGE_LIMIT);
   return (
     <>
-      <table className="w-full">
-        <thead><tr className="bg-orange-50/60"><th className={TH}>Candidate Name</th><th className={TH}>Email</th><th className={TH}>Status</th><th className={TH}>Invited On</th></tr></thead>
-        <tbody>{paged.map((c) => <tr key={c.id} className="hover:bg-gray-50/60 transition-colors"><td className={TD}>{c.full_name}</td><td className={TD}>{c.email || '—'}</td><td className={TD}><span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-orange-50 text-orange-500">Invitation Sent</span></td><td className={TD}>{c.invited_at}</td></tr>)}</tbody>
-      </table>
-      {rows.length > PAGE_LIMIT && <PaginationBar total={rows.length} page={page} perPage={PAGE_LIMIT} onPageChange={onPageChange} />}
+      <DataTable headers={['Candidate Name', 'Email', 'Status', 'Invited On']} minWidthClassName="min-w-full" headerRowClassName="bg-orange-50/60">
+        {paged.map((c) => <tr key={c.id} className="hover:bg-gray-50/60 transition-colors"><td className={TD}>{c.full_name}</td><td className={TD}>{c.email || '—'}</td><td className={TD}><span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-orange-50 text-orange-500">Invitation Sent</span></td><td className={TD}>{c.invited_at}</td></tr>)}
+      </DataTable>
+      {rows.length > PAGE_LIMIT && <PaginationFooter totalItems={rows.length} page={page} perPage={PAGE_LIMIT} onPageChange={onPageChange} itemLabel="candidates" />}
     </>
   );
 }
@@ -518,15 +500,32 @@ function InHouseCandidatesSection({ candidateId = '', jobId = '', openModalOnMou
       {showFailModal && <PartialFailModal failedEmails={failedEmails} onClose={() => setShowFailModal(false)} />}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="flex items-center justify-between px-1 border-b border-gray-100 overflow-visible">
-          <div className="flex">
-            {(['accepted', 'invited'] as InHouseTab[]).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-3.5 text-[13px] font-semibold capitalize transition-colors relative overflow-visible ${activeTab === tab ? 'text-[#F4781B]' : 'text-gray-400 hover:text-gray-600'}`}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {tab === 'invited' && localInvites.length > 0 && <span className="ml-1.5 text-[10px] bg-[#F4781B] text-white font-bold px-1.5 py-0.5 rounded-full">{localInvites.length}</span>}
-                {activeTab === tab && <span className="absolute -bottom-px left-0 right-0 h-[2px] bg-[#F4781B] rounded-t-full" />}
-              </button>
-            ))}
-          </div>
+          <TableTabs
+            tabs={[
+              { key: 'accepted' as const, label: 'Accepted' },
+              {
+                key: 'invited' as const,
+                label: (
+                  <>
+                    Invited
+                    {localInvites.length > 0 && (
+                      <span className="ml-1.5 text-[10px] bg-[#F4781B] text-white font-bold px-1.5 py-0.5 rounded-full">
+                        {localInvites.length}
+                      </span>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            className=""
+            wrapperClassName="flex"
+            tabClassName="relative px-5 py-4 text-sm font-medium transition-colors whitespace-nowrap"
+            activeTabClassName="text-[#F4781B]"
+            inactiveTabClassName="text-gray-400 hover:text-gray-600"
+            activeIndicatorClassName="absolute bottom-0 left-0 right-0 h-[2px] bg-[#F4781B] rounded-t-full"
+          />
           <div className="flex items-center gap-2 pr-2">
             <button className="flex items-center gap-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 text-[12px] font-medium px-3.5 py-2 rounded-xl transition-colors"><Filter size={13} /> Filter</button>
             <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
@@ -559,20 +558,37 @@ function CandidatesPoolSection({ view, search = '', activeListTab, setActiveList
     const { cards: rows, total, isLoading } = filteredColData[activeListTab];
     return (
       <div className="flex flex-col gap-0">
-        <div className="flex items-center gap-0 border-b border-gray-100 mb-4 overflow-x-auto">
-          {COLUMNS.map((c, i) => (
-            <button key={c.title} onClick={() => { setActiveListTab(i); setPage(i, 1); }} className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors border-b-2 ${activeListTab === i ? 'border-orange-500 text-[#F4781B]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
-              {c.title}<span className="ml-1.5 text-[10px] text-gray-400">({colData[i].total})</span>
-            </button>
-          ))}
-        </div>
+        <TableTabs
+          tabs={COLUMNS.map((column, index) => ({
+            key: String(index),
+            label: (
+              <>
+                {column.title}
+                <span className="ml-1.5 text-[10px] text-gray-400">
+                  ({colData[index].total})
+                </span>
+              </>
+            ),
+          }))}
+          activeTab={String(activeListTab)}
+          onTabChange={(tab) => {
+            const nextIndex = Number(tab);
+            setActiveListTab(nextIndex);
+            setPage(nextIndex, 1);
+          }}
+          className="border-b border-gray-100 mb-4"
+          wrapperClassName="flex items-center gap-0"
+          tabClassName="relative px-5 py-4 text-sm font-medium transition-colors whitespace-nowrap"
+          activeTabClassName="text-[#F4781B]"
+          inactiveTabClassName="text-gray-400 hover:text-gray-600"
+          activeIndicatorClassName="absolute bottom-0 left-0 right-0 h-[2px] bg-[#F4781B] rounded-t-full"
+        />
         {isLoading ? <div className="h-32 bg-gray-100 rounded-xl animate-pulse" /> : (
           <div className="overflow-x-auto rounded-xl border border-gray-100">
-            <table className="w-full text-left">
-              <thead><tr className="bg-orange-50/60">{['Candidate Name', 'Department', 'Designation', 'Experience', 'Distance', 'General Scoring', 'Rating', 'Action'].map((h) => <th key={h} className="py-3 px-4 text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>)}</tr></thead>
-              <tbody>{rows.length === 0 ? <tr><td colSpan={8} className="py-8 text-center text-xs text-gray-400">No candidates</td></tr> : rows.map((c, j) => <PoolListRow key={c.id ?? j} c={c} actionType={col.actionType} />)}</tbody>
-            </table>
-            <PaginationBar total={total} page={pages[activeListTab]} perPage={PAGE_LIMIT} onPageChange={(p) => setPage(activeListTab, p)} />
+            <DataTable headers={['Candidate Name', 'Department', 'Designation', 'Experience', 'Distance', 'General Scoring', 'Rating', 'Action']} minWidthClassName="min-w-full" tableClassName="text-left" headerRowClassName="bg-orange-50/60">
+              {rows.length === 0 ? <tr><td colSpan={8} className="py-8 text-center text-xs text-gray-400">No candidates</td></tr> : rows.map((c, j) => <PoolListRow key={c.id ?? j} c={c} actionType={col.actionType} />)}
+            </DataTable>
+            <PaginationFooter totalItems={total} page={pages[activeListTab]} perPage={PAGE_LIMIT} onPageChange={(p) => setPage(activeListTab, p)} itemLabel="candidates" />
           </div>
         )}
       </div>
@@ -599,7 +615,7 @@ function CandidatesPoolSection({ view, search = '', activeListTab, setActiveList
               <CandidateColumn key={`${col.title}-${i}`} title={col.title} count={1} accentColor={col.accentColor} candidates={[c]} actionType={col.actionType} leftTags={[col.leftTags?.[i % (col.leftTags?.length ?? 1)] ?? '']} rightTags={[col.rightTags?.[i % (col.rightTags?.length ?? 1)] ?? '']} hideHeader hideViewAll />
             ))}
           </div>
-          <PaginationBar total={total} page={pages[colIdx]} perPage={PAGE_LIMIT} onPageChange={(p) => setPage(colIdx, p)} />
+          <PaginationFooter totalItems={total} page={pages[colIdx]} perPage={PAGE_LIMIT} onPageChange={(p) => setPage(colIdx, p)} itemLabel="candidates" />
         </>}
       </div>
     );
@@ -633,7 +649,7 @@ function CandidatesPoolSection({ view, search = '', activeListTab, setActiveList
                 <button key={col.title} onClick={() => setActivePaginatedCol(i)} className={`text-xs px-3 py-1 rounded-full border transition-colors ${activePaginatedCol === i ? 'bg-orange-50 border-orange-300 text-[#F4781B] font-semibold' : 'border-gray-200 text-gray-400 hover:text-gray-600'}`}>{col.title}</button>
               ))}
             </div>
-            <PaginationBar total={filteredColData[activePaginatedCol].total} page={pages[activePaginatedCol]} perPage={PAGE_LIMIT} onPageChange={(p) => setPage(activePaginatedCol, p)} />
+            <PaginationFooter totalItems={filteredColData[activePaginatedCol].total} page={pages[activePaginatedCol]} perPage={PAGE_LIMIT} onPageChange={(p) => setPage(activePaginatedCol, p)} itemLabel="candidates" />
           </div>
         </div>
       )}

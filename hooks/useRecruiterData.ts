@@ -6,7 +6,6 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getCandidateSummary,
   getJobsSummary,
-  getJobsCalendar,
   getCandidatesList,
   getCandidateDetails,
   inviteCandidate,
@@ -16,7 +15,6 @@ import {
 import type {
   CandidateSummaryData,
   JobsSummaryData,
-  CalendarJob,
   CandidatesListParams,
   CandidatesListResponse,
   CandidateDetailsResponse,
@@ -24,10 +22,8 @@ import type {
   InviteCandidateResponse,
   RecruiterNotification,
   NotificationsParams,
-  CalendarSummary,
 } from '@/Interface/recruiter.types';
 import type { RecruiterDashboardData } from '@/stores/api/recruiter-candidates-api';
-import { useQuery } from '@tanstack/react-query';
 
 // ─── Generic async hook factory ───────────────────────────────────────────────
 function useAsyncData<T>(
@@ -74,39 +70,7 @@ export function useJobsSummary() {
   return { summary: data, isLoading, error, refetch };
 }
 
-// ─── 3. Jobs Calendar ─────────────────────────────────────────────────────────
-export function useJobsCalendar(range: 'today' | 'week' | 'month' = 'week') {
-  const [calendarJobs, setCalendarJobs] = useState<CalendarJob[]>([]);
-  const [calendarSummary, setCalendarSummary] = useState<CalendarSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-
-    getJobsCalendar(range)
-      .then((res) => {
-        if (cancelled) return;
-        setCalendarJobs(res.data?.shifts ?? []);
-        setCalendarSummary(res.data?.summary ?? null);
-         console.log("getJobsCalendar res:", JSON.stringify(res).slice(0, 300));
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [range]);
-
-  return { calendarJobs, calendarSummary, isLoading, error };
-}
-
-// ─── 4. Candidates List ───────────────────────────────────────────────────────
+// ─── 3. Candidates List ───────────────────────────────────────────────────────
 // Returns { data } shape — components do: data?.data.candidates ?? []
 export function useCandidatesList(params?: CandidatesListParams) {
   const [data,      setData]      = useState<CandidatesListResponse | null>(null);
@@ -134,7 +98,7 @@ export function useCandidatesList(params?: CandidatesListParams) {
   return { data, isLoading, error, refetch: run };
 }
 
-// ─── 5. Candidate Details ─────────────────────────────────────────────────────
+// ─── 4. Candidate Details ─────────────────────────────────────────────────────
 // Returns { candidate } — components do: candidate?.data.candidate
 export function useCandidateDetails(candidateId: string | null) {
   const [candidate, setCandidate] = useState<CandidateDetailsResponse | null>(null);
@@ -160,7 +124,7 @@ export function useCandidateDetails(candidateId: string | null) {
   return { candidate, isLoading, error, refetch: run };
 }
 
-// ─── 6. Invite Candidate ──────────────────────────────────────────────────────
+// ─── 5. Invite Candidate ──────────────────────────────────────────────────────
 export function useInviteCandidate() {
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
@@ -184,7 +148,7 @@ export function useInviteCandidate() {
   return { invite, isLoading, error };
 }
 
-// ─── 7. Notifications ─────────────────────────────────────────────────────────
+// ─── 6. Notifications ─────────────────────────────────────────────────────────
 export function useNotifications(params?: NotificationsParams) {
   const stableKey = JSON.stringify(params ?? {});
 
@@ -220,7 +184,7 @@ export function useNotifications(params?: NotificationsParams) {
   return { notifications, unreadCount, total, isLoading, error, refetch: run };
 }
 
-// ─── 8. Recruiter Dashboard ───────────────────────────────────────────────────
+// ─── 7. Recruiter Dashboard ───────────────────────────────────────────────────
 export function useRecruiterDashboard() {
   const { data, isLoading, error, refetch } =
     useAsyncData<RecruiterDashboardData>(getRecruiterDashboard);

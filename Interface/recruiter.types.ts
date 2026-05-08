@@ -72,15 +72,6 @@ export interface RecruiterDocument {
   updated_at?:          string;
 }
 
-export interface RecruiterProfileResponse {
-  success: boolean;
-  message: string;
-  data: {
-    profile:   RecruiterProfileData;
-    documents: RecruiterDocument[];
-  };
-}
-
 export interface UpdateProfileResponse {
   success: boolean;
   message: string;
@@ -118,13 +109,6 @@ export interface RecruiterDashboardData {
   };
 }
 
-export interface RecruiterDashboardResponse {
-  success: boolean;
-  message: string;
-  data:    RecruiterDashboardData;
-}
-
-
 // ══════════════════════════════════════════════════════════════════════════════
 // WALLET
 // ══════════════════════════════════════════════════════════════════════════════
@@ -142,38 +126,6 @@ export interface RecruiterWallet {
   balance_version:    number;
   created_at:         string;
   updated_at:         string;
-}
-
-export interface WalletResponse {
-  success: boolean;
-  message: string;
-  data:    RecruiterWallet;
-}
-
-export interface WalletPayPayload { amount: number }
-
-export interface WalletPayResponse {
-  success: boolean;
-  message: string;
-  data: {
-    client_secret:            string;
-    topup_id:                 string;
-    idempotency_key:          string;
-    amount:                   number;
-    currency:                 string;
-    stripe_payment_intent_id: string;
-  };
-}
-
-export interface WalletTopup {
-  id:                        string;
-  wallet_id?:                string;
-  amount:                    string | number;
-  currency?:                 string;
-  status:                    string;
-  stripe_payment_intent_id?: string;
-  created_at:                string;
-  updated_at?:               string;
 }
 
 export interface WalletTransaction {
@@ -197,31 +149,6 @@ export interface WalletTransaction {
   created_at:           string;
   updated_at?:          string;
 }
-
-export interface WalletTopupsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    items:  WalletTopup[];
-    total:  number;
-    page:   number;
-    limit:  number;
-    offset: number;
-  };
-}
-
-export interface WalletTransactionsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    items:  WalletTransaction[];
-    total:  number;
-    page:   number;
-    limit:  number;
-    offset: number;
-  };
-}
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 // NOTIFICATIONS
@@ -732,9 +659,6 @@ export interface CandidateWorkExperienceItem {
   description: string | null;
 }
 
-// Alias for old code
-export type WorkExperience = CandidateWorkExperienceItem;
-
 export interface Education {
   id:          string;
   school:      string;
@@ -864,25 +788,6 @@ export interface InHouseCandidate {
   user?: { email: string | null } | null;
 }
 
-export interface InHouseCandidatesResponse {
-  success: boolean;
-  message: string;
-  data: {
-    candidates: InHouseCandidate[];
-    pagination?: PaginationData;
-  };
-}
-
-export interface InHouseInvitePayload {
-  full_name: string;
-  email:     string;
-}
-
-export interface InHouseInviteResponse {
-  success: boolean;
-  message: string;
-}
-
 export interface InviteCandidatePayload {
   job_id:       string;
   candidate_id: string;
@@ -955,33 +860,9 @@ export interface JobApplicationsResponse {
   };
 }
 
-export interface UpdateApplicationStatusPayload {
-  status: ApplicationStatus;
-}
-
-export interface UpdateApplicationStatusResponse {
-  success: boolean;
-  message: string;
-  data: {
-    id:           string;
-    job_id:       string;
-    candidate_id: string;
-    status:       ApplicationStatus;
-    updated_at:   string;
-  };
-}
-
-
 // ══════════════════════════════════════════════════════════════════════════════
 // INTERVIEW REQUESTS
 // ══════════════════════════════════════════════════════════════════════════════
-
-export interface CreateInterviewRequestPayload {
-  candidate_id:       string;
-  job_application_id: string;
-  valid_until:        string;
-  message?:           string;
-}
 
 export interface InterviewRequest {
   id:                   string;
@@ -997,38 +878,9 @@ export interface InterviewRequest {
   updated_at:  string;
 }
 
-export interface InterviewRequestsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    interviewRequests: InterviewRequest[];
-    pagination: {
-      currentPage:     number;
-      totalPages:      number;
-      totalCount:      number;
-      limit:           number;
-      hasNextPage:     boolean;
-      hasPreviousPage: boolean;
-    };
-  };
-}
-
-
 // ══════════════════════════════════════════════════════════════════════════════
 // COMMON / METADATA
 // ══════════════════════════════════════════════════════════════════════════════
-
-export interface SpecializationItem {
-  id:    number;
-  value: string;
-  label: string;
-}
-
-export interface SpecializationsResponse {
-  success: boolean;
-  message: string;
-  data: { specializations: SpecializationItem[] };
-}
 
 export type Job = JobListItem;
 export type TopJob = JobListItem;

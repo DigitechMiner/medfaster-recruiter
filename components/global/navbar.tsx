@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import {
   LayoutDashboard, Briefcase, Users, CalendarCheck,
   Wallet, HelpCircle, Settings,
@@ -12,15 +11,8 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
-import { NotificationPanel } from "@/components/notifications/NotificationPanel";
-
-const WalletBalance = dynamic(
-  () => import("@/components/wallet/wallet-balance").then((m) => m.WalletBalance),
-  {
-    ssr: false,
-    loading: () => <span className="w-16 h-4 bg-gray-100 rounded animate-pulse inline-block" />,
-  }
-);
+import { NotificationPanel } from "@/components/global/NotificationPanel";
+import { WalletBalance } from "@/components/global/wallet-balance";
 
 const NO_SIDEBAR_ROUTES = ["/messages"];
 const desktopProfileItemClass =

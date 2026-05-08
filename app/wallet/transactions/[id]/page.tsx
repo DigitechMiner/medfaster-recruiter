@@ -2,12 +2,26 @@
 
 import { useEffect, useState }  from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getWalletTransactions, WalletTransaction } from '@/stores/api/recruiter-wallet-api';
+import { getWalletTransactionById, WalletTransaction } from '@/stores/api/recruiter-wallet-api';
 import {
   ArrowLeft, Copy, CheckCheck,
   Wallet, ArrowDownCircle, ArrowUpCircle,
   Clock, CheckCircle2, XCircle, RefreshCw,
 } from 'lucide-react';
+
+const transactionDetailRequests = new Map<string, Promise<WalletTransaction>>();
+
+function getTransactionDetailOnce(id: string): Promise<WalletTransaction> {
+  const existing = transactionDetailRequests.get(id);
+  if (existing) return existing;
+
+  const request = getWalletTransactionById(id).finally(() => {
+    transactionDetailRequests.delete(id);
+  });
+
+  transactionDetailRequests.set(id, request);
+  return request;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(cents: number) {
@@ -163,14 +177,8 @@ export default function TransactionDetailPage() {
 
     async function load() {
       try {
-        // No dedicated GET /transactions/:id — search through pages
-        for (const limit of [20, 50, 100]) {
-          const res   = await getWalletTransactions({ page: 1, limit });
-          const found = res.items.find((t) => t.id === id || t.transaction_id === id);
-          if (found) { if (!cancelled) setTx(found); return; }
-          if ((res.total ?? res.items.length) <= limit) break;
-        }
-        throw new Error('Transaction not found');
+        const detail = await getTransactionDetailOnce(id);
+        if (!cancelled) setTx(detail);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load transaction');
       } finally {

@@ -4,20 +4,6 @@
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SHARED
-// ══════════════════════════════════════════════════════════════════════════════
-
-export interface PaginationVM {
-  total:      number;
-  page:       number;
-  limit:      number;
-  totalPages: number;
-  hasNext:    boolean;
-  hasPrev:    boolean;
-}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
 // CANDIDATE — CARD (grid/kanban view everywhere)
 // Source: fromJobApplication()
 // ══════════════════════════════════════════════════════════════════════════════
@@ -65,14 +51,6 @@ export interface CandidateTableRowVM {
 // CANDIDATE — DETAIL PAGE (/candidates/[id])
 // Source: fromDetailProfile()
 // ══════════════════════════════════════════════════════════════════════════════
-
-export interface ScoreRoundVM {
-  label:      string;
-  score:      number | null;
-  max_score:  100;
-  strengths:  string | null;
-  graph_data: number[];
-}
 
 export interface QualificationVM {
   id:          string;

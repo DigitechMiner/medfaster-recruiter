@@ -63,8 +63,8 @@ DASHBOARD_RECENT_ACTIVITY: (activityLength = 10) => `/recruiter/dashboard/recent
   // ── Wallet ─────────────────────────────────────────────────────────────────
   WALLET:                         '/recruiter/wallet',
   WALLET_PAY:                     '/recruiter/wallet/pay',
-  WALLET_TOPUPS:                  '/recruiter/wallet/topups',
   WALLET_TRANSACTIONS:            '/recruiter/wallet/transactions',
+  WALLET_TRANSACTION_DETAIL:      (id: string) => `/recruiter/wallet/transactions/${id}`,
 
   // ── Credential Verification ────────────────────────────────────────────────
   VERIFY_CREDENTIAL_SEND_OTP:     '/recruiter/verify-credential/send-otp',
