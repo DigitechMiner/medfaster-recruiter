@@ -5,13 +5,10 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
   Briefcase,
-  Calendar,
   Clock3,
   Mail,
   Phone,
   MapPin,
-  CircleCheck,
-  CircleOff,
   Download,
   Building2,
   Layers,
@@ -35,13 +32,11 @@ function toLabel(raw?: string | null): string {
   return raw.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function toExperienceLabel(months?: number | null): string {
+function toCompactExperienceLabel(months?: number | null): string {
   if (months == null) return "—";
   const years = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  if (years === 0) return `${remainingMonths} Months`;
-  if (remainingMonths === 0) return `${years} Years`;
-  return `${years} Years ${remainingMonths} Months`;
+  if (years === 0) return `${months}+ months`;
+  return `${years}+ ${years === 1 ? "year" : "years"}`;
 }
 
 export function CandidateHero({
@@ -59,13 +54,18 @@ export function CandidateHero({
     candidate.city && candidate.state
       ? `${candidate.city}, ${candidate.state}`
       : candidate.preferred_location || "N/A";
-  const role = toLabel(candidate.job_title);
-  const isOnline = true;
-  const contactEmail = candidate.user?.email ?? candidate.email;
-  const contactPhone = candidate.user?.phone ?? candidate.phone_number;
-  const email = contactEmail ? `${contactEmail.slice(0, 2)}************` : "Not available";
-  const phone = contactPhone ? `${contactPhone.slice(0, 3)}********` : "Not available";
-  const jobType = toLabel(candidate.job_type);
+  const roleTags =
+    candidate.job_titles && candidate.job_titles.length > 0
+      ? candidate.job_titles.map((title) => toLabel(title))
+      : [toLabel(candidate.job_title)];
+  const isOnline = Boolean(candidate.is_active);
+  const email = "************";
+  const phone = "************";
+  const jobTypes = (
+    Array.isArray(candidate.job_type) ? candidate.job_type : [candidate.job_type]
+  )
+    .filter((jobType): jobType is string => Boolean(jobType))
+    .map((jobType) => toLabel(jobType));
   const specs = candidate.specializations?.slice(0, 5) ?? [];
   const pathname = usePathname();
   const breadcrumbs = useMemo(() => getRouteBreadcrumb(pathname), [pathname]);
@@ -95,42 +95,40 @@ export function CandidateHero({
           </div>
           <div className="space-y-2">
             <h1 className="text-[34px] leading-none font-semibold text-[#242833]">{fullName}</h1>
-            <span className="inline-flex rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]">
-              {role}
-            </span>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-[#6B7280]">
-              <span className="inline-flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              {roleTags.map((role, index) => (
+                <span
+                  key={`${role}-${index}`}
+                  className="inline-flex rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]"
+                >
+                  {role}
+                </span>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-y-2 text-sm text-[#6B7280] sm:grid-cols-2">
+              <span className="inline-flex items-center gap-1.5 sm:pr-4 sm:border-r sm:border-gray-200">
                 <MapPin className="h-4 w-4 text-[#F4781B]" /> {location}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Mail className="h-4 w-4 text-[#F4781B]" /> {email}
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 sm:pr-4 sm:border-r sm:border-gray-200">
                 <Phone className="h-4 w-4 text-[#F4781B]" /> {phone}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Clock3 className="h-4 w-4 text-[#F4781B]" /> {jobType}
+                <Clock3 className="h-4 w-4 text-[#F4781B]" />
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  {(jobTypes.length > 0 ? jobTypes : ["—"]).map((jobType, index) => (
+                    <span
+                      key={`${jobType}-${index}`}
+                      className="inline-flex rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]"
+                    >
+                      {jobType}
+                    </span>
+                  ))}
+                </span>
               </span>
             </div>
-            <div className="text-sm">
-              <span className="text-[#F4781B] font-medium">Work Eligibility :</span>
-              <span className="ml-2 rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]">
-                {toLabel(candidate.work_eligibility)}
-              </span>
-            </div>
-            {specs.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-sm font-medium text-[#F4781B]">Specializations :</span>
-                {specs.map((spec) => (
-                  <span
-                    key={spec}
-                    className="rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]"
-                  >
-                    {toLabel(spec)}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
         <div className="flex items-start gap-2">
@@ -138,33 +136,45 @@ export function CandidateHero({
             onClick={onExport}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-[#3B414F]"
           >
-            <Download size={14} /> Interview Response
-          </button>
-          <button
-            onClick={() => onPrimaryAction?.("hire")}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#11A75C] px-4 py-2 text-sm font-semibold text-white"
-          >
-            <CircleCheck size={14} /> Hire
+            <Download size={14} /> Export Profile
           </button>
           <button
             onClick={() => onPrimaryAction?.("shortlist")}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#F3B378] bg-[#FFF7F1] px-4 py-2 text-sm font-semibold text-[#C87521]"
           >
-            <CircleOff size={14} /> Reject
+            <Briefcase size={14} /> Invite For a Job
           </button>
         </div>
+      </div>
+      <div className="mt-4 border-t border-gray-200 pt-4 space-y-3">
+        <div className="text-sm">
+          <span className="text-[#F4781B] font-medium">Work Eligibility :</span>
+          <span className="ml-2 rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]">
+            {toLabel(candidate.work_eligibility)}
+          </span>
+        </div>
+        {specs.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-[#F4781B]">Specializations :</span>
+            {specs.map((spec) => (
+              <span
+                key={spec}
+                className="rounded-md bg-[#F3F4F6] px-2 py-1 text-xs text-[#525866]"
+              >
+                {toLabel(spec)}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export function CandidateBasicInfo({ candidate }: { candidate: CandidateDetailProfile }) {
-  const staticExperienceMonths = (candidate as CandidateDetailProfile & {
-    static_experience_months?: number | null;
-  }).static_experience_months;
-  const totalWorkExperience = toExperienceLabel(
-    staticExperienceMonths ?? candidate.experience_in_months
-  );
+  const totalWorkExperienceMonths =
+    candidate.static_experience_months ?? candidate.experience_in_months;
+  const totalWorkExperience = toCompactExperienceLabel(totalWorkExperienceMonths);
   const currentRole = candidate.work_experiences?.find((exp) => exp.is_current)?.title;
   const currentCompany = candidate.work_experiences?.find((exp) => exp.is_current)?.company;
   const preferredLocation =

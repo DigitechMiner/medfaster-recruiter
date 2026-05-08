@@ -704,6 +704,9 @@ export interface CandidateDocumentItem {
   title:         string;
   file_url:      string | null;
   created_at:    string;
+  status?:       string;
+  verified_by?:  string | null;
+  verified_at?:  string | null;
 }
 
 // ← alias so old imports of CandidateDocument don't break
@@ -780,7 +783,10 @@ export interface CandidateDetailProfile {
   state?:                string | null;
   department?:           string | string[];
   job_title?:            string;
+  job_titles?:           string[] | null;
   experience_in_months?: number | null;
+  static_experience_months?: number | null;
+  is_active?:            boolean;
   work_eligibility?:     string | null;
   user?: {
     email: string | null;
@@ -801,7 +807,7 @@ export interface CandidateDetailProfile {
   email?:                   string | null;
   phone_number?:            string | null;
   preferred_location?:      string | null;
-  job_type?:                string | null;
+  job_type?:                string | string[] | null;
   skill?:                   string | string[];
   specialty?:               string[];
   specializations?:         string[];

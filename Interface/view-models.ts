@@ -87,6 +87,7 @@ export interface DocumentVM {
   document_id:   string;
   title:         string;
   document_type: string;
+  verified:      boolean;
   category:      'personal' | 'license_certificate';
   file_url:      string | null;
   signed_url:    string | null;   // fetch on-demand
@@ -152,6 +153,7 @@ export interface CandidateDetailVM {
   // KPI cards
   kpis: {
     attendance_accuracy:   null;        // ❌ not in API
+    total_work_experience_months: number | null;
     total_work_experience: string;      // "4 yrs 2 mos"
     current_role:          string | null;
     current_organization:  string | null;

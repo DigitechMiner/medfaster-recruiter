@@ -157,8 +157,19 @@ export async function getCandidateDocumentUrl(
   const res = await axiosInstance.get(
     ENDPOINTS.CANDIDATE_DOCUMENT_SIGNED_URL(candidateId, documentId)
   );
-  const inner = extractData<{ candidate_id: string; document_id: string; file_url: string }>(res.data);
-  return { url: inner.file_url };  // ✅ map file_url → url
+  const inner = extractData<{
+    candidate_id?: string;
+    document_id?: string;
+    file_url?: string;
+    signed_url?: string;
+    view_url?: string;
+    url?: string;
+  }>(res.data);
+  const url = inner.file_url ?? inner.signed_url ?? inner.view_url ?? inner.url ?? null;
+  if (!url) {
+    throw new Error("Document URL not found in response");
+  }
+  return { url };
 }
 export async function inviteCandidateToJob(payload: {
   job_id: string;

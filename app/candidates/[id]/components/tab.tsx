@@ -2,6 +2,7 @@
 
 import { useCandidateDocumentUrl } from "@/hooks/useApplicationActions";
 import type { CandidateDetailVM } from "@/Interface/view-models";
+import { CheckCircle2, Eye, XCircle } from "lucide-react";
 
 export const CANDIDATE_DETAIL_TABS = [
   "General score",
@@ -13,6 +14,49 @@ export const CANDIDATE_DETAIL_TABS = [
 ] as const;
 
 export type CandidateDetailTab = (typeof CANDIDATE_DETAIL_TABS)[number];
+
+const formatEducationDate = (value: string | null) => {
+  if (!value) return null;
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  const monthYearMatch = trimmedValue.match(/^(\d{1,2})\/(\d{4})$/);
+  if (monthYearMatch) {
+    const month = Number(monthYearMatch[1]);
+    const year = Number(monthYearMatch[2]);
+    if (month >= 1 && month <= 12) {
+      return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(
+        new Date(year, month - 1, 1)
+      );
+    }
+  }
+
+  const parsedDate = Date.parse(trimmedValue);
+  if (!Number.isNaN(parsedDate) && trimmedValue.includes("-")) {
+    return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(
+      new Date(parsedDate)
+    );
+  }
+
+  return trimmedValue;
+};
+
+const getEducationDateRange = (startYear: string | null, endYear: string | null) => {
+  const start = formatEducationDate(startYear);
+  const end = formatEducationDate(endYear);
+
+  if (start && end) return `${start} - ${end}`;
+  if (start) return `${start} - Present`;
+  if (end) return `Until ${end}`;
+  return "Dates not available";
+};
+
+const getCompactExperienceLabel = (months: number | null) => {
+  if (months === null) return null;
+  const years = Math.floor(months / 12);
+  if (years === 0) return `${months}+ months`;
+  return `${years}+ ${years === 1 ? "year" : "years"}`;
+};
 
 type CandidateDetailTabsProps = {
   activeTab: CandidateDetailTab;
@@ -29,7 +73,7 @@ export function CandidateDetailTabs({
 }: CandidateDetailTabsProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      <div className="border-b border-gray-200 overflow-x-auto bg-[#FCFCFD]">
+      <div className="border-b border-gray-200 overflow-x-auto bg-[#FCFCFD] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max">
           {CANDIDATE_DETAIL_TABS.map((tab) => (
             <button
@@ -46,7 +90,7 @@ export function CandidateDetailTabs({
           ))}
         </div>
       </div>
-      <div className="p-4 sm:p-5">
+      <div className="p-4 sm:p-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <CandidateDetailTabPanel
           activeTab={activeTab}
           candidate={candidate}
@@ -68,7 +112,7 @@ function CandidateDetailTabPanel({
 }) {
   switch (activeTab) {
     case "General score":
-      return <GeneralScoreTab />;
+      return <GeneralScoreTab candidate={candidate} />;
     case "Qualifications":
       return <QualificationsTab candidate={candidate} />;
     case "Documentations":
@@ -82,10 +126,21 @@ function CandidateDetailTabPanel({
   }
 }
 
-export function GeneralScoreTab() {
+export function GeneralScoreTab({ candidate }: { candidate: CandidateDetailVM }) {
+  const interviewScore = candidate.general_score.overall_score;
+
+  if (interviewScore === null) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+        <p className="text-sm">No interview record available.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
-      <p className="text-sm">Interview score data is not yet available from the API.</p>
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <p className="text-xs uppercase tracking-wide text-gray-500">Interview Score</p>
+      <p className="text-4xl font-bold text-gray-900 mt-2">{interviewScore}</p>
     </div>
   );
 }
@@ -105,6 +160,9 @@ export function QualificationsTab({ candidate }: { candidate: CandidateDetailVM 
                   {edu.institution ?? "—"}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">{edu.degree}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {getEducationDateRange(edu.start_year, edu.end_year)}
+                </p>
               </div>
             ))}
           </div>
@@ -126,27 +184,67 @@ export function DocumentationsTab({
   const handleViewDoc = async (candidateId: string, documentId: string) => {
     try {
       const url = await fetchUrl(candidateId, documentId);
-      if (url) window.open(url, "_blank");
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
     } catch {
       return;
     }
   };
 
+  const allDocuments = [...candidate.documents.personal, ...candidate.documents.licenses_certificates];
+
   return (
     <div className="space-y-5">
-      <div className="border border-gray-200 rounded-xl p-5">
-        <h2 className="text-base font-semibold text-gray-900 mb-5">Personal Documents</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-          {candidate.documents.personal.map((doc) => (
-            <button
-              key={doc.document_id}
-              onClick={() => handleViewDoc(candidate.id, doc.document_id)}
-              className="text-left"
-            >
-              <DocThumbnail title={doc.title} name={fullName} />
-            </button>
-          ))}
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="px-5 pt-5 pb-3">
+          <h2 className="text-base font-semibold text-gray-900">Documents</h2>
         </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-[#FCFCFD]">
+              <th className="px-4 py-3 text-left font-semibold text-gray-700">Title</th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-700">Verified</th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-700">View</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allDocuments.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-6 text-center text-sm text-gray-400">
+                  No documents found.
+                </td>
+              </tr>
+            ) : (
+              allDocuments.map((doc) => (
+                <tr key={doc.document_id} className="border-b border-gray-100 last:border-b-0">
+                  <td className="px-4 py-3.5 text-gray-800">{doc.title}</td>
+                  <td className="px-4 py-3.5">
+                    <span
+                      className="inline-flex items-center"
+                      title={doc.verified ? "Verified" : "Not verified"}
+                      aria-label={doc.verified ? "Verified" : "Not verified"}
+                    >
+                      {doc.verified ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-rose-500" />
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-center">
+                    <button
+                      onClick={() => handleViewDoc(candidate.id, doc.document_id)}
+                      className="inline-flex items-center justify-center text-[#F4781B] hover:text-[#da6510] transition-colors"
+                      aria-label={`View ${doc.title} for ${fullName}`}
+                      title="View document"
+                    >
+                      <Eye size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -166,7 +264,8 @@ export function JobExperienceTab({ candidate }: { candidate: CandidateDetailVM }
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 sm:px-5">
         <h3 className="text-[28px] font-semibold leading-none text-[#242833]">Work Experience</h3>
         <span className="text-2xl font-semibold text-[#F4781B]">
-          {candidate.kpis.total_work_experience}
+          {getCompactExperienceLabel(candidate.kpis.total_work_experience_months) ??
+            candidate.kpis.total_work_experience}
         </span>
       </div>
       <div className="space-y-0 px-4 sm:px-5">
@@ -183,23 +282,12 @@ export function JobExperienceTab({ candidate }: { candidate: CandidateDetailVM }
                 {exp.start_date} - {exp.end_date ?? "Present"}
               </p>
             </div>
-            <p className="text-sm text-gray-500">
-              {exp.description ||
-                "No additional description is available for this experience entry."}
-            </p>
+            {exp.description ? (
+              <p className="text-sm text-gray-500">{exp.description}</p>
+            ) : null}
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function ComplaintsTab() {
-  return (
-    <div className="rounded-xl border border-gray-200 p-5">
-      <p className="text-sm text-gray-400">
-        No complaints or grievances are available for this candidate.
-      </p>
     </div>
   );
 }
@@ -235,33 +323,3 @@ export function ReviewsRatingsTab({ candidate }: { candidate: CandidateDetailVM 
   );
 }
 
-function DocThumbnail({ title, name }: { title: string; name: string }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-gray-800">{title}</p>
-        <span className="text-[#F4781B] text-xs font-semibold hover:underline">
-          View
-        </span>
-      </div>
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <div className="bg-red-700 px-3 py-2">
-          <p className="text-white text-xs font-bold leading-tight">{name}</p>
-          <p className="text-red-200 text-[9px]">Licensed Practical Nurse</p>
-        </div>
-        <div className="bg-white px-3 py-3 space-y-1.5">
-          {[100, 90, 95, 80, 85, 90, 75, 85, 80, 60].map((w, i) => (
-            <div
-              key={i}
-              className="h-1 rounded"
-              style={{
-                width: `${w}%`,
-                backgroundColor: i % 3 === 0 ? "#e5e7eb" : "#f3f4f6",
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}

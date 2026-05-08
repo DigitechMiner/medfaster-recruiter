@@ -49,6 +49,8 @@ function mapDocuments(
     file_url: null,
     created_at: new Date().toISOString(),
     status: doc.status,
+    verified_by: doc.verified_by ?? null,
+    verified_at: doc.verified_at ?? null,
   }));
 }
 
@@ -94,12 +96,10 @@ function toLabel(raw?: string | null) {
 }
 
 function toExperienceLabel(months?: number | null): string {
-  if (!months) return "—";
+  if (months == null) return "—";
   const yrs = Math.floor(months / 12);
-  const mos = months % 12;
-  if (yrs === 0) return `${mos} mos`;
-  if (mos === 0) return `${yrs} yrs`;
-  return `${yrs} yrs ${mos} mos`;
+  if (yrs === 0) return `${months}+ months`;
+  return `${yrs}+ ${yrs === 1 ? "year" : "years"}`;
 }
 
 function toDisplayId(uuid: string): string {
@@ -156,7 +156,7 @@ export function normalizeCandidateResponse(
     documents: mappedDocuments ?? basic.documents,
     work_experiences: mappedWorkExperiences ?? basic.work_experiences,
     work_history: mappedWorkHistory ?? basic.work_history,
-    job_type: toJoinedValue(basic.job_type),
+    job_type: basic.job_type ?? null,
     preferred_location: toJoinedValue(basic.preferred_location),
     ratings: Array.isArray(apiData.data.ratings?.recent_reviews)
       ? apiData.data.ratings.recent_reviews
@@ -182,6 +182,8 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
     document_id: doc.document_id ?? "",
     title: doc.title,
     document_type: doc.document_type,
+    verified:
+      Boolean(doc.verified_by) || Boolean(doc.verified_at) || doc.status === "verified",
     category: isPersonalDocumentType(doc.document_type)
       ? ("personal" as const)
       : ("license_certificate" as const),
@@ -210,10 +212,14 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
     province: p.state ?? null,
     work_eligibility: p.work_eligibility ?? null,
     specializations: p.specializations ?? [],
-    job_type: p.job_type ?? null,
+    job_type: Array.isArray(p.job_type) ? p.job_type.join(", ") : (p.job_type ?? null),
     kpis: {
       attendance_accuracy: null,
-      total_work_experience: toExperienceLabel(p.experience_in_months),
+      total_work_experience_months:
+        p.static_experience_months ?? p.experience_in_months ?? null,
+      total_work_experience: toExperienceLabel(
+        p.static_experience_months ?? p.experience_in_months
+      ),
       current_role: currentJob ? toLabel(currentJob.title) : null,
       current_organization: currentJob ? currentJob.company : null,
       preferred_location: null,
@@ -226,19 +232,29 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
       communication_analysis: null,
       accuracy_of_answers: null,
     },
-    qualifications: (p.qualifications ?? []).map((q) => {
-      const education = educationById.get(q.id);
-      const startDate = education?.start_date ?? education?.start_year ?? null;
-      const endDate = education?.end_date ?? education?.end_year ?? null;
-      return {
-        id: q.id,
-        degree: toLabel(q.type),
-        field: q.description ?? "—",
-        institution: q.institution,
-        start_year: startDate,
-        end_year: endDate ?? (q.year ? `${q.year}` : null),
-      };
-    }),
+    qualifications:
+      (p.educations ?? []).length > 0
+        ? (p.educations ?? []).map((edu) => ({
+            id: edu.id,
+            degree: edu.degree ?? "—",
+            field: edu.field ?? "—",
+            institution: edu.school ?? null,
+            start_year: edu.start_date ?? edu.start_year ?? null,
+            end_year: edu.end_date ?? edu.end_year ?? null,
+          }))
+        : (p.qualifications ?? []).map((q) => {
+            const education = educationById.get(q.id);
+            const startDate = education?.start_date ?? education?.start_year ?? null;
+            const endDate = education?.end_date ?? education?.end_year ?? null;
+            return {
+              id: q.id,
+              degree: toLabel(q.type),
+              field: q.description ?? "—",
+              institution: q.institution,
+              start_year: startDate,
+              end_year: endDate ?? (q.year ? `${q.year}` : null),
+            };
+          }),
     documents: {
       personal: allDocs.filter((d) => d.category === "personal"),
       licenses_certificates: allDocs.filter((d) => d.category === "license_certificate"),

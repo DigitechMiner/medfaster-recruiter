@@ -15,6 +15,8 @@ export type CandidateApiDocument = {
   title: string;
   status?: string;
   expiry_date?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
 };
 
 export type CandidateApiWorkHistory = {
@@ -72,6 +74,18 @@ export type JobOption = {
   location?: string | null;
 };
 
+export type JobApiItem = {
+  id: string;
+  job_title: string;
+  department?: string | null;
+  job_type?: string | null;
+  status?: string | null;
+  job_urgency?: string | null;
+  years_of_experience?: string | null;
+  city?: string | null;
+  province?: string | null;
+};
+
 export type JobsResponse = {
-  data: { jobs: JobOption[]; pagination: { total: number } };
+  data: { jobs: JobApiItem[]; pagination: { total: number } };
 };
