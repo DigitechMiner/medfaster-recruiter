@@ -11,5 +11,10 @@ export const Logo = () => (
   </div>
 );
 
-export { default as OtpVerificationForm } from './OtpVerificationForm';
+export {
+  OtpVerificationForm,
+  OtpVerificationModal,
+  type OtpVerificationFormProps,
+  type OtpVerificationModalProps,
+} from '@/components/modal/otpVerificationModal';
 export { default as SignInForm } from './SignInForm';

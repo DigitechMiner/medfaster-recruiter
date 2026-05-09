@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, Briefcase, Users, CalendarCheck,
   Wallet, HelpCircle, Settings,
-  Zap, Plus, Bell, User, Building2, LogOut, Menu, MessageCircleMore,
+  Zap, Plus, Bell, User, LogOut, Menu, MessageCircleMore,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -19,7 +20,7 @@ const desktopProfileItemClass =
   "flex items-center gap-3 w-full px-4 py-3.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors";
 type ProfileMenuItem = {
   label: string;
-  icon: typeof User;
+  icon: LucideIcon;
   onClick: () => void;
   disabled?: boolean;
 };
@@ -79,7 +80,6 @@ export function Navbar() {
 
   const baseProfileItems = [
     { label: "View profile", icon: User, href: "/profile" },
-    { label: "Organization Details", icon: Building2, href: "/organization" },
   ];
 
   const extraMobileProfileItems = [

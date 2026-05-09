@@ -1,34 +1,30 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useLayoutEffect,
+} from "react";
+import { cn } from "@/lib/utils";
 import {
   fetchChatConversations,
-  createOrGetChatConversation,
   fetchChatMessages,
   sendChatMessage,
   editChatMessage,
   deleteChatMessage,
-  uploadChatFile,
 } from "@/stores/api/chat-api";
 import { initRecruiterChatSocket } from "@/lib/chatSocket";
 import { useAuthStore } from "@/stores/authStore";
-
+import type { ChatMessage, Conversation } from "./types";
+import { normalizeMessage } from "./utils";
+import { ConversationList } from "./components/conversation-panel";
 import {
-  Conversation,
-  ChatMessage,
-  normalizeMessage,
-  formatTime,
-  formatDateLabel,
-} from "@/components/messages/types";
-import { ConversationList } from "@/components/messages/ConversationList";
-import { ChatHeader } from "@/components/messages/ChatHeader";
-import { MessageBubble } from "@/components/messages/MessageBubble";
-import { MessageInput } from "@/components/messages/MessageInput";
-import {
-  EmptyMessages,
   EmptySelection,
-} from "@/components/messages/EmptyState";
-import { toast } from "react-toastify";
+  MessagesThread,
+} from "./components/messages-panel";
 
 export default function MessagesPage() {
   const { recruiterProfile, loadRecruiterProfile } = useAuthStore();
@@ -36,7 +32,6 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -45,19 +40,14 @@ export default function MessagesPage() {
 
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
-
-  const [showNewChat, setShowNewChat] = useState(false);
-  const [candidateId, setCandidateId] = useState("");
-  const [creatingChat, setCreatingChat] = useState(false);
+  const [mobileListOpen, setMobileListOpen] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ── Socket ───────────────────────────────────────────────────────────────
   useEffect(() => {
     initRecruiterChatSocket().catch(console.error);
   }, []);
 
-  // ── Load conversations ───────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -85,7 +75,6 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recruiterProfile]);
 
-  // ── Load messages ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!activeId) return;
     let mounted = true;
@@ -93,10 +82,7 @@ export default function MessagesPage() {
       setLoadingMsgs(true);
       setMsgsError(null);
       try {
-        const raw = (await fetchChatMessages(activeId)) as Record<
-          string,
-          unknown
-        >[];
+        const raw = (await fetchChatMessages(activeId)) as Record<string, unknown>[];
         if (!mounted) return;
         setMessages(
           raw?.length
@@ -117,19 +103,9 @@ export default function MessagesPage() {
     };
   }, [activeId, recruiterProfile?.id]);
 
-  // ── Auto scroll ──────────────────────────────────────────────────────────
-  useEffect(() => {
+  useLayoutEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-  const toggleStar = useCallback((id: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, starred: !c.starred } : c)),
-    );
-  }, []);
 
   const handleSend = useCallback(async () => {
     if (!inputText.trim() || !activeId || sending) return;
@@ -137,7 +113,6 @@ export default function MessagesPage() {
     setInputText("");
     const optimistic: ChatMessage = {
       id: `local-${Date.now()}`,
-      type: "text",
       direction: "sent",
       text,
       time: new Date().toLocaleTimeString("en-US", {
@@ -170,7 +145,7 @@ export default function MessagesPage() {
             : c,
         ),
       );
-    } catch (err) {
+    } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setInputText(text);
     } finally {
@@ -190,194 +165,90 @@ export default function MessagesPage() {
     setMessages((prev) => prev.filter((m) => m.id !== msgId));
   }, []);
 
-  const handleStartChat = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!candidateId.trim()) return;
-    setCreatingChat(true);
-    try {
-      const conv = (await createOrGetChatConversation(
-        candidateId.trim(),
-      )) as Conversation;
-      setConversations((prev) =>
-        prev.find((c) => c.id === conv.id) ? prev : [conv, ...prev],
-      );
-      setActiveId(conv.id);
-      setShowNewChat(false);
-      setCandidateId("");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to start conversation.",
-      );
-    } finally {
-      setCreatingChat(false);
+  const activeConvo = useMemo(
+    () => conversations.find((c) => c.id === activeId),
+    [conversations, activeId],
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const syncDesktop = () => {
+      if (mq.matches) setMobileListOpen(true);
+    };
+    mq.addEventListener("change", syncDesktop);
+    syncDesktop();
+    return () => mq.removeEventListener("change", syncDesktop);
+  }, []);
+
+  const selectConversation = useCallback((id: string) => {
+    setActiveId(id);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setMobileListOpen(false);
     }
-  };
-  // ── Send file ────────────────────────────────────────────────────────────
-  const handleSendFile = useCallback(
-    async (file: File) => {
-      if (!activeId) return;
-      try {
-        // 1. Upload file → get URL back
-        const { fileUrl, fileName } = await uploadChatFile(file);
-        // 2. Send message with file metadata
-        const saved = (await sendChatMessage(
-          activeId,
-          fileName,
-          "text",
-          fileUrl,
-          fileName,
-        )) as Record<string, unknown>;
-        if (saved) {
-          const msg = normalizeMessage(saved, recruiterProfile?.id ?? "");
-          setMessages((prev) => [...prev, msg]);
-        }
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeId
-              ? {
-                  ...c,
-                  last_message: `📎 ${fileName}`,
-                  last_message_at: new Date().toISOString(),
-                }
-              : c,
-          ),
-        );
-      } catch (err) {
-        console.log(err);
-      }
-    },
-    [activeId, recruiterProfile?.id],
-  );
+  }, []);
 
-  // ── Send voice ────────────────────────────────────────────────────────────
-  const handleSendVoice = useCallback(
-    async (blob: Blob, duration: string) => {
-      if (!activeId) return;
-      try {
-        const file = new File([blob], `voice-${Date.now()}.webm`, {
-          type: "audio/webm",
-        });
-        const { fileUrl, fileName } = await uploadChatFile(file);
-        const saved = (await sendChatMessage(
-          activeId,
-          fileName,
-          "voice",
-          fileUrl,
-          fileName,
-        )) as Record<string, unknown>;
-        if (saved) {
-          // Inject duration into raw before normalizing so VoiceMessage renders correctly
-          const msg = normalizeMessage(
-            { ...saved, duration },
-            recruiterProfile?.id ?? "",
-          );
-          setMessages((prev) => [...prev, msg]);
-        }
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeId
-              ? {
-                  ...c,
-                  last_message: "🎙 Voice note",
-                  last_message_at: new Date().toISOString(),
-                }
-              : c,
-          ),
-        );
-      } catch (err) {
-        console.log(err);
-      }
-    },
-    [activeId, recruiterProfile?.id],
-  );
+  const handleMobileBackToList = useCallback(() => {
+    setMobileListOpen(true);
+  }, []);
 
-  const activeConvo = conversations.find((c) => c.id === activeId);
-
-  // ── Loading ──────────────────────────────────────────────────────────────
   if (loadingList) {
     return (
-      <div className="h-[calc(100vh-4rem)] min-h-0 overflow-hidden flex flex-col bg-[#F5F2EE]">
-        <div className="flex-1 min-h-0 flex items-center justify-center">
+      <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col overflow-hidden bg-muted/30">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#F4781B] mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">Loading conversations...</p>
+            <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-b-2 border-[#F4781B] dark:border-orange-400" />
+            <p className="text-sm text-muted-foreground">Loading conversations…</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="h-[calc(100vh-4rem)] min-h-0 overflow-hidden flex flex-col bg-[#F5F2EE]">
-      <div className="flex flex-1 overflow-hidden min-h-0 items-stretch">
-        <div className="h-full min-h-0">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col overflow-hidden bg-muted/30">
+      <div className="flex min-h-0 flex-1 flex-col items-stretch overflow-hidden md:flex-row">
+        <div
+          className={cn(
+            "h-full min-h-0",
+            mobileListOpen
+              ? "flex min-h-0 flex-1 flex-col md:min-w-[300px] md:w-[300px] md:max-w-[300px] md:flex-none"
+              : "hidden md:flex md:min-w-[300px] md:w-[300px] md:max-w-[300px] md:flex-none",
+          )}
+        >
           <ConversationList
             conversations={conversations}
             activeId={activeId}
             listError={listError}
-            search={search}
-            showNewChat={showNewChat}
-            candidateId={candidateId}
-            creatingChat={creatingChat}
-            onSearch={setSearch}
-            onSelect={setActiveId}
-            onToggleStar={toggleStar}
-            onToggleNewChat={() => setShowNewChat((v) => !v)}
-            onCandidateIdChange={setCandidateId}
-            onStartChat={handleStartChat}
+            onSelect={selectConversation}
           />
         </div>
 
         {activeConvo ? (
-          <div className="flex-1 h-full min-h-0 flex flex-col overflow-hidden">
-            <ChatHeader convo={activeConvo} onToggleStar={toggleStar} />
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 space-y-4">
-              {loadingMsgs ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#F4781B]" />
-                </div>
-              ) : msgsError ? (
-                <div className="flex justify-center py-8">
-                  <p className="text-xs text-red-400">{msgsError}</p>
-                </div>
-              ) : messages.length === 0 ? (
-                <EmptyMessages />
-              ) : (
-                <>
-                  <div className="flex items-center justify-center">
-                    <span className="text-xs text-gray-400 bg-[#EDE9E3] px-4 py-1 rounded-full">
-                      {formatDateLabel(activeConvo.last_message_at)}
-                      &nbsp;&nbsp;|&nbsp;&nbsp;
-                      {formatTime(activeConvo.last_message_at)}
-                    </span>
-                  </div>
-                  {messages.map((msg) => (
-                    <MessageBubble
-                      key={msg.id}
-                      msg={msg}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                  <div ref={messagesEndRef} />
-                </>
-              )}
-            </div>
-
-            <MessageInput
-              value={inputText}
+          <div
+            className={cn(
+              "flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background",
+              mobileListOpen ? "hidden md:flex" : "flex",
+            )}
+          >
+            <MessagesThread
+              activeConvo={activeConvo}
+              messages={messages}
+              loadingMsgs={loadingMsgs}
+              msgsError={msgsError}
+              inputText={inputText}
               sending={sending}
-              onChange={setInputText}
+              messagesEndRef={messagesEndRef}
+              onMobileBack={handleMobileBackToList}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onInputChange={setInputText}
               onSend={handleSend}
-              onSendFile={handleSendFile}
-              onSendVoice={handleSendVoice}
             />
           </div>
         ) : (
-          <EmptySelection />
+          <div className="hidden min-h-0 flex-1 flex-col bg-background md:flex">
+            <EmptySelection />
+          </div>
         )}
       </div>
     </div>

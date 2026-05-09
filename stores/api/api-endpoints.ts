@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   // ── Profile ────────────────────────────────────────────────────────────────
   RECRUITER_PROFILE:              '/recruiter/profile',
   RECRUITER_PROFILE_UPDATE:       '/recruiter/profile',
+  RECRUITER_CREDENTIAL:           '/recruiter/credential',
   RECRUITER_REGISTER:             '/recruiter/register',
   RECRUITER_DOCUMENT_VIEW:        (id: string) => `/recruiter/documents/${id}/view`,
 
@@ -69,7 +70,6 @@ DASHBOARD_RECENT_ACTIVITY: (activityLength = 10) => `/recruiter/dashboard/recent
   // ── Credential Verification ────────────────────────────────────────────────
   VERIFY_CREDENTIAL_SEND_OTP:     '/recruiter/verify-credential/send-otp',
   VERIFY_CREDENTIAL_VALIDATE_OTP: '/recruiter/verify-credential/validate-otp',
-  RECRUITER_CREDENTIAL:           '/recruiter/credential',
 
   // ── Notifications ──────────────────────────────────────────────────────────
   NOTIFICATIONS:                  '/recruiter/notifications',

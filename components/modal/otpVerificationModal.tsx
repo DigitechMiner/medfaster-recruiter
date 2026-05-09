@@ -1,14 +1,18 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Phone, Loader2 } from "lucide-react";
 import { CustomButton } from "@/components/custom/custom-button";
-import { OTP_RESEND_TIMER_SECONDS } from "@/utils/auth";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  DEFAULT_PHONE_DIAL_CODE,
+  OTP_LENGTH,
+  OTP_RESEND_TIMER_SECONDS,
+} from "@/utils/auth";
 
-const OTP_LENGTH = 4;
-
-interface OtpVerificationFormProps {
+export interface OtpVerificationFormProps {
   contactValue: string;
+  /** When omitted or empty, phone `contactValue` is shown as-is (e.g. full E.164). */
   countryCode?: string;
   otp: string[];
   otpSending: boolean;
@@ -18,11 +22,15 @@ interface OtpVerificationFormProps {
   onOtpKeyDown: (index: number, e: React.KeyboardEvent) => void;
   onVerifyOTP: (e: React.FormEvent) => void;
   onResendOTP: () => void;
+  /** Primary button label (default matches sign-in flow). */
+  submitLabel?: string;
+  /** Set false to hide the resend line (e.g. profile credential verify). */
+  showResend?: boolean;
 }
 
-export default function OtpVerificationForm({
+export function OtpVerificationForm({
   contactValue,
-  countryCode = "+1",
+  countryCode = DEFAULT_PHONE_DIAL_CODE,
   otp,
   otpSending,
   otpVerifying,
@@ -31,29 +39,42 @@ export default function OtpVerificationForm({
   onOtpKeyDown,
   onVerifyOTP,
   onResendOTP,
+  submitLabel = "Sign In",
+  showResend = true,
 }: OtpVerificationFormProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [resendTimer, setResendTimer] = useState(0);
 
+  const cc = (countryCode ?? "").trim();
   const displayContact = contactValue.includes("@")
     ? contactValue
-    : `${countryCode} ${contactValue}`;
+    : cc.length > 0
+      ? `${countryCode} ${contactValue}`.replace(/\s+/g, " ").trim()
+      : contactValue;
+
+  const LeadIcon = contactValue.includes("@") ? Mail : Phone;
 
   useEffect(() => {
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
-    setResendTimer(OTP_RESEND_TIMER_SECONDS);
   }, []);
 
   useEffect(() => {
+    if (showResend) {
+      setResendTimer(OTP_RESEND_TIMER_SECONDS);
+    }
+  }, [showResend]);
+
+  useEffect(() => {
+    if (!showResend) return;
     if (resendTimer > 0) {
       const timer = setTimeout(() => {
         setResendTimer((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [resendTimer]);
+  }, [resendTimer, showResend]);
 
   useEffect(() => {
     const firstEmptyIndex = otp.findIndex((digit) => !digit);
@@ -145,6 +166,7 @@ export default function OtpVerificationForm({
   };
 
   const handleResendClick = () => {
+    if (!showResend) return;
     if (resendTimer === 0) {
       setResendTimer(OTP_RESEND_TIMER_SECONDS);
       onResendOTP();
@@ -161,7 +183,7 @@ export default function OtpVerificationForm({
     <>
       <div className="flex justify-center mb-6">
         <div className="w-16 h-16 bg-[#FFF4ED] rounded-full flex items-center justify-center">
-          <Mail className="w-8 h-8 text-[#F4781B]" />
+          <LeadIcon className="w-8 h-8 text-[#F4781B]" aria-hidden />
         </div>
       </div>
 
@@ -214,22 +236,66 @@ export default function OtpVerificationForm({
               Verifying...
             </span>
           ) : (
-            "Sign In"
+            submitLabel
           )}
         </CustomButton>
       </form>
 
-      <p className="mt-4 text-center text-sm text-[#717680]">
-        Didn&apos;t receive the code?{" "}
-        <button
-          type="button"
-          onClick={handleResendClick}
-          disabled={otpSending || resendTimer > 0}
-          className="text-[#F4781B] font-semibold hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {resendTimer > 0 ? `Resend in ${formatTimer(resendTimer)}` : "Click to resend"}
-        </button>
-      </p>
+      {showResend ? (
+        <p className="mt-4 text-center text-sm text-[#717680]">
+          Didn&apos;t receive the code?{" "}
+          <button
+            type="button"
+            onClick={handleResendClick}
+            disabled={otpSending || resendTimer > 0}
+            className="text-[#F4781B] font-semibold hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {resendTimer > 0 ? `Resend in ${formatTimer(resendTimer)}` : "Click to resend"}
+          </button>
+        </p>
+      ) : null}
     </>
+  );
+}
+
+export type OtpVerificationModalProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Shows spinner instead of the form while the first code is being sent. */
+  isSendingOtp: boolean;
+  /** Passed to the inner form as `key` so OTP UI resets when channel changes. */
+  formKey?: string;
+  showCloseButton?: boolean;
+} & OtpVerificationFormProps;
+
+export function OtpVerificationModal({
+  open,
+  onOpenChange,
+  isSendingOtp,
+  formKey,
+  showCloseButton = true,
+  ...formProps
+}: OtpVerificationModalProps) {
+  const ariaTitle = isSendingOtp
+    ? "Sending verification code"
+    : `Check your ${formProps.contactValue.includes("@") ? "email" : "phone"}`;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="sm:max-w-md max-h-[90vh] overflow-y-auto sm:p-8 pt-12"
+        showCloseButton={showCloseButton}
+      >
+        <DialogTitle className="sr-only">{ariaTitle}</DialogTitle>
+        {isSendingOtp ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-12">
+            <Loader2 className="h-10 w-10 animate-spin text-[#F4781B]" aria-hidden />
+            <p className="text-sm text-[#717680]">Sending verification code…</p>
+          </div>
+        ) : (
+          <OtpVerificationForm key={formKey} {...formProps} />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

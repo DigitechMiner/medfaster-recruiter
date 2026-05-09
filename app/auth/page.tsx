@@ -5,16 +5,14 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/authStore';
+import { DEFAULT_PHONE_DIAL_CODE, emptyOtpDigits, OTP_LENGTH } from '@/utils/auth';
 import { Logo, OtpVerificationForm, SignInForm } from './components';
-
-const OTP_LENGTH = 4;
-const DEFAULT_COUNTRY_CODE = '+1';
 
 export default function AuthPage() {
   const [contactValue, setContactValue] = useState('');
-  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [countryCode, setCountryCode] = useState<string>(DEFAULT_PHONE_DIAL_CODE);
   const [showOTP, setShowOTP] = useState(false);
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(emptyOtpDigits);
   const router = useRouter();
 
   const {
@@ -81,13 +79,13 @@ export default function AuthPage() {
       router.replace('/');
     } else {
       setOtpError(result.message ?? 'Failed to verify OTP');
-      setOtp(['', '', '', '']);
+      setOtp(emptyOtpDigits());
     }
   };
 
   const handleResendOTP = async () => {
     setOtpError(null);
-    setOtp(['', '', '', '']);
+    setOtp(emptyOtpDigits());
     const result = await sendOtp({ target: contactValue });
     if (result.ok) toast.success('OTP resent successfully!');
   };
