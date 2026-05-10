@@ -9,16 +9,11 @@ import { InviteCandidateToJobModal } from './CandidateActionModal';
 import { CandidatesPoolCardView } from '@/app/candidates/components/CardView';
 import { CandidatesPoolTableView } from '@/app/candidates/components/TableView';
 import { CandidatesPoolFiltersModal } from './FiltersModal';
-import { useCandidatesPoolFilters, type PoolTab } from './useFilters';
-import { TableTabs, TabToolbarFilterViewToggle } from '@/components/table/TableTabs';
+import { useCandidatesPoolFilters } from './useFilters';
+import { TabToolbarFilterViewToggle } from '@/components/table/TableTabs';
 import { useMetadataStore } from '@/stores/metadataStore';
 
 export const PAGE_LIMIT = 10;
-
-const POOL_TABLE_TABS: { key: PoolTab; label: string }[] = [
-  { key: 'nearby', label: 'Nearby' },
-  { key: 'active', label: 'Active candidates' },
-];
 
 export function CandidatesPoolSection({
   view,
@@ -34,7 +29,6 @@ export function CandidatesPoolSection({
   const jobTitlesMeta = useMetadataStore((s) => s.jobTitles);
   const metadataLoading = useMetadataStore((s) => s.loading);
 
-  const [poolTab, setPoolTab] = useState<PoolTab>('nearby');
   const [page, setPage] = useState(1);
   const [inviteModalCandidate, setInviteModalCandidate] = useState<CandidateCardVM | null>(null);
   const queryClient = useQueryClient();
@@ -43,6 +37,8 @@ export function CandidatesPoolSection({
     filters,
     selectedRoleSlug,
     setSelectedRoleSlug,
+    candidateStatus,
+    setCandidateStatus,
     radiusKm,
     setRadiusKm,
     customKm,
@@ -53,47 +49,49 @@ export function CandidatesPoolSection({
     locating,
     requestLocation,
     clearFilters,
-  } = useCandidatesPoolFilters({ poolTab, page, limit: PAGE_LIMIT });
+  } = useCandidatesPoolFilters({ page, limit: PAGE_LIMIT });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+
+  const handleApplyFilters = () => {
+    const nextPage = 1;
+    setPage(nextPage);
+    setAppliedFilters({ ...filters, page: nextPage, limit: PAGE_LIMIT });
+    onFilterOpenChange(false);
+  };
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['recruiter-candidates', filters],
-    queryFn: () => getRecruiterCandidates(filters),
+    queryKey: ['recruiter-candidates', appliedFilters],
+    queryFn: () => getRecruiterCandidates(appliedFilters),
   });
 
   const cards = (data?.data?.candidates ?? []).map(fromRecruiterCandidateRow) as CandidateCardVM[];
   const total = data?.data?.pagination?.total ?? 0;
 
   useEffect(() => {
-    setPage(1);
-  }, [poolTab, selectedRoleSlug, coords, radiusKm, customKm]);
+    setAppliedFilters((prev) => ({ ...prev, page, limit: PAGE_LIMIT }));
+  }, [page]);
 
   return (
     <div className="flex flex-col">
-      <TableTabs
-        tabs={POOL_TABLE_TABS}
-        activeTab={poolTab}
-        onTabChange={setPoolTab}
-        tabClassName="relative px-5 py-4 text-sm font-medium transition-colors whitespace-nowrap"
-        activeTabClassName="text-[#F4781B]"
-        inactiveTabClassName="text-gray-400 hover:text-gray-600"
-        toolbarClassName="justify-between border-b border-gray-100 px-6"
-        endSlotClassName="py-2 sm:py-2"
-        endSlot={
+      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
+          <h2 className="text-base font-semibold text-gray-900">Candidate pool</h2>
           <TabToolbarFilterViewToggle
-            view={view}
-            onViewChange={onViewChange}
-            onFilterClick={() => onFilterOpenChange(true)}
-          />
-        }
-      />
+          view={view}
+          onViewChange={onViewChange}
+          onFilterClick={() => onFilterOpenChange(true)}
+        />
+      </div>
 
       <CandidatesPoolFiltersModal
         open={filterOpen}
         onOpenChange={onFilterOpenChange}
+        onApply={handleApplyFilters}
         jobTitlesMeta={jobTitlesMeta}
         metadataLoading={metadataLoading}
         selectedRoleSlug={selectedRoleSlug}
         onSelectedRoleSlugChange={setSelectedRoleSlug}
+        candidateStatus={candidateStatus}
+        onCandidateStatusChange={setCandidateStatus}
         coords={coords}
         radiusKm={radiusKm}
         onRadiusKmChange={setRadiusKm}

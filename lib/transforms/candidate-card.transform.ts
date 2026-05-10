@@ -67,7 +67,7 @@ export function fromRecruiterCandidateRow(row: RecruiterCandidateRow): Candidate
     application_id: "",
     full_name: `${row.first_name} ${row.last_name}`.trim(),
     initials: toInitials(row.first_name, row.last_name),
-    profile_image_url: null,
+    profile_image_url: row.profile_image_url ?? null,
     designation,
     job_title_labels,
     experience: toExperience(row.experience_in_months),

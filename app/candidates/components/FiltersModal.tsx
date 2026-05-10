@@ -3,16 +3,20 @@
 import { useEffect } from 'react';
 import { LocateFixed, X } from 'lucide-react';
 import type { MetadataOption } from '@/features/common';
+import type { CandidateStatusFilter } from './useFilters';
 
 const KM_PRESETS = [5, 10, 25, 50, 100] as const;
 
 type CandidatesPoolFiltersModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onApply: () => void;
   jobTitlesMeta: MetadataOption[];
   metadataLoading: boolean;
   selectedRoleSlug: string;
   onSelectedRoleSlugChange: (slug: string) => void;
+  candidateStatus: CandidateStatusFilter;
+  onCandidateStatusChange: (status: CandidateStatusFilter) => void;
   coords: { lat: number; lng: number } | null;
   radiusKm: number;
   onRadiusKmChange: (km: number) => void;
@@ -28,10 +32,13 @@ type CandidatesPoolFiltersModalProps = {
 export function CandidatesPoolFiltersModal({
   open,
   onOpenChange,
+  onApply,
   jobTitlesMeta,
   metadataLoading,
   selectedRoleSlug,
   onSelectedRoleSlugChange,
+  candidateStatus,
+  onCandidateStatusChange,
   coords,
   radiusKm,
   onRadiusKmChange,
@@ -96,6 +103,19 @@ export function CandidatesPoolFiltersModal({
                     {t.label}
                   </option>
                 ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-[11px] text-gray-600">
+              <span className="font-medium">Candidate status</span>
+              <select
+                value={candidateStatus}
+                onChange={(e) => onCandidateStatusChange(e.target.value as CandidateStatusFilter)}
+                className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-800 outline-none focus:border-[#F4781B]"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
               </select>
             </label>
 
@@ -172,7 +192,7 @@ export function CandidatesPoolFiltersModal({
             </button>
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={onApply}
               className="rounded-xl bg-[#F4781B] hover:bg-[#e06a10] text-white text-xs font-semibold px-4 py-2.5"
             >
               Done

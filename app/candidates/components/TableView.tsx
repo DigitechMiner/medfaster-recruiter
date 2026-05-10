@@ -135,7 +135,7 @@ function PoolListRow({
     <tr onClick={() => router.push(c.href)} className="border-b border-gray-50 hover:bg-orange-50/40 cursor-pointer transition-colors group">
       <td className="py-4 px-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
             <Image src={c.profile_image_url || '/svg/Photo.svg'} alt={c.full_name} width={36} height={36} className="object-cover w-full h-full" />
           </div>
           <div className="min-w-0">

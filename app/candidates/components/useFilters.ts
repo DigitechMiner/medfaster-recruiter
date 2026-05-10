@@ -2,18 +2,17 @@
 
 import { useMemo, useState } from 'react';
 
-export type PoolTab = 'nearby' | 'active';
+export type CandidateStatusFilter = 'all' | 'active' | 'inactive';
 
 export function useCandidatesPoolFilters({
-  poolTab,
   page,
   limit,
 }: {
-  poolTab: PoolTab;
   page: number;
   limit: number;
 }) {
   const [selectedRoleSlug, setSelectedRoleSlug] = useState('');
+  const [candidateStatus, setCandidateStatus] = useState<CandidateStatusFilter>('all');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState(25);
   const [customKm, setCustomKm] = useState('');
@@ -73,11 +72,10 @@ export function useCandidatesPoolFilters({
         ? { latitude: geoParsed.lat, longitude: geoParsed.lng, km: geoParsed.km }
         : {}),
     };
-    if (poolTab === 'active') {
-      return { ...base, is_active: true as const };
-    }
+    if (candidateStatus === 'active') return { ...base, is_active: true as const };
+    if (candidateStatus === 'inactive') return { ...base, is_active: false as const };
     return base;
-  }, [page, poolTab, roleSlugsFromMeta, geoParsed, limit]);
+  }, [page, roleSlugsFromMeta, geoParsed, limit, candidateStatus]);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -101,6 +99,7 @@ export function useCandidatesPoolFilters({
 
   const clearFilters = () => {
     setSelectedRoleSlug('');
+    setCandidateStatus('all');
     setCoords(null);
     setRadiusKm(25);
     setCustomKm('');
@@ -111,6 +110,8 @@ export function useCandidatesPoolFilters({
     filters,
     selectedRoleSlug,
     setSelectedRoleSlug,
+    candidateStatus,
+    setCandidateStatus,
     coords,
     radiusKm,
     setRadiusKm,

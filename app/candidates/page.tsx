@@ -41,8 +41,7 @@ export default function CandidatesPage() {
   const hiredCount = summary?.UNIQUE_HIRED_CANDIDATES != null ? String(summary.UNIQUE_HIRED_CANDIDATES) : '—';
   const inHouseCount = summary?.IN_HOUSE_CANDIDATES != null ? String(summary.IN_HOUSE_CANDIDATES) : '—';
   const activeCount = summary?.ACTIVE_HIRED_CANDIDATES != null ? String(summary.ACTIVE_HIRED_CANDIDATES) : '—';
-  const poolCount =
-    summary?.AVAILABLE_CANDIDATES_WITHIN_30KM != null ? String(summary.AVAILABLE_CANDIDATES_WITHIN_30KM) : '—';
+  const candidatePoolCount = summary?.CANDIDATE_POOL != null ? String(summary.CANDIDATE_POOL) : '—';
 
   return (
     <AppLayout padding="none">
@@ -72,7 +71,7 @@ export default function CandidatesPage() {
           <MetricCard
             icon={<Layers size={18} />}
             title="Candidates Pool"
-            value={poolCount}
+            value={candidatePoolCount}
             loading={summaryLoading}
           />
         </div>

@@ -53,13 +53,15 @@ function CandidateCell({ row }: { row: InHouseTableRow }) {
     <td className={TD}>
       <div className="flex items-center gap-2.5">
         {row.profile_image_url ? (
-          <Image
-            src={row.profile_image_url}
-            alt={row.full_name}
-            width={30}
-            height={30}
-            className="rounded-full object-cover flex-shrink-0"
-          />
+          <div className="w-[30px] h-[30px] rounded-full overflow-hidden flex-shrink-0">
+            <Image
+              src={row.profile_image_url}
+              alt={row.full_name}
+              width={30}
+              height={30}
+              className="w-full h-full object-cover"
+            />
+          </div>
         ) : (
           <div className="w-[30px] h-[30px] rounded-full bg-orange-100 text-orange-500 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
             {row.full_name

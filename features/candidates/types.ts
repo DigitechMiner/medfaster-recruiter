@@ -9,6 +9,7 @@ export interface RecruiterCandidateRow {
   candidate_id: string;
   first_name: string;
   last_name: string;
+  profile_image_url: string | null;
   department?: string | string[] | null;
   job_titles: string[] | string | null;
   experience_in_months: number | null;
@@ -99,7 +100,7 @@ export interface CandidateSummaryData {
   INHOUSE_CANDIDATES: number;
   IN_HOUSE_CANDIDATES?: number;
   ACTIVE_HIRED_CANDIDATES: number;
-  AVAILABLE_CANDIDATES_WITHIN_30KM: number;
+  CANDIDATE_POOL: number;
 }
 
 export interface CandidateSummaryResponse {

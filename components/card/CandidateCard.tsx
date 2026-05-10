@@ -142,13 +142,13 @@ export function BoardCandidateCard({ c, actionType, leftTag, rightTag }: { c: Ca
   const pillRight = rightTag ?? null;
   return (
     <Fragment>
-    <BaseCard onClick={() => router.push(c.href)} className="flex flex-col gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer">
+    <BaseCard onClick={() => router.push(c.href)} className="min-w-[300px] flex flex-col gap-2 p-3 rounded-xl border border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer">
       <CardHeader className="flex items-center justify-between gap-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap"><LeftPill text={pillLeft} /></div>
         {pillRight && <RightPill text={pillRight} />}
       </CardHeader>
       <CardIdentity className="flex items-start gap-2">
-        <div className="w-10 h-10 rounded-xl overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-orange-50 shrink-0 border border-gray-100">
           {c.profile_image_url ? <Image src={c.profile_image_url} alt={c.full_name} width={40} height={40} className="object-cover w-full h-full" /> : <div className="w-full h-full flex items-center justify-center text-sm font-bold text-[#F4781B]">{c.initials}</div>}
         </div>
         <div className="flex-1 min-w-0">
