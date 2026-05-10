@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { CalendarCheck, Zap } from 'lucide-react';
 import { useCandidateCards } from '@/hooks/useCandidateCards';
-import type { CandidateCardVM } from '@/Interface/view-models';
+import type { CandidateCardVM } from '@/types/view-models';
 import { CandidateCardShell } from '@/components/candidate/CandidateCardShell';
 
 interface Props {

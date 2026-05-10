@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import ScoreCard from "@/components/card/scorecard";
 import { useCandidatesList } from "@/hooks/useRecruiterData";
-import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
+import { updateApplicationStatus } from "@/features/jobs";
 import { buildKanbanPages, getVisibleCountRange, TabKey, toCandidate, Candidate } from "./shared";
 import { toast } from "react-toastify";
 

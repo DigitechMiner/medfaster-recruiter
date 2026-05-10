@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import ScoreCard from "@/components/card/scorecard";
-import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
+import { updateApplicationStatus } from "@/features/jobs";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
 import type { Candidate, ColKey } from "./config";
 import { toast } from "react-toastify";

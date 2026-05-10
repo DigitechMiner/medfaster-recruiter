@@ -9,7 +9,7 @@ import { JobSummaryPage }      from "./components/jobs-summary-page";
 import { useJobsStore }        from "@/stores/jobs-store";
 import { axiosInstance }       from "@/stores/api/api-client";
 import { ENDPOINTS }           from "@/stores/api/api-endpoints";
-import type { JobCreatePayload } from "@/Interface/recruiter.types";
+import type { JobCreatePayload } from "@/types";
 
 
 // ── Lifted AI question type ───────────────────────────────────────────────────

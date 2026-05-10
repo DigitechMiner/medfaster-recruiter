@@ -3,7 +3,7 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { JobStatusBadge } from './JobStatusBadge';
-import type { JobListItem } from '@/Interface/recruiter.types';
+import type { JobListItem } from '@/types';
 
 const formatDate = (d?: string | null) => {
   if (!d) return '—';

@@ -9,7 +9,7 @@ import {
   InstantJobFormData,
   JobCreatePayload,
   Province,
-} from "@/Interface/recruiter.types";
+} from "@/types";
 import { JobForm } from "../../components/JobForm";
 import { InstantJobFields } from "../../instant-replacement/components/instant-job-fields";
 import { SuccessModal } from "@/components/modal";

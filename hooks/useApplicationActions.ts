@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { getCandidateDocumentUrl } from "@/stores/api/recruiter-job-api";
+import { getCandidateDocumentUrl } from "@/features/jobs";
 
 // ── Candidate Document Signed URL ─────────────────────────────────────────────
 export function useCandidateDocumentUrl() {

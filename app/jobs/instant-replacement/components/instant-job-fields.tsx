@@ -6,7 +6,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useMetadataStore } from "@/stores/metadataStore";
-import type { InstantJobFormData, Province } from "@/Interface/recruiter.types";
+import type { InstantJobFormData, Province } from "@/types";
 
 const DEFAULT_NEIGHBOURHOOD_TYPES = [
   { value: "independent_living",      label: "Independent Living" },

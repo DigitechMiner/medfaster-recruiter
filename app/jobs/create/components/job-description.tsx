@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
-import { JobDescriptionInput } from "@/stores/api/job-description.api";
-import type { JobFormData } from "@/Interface/recruiter.types";
+import type { JobDescriptionInput } from "@/features/jobs";
+import type { JobFormData } from "@/types";
 import { AIDescriptionModal } from "./job-description/ai-modal";
 import { toast } from "react-toastify";
 

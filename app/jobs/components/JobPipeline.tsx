@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { StatusSection, StatusTable } from "./ui";
 import { STATUS_SECTIONS } from "../constants/jobs";
-import type { JobListItem } from "@/Interface/recruiter.types";
-import type { JobApplicationListResponse } from "@/stores/api/recruiter-job-api";
+import type { JobListItem } from "@/types";
+import type { JobApplicationListResponse } from "@/features/jobs";
 import {
   INTERVIEWING_DUMMY,
   HIRED_DUMMY,

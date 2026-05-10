@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useJobsStore } from '@/stores/jobs-store';
-import type { JobBackendResponse, JobsListResponse } from '@/Interface/recruiter.types';
+import type { JobBackendResponse, JobsListResponse } from '@/types';
 
-import type { JobListItem } from '@/Interface/recruiter.types';
-import { getJobApplications, JobApplicationListResponse } from '@/stores/api/recruiter-job-api';
+import type { JobListItem } from '@/types';
+import { getJobApplications, JobApplicationListResponse } from '@/features/jobs';
 
 
 // ── Full status union matching the actual API ─────────────────────────────────

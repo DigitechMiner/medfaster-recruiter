@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { Briefcase, MapPin, Star } from 'lucide-react';
 import ScoreCard from '@/components/card/scorecard';
-import type { CandidateCardVM } from '@/Interface/view-models';
+import { JobTitlesLine } from '@/app/candidates/components/TableView';
+import type { CandidateCardVM } from '@/types/view-models';
 
 interface CandidateCardShellProps {
   vm:          CandidateCardVM;
@@ -68,7 +69,9 @@ export function CandidateCardShell({
             <span className="text-sm font-bold text-gray-900 truncate">{vm.full_name}</span>
             <VerifiedBadge />
           </div>
-          <p className="text-xs text-[#F4781B] font-medium truncate mt-0.5">{vm.designation}</p>
+          <div className="mt-0.5 min-w-0">
+            <JobTitlesLine designation={vm.designation} jobTitleLabelCount={vm.job_title_labels.length} />
+          </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className="flex items-center gap-1 text-[11px] text-gray-500">
               <Briefcase size={10} className="text-gray-400" /> {vm.experience}

@@ -1,7 +1,7 @@
 // src/app/(recruiter)/jobs/constants/jobs.ts
 
 // ✅ REMOVE this broken import entirely:
-// import { TopJob } from '@/Interface/recruiter.types';
+// import { TopJob } from '@/types';
 
 // ✅ ADD this local type at the top:
 export interface TopJobMock {

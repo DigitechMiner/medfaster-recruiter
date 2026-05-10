@@ -1,4 +1,4 @@
-import type { InterviewStatus, InterviewType } from '@/app/jobs/services/interviewApi'
+import type { InterviewStatus, InterviewType } from "@/features/jobs/types";
 
 // Format interview duration
 export const formatDuration = (seconds: number | null): string => {

@@ -31,7 +31,7 @@ import { getBackendImageUrl } from "@/stores/api/api-client";
 import {
   viewRecruiterDocument,
   type RecruiterDocument,
-} from "@/stores/api/recruiter-api";
+} from "@/features/profile";
 
 import { convertProvinceToFrontend } from "@/utils/constant/metadata";
 
@@ -281,7 +281,7 @@ export default function ProfilePage() {
 
   if (isPageLoading) {
     return (
-      <FormPageLayout innerClassName="space-y-4 animate-pulse">
+      <FormPageLayout innerClassName="animate-pulse">
         <div className="h-8 w-40 bg-gray-200 rounded" />
         <div className="h-4 w-full max-w-md bg-gray-100 rounded" />
         <div className="flex flex-wrap gap-2">
@@ -305,7 +305,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <FormPageLayout innerClassName="space-y-4">
+    <FormPageLayout>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
         <p className="text-sm text-gray-500 mt-1">

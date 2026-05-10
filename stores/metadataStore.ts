@@ -8,7 +8,7 @@ import {
   Department,
   AppMetadata,
   MetadataValueOption,
-} from "@/stores/api/common.api";
+} from "@/features/common";
 import { metaData as initialMetaData } from "@/utils/constant/metadata";
 
 const dedupeMetadataOptions = (options: MetadataOption[] = []): MetadataOption[] => {

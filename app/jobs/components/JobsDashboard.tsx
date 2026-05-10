@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { JobsAllPage } from '@/app/jobs/all/components/JobsAllPage';
+import { MetricCard } from '@/components/ui/metric-card';
+import { cn } from '@/lib/utils';
 import { useJobsStore } from '@/stores/jobs-store';
 
 type JobFilter = {
@@ -53,6 +55,7 @@ export const JobsDashboard: React.FC = () => {
   const [counts, setCounts] = useState<StatCounts>({
     regular: 0, urgent: 0, noShow: 0, active: 0,
   });
+  const [statsLoading, setStatsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<JobFilter | null>(null);
 
   useEffect(() => {
@@ -72,6 +75,7 @@ export const JobsDashboard: React.FC = () => {
         noShow:  closed.status  === 'fulfilled' && closed.value.success  ? closed.value.data.pagination.total  : 0,
         active:  active.status  === 'fulfilled' && active.value.success  ? active.value.data.pagination.total  : 0,
       });
+      setStatsLoading(false);
     });
 
     return () => { cancelled = true; };
@@ -93,33 +97,33 @@ export const JobsDashboard: React.FC = () => {
   };
 
   const statCards = [
-    { key: 'regular' as const, label: 'Regular Job Openings',  value: counts.regular, change: '-0.10%', up: false, icon: <BriefcaseIcon />, valueColor: 'text-gray-900' },
-    { key: 'urgent'  as const, label: 'Urgent Shift Openings', value: counts.urgent,  change: '+1.10%', up: true,  icon: <PeopleIcon />,   valueColor: 'text-gray-900' },
-    { key: 'noShow'  as const, label: 'No-Show Alerts',        value: counts.noShow,  change: '+2.10%', up: false, icon: <TrashIcon />,    valueColor: 'text-red-500'  },
-    { key: 'active'  as const, label: 'Active Jobs & Shifts',  value: counts.active,  change: '+2.10%', up: true,  icon: <LayersIcon />,   valueColor: 'text-gray-900' },
+    { key: 'regular' as const, label: 'Regular Job Openings',  value: counts.regular, icon: <BriefcaseIcon /> },
+    { key: 'urgent'  as const, label: 'Urgent Shift Openings', value: counts.urgent,  icon: <PeopleIcon /> },
+    { key: 'noShow'  as const, label: 'No-Show Alerts',        value: counts.noShow,  icon: <TrashIcon /> },
+    { key: 'active'  as const, label: 'Active Jobs & Shifts',  value: counts.active,  icon: <LayersIcon /> },
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
 
       {/* Top Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Jobs</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold leading-8 text-gray-900">Jobs</h1>
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => router.push('/jobs/instant-replacement')}
-            className="px-4 py-2.5 rounded-lg border border-[#F4781B] text-[#F4781B] text-sm font-semibold bg-white hover:bg-orange-50 transition-colors inline-flex items-center gap-2"
+            className="inline-flex h-8 items-center justify-center gap-1.5 px-3 rounded-lg border border-[#F4781B] text-[#F4781B] text-sm font-semibold bg-white hover:bg-orange-50 transition-colors"
           >
-            <span className="text-xl leading-none font-bold">+</span>
+            <span className="text-sm leading-none font-bold">+</span>
             <span>Instant Job</span>
           </button>
           <button
             type="button"
             onClick={() => router.push('/jobs/create')}
-            className="px-4 py-2.5 rounded-lg bg-[#F4781B] text-white text-sm font-semibold hover:bg-[#df6c16] transition-colors inline-flex items-center gap-2"
+            className="inline-flex h-8 items-center justify-center gap-1.5 px-3 rounded-lg bg-[#F4781B] text-white text-sm font-semibold hover:bg-[#e06a10] transition-colors"
           >
-            <span className="text-xl leading-none font-bold">+</span>
+            <span className="text-sm leading-none font-bold">+</span>
             <span>Normal Job</span>
           </button>
         </div>
@@ -142,36 +146,40 @@ export const JobsDashboard: React.FC = () => {
       )}
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {statCards.map((card) => {
           const isActive = activeFilter?.label === card.label;
           return (
             <div
               key={card.label}
+              role="button"
+              tabIndex={0}
               onClick={() => handleCardClick(card.key)}
-              className={`bg-white rounded-2xl p-5 border-2 cursor-pointer transition-all ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleCardClick(card.key);
+                }
+              }}
+              className={cn(
+                'rounded-xl cursor-pointer transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#F4781B] focus-visible:ring-offset-2',
                 isActive
-                  ? 'border-[#F4781B] shadow-md'
-                  : 'border-transparent hover:border-orange-200'
-              }`}
-              style={{ boxShadow: isActive ? '0 4px 12px rgba(244,120,27,0.15)' : '0 1px 4px rgba(0,0,0,0.06)' }}
+                  ? 'ring-2 ring-[#F4781B] shadow-md'
+                  : 'hover:ring-2 hover:ring-orange-200',
+              )}
+              style={
+                isActive
+                  ? { boxShadow: '0 4px 12px rgba(244,120,27,0.15)' }
+                  : undefined
+              }
             >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-gray-500 font-medium">{card.label}</p>
-                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
-                  {card.icon}
-                </div>
-              </div>
-              <p className={`text-4xl font-bold mb-4 ${card.valueColor}`}>
-                {card.value}
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Since last week</span>
-                <span className={`text-xs font-semibold flex items-center gap-0.5 ${card.up ? 'text-green-500' : 'text-red-500'}`}>
-                  {card.change}
-                  <span className="text-sm">{card.up ? '↑' : '↓'}</span>
-                </span>
-              </div>
+              <MetricCard
+                icon={card.icon}
+                title={card.label}
+                value={card.value}
+                loading={statsLoading}
+                className="border-0 shadow-sm h-full"
+              />
             </div>
           );
         })}

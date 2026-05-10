@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutGrid, List, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { JobBackendResponse } from "@/Interface/recruiter.types";
+import type { JobBackendResponse } from "@/types";
 import { CandidatesGridView } from "./CandidatesGridView";
 import { CandidatesListView } from "./CandidatesListView";
 import { JobDescriptionModal, useJobDescriptionModal } from "./JobDescriptionModal";

@@ -7,7 +7,7 @@ import Image from "next/image";
 import { BaseCard, CardHeader, CardIdentity, CardStats } from "@/components/candidate/BaseCard";
 import { renderCandidateCards } from "@/components/candidate/renderers";
 import { useCandidatesList } from "@/hooks/useRecruiterData";
-import type { CandidateListItem } from "@/Interface/recruiter.types";
+import type { CandidateListItem } from "@/types";
 
 interface Props { jobId: string; }
 

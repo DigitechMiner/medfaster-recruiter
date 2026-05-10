@@ -40,7 +40,7 @@ export const COLUMNS: ColConfig[] = [
 
 // ── Transform CandidateListItem → Candidate (kanban shape) ───────────────────
 
-import type { CandidateListItem } from "@/Interface/recruiter.types";
+import type { CandidateListItem } from "@/types";
 
 function toTitleCase(value?: string | null) {
   return value

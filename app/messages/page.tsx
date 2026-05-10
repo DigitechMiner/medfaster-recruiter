@@ -15,11 +15,11 @@ import {
   sendChatMessage,
   editChatMessage,
   deleteChatMessage,
-} from "@/stores/api/chat-api";
+} from "@/features/chat";
 import { initRecruiterChatSocket } from "@/lib/chatSocket";
 import { useAuthStore } from "@/stores/authStore";
-import type { ChatMessage, Conversation } from "./types";
-import { normalizeMessage } from "./utils";
+import type { ChatMessage, Conversation } from "./components/types";
+import { normalizeMessage } from "./components/utils";
 import { ConversationList } from "./components/conversation-panel";
 import {
   EmptySelection,

@@ -15,7 +15,7 @@ import {
   sendVerifyCredentialOtp,
   updateRecruiterCredential,
   validateVerifyCredentialOtp,
-} from "@/stores/api/recruiter-api";
+} from "@/features/profile";
 import { useAuthStore } from "@/stores/authStore";
 import {
   buildVerifyCredentialPhonePayload,

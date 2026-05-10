@@ -5,7 +5,7 @@ import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, Briefcase, Users, CalendarCheck,
-  Wallet, HelpCircle, Settings,
+  Wallet, HelpCircle, Settings, Building2,
   Zap, Plus, Bell, User, LogOut, Menu, MessageCircleMore,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -41,6 +41,7 @@ export function Navbar() {
     { href: "/",           label: "Dashboard", icon: LayoutDashboard },
     { href: "/jobs",       label: "Jobs",       icon: Briefcase       },
     { href: "/candidates", label: "Candidates", icon: Users           },
+    { href: "/in-house",   label: "In house",   icon: Building2       },
     { href: "/calendar",   label: "Schedules",  icon: CalendarCheck   },
     { href: "/wallet",     label: "Wallet",     icon: Wallet          },
   ];

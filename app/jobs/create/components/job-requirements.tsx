@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import metadata from "@/utils/constant/metadata";
-import type { JobFormData } from "@/Interface/recruiter.types";
+import type { JobFormData } from "@/types";
 
 const EXPERIENCE_MIN  = 0;
 const EXPERIENCE_MAX  = 20;

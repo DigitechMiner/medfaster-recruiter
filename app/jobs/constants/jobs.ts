@@ -1,5 +1,5 @@
 // ✅ Remove these imports entirely — TopJob, Job, JobsData don't match recruiter.types shapes
-// BEFORE: import { TopJob, JobsData, Job } from '@/Interface/recruiter.types';
+// BEFORE: import { TopJob, JobsData, Job } from '@/types';
 
 // ✅ Define local-only mock shapes used only for UI display/dummy data
 export interface TopJobMock {

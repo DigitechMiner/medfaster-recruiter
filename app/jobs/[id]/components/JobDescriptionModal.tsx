@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { X, ArrowLeft, ArrowRight, Pencil, Sparkles, Loader2, Check } from "lucide-react";
-import { updateRecruiterJob } from "@/stores/api/recruiter-job-api";
+import { updateRecruiterJob } from "@/features/jobs";
 import { useGenerateDescription } from "@/hooks/useGenerateDescription";
-import type { JobDescriptionInput } from "@/stores/api/job-description.api";
-import type { JobBackendResponse, JobCreatePayload } from "@/Interface/recruiter.types";
+import type { JobDescriptionInput } from "@/features/jobs";
+import type { JobBackendResponse, JobCreatePayload } from "@/types";
 
 // ── Helpers ────────────────────────────────────────────────────
 function htmlToPlainText(html: string): string {

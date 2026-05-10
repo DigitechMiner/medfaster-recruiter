@@ -1,4 +1,4 @@
-import type { JobStatus } from "@/Interface/recruiter.types";
+import type { JobStatus } from "@/types";
 
 // ✅ JobStatus = DRAFT | OPEN | PAUSED | UPCOMING | ACTIVE | COMPLETED | CLOSED
 // Keep it for job-level badge mapping only

@@ -3,7 +3,7 @@
 import ScoreCard from "@/components/card/scorecard";
 import { TableTabs } from "@/components/table/TableTabs";
 import { useCandidateDocumentUrl } from "@/hooks/useApplicationActions";
-import type { CandidateDetailVM, ScoreRound } from "@/Interface/view-models";
+import type { CandidateDetailVM, ScoreRound } from "@/types/view-models";
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -181,7 +181,9 @@ function RoundCard({ title, round }: { title: string; round: ScoreRound }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        <ScoreCard score={round.score} maxScore={100} category={title} />
+        {round.score !== null ? (
+          <ScoreCard score={round.score} maxScore={100} category={title} />
+        ) : null}
       </div>
 
       {/* Metric bars */}

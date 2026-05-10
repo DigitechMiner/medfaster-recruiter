@@ -9,7 +9,7 @@
  * pre-flight validation.
  */
 
-import type { JobCreatePayload, JobFormData } from "@/Interface/recruiter.types";
+import type { JobCreatePayload, JobFormData } from "@/types";
 
 // ── Constants (must match backend) ───────────────────────────────────────────
 // NOTE: job_type / job_urgency / province / status are constrained by the UI

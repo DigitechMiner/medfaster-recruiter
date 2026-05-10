@@ -2,28 +2,34 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { apiRequest } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
-import { CalendarCard } from "@/components/card/calendar-card";
 import SuccessModal from "@/components/modal";
+import { Briefcase, Building2, Layers, MapPin } from "lucide-react";
+import { MetricCard } from "@/components/ui/metric-card";
 import {
   CandidateDetailTabs,
   type CandidateDetailTab,
 } from "./components/tab";
-import { CandidateBasicInfo, CandidateHero } from "./components/basic-info";
-import { CandidateActionModal } from "./components/candidate-action-modal";
+import { CandidateHero } from "./components/basic-info";
+import {
+  fromDetailProfile,
+  normalizeCandidateResponse,
+  toExperienceLabel,
+  toLabel,
+} from "./components/helpers";
+import { InviteCandidateToJobModal } from "../components/CandidateActionModal";
 import type {
-  ActionType,
   CandidateDetailsResponse,
-} from "@/Interface/recruiter.types";
-import type { CandidateDetailVM } from "@/Interface/view-models";
-import type { CandidateDetailApiResponse } from "./interfaces";
-import { fromDetailProfile, normalizeCandidateResponse } from "./helpers";
+} from "@/types";
+import type { CandidateDetailVM } from "@/types/view-models";
+import type { CandidateDetailApiResponse } from "./components/interfaces";
 
 export default function CandidateDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["candidate-detail", id],
     queryFn: () =>
@@ -35,7 +41,6 @@ export default function CandidateDetailPage() {
   });
   const rawResponse = normalizeCandidateResponse(data);
   const profile = rawResponse?.data.candidate ?? null;
-  const isMock = false;
   const fullName = useMemo(
     () =>
       profile
@@ -47,29 +52,23 @@ export default function CandidateDetailPage() {
     () => (profile ? fromDetailProfile(profile) : null),
     [profile]
   );
+  const basicInfoDetail = useMemo(() => {
+    if (!profile) return null;
+    const totalWorkExperience = toExperienceLabel(
+      profile.static_experience_months ?? profile.experience_in_months
+    );
+    const currentJob = profile.work_experiences?.find((exp) => exp.is_current);
+    const preferredLocation =
+      profile.city && profile.state ? `${profile.city}, ${profile.state}` : "N/A";
+    return { totalWorkExperience, currentJob, preferredLocation };
+  }, [profile]);
   const [activeTab, setActiveTab] = useState<CandidateDetailTab>("General score");
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [scheduledDate, setScheduledDate] = useState("");
-  const [actionModalType, setActionModalType] = useState<ActionType | null>(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
-  const handlePrimaryAction = (actionType: ActionType) => {
-    if (isMock) {
-      setActionModalType(actionType);
-      return;
-    }
-    switch (actionType) {
-      case "schedule":
-        setIsCalendarOpen(true);
-        break;
-      case "invite":
-      case "shortlist":
-      case "hire":
-        setActionModalType(actionType);
-        break;
-    }
-  };
+  /** Hero only exposes “Invite for a job”; pool/grid uses the same invite modal component. */
+  const handlePrimaryAction = () => setInviteModalOpen(true);
 
   return (
     <main className="p-4 md:p-6">
@@ -99,9 +98,36 @@ export default function CandidateDetailPage() {
               onPrimaryAction={handlePrimaryAction}
             />
           </div>
-          <div className="mb-4">
-            <CandidateBasicInfo candidate={profile} />
-          </div>
+          {basicInfoDetail && (
+            <div className="mb-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <MetricCard
+                  title="Total Work Experience"
+                  value={basicInfoDetail.totalWorkExperience || "—"}
+                  icon={<Briefcase className="h-4 w-4" aria-hidden />}
+                  className="min-w-0 border-gray-200 [&_p]:break-words"
+                />
+                <MetricCard
+                  title="Current role"
+                  value={toLabel(basicInfoDetail.currentJob?.title)}
+                  icon={<Layers className="h-4 w-4" aria-hidden />}
+                  className="min-w-0 border-gray-200 [&_p]:break-words"
+                />
+                <MetricCard
+                  title="Current Company"
+                  value={basicInfoDetail.currentJob?.company?.trim() || "N/A"}
+                  icon={<Building2 className="h-4 w-4" aria-hidden />}
+                  className="min-w-0 border-gray-200 [&_p]:break-words"
+                />
+                <MetricCard
+                  title="Preferred Location"
+                  value={basicInfoDetail.preferredLocation}
+                  icon={<MapPin className="h-4 w-4" aria-hidden />}
+                  className="min-w-0 border-gray-200 [&_p]:break-words"
+                />
+              </div>
+            </div>
+          )}
           {candidateVM && (
             <CandidateDetailTabs
               activeTab={activeTab}
@@ -112,37 +138,24 @@ export default function CandidateDetailPage() {
           )}
         </>
       )}
-      <CalendarCard
-        isOpen={isCalendarOpen}
-        onClose={() => setIsCalendarOpen(false)}
-        onSchedule={(date) => {
-          setScheduledDate(date);
-          setIsCalendarOpen(false);
-          setSuccessMessage(`Interview scheduled for ${date}`);
-          setIsSuccessOpen(true);
-        }}
-      />
       <SuccessModal
         visible={isSuccessOpen}
         onClose={() => {
           setIsSuccessOpen(false);
-          setScheduledDate("");
           setSuccessMessage("");
         }}
         title="Success"
-        message={
-          scheduledDate
-            ? `Interview scheduled for ${scheduledDate}`
-            : successMessage || "Action completed successfully!"
-        }
+        message={successMessage || "Action completed successfully!"}
         buttonText="Done"
       />
-      {actionModalType && candidateVM && profile && (
-        <CandidateActionModal
-          actionType={actionModalType}
+      {inviteModalOpen && candidateVM && profile && (
+        <InviteCandidateToJobModal
           candidate={candidateVM}
           applicationId={profile.applications?.[0]?.id}
-          onClose={() => setActionModalType(null)}
+          onClose={() => setInviteModalOpen(false)}
+          onActionSuccess={() => {
+            void queryClient.invalidateQueries({ queryKey: ["candidate-detail", id] });
+          }}
         />
       )}
     </main>

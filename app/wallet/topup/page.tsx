@@ -9,7 +9,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { initiateWalletTopup } from "@/stores/api/recruiter-wallet-api";
+import { initiateWalletTopup } from "@/features/wallet";
 import { useWallet } from "@/hooks/useWallet";
 import { Minus, Plus, Wallet, AlertCircle } from "lucide-react";
 

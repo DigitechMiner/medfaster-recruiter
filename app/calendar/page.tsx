@@ -4,8 +4,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { formatDayTitle, formatWeekRange } from "@/app/calendar/helpers";
 import type { CalendarView } from "@/app/calendar/helpers";
-import type { CalendarJob, CalendarSummary } from "@/Interface/recruiter.types";
-import { getJobsCalendar } from "@/stores/api/recruiter-candidates-api";
+import type { CalendarJob, CalendarSummary } from "@/types";
+import { getJobsCalendar } from "@/features/candidates";
 import { useAuthStore } from "@/stores/authStore";
 import {
   CalendarDayView,
@@ -13,6 +13,7 @@ import {
   CalendarWeekView,
   OverviewPanel,
 } from "@/app/calendar/calendar-views";
+import { AppLayout } from "@/components/global/app-layout";
 
 type CalendarPayload = {
   jobs: CalendarJob[];
@@ -107,11 +108,9 @@ export default function CalendarPage() {
   const calendarSubtitle = view === "month" ? "" : view === "week" ? formatWeekRange(currentDate) : formatDayTitle(currentDate);
 
   return (
-    <div className="w-full min-h-screen bg-[#F9F8F6] px-3 sm:px-6 py-4 sm:py-6">
-      <div className="max-w-[1400px] mx-auto">
-        <h1 className="text-[18px] sm:text-[20px] font-bold text-gray-900 mb-4 sm:mb-5">
-          Schedule Overview
-        </h1>
+    <AppLayout padding="none">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full max-w-[1400px]">
+        <h1 className="text-2xl font-bold text-gray-900">Schedule Overview</h1>
 
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 items-start">
           {/* Main calendar panel */}
@@ -169,6 +168,6 @@ export default function CalendarPage() {
           <OverviewPanel jobs={calendarJobs} summary={calendarSummary} view={view} currentDate={currentDate} />
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

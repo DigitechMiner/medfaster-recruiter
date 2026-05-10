@@ -2,7 +2,7 @@
 
 import { useEffect, useState }  from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getWalletTransactionById, WalletTransaction } from '@/stores/api/recruiter-wallet-api';
+import { getWalletTransactionById, WalletTransaction } from '@/features/wallet';
 import {
   ArrowLeft, Copy, CheckCheck,
   Wallet, ArrowDownCircle, ArrowUpCircle,

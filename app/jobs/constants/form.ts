@@ -1,4 +1,4 @@
-import type { JobFormData } from "@/Interface/recruiter.types";
+import type { JobFormData } from "@/types";
 
 // ============ DEFAULT FORM VALUES ============
 export const DEFAULT_JOB_FORM_DATA: JobFormData = {

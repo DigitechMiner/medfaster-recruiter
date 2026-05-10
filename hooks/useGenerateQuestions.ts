@@ -1,5 +1,8 @@
 // hooks/useGenerateQuestions.ts
-import { generateInterviewQuestions, GenerateQuestionsPayload } from "@/stores/api/interview-questions-api";
+import {
+  generateInterviewQuestions,
+  type GenerateQuestionsPayload,
+} from "@/features/jobs";
 import { useState } from "react";
 
 

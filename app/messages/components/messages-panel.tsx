@@ -3,14 +3,14 @@
 import { useState, memo, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 import { MoreVertical, ArrowLeft, Send } from "lucide-react";
-import type { ChatMessage, Conversation } from "../types";
+import type { ChatMessage, Conversation } from "./types";
 import {
   formatDateLabel,
   formatTime,
   getAvatarColor,
   getCandidateName,
   getInitials,
-} from "../utils";
+} from "./utils";
 
 export const ChatBubbleGlyph = memo(function ChatBubbleGlyph({
   size,

@@ -4,14 +4,14 @@ import Link from "next/link";
 import { memo } from "react";
 import { MessagesSquare, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Conversation } from "../types";
+import type { Conversation } from "./types";
 import {
   formatDateLabel,
   formatTime,
   getAvatarColor,
   getCandidateName,
   getInitials,
-} from "../utils";
+} from "./utils";
 
 const EmptyConversations = memo(function EmptyConversations() {
   return (

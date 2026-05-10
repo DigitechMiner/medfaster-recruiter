@@ -10,7 +10,7 @@ import { LocationFields }        from "../create/components/location-fields";
 
 import { Topic }                 from "../constants/form";
 import { PAGE_TITLES, BUTTON_LABELS } from "../constants/messages";
-import type { JobFormData }      from "@/Interface/recruiter.types";
+import type { JobFormData }      from "@/types";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface JobFormProps {

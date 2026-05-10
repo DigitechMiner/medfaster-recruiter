@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   getWalletTransactions,
   WalletTransaction,
-} from "@/stores/api/recruiter-wallet-api";
+} from "@/features/wallet";
 import {
   Eye,
   Wallet,
@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { useWalletStore } from "@/stores/walletStore";
 import {
+  PER_PAGE_OPTIONS,
+  Pill,
+  SkeletonRow,
+  StatusBadge,
+  TABS,
+  TRANSACTION_HEADERS,
   formatCents,
   getFormattedAmount,
   getHoldContextFromIdempotencyKey,
@@ -25,66 +31,8 @@ import {
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { TableTabs } from "@/components/table/TableTabs";
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "all", label: "All Transactions" },
-  { key: "credit", label: "Credit Transactions" },
-  { key: "hold", label: "Hold Transactions" },
-  { key: "release", label: "Release Transactions" },
-  { key: "bonus", label: "Bonus Transactions" },
-  { key: "refund", label: "Refund Transactions" },
-];
-
-const PER_PAGE_OPTIONS = [10, 20, 50];
-const TRANSACTION_HEADERS = [
-  "ID",
-  "Type",
-  "Amount",
-  "Status",
-  "Created At",
-  "Action",
-];
-
-
-// ── Badge ─────────────────────────────────────────────────────────────────────
-const BADGE: Record<string, string> = {
-  green: "bg-green-100  text-green-600",
-  blue: "bg-blue-100   text-blue-600",
-  orange: "bg-orange-100 text-orange-600",
-  gray: "bg-gray-100   text-gray-500",
-  red: "bg-red-100    text-red-600",
-};
-
-function Pill({ label, color }: { label: string; color: string }) {
-  return (
-    <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${BADGE[color] ?? BADGE.gray}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status?: string }) {
-  const s = status?.toUpperCase();
-  if (s === "COMPLETED" || s === "SUCCESS")
-    return <Pill label="Success" color="green" />;
-  if (s === "PENDING") return <Pill label="Pending" color="orange" />;
-  if (s === "FAILED") return <Pill label="Failed" color="red" />;
-  return <Pill label={status ?? "—"} color="gray" />;
-}
-
-function SkeletonRow({ cols }: { cols: number }) {
-  return (
-    <tr className="border-b border-gray-50">
-      {Array.from({ length: cols }).map((_, j) => (
-        <td key={j} className="px-4 py-4">
-          <div className="h-4 bg-gray-100 rounded animate-pulse w-20" />
-        </td>
-      ))}
-    </tr>
-  );
-}
+import { MetricCard } from "@/components/ui/metric-card";
+import { AppLayout } from "@/components/global/app-layout";
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function WalletPage() {
@@ -103,7 +51,6 @@ export default function WalletPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [activeCard, setActiveCard] = useState<string>("total");
 
   useEffect(() => {
     refreshWallet();
@@ -146,101 +93,67 @@ export default function WalletPage() {
     };
   }, [wallet]);
 
-  const walletCards = useMemo(
-    () =>
-      [
-        {
-          key: "total",
-          title: "Wallet Total",
-          amount: formatCents(total),
-          icon: <Wallet className="w-5 h-5" />,
-        },
-        {
-          key: "available",
-          title: "Available",
-          amount: formatCents(available),
-          icon: <DollarSign className="w-5 h-5" />,
-        },
-        {
-          key: "locked",
-          title: "Locked",
-          amount: formatCents(locked),
-          icon: <Lock className="w-5 h-5" />,
-        },
-        {
-          key: "pending",
-          title: "Spent",
-          amount: formatCents(pending),
-          icon: <TrendingUp className="w-5 h-5" />,
-        },
-      ] as const,
-    [available, locked, pending, total],
-  );
-
   if (isLoading)
     return (
-      <div className="min-h-screen bg-[#f8f7f5] flex items-center justify-center">
-        <p className="text-gray-400 text-sm animate-pulse">Loading wallet...</p>
-      </div>
+      <AppLayout padding="none">
+        <div className="flex flex-col p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full min-h-[50vh] items-center justify-center">
+          <p className="text-gray-400 text-sm animate-pulse">Loading wallet...</p>
+        </div>
+      </AppLayout>
     );
 
   if (error)
     return (
-      <div className="min-h-screen bg-[#f8f7f5] flex items-center justify-center">
-        <div className="bg-white rounded-xl p-6 shadow text-center max-w-sm">
-          <p className="font-semibold text-gray-800">Failed to load wallet</p>
-          <p className="text-sm text-gray-500 mt-1">{error}</p>
+      <AppLayout padding="none">
+        <div className="flex flex-col p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full min-h-[50vh] items-center justify-center">
+          <div className="bg-white rounded-xl p-6 shadow text-center max-w-sm">
+            <p className="font-semibold text-gray-800">Failed to load wallet</p>
+            <p className="text-sm text-gray-500 mt-1">{error}</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
 
   return (
-    <div className="min-h-screen bg-[#f8f7f5]">
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-5">
+    <AppLayout padding="none">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full max-w-7xl">
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Wallet Overview</h1>
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold leading-8 text-gray-900">Wallet Overview</h1>
+          <div className="flex flex-wrap items-center gap-3">
             <button
+              type="button"
               onClick={() => router.push("/wallet/topup")}
-              className="flex items-center gap-2 px-4 py-2 bg-[#F4781B] text-white text-sm font-semibold rounded-lg hover:bg-[#e06a10] transition-colors"
+              className="inline-flex h-8 items-center justify-center gap-1.5 px-3 rounded-lg bg-[#F4781B] text-white text-sm font-semibold hover:bg-[#e06a10] transition-colors"
             >
-              <Plus className="w-4 h-4" /> Recharge Wallet
+              <Plus className="size-4" aria-hidden />
+              Recharge Wallet
             </button>
           </div>
         </div>
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {walletCards.map((card) => {
-            const isActive = activeCard === card.key;
-            return (
-              <button
-                key={card.key}
-                type="button"
-                onClick={() => setActiveCard(card.key)}
-                className={`text-left rounded-xl p-5 flex flex-col gap-3 border-2 transition-all ${
-                  isActive
-                    ? "bg-orange-50 border-[#F4781B]"
-                    : "bg-white border-orange-100 hover:border-[#F4781B]/40"
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <span className="text-sm font-medium text-gray-700">
-                    {card.title}
-                  </span>
-                  <span
-                    className={`p-2 rounded-lg ${isActive ? "bg-orange-200 text-[#F4781B]" : "bg-orange-50 text-[#F4781B]"}`}
-                  >
-                    {card.icon}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {card.amount}
-                </p>
-              </button>
-            );
-          })}
+          <MetricCard
+            icon={<Wallet className="w-5 h-5" />}
+            title="Wallet Total"
+            value={formatCents(total)}
+          />
+          <MetricCard
+            icon={<DollarSign className="w-5 h-5" />}
+            title="Available"
+            value={formatCents(available)}
+          />
+          <MetricCard
+            icon={<Lock className="w-5 h-5" />}
+            title="Locked"
+            value={formatCents(locked)}
+          />
+          <MetricCard
+            icon={<TrendingUp className="w-5 h-5" />}
+            title="Spent"
+            value={formatCents(pending)}
+          />
         </div>
 
         {/* ── Transactions Table Card ── */}
@@ -357,6 +270,6 @@ export default function WalletPage() {
           />
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

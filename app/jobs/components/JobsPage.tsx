@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { JobListingCard } from "../../../components/card/JobCard";
 import { StatusSection, StatusTable } from "./ui";
-import { JobListItem } from "@/Interface/recruiter.types";
+import { JobListItem } from "@/types";
 import type { JobMock }  from "../constants/jobs";
 import type { CandidatesData } from "../constants/jobs"; 
 import { STATUS_SECTIONS } from "../constants/jobs";

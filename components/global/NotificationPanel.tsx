@@ -2,8 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, User, Loader2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { NotificationsResponse } from '@/Interface/recruiter.types';
-import { getNotifications } from '@/stores/api/recruiter-candidates-api';
+import type { NotificationsResponse } from '@/types';
+import { getNotifications } from '@/features/dashboard';
 
 type Notification = NotificationsResponse['data']['notifications'][number];
 

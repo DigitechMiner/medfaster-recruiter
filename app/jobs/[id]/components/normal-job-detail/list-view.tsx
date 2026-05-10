@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
-import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
+import { updateApplicationStatus } from "@/features/jobs";
 import { buildTablePages, Candidate, getVisibleCountRange, TabKey } from "./shared";
 import { toast } from "react-toastify";
 

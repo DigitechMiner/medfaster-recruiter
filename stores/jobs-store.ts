@@ -6,15 +6,15 @@ import {
   getRecruiterJobs,
   getRecruiterJob,
   createRecruiterJob,
-} from '@/stores/api/recruiter-job-api';
-import type { GetJobsParams } from '@/stores/api/recruiter-job-api';
+} from '@/features/jobs';
+import type { GetJobsParams } from '@/features/jobs';
 import type {
   JobsListResponse,
   JobDetailResponse,
   JobCreateResponse,
   JobCreatePayload,
   JobFormData,
-} from '@/Interface/recruiter.types';
+} from '@/types';
 
 type ApiError = {
   response?: {

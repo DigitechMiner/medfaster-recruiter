@@ -1,6 +1,6 @@
 'use client';
 import { UserX, Clock, UserMinus, XCircle } from 'lucide-react';
-import type { DashboardOverview } from '@/hooks/useDashboard';
+import type { DashboardOverview } from "@/features/dashboard";
 import { useRouter } from 'next/navigation';
 
 interface Props {

@@ -1,6 +1,6 @@
 import React from "react";
-import type { JobBackendResponse } from "@/Interface/recruiter.types";
-import type { CandidateListItem } from '@/Interface/recruiter.types';
+import type { JobBackendResponse } from "@/types";
+import type { CandidateListItem } from '@/types';
 import { convertProvinceToFrontend, provinces } from "@/utils/constant/metadata";
 
 export interface Props {

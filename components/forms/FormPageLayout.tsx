@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { AppLayout } from "@/components/global/app-layout";
+import { cn } from "@/lib/utils";
 
 interface FormPageLayoutProps {
   children: ReactNode;
@@ -10,10 +12,15 @@ export default function FormPageLayout({
   innerClassName = "",
 }: FormPageLayoutProps) {
   return (
-    <div className="min-h-screen bg-[#f8f7f5]">
-      <div className="p-6 font-sans">
-        <div className={`mx-auto ${innerClassName}`}>{children}</div>
+    <AppLayout padding="none">
+      <div
+        className={cn(
+          "flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full font-sans",
+          innerClassName,
+        )}
+      >
+        {children}
       </div>
-    </div>
+    </AppLayout>
   );
 }

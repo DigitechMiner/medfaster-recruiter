@@ -1,10 +1,10 @@
 // hooks/useGenerateDescription.ts
 import { useState } from "react";
 import {
-  generateJobDescription,
+  generateJobDescriptionFromUi,
   type JobDescriptionInput,
   type GeneratedDescriptionData,
-} from "@/stores/api/job-description.api";
+} from "@/features/jobs";
 
 export function useGenerateDescription() {
   const [result,  setResult]  = useState<GeneratedDescriptionData | null>(null);
@@ -15,7 +15,7 @@ export function useGenerateDescription() {
     setLoading(true);
     setError(null);
     try {
-      const data = await generateJobDescription(input);
+      const data = await generateJobDescriptionFromUi(input);
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate description");

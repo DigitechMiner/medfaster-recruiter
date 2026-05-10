@@ -1,4 +1,4 @@
-// ✅ Remove: import { JobsData } from '@/Interface/recruiter.types';
+// ✅ Remove: import { JobsData } from '@/types';
 // Import the local type instead
 
 import { JobsDataMock } from "../constants/jobs";

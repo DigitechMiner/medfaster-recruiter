@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { JobFormData, Province } from "@/Interface/recruiter.types";
+import type { JobFormData, Province } from "@/types";
 import { useMetadataStore } from "@/stores/metadataStore";
 
 interface LocationFieldsProps {

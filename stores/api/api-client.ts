@@ -1,3 +1,7 @@
+/**
+ * Central HTTP client: all recruiter-portal API calls go through this axios instance
+ * (`apiRequest` and direct `axiosInstance` usage share the same interceptors).
+ */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 
 const HOST = process.env.NEXT_PUBLIC_API_URL

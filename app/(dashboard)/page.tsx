@@ -53,7 +53,7 @@ const DashboardPage: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg xl:text-xl font-semibold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900">
               Hello, {firstName} 👋
             </h1>
             <p className="text-sm text-gray-500">

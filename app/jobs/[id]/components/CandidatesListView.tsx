@@ -3,9 +3,9 @@
 import React from "react";
 import { Star } from "lucide-react";
 import { useCandidatesList } from "@/hooks/useRecruiterData";
-import { updateApplicationStatus } from "@/stores/api/recruiter-job-api";
+import { updateApplicationStatus } from "@/features/jobs";
 import { useState } from "react";
-import type { CandidateListItem } from "@/Interface/recruiter.types";
+import type { CandidateListItem } from "@/types";
 import { toast } from "react-toastify";
 
 interface Props { jobId: string; }

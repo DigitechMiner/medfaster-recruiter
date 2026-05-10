@@ -38,8 +38,8 @@ export default function SupportPage() {
 
   if (submitted) {
     return (
-      <AppLayout>
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+      <AppLayout padding="none">
+        <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full min-h-[50vh] items-center justify-center py-24 text-center">
           <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center">
             <ChevronRight size={28} className="text-[#F4781B]" />
           </div>
@@ -60,8 +60,8 @@ export default function SupportPage() {
 
   return (
     <AppLayout padding="none">
-      <div className="p-4 md:p-6 xl:p-8 w-full">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Help &amp; Support</h1>
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
+        <h1 className="text-2xl font-bold text-gray-900">Help &amp; Support</h1>
 
         <form onSubmit={handleSubmit} noValidate className="w-full">
           <div className="bg-white rounded-2xl border border-gray-200 px-8 pt-6 pb-8 flex flex-col gap-6 w-full">

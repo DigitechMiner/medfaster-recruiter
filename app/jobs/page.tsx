@@ -39,7 +39,7 @@ export default function JobsPageWrapper() {
 
   return (
     <AppLayout padding="none">
-      <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full max-w-7xl">
         <JobsDashboard />
       </div>
     </AppLayout>

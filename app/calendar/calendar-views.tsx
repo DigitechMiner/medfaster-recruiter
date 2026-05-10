@@ -9,7 +9,7 @@ import {
   LogOut,
   TriangleAlert,
 } from "lucide-react";
-import type { CalendarJob, CalendarSummary } from "@/Interface/recruiter.types";
+import type { CalendarJob, CalendarSummary } from "@/types";
 import {
   buildMonthCells,
   buildStatusCountMap,

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getWallet, WalletData } from '@/stores/api/recruiter-wallet-api';
+import { getWallet, WalletData } from '@/features/wallet';
 
 let refreshWalletPromise: Promise<void> | null = null;
 

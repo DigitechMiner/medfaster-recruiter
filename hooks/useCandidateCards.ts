@@ -2,15 +2,19 @@ import { useQuery }              from "@tanstack/react-query";
 import { apiRequest }            from "@/stores/api/api-client";
 import { ENDPOINTS }             from "@/stores/api/api-endpoints";
 import { fromJobApplication }    from "@/lib/transforms/candidate-card.transform";
-import type { CandidateCardVM }  from "@/Interface/view-models";
-import type { JobApplicationsResponse, JobApplicationsParams } from "@/Interface/recruiter.types";
+import type { CandidateCardVM }  from "@/types/view-models";
+import type { JobApplicationsResponse, JobApplicationsParams } from "@/types";
 
-export function useCandidateCards(params: JobApplicationsParams) {
+type UseCandidateCardsParams = JobApplicationsParams & { enabled?: boolean };
+
+export function useCandidateCards(params: UseCandidateCardsParams) {
+  const { enabled = true, ...queryParams } = params;
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["candidate-cards", params],
+    queryKey: ["candidate-cards", queryParams],
     queryFn:  () => apiRequest<JobApplicationsResponse>(ENDPOINTS.JOB_APPLICATIONS, {
-      method: "GET", params,
+      method: "GET", params: queryParams,
     }),
+    enabled,
   });
 
   return {

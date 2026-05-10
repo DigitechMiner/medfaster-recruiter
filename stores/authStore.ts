@@ -3,14 +3,17 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { axiosInstance } from '@/stores/api/api-client';
-import { ENDPOINTS } from '@/stores/api/api-endpoints';
 import { formatPhoneToE164 } from '@/utils/auth';
+
 import {
   updateRecruiterProfile as apiUpdateProfile,
   registerRecruiterStep,
-  type RecruiterProfile,
-  type RecruiterDocument,
-} from '@/stores/api/recruiter-api';
+  sendRecruiterOtp,
+  validateRecruiterOtp,
+  logoutRecruiter,
+  getRecruiterProfileWithDocuments,
+} from '@/features/profile/api';
+import type { RecruiterDocument, RecruiterProfile } from '@/features/profile/types';
 
 // ============================================================================
 // TYPES
@@ -136,19 +139,16 @@ export const useAuthStore = create<AuthStore>()(
             payload.country_code = normalizeCountryCode(countryCode);
           }
 
-          const res = await axiosInstance.post<{ success: boolean; message: string }>(
-            ENDPOINTS.RECRUITER_SEND_OTP,
-            payload
-          );
+          const data = await sendRecruiterOtp(payload);
 
-          if (!res.data?.success) {
-            const msg = res.data?.message || 'Failed to send OTP';
+          if (!data?.success) {
+            const msg = data?.message || 'Failed to send OTP';
             set({ otpError: msg });
             return { ok: false, message: msg };
           }
 
           set({ otpCredential: { target: params.target, targetType, countryCode } });
-          return { ok: true, message: res.data.message || 'OTP sent successfully' };
+          return { ok: true, message: data.message || 'OTP sent successfully' };
         } catch (error: unknown) {
           const msg = getErrorMessage(error, 'Failed to send OTP');
           set({ otpError: msg });
@@ -181,14 +181,10 @@ export const useAuthStore = create<AuthStore>()(
             payload.country_code = normalizeCountryCode(countryCode);
           }
 
-          const res = await axiosInstance.post<{
-            success: boolean;
-            message: string;
-            data?: { token: string; user?: unknown };
-          }>(ENDPOINTS.RECRUITER_VALIDATE_OTP, payload);
+          const data = await validateRecruiterOtp(payload);
 
-          if (!res.data?.success || !res.data?.data?.token) {
-            return { ok: false, message: res.data?.message || 'Invalid OTP' };
+          if (!data?.success || !data?.data?.token) {
+            return { ok: false, message: data?.message || 'Invalid OTP' };
           }
 
           // ✅ Token received — set it on axiosInstance immediately so the
@@ -196,7 +192,7 @@ export const useAuthStore = create<AuthStore>()(
           //    (Only needed if your backend uses Bearer tokens instead of cookies.
           //    If using HttpOnly cookies, the cookie is already set by the response
           //    and withCredentials:true handles it — but this covers both cases.)
-          const token = res.data.data.token;
+          const token = data.data.token;
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
           // ✅ loadProfile guard — only load if explicitly requested
@@ -204,7 +200,7 @@ export const useAuthStore = create<AuthStore>()(
             await get().loadRecruiterProfile();
           }
 
-          return { ok: true, message: res.data.message || 'Login successful' };
+          return { ok: true, message: data.message || 'Login successful' };
         } catch (error: unknown) {
           return { ok: false, message: getErrorMessage(error, 'Invalid OTP') };
         } finally {
@@ -215,20 +211,16 @@ export const useAuthStore = create<AuthStore>()(
       // ── Load Profile ──────────────────────────────────────────────────────
       loadRecruiterProfile: async () => {
         try {
-          const res = await axiosInstance.get<{
-            success: boolean;
-            message: string;
-            data: { profile: RecruiterProfile; documents: RecruiterDocument[] };
-          }>(ENDPOINTS.RECRUITER_PROFILE);
+          const data = await getRecruiterProfileWithDocuments();
 
-          if (!res.data?.success || !res.data?.data) {
+          if (!data?.success || !data?.data) {
             set({ recruiterProfile: null, recruiterDocuments: null });
             return;
           }
 
           set({
-            recruiterProfile: res.data.data.profile,
-            recruiterDocuments: res.data.data.documents,
+            recruiterProfile: data.data.profile,
+            recruiterDocuments: data.data.documents,
           });
         } catch (error: unknown) {
           set({ recruiterProfile: null, recruiterDocuments: null });
@@ -279,7 +271,7 @@ export const useAuthStore = create<AuthStore>()(
       // ── Logout ────────────────────────────────────────────────────────────
       logout: async () => {
         try {
-          await axiosInstance.post(ENDPOINTS.RECRUITER_LOGOUT);
+          await logoutRecruiter();
         } catch {
         } finally {
           // ✅ Clear the Authorization header on logout

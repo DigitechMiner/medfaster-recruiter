@@ -6,7 +6,7 @@ import { AlertCircle, CheckCircle2, Eye, FileText, Plus } from "lucide-react";
 import { complianceFields } from "@/components/forms";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { RecruiterDocument } from "@/stores/api/recruiter-api";
+import type { RecruiterDocument } from "@/features/profile";
 
 type ProfileDocumentsTabProps = {
   documents: RecruiterDocument[];

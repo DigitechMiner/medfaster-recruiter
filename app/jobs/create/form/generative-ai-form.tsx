@@ -11,7 +11,7 @@ import {
   BUTTON_LABELS,
   SUCCESS_MESSAGES,
 } from "../../constants/messages";
-import type { JobCreatePayload } from "@/Interface/recruiter.types";
+import type { JobCreatePayload } from "@/types";
 import { useGenerateQuestions } from "@/hooks/useGenerateQuestions";
 import { toast } from "react-toastify";
 import type { AIQuestion } from "../page";

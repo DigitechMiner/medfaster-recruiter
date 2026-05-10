@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { OrgDetailsType } from "@/components/forms";
-import type { RecruiterProfile } from "@/stores/api/recruiter-api";
+import type { RecruiterProfile } from "@/features/profile";
 
 import { convertProvinceToFrontend } from "@/utils/constant/metadata";
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { Navbar } from '@/components/global/navbar';
 import React, { useState } from 'react';
+import { AppLayout } from '@/components/global/app-layout';
 
 type ToggleEvent = { id: string; title: string; description: string; };
 type NotificationCategory = { id: string; title: string; count: string; events: ToggleEvent[]; };
@@ -108,16 +108,14 @@ export default function SettingsPage() {
   };
 
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-[#f8f7f5] p-6 text-gray-800 font-sans">
-        <div className=" mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <AppLayout padding="none">
+      <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full text-gray-800 font-sans">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings & Configurations</h1>
+          <p className="text-sm text-gray-500 mt-1">Configure portal rules and operational parameters</p>
+        </div>
 
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Settings & Configurations</h1>
-            <p className="text-sm text-gray-500 mt-1">Configure portal rules and operational parameters</p>
-          </div>
-
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="space-y-4">
 
             {/* GENERAL SETTINGS */}
@@ -255,6 +253,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </>
+    </AppLayout>
   );
 }

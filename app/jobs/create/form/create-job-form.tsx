@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import type { JobCreatePayload, JobFormData } from "@/Interface/recruiter.types";
+import type { JobCreatePayload, JobFormData } from "@/types";
 import type { JobFormSnapshot } from "@/stores/jobs-store";
 import { useJobsStore } from "@/stores/jobs-store";
 import { DEFAULT_JOB_FORM_DATA } from "../../constants/form";

@@ -6,9 +6,9 @@ import { ArrowLeft, ArrowRight, MapPin, Phone, Clock, Users, FileText } from "lu
 import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
 import { toast } from "react-toastify";
-import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/Interface/recruiter.types";
+import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/types";
 import { useWalletStore } from "@/stores/walletStore";
-import { getJobFeePreview } from "@/stores/api/recruiter-job-api";
+import { getJobFeePreview } from "@/features/jobs";
 import { JobDescriptionModal, useJobDescriptionModal } from "@/app/jobs/[id]/components/JobDescriptionModal";
 import { EditInterviewQuestionsModal } from "@/app/jobs/[id]/components/EditInterviewQuestionsModal";
 

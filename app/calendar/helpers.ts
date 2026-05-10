@@ -1,4 +1,4 @@
-import type { CalendarJob } from "@/Interface/recruiter.types";
+import type { CalendarJob } from "@/types";
 
 export type CalendarView = "day" | "week" | "month";
 export type BadgeType = "active" | "noshow" | "upcoming" | "completed";
