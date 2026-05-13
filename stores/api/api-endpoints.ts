@@ -125,6 +125,7 @@ export const ENDPOINTS = {
   // ── Wallet — features/wallet/api.ts ──────────────────────────────────────
   WALLET: "/recruiter/wallet",
   WALLET_PAY: "/recruiter/wallet/pay",
+  WALLET_TOPUPS: "/recruiter/wallet/topups",
   WALLET_TRANSACTIONS: "/recruiter/wallet/transactions",
   WALLET_TRANSACTION_DETAIL: (id: string) => `/recruiter/wallet/transactions/${id}`,
   // Escrow disputes (wallet-adjacent)

@@ -5,6 +5,7 @@ import { extractData } from "@/stores/api/response-helpers";
 import type {
   PaginatedItems,
   WalletData,
+  WalletTopup,
   WalletTopupInitResponse,
   WalletTransaction,
 } from "./types";
@@ -21,15 +22,38 @@ export async function getWallet(): Promise<WalletData> {
 export async function initiateWalletTopup(
   amount: number,
   idempotencyKey?: string,
+  redirectUrls?: {
+    successUrl: string;
+    cancelUrl: string;
+  },
 ): Promise<WalletTopupInitResponse> {
   const res = await axiosInstance.post(
     ENDPOINTS.WALLET_PAY,
-    { amount },
+    {
+      amount,
+      ...(redirectUrls
+        ? {
+            success_url: redirectUrls.successUrl,
+            cancel_url: redirectUrls.cancelUrl,
+          }
+        : {}),
+    },
     idempotencyKey
       ? { headers: { "Idempotency-Key": idempotencyKey } }
       : undefined,
   );
   return extractData<WalletTopupInitResponse>(res.data);
+}
+
+export async function getWalletTopups(params?: {
+  page?: number;
+  limit?: number;
+  offset?: number;
+}): Promise<PaginatedItems<WalletTopup>> {
+  const res = await axiosInstance.get(ENDPOINTS.WALLET_TOPUPS, {
+    params,
+  });
+  return extractData<PaginatedItems<WalletTopup>>(res.data);
 }
 
 // NOTE: Swagger only supports page/limit/offset — no server-side type filter

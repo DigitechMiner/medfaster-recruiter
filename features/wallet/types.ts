@@ -18,12 +18,37 @@ export interface RecruiterWallet {
 export type WalletData = RecruiterWallet;
 
 export interface WalletTopupInitResponse {
-  client_secret: string;
-  topup_id: string;
-  idempotency_key: string;
-  amount: number;
-  currency: "CAD";
-  stripe_payment_intent_id: string;
+  checkout_url?: string;
+  checkoutUrl?: string;
+  client_secret?: string;
+  topup_id?: string;
+  idempotency_key?: string;
+  amount?: number;
+  currency?: "CAD";
+  stripe_payment_intent_id?: string;
+}
+
+export interface WalletTopup {
+  id: string;
+  wallet_id?: string;
+  amount?: number | string;
+  amount_cents?: number | string;
+  currency?: string;
+  status?: "COMPLETED" | "PENDING" | "FAILED" | "SUCCESS" | string;
+  stripe_payment_intent_id?: string | null;
+  stripe_checkout_session_id?: string | null;
+  idempotency_key?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  metadata?: {
+    stripe?: {
+      fee?: number | string | null;
+      net?: number | string | null;
+      tax_amount?: number | string | null;
+      payment_method_types?: string[];
+    };
+    [key: string]: unknown;
+  };
 }
 
 // Confirmed from live API — optional fields may be absent depending on tx type

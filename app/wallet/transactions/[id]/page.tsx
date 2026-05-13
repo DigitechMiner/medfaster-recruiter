@@ -294,11 +294,6 @@ export default function TransactionDetailPage() {
               </div>
             )}
 
-            <div className="pb-6 text-center">
-              <button onClick={() => router.push('/wallet')} className="text-[13px] text-gray-400 hover:text-gray-600 transition-colors">
-                ← Back to Wallet
-              </button>
-            </div>
           </>
         )}
       </div>
