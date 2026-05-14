@@ -16,7 +16,7 @@ import {
   editChatMessage,
   deleteChatMessage,
 } from "@/features/chat";
-import { initRecruiterChatSocket } from "@/lib/chatSocket";
+import { initRecruiterChatSocket } from "@/stores/api/chatSocket";
 import { useAuthStore } from "@/stores/authStore";
 import type { ChatMessage, Conversation } from "./components/types";
 import { normalizeMessage } from "./components/utils";

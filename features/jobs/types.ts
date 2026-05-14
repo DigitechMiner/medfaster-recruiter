@@ -167,7 +167,7 @@ export interface JobsSummaryResponse {
   data: JobsSummaryData;
 }
 
-export interface CalendarShift {
+export interface CalendarJob {
   assignment_id: string;
   job_id: string;
   shift_id: string;
@@ -183,8 +183,6 @@ export interface CalendarShift {
   job_title: string;
   job_type: string;
 }
-
-export type CalendarJob = CalendarShift;
 
 export type CalendarSummary = {
   active_shift: number;
@@ -303,7 +301,7 @@ export interface GenerateDescriptionResponse {
   };
 }
 
-/** Hook / form input — `jobTitle` is slugified before calling the AI description endpoint. */
+/** Hook / form input — `jobTitle` should be the metadata store option value. */
 export interface JobDescriptionInput {
   jobTitle: string;
   department: string;
@@ -342,35 +340,35 @@ export type Province =
   | "yukon";
 
 export interface JobFormData {
-  jobTitle: string;
+  job_title: string;
   department: string;
-  jobType: string;
-  urgency: JobUrgency;
+  job_type: string;
+  job_urgency: JobUrgency;
   description: string;
   responsibilities: string[];
   required_skills: string[];
-  streetAddress?: string;
-  postalCode?: string;
+  street?: string;
+  postal_code?: string;
   province?: Province;
   city?: string;
   country?: string;
-  qualification?: string[];
-  specialization: string[];
-  experience: string;
-  experienceList?: string[];
-  aiInterview?: boolean;
+  qualifications?: string[];
+  specializations: string[];
+  years_of_experience?: string;
+  experience?: string[];
+  ai_interview?: boolean;
   questions?: string[];
-  numberOfHires?: string;
-  fromDate?: Date;
-  tillDate?: Date;
-  fromTime?: string;
-  toTime?: string;
+  no_of_hires_required?: string;
+  start_date?: Date;
+  end_date?: Date;
+  check_in_time?: string;
+  check_out_time?: string;
   status: JobStatus;
-  neighborhoodName?: string;
-  neighborhoodType?: string;
-  directNumber?: string;
-  workingConditions?: string[];
-  whyJoin?: string[];
+  neighborhood_name?: string;
+  neighborhood_type?: string;
+  direct_number?: string;
+  working_conditions?: string[];
+  why_join?: string[];
   location?: string;
   payRange?: number | string;
   inPersonInterview?: string | boolean;
@@ -379,10 +377,6 @@ export interface JobFormData {
 
 export interface InstantJobFormData extends JobFormData {
   amountPerHire?: string;
-  numberOfHires?: string;
-  neighborhoodName?: string;
-  neighborhoodType?: string;
-  directNumber?: string;
 }
 
 export type ApplicationStatus =

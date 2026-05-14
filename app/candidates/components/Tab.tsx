@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CandidateCardVM } from '@/types/view-models';
-import { fromRecruiterCandidateRow } from '@/lib/transforms/candidate-card.transform';
+import type { RecruiterCandidateRow } from '@/types';
 import { getRecruiterCandidates } from '@/features/candidates';
 import { InviteCandidateToJobModal } from './CandidateActionModal';
 import { CandidatesPoolCardView } from '@/app/candidates/components/CardView';
@@ -14,6 +14,93 @@ import { TabToolbarFilterViewToggle } from '@/components/table/TableTabs';
 import { useMetadataStore } from '@/stores/metadataStore';
 
 export const PAGE_LIMIT = 10;
+
+function toInitials(first: string, last?: string | null) {
+  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
+}
+
+function toExperience(months?: number | null) {
+  if (!months) return '—';
+  const yrs = Math.max(1, Math.round(months / 12));
+  return `${yrs}+ yrs`;
+}
+
+function toJobTitleLabel(raw: string): string {
+  const value = raw.trim();
+  if (!value) return '—';
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function abbreviateJobTitle(slug: string): string {
+  return slug
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
+function jobTitlesDesignation(slugs: string[]): {
+  designation: string;
+  job_title_labels: string[];
+} {
+  const cleaned = slugs.map((slug) => String(slug ?? '').trim()).filter(Boolean);
+  const job_title_labels = cleaned.map(toJobTitleLabel);
+  if (cleaned.length === 0) return { designation: '—', job_title_labels: [] };
+  if (cleaned.length === 1) return { designation: job_title_labels[0], job_title_labels };
+  return {
+    designation: cleaned.map(abbreviateJobTitle).join(' | '),
+    job_title_labels,
+  };
+}
+
+function normalizeJobTitles(raw: RecruiterCandidateRow['job_titles']): string[] {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) {
+    return raw.map((x) => String(x ?? '').trim()).filter(Boolean);
+  }
+  return String(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function parseRating(raw: RecruiterCandidateRow['avg_rating_score']): number | null {
+  if (raw === null || raw === undefined || raw === '') return null;
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function fromRecruiterCandidateRow(row: RecruiterCandidateRow): CandidateCardVM {
+  const titleSlugs = normalizeJobTitles(row.job_titles);
+  const { designation, job_title_labels } = jobTitlesDesignation(titleSlugs);
+  const dist =
+    row.distance != null && Number.isFinite(Number(row.distance))
+      ? `${Number(row.distance).toFixed(1)} km`
+      : 'N/A';
+
+  return {
+    id: row.candidate_id,
+    application_id: '',
+    full_name: `${row.first_name} ${row.last_name}`.trim(),
+    initials: toInitials(row.first_name, row.last_name),
+    profile_image_url: row.profile_image_url ?? null,
+    designation,
+    job_title_labels,
+    experience: toExperience(row.experience_in_months),
+    distance: dist,
+    interview_score: row.best_ai_interview_score ?? null,
+    rating: parseRating(row.avg_rating_score),
+    work_eligibility: null,
+    is_online: false,
+    is_active: row.is_active ?? undefined,
+    application_status: row.is_active === false ? 'Inactive' : 'Active',
+    href: `/candidates/${row.candidate_id}`,
+    in_house_status: row.in_house_status ?? null,
+  };
+}
 
 export function CandidatesPoolSection({
   view,

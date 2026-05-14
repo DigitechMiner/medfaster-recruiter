@@ -17,10 +17,8 @@ import {
 } from "lucide-react";
 import { MetricCard } from "@/components/ui/metric-card";
 import type { JobBackendResponse } from "@/types";
-import {
-  convertQualificationToFrontend,
-  convertSpecializationToFrontend,
-} from "@/utils/constant/metadata";
+import { useMetadataStore } from "@/stores/metadataStore";
+import { getMetadataLabel } from "@/utils/constant/metadata";
 import {
   formatDate,
   formatLabel,
@@ -171,6 +169,7 @@ function formatTimeDuration(checkIn?: string | null, checkOut?: string | null) {
 }
 
 export function JobDetailSummary({ job }: JobDetailSummaryProps) {
+  const specializationOptions = useMetadataStore((state) => state.specializations);
   const instantJob = job.instantJob;
   const normalJob = job.normalJob;
   const location = [job.city, formatLabel(job.province)]
@@ -291,7 +290,7 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
             >
               {specializations.map((specialization) => (
                 <DetailChip key={specialization}>
-                  {convertSpecializationToFrontend(String(specialization))}
+                  {getMetadataLabel(specializationOptions, String(specialization))}
                 </DetailChip>
               ))}
             </DetailRow>
@@ -301,7 +300,7 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
             >
               {qualifications.map((qualification) => (
                 <DetailChip key={qualification}>
-                  {convertQualificationToFrontend(qualification)}
+                  {formatLabel(qualification)}
                 </DetailChip>
               ))}
             </DetailRow>

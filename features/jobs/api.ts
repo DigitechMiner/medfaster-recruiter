@@ -1,7 +1,6 @@
 import { apiRequest, axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import { extractData, extractRoot } from "@/stores/api/response-helpers";
-import { toJobTitleSlug } from "@/utils/constant/job-title-slug";
 
 import type {
   CreateRecruiterShiftDisputePayload,
@@ -141,13 +140,12 @@ export async function generateJobQuestions(
   return extractRoot<GenerateQuestionsResponse>(res.data);
 }
 
-/** Slugifies title, then returns only the inner `data` block (same behavior as legacy job-description helper). */
+/** Returns only the inner `data` block (same behavior as legacy job-description helper). */
 export async function generateJobDescriptionFromUi(
   input: JobDescriptionInput,
 ): Promise<GenerateDescriptionResponse["data"]> {
-  const slug = toJobTitleSlug(input.jobTitle) ?? input.jobTitle;
   const envelope = await generateJobDescription({
-    job_title: slug,
+    job_title: input.jobTitle,
     department: input.department,
   });
   return envelope.data;

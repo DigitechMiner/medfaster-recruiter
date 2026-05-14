@@ -11,6 +11,8 @@ import {
 } from "@/features/common";
 import { metaData as initialMetaData } from "@/utils/constant/metadata";
 
+const initialData = initialMetaData.data as AppMetadata;
+
 const dedupeMetadataOptions = (options: MetadataOption[] = []): MetadataOption[] => {
   const seen = new Set<string>();
   return options.filter((option) => {
@@ -59,15 +61,15 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
   departments: [],
   jobTitles: [],
   specializations: [],
-  metadata: (initialMetaData.data as AppMetadata) ?? null,
+  metadata: initialData ?? null,
   metadataVersion: initialMetaData.version ?? null,
-  genderOptions: initialMetaData.data.gender ?? [],
-  jobTypeOptions: initialMetaData.data.job_types ?? [],
-  workEligibilityOptions: initialMetaData.data.work_eligibility ?? [],
-  shiftTypeOptions: initialMetaData.data.shift_types ?? [],
-  organizationTypeOptions: initialMetaData.data.organisation_type ?? [],
-  provinceOptions: initialMetaData.data.canadian_provinces ?? [],
-  countryOptions: initialMetaData.data.countryList ?? [],
+  genderOptions: initialData.gender ?? [],
+  jobTypeOptions: initialData.job_types ?? [],
+  workEligibilityOptions: initialData.work_eligibility ?? [],
+  shiftTypeOptions: initialData.shift_types ?? [],
+  organizationTypeOptions: initialData.organisation_type ?? [],
+  provinceOptions: initialData.canadian_provinces ?? [],
+  countryOptions: initialData.countryList ?? [],
   loaded: false,
   loading: false,
 
@@ -86,7 +88,7 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
       const meta: AppMetadata =
         metaRes.data ??
         get().metadata ??
-        (initialMetaData.data as AppMetadata) ??
+        initialData ??
         {};
 
       const normalizedDepartments = dedupeDepartments(departments);

@@ -32,19 +32,19 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return parsed.response?.data?.message || parsed.message || fallback;
 };
 
-// ✅ Covers both JobFormData and InstantJobFormData fields
-// Dates serialized as ISO strings for safe plain-object storage in Zustand
-export type JobFormSnapshot = Omit<JobFormData, 'fromDate' | 'tillDate'> & {
-  fromDate?: string;
-  tillDate?: string;
+// Covers both JobFormData and InstantJobFormData fields.
+// Dates are serialized as ISO strings for safe plain-object storage in Zustand.
+export type JobFormSnapshot = Omit<JobFormData, 'start_date' | 'end_date'> & {
+  start_date?: string;
+  end_date?: string;
   // Instant-only fields
   amountPerHire?:     string;
-  neighborhoodName?:  string;
-  neighborhoodType?:  string;
-  directNumber?:      string;
   physicalInterview?: string | boolean;
-  // Cached backend-fetched pay rate — survives Back navigation
-  cachedPayRateCents?: number;
+  // Cached backend-fetched pay rate — UI-only and survives Back navigation.
+  cachedPayRate?: {
+    jobTitle: string;
+    cents: number;
+  };
 };
 
 interface JobsState {

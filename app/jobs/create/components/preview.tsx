@@ -2,19 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Clock, MapPin, Phone, Users } from "lucide-react";
+import { Clock, MapPin, Phone, Users } from "lucide-react";
 import { toast } from "react-toastify";
-import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
 import { getJobFeePreview } from "@/features/jobs";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { useWalletStore } from "@/stores/walletStore";
 import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/types";
+import { getMetadataLabel } from "@/utils/constant/metadata";
 
 interface JobReviewProps {
   mode: "normal" | "urgent";
   payload: JobCreatePayload;
-  onBack: () => void;
   onSubmit: (
     payload: JobCreatePayload,
   ) => Promise<{
@@ -22,6 +21,13 @@ interface JobReviewProps {
     message?: string;
     jobId?: string;
   }>;
+  formId?: string;
+  onActionStateChange?: (state: JobReviewActionState) => void;
+}
+
+export interface JobReviewActionState {
+  isProcessing: boolean;
+  isSubmitDisabled: boolean;
 }
 
 function formatTime(timeStr?: string | null): string {
@@ -118,34 +124,19 @@ function formatCurrency(cents: number): string {
 
 type LabelOption = { label: string; value: string };
 
-function humanizeValue(value?: string | null): string {
-  if (!value) return "";
-  return value
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function getDisplayLabel(
-  value: string | null | undefined,
-  options: LabelOption[],
-): string {
-  if (!value) return "";
-  return (
-    options.find((option) => option.value === value || option.label === value)
-      ?.label ?? humanizeValue(value)
-  );
-}
-
 function getAvailableWalletBalanceCents(): number | null {
   const wallet = useWalletStore.getState().wallet;
   const balanceCents = Number(wallet?.available_balance);
   return Number.isFinite(balanceCents) ? balanceCents : null;
 }
 
-export function JobReview({ mode, payload, onBack, onSubmit }: JobReviewProps) {
+export function JobReview({
+  mode,
+  payload,
+  onSubmit,
+  formId,
+  onActionStateChange,
+}: JobReviewProps) {
   const router = useRouter();
   const departments = useMetadataStore((s) => s.departments);
   const jobTitles = useMetadataStore((s) => s.jobTitles);
@@ -182,10 +173,10 @@ export function JobReview({ mode, payload, onBack, onSubmit }: JobReviewProps) {
     return Array.from(byValue.values());
   }, [departments, jobTitles]);
 
-  const displayJobTitle = getDisplayLabel(payload.job_title, allJobTitleOptions);
-  const displayDepartment = getDisplayLabel(payload.department, departments);
-  const displayProvince = getDisplayLabel(payload.province, provinceOptions);
-  const displayJobType = getDisplayLabel(payload.job_type, jobTypeOptions);
+  const displayJobTitle = getMetadataLabel(allJobTitleOptions, payload.job_title);
+  const displayDepartment = getMetadataLabel(departments, payload.department);
+  const displayProvince = getMetadataLabel(provinceOptions, payload.province);
+  const displayJobType = getMetadataLabel(jobTypeOptions, payload.job_type);
 
   useEffect(() => {
     if (isFullTime) return;
@@ -239,6 +230,13 @@ export function JobReview({ mode, payload, onBack, onSubmit }: JobReviewProps) {
     : (feePreview?.total_recruiter_pay_cents ??
       costPerCandidateCents * requiredCandidates);
   const totalPayable = totalFeeCents / 100;
+
+  const isSubmitDisabled =
+    isProcessing || (!isFullTime && (feeLoading || !!feeError || !feePreview));
+
+  useEffect(() => {
+    onActionStateChange?.({ isProcessing, isSubmitDisabled });
+  }, [isProcessing, isSubmitDisabled, onActionStateChange]);
 
   const handlePublishJob = async () => {
     if (isProcessing) return;
@@ -341,107 +339,116 @@ export function JobReview({ mode, payload, onBack, onSubmit }: JobReviewProps) {
   const shifts = buildShiftRows(payload);
   const location = [payload.city, displayProvince].filter(Boolean).join(", ");
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handlePublishJob();
+  };
+
   return (
     <>
-      <div className="space-y-4 w-full mx-auto px-4 py-4 bg-white rounded-xl">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
-          <div className="flex items-start justify-between">
-            <h2 className="text-lg font-bold text-gray-900">{summaryTitle}</h2>
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                isUrgent
-                  ? "bg-orange-50 text-orange-600 border-orange-200"
-                  : "bg-green-50 text-green-600 border-green-200"
-              }`}
-            >
-              {isUrgent ? "Urgent" : "Normal"}
-            </span>
-          </div>
+      <form id={formId} onSubmit={handleSubmit} className="contents" noValidate>
+        <div className="space-y-4 w-full mx-auto">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+            <div className="flex items-start justify-between">
+              <h2 className="text-lg font-bold text-gray-900">{summaryTitle}</h2>
+              <span
+                className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                  isUrgent
+                    ? "bg-orange-50 text-orange-600 border-orange-200"
+                    : "bg-green-50 text-green-600 border-green-200"
+                }`}
+              >
+                {isUrgent ? "Urgent" : "Normal"}
+              </span>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-semibold text-gray-900 text-base">
-              {displayJobTitle}
-            </span>
-            {payload.department && (
-              <span className="bg-orange-50 text-orange-600 text-xs font-medium px-3 py-1 rounded-full border border-orange-100">
-                {displayDepartment}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-semibold text-gray-900 text-base">
+                {displayJobTitle}
               </span>
-            )}
-          </div>
+              {payload.department && (
+                <span className="bg-orange-50 text-orange-600 text-xs font-medium px-3 py-1 rounded-full border border-orange-100">
+                  {displayDepartment}
+                </span>
+              )}
+            </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-            {location && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
+              {location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {location}
+                </span>
+              )}
+              {payload.direct_number && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5" />
+                  {payload.direct_number}
+                </span>
+              )}
+              {payload.job_type && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {displayJobType}
+                </span>
+              )}
               <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" />
-                {location}
+                <Users className="w-3.5 h-3.5" />
+                <strong className="text-gray-800">{requiredCandidates}</strong>
+                &nbsp;Staff Required
               </span>
-            )}
-            {payload.direct_number && (
-              <span className="flex items-center gap-1">
-                <Phone className="w-3.5 h-3.5" />
-                {payload.direct_number}
-              </span>
-            )}
-            {payload.job_type && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {displayJobType}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" />
-              <strong className="text-gray-800">{requiredCandidates}</strong>
-              &nbsp;Staff Required
-            </span>
-          </div>
-        </div>
-
-        {!isFullTime && shifts.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <h3 className="text-base font-bold text-gray-900 mb-4">
-              {tableTitle}
-            </h3>
-            <div className="overflow-x-auto rounded-lg border border-gray-100">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-orange-50 text-gray-700 font-medium text-left">
-                    {[
-                      "Shift Day",
-                      "Shift Start Date",
-                      "Shift End Date",
-                      "Shift Timing",
-                      "Shift Duration",
-                    ].map((heading) => (
-                      <th key={heading} className="px-4 py-3 whitespace-nowrap">
-                        {heading}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {shifts.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-t border-gray-100 text-gray-700"
-                    >
-                      <td className="px-4 py-3">{row.day}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {row.startDate}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {row.endDate}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {row.timing}
-                      </td>
-                      <td className="px-4 py-3">{row.duration}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
-        )}
+
+          {!isFullTime && shifts.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <h3 className="text-base font-bold text-gray-900 mb-4">
+                {tableTitle}
+              </h3>
+              <div className="overflow-x-auto rounded-lg border border-gray-100">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-orange-50 text-gray-700 font-medium text-left">
+                      {[
+                        "Shift Day",
+                        "Shift Start Date",
+                        "Shift End Date",
+                        "Shift Timing",
+                        "Shift Duration",
+                      ].map((heading) => (
+                        <th
+                          key={heading}
+                          className="px-4 py-3 whitespace-nowrap"
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shifts.map((row, i) => (
+                      <tr
+                        key={i}
+                        className="border-t border-gray-100 text-gray-700"
+                      >
+                        <td className="px-4 py-3">{row.day}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.startDate}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.endDate}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.timing}
+                        </td>
+                        <td className="px-4 py-3">{row.duration}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         {!isFullTime && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -530,30 +537,8 @@ export function JobReview({ mode, payload, onBack, onSubmit }: JobReviewProps) {
             {error}
           </div>
         )}
-
-        <div className="flex items-center justify-between pt-2 pb-8">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onBack}
-            className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </Button>
-          <Button
-            type="button"
-            onClick={handlePublishJob}
-            disabled={
-              isProcessing ||
-              (!isFullTime && (feeLoading || !!feeError || !feePreview))
-            }
-            className="flex items-center gap-2 bg-[#f47b20] hover:bg-[#d5650e] text-white px-6 disabled:opacity-60"
-          >
-            {isProcessing ? "Processing..." : "Publish Job"}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
       </div>
+      </form>
 
       <SuccessModal
         visible={showSuccess}

@@ -14,6 +14,20 @@ const AUTH_CONFIG = {
   },
 } as const;
 
+export interface CountryOption {
+  name: string;
+  code: string;
+  dial_code: string;
+  flag: string;
+}
+
+export const DEFAULT_COUNTRY: CountryOption = {
+  name: "Canada",
+  code: "CA",
+  dial_code: "+1",
+  flag: "🇨🇦",
+};
+
 /** String widened so UI state can hold any selected dial code, not only the default literal. */
 export const DEFAULT_PHONE_DIAL_CODE: string = AUTH_CONFIG.defaultPhoneDialCode;
 

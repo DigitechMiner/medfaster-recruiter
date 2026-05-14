@@ -3,9 +3,6 @@
  * METADATA.TS - SINGLE SOURCE OF TRUTH FOR FORM/DROPDOWN CONSTANTS
  * ============================================================================
  */
-
-type LabelValueOption = { id: number | string; label: string; value: string; [key: string]: unknown };
-
 export const metaData = {
   version: "1.3.0",
   data: {
@@ -191,229 +188,62 @@ export const metaData = {
   },
 };
 
-const toLabelToValueMap = (options: readonly LabelValueOption[]): Record<string, string> =>
-  Object.fromEntries(options.map((option) => [option.label, option.value]));
+export const DEFAULT_NEIGHBORHOOD_TYPES = [
+  "Independent Living",
+  "Assisted Living",
+  "Dementia / Memory Care",
+  "Complex Dementia Care",
+  "Adult Mental Health",
+];
 
-const toCamelCase = (value: string): string =>
-  value.replace(/_([a-z])/g, (_, chr: string) => chr.toUpperCase());
+export const CDSW_NEIGHBORHOOD_TYPES = [
+  "Group Home / Community Residential Home",
+  "Intermediate Care / Community Care Facility for Developmental Disabilities",
+  "Supported Independent Living (SIL)",
+  "Board-and-Care / Adult Foster Care Homes",
+  "Specialized Nursing Homes / Skilled Nursing for Disabilities",
+  "Rehabilitation and Step-down Residential Care Programs",
+];
 
-const PROVINCE_VALUE_TO_BACKEND: Record<string, string> = Object.fromEntries(
-  metaData.data.canadian_provinces.map((province) => [
-    province.value,
-    toCamelCase(province.value),
-  ])
-);
+type MetadataLabelValueOption = {
+  label: string;
+  value: string;
+};
 
-const PROVINCE_BACKEND_TO_VALUE: Record<string, string> = Object.fromEntries(
-  Object.entries(PROVINCE_VALUE_TO_BACKEND).map(([k, v]) => [v, k])
-);
-
-const metadata = {
-  job_title_mapping: {
-    "Registered Nurse": "registered_nurse",
-    "Licensed Practical Nurse": "licensed_practical_nurse",
-    "Home Care Aid": "home_care_aid",
-  },
-  experience_mapping: {
-    "0-1 Yrs": "0",
-    "1-2 Yrs": "1",
-    "2-3 Yrs": "2",
-    "3-5 Yrs": "3",
-    "5-7 Yrs": "5",
-    "7-10 Yrs": "7",
-    "10+ Yrs": "10",
-  },
-  job_type_mapping: toLabelToValueMap(metaData.data.job_types),
-  qualification: ["Geriatric", "Geriatric Mental Health"],
-  qualification_mapping: {
-    Geriatric: "geriatric",
-    "Geriatric Mental Health": "geriatric_mental_health",
-  },
-  specialization: [
-    "Geriatric Care",
-    "Long Term Care",
-    "Dementia Care / Alzheimer Care",
-    "Complex Dementia Care",
-    "Palliative Care / End of Life Care",
-    "Continuing Care / Residential Care",
-    "Rehabilitation Care",
-    "Chronic Disease Care",
-    "Wound Care",
-    "Medication Management",
-    "Mental Health & Behavioral Health Care",
-    "Adult Mental Health",
-  ],
-  specialization_mapping: {
-    "Geriatric Care": "geriatric_care",
-    "Long Term Care": "long_term_care",
-    "Dementia Care / Alzheimer Care": "dementia_care",
-    "Complex Dementia Care": "complex_dementia_care",
-    "Palliative Care / End of Life Care": "palliative_care",
-    "Continuing Care / Residential Care": "continuing_care",
-    "Rehabilitation Care": "rehabilitation_care",
-    "Chronic Disease Care": "chronic_disease_care",
-    "Wound Care": "wound_care",
-    "Medication Management": "medication_management",
-    "Mental Health & Behavioral Health Care": "mental_health",
-    "Adult Mental Health": "adult_mental_health",
-  },
-} as const;
-
-// ============================================================================
-// CONVERTER FUNCTIONS
-// ============================================================================
-
-export function convertExperienceToBackend(frontendValue: string): string | null {
-  if (!frontendValue) return null;
+export function getMetadataLabel(
+  options: readonly MetadataLabelValueOption[],
+  value: string | null | undefined,
+): string {
+  if (!value) return "";
   return (
-    metadata.experience_mapping[frontendValue as keyof typeof metadata.experience_mapping] ??
-    frontendValue.split("-")[0].replace(/\D/g, "")
+    options.find((option) => option.value === value || option.label === value)?.label ??
+    value
   );
 }
 
-export function convertJobTitleToBackend(frontendValue: string): string {
-  if (!frontendValue) return "registered_nurse";
-
-  // ✅ Already a slug — pass through untouched
-  if (!frontendValue.includes(" ") && frontendValue === frontendValue.toLowerCase()) {
-    return frontendValue;
-  }
-
-  // Look up in mapping
-  const mapped = metadata.job_title_mapping[frontendValue as keyof typeof metadata.job_title_mapping];
-  if (mapped) return mapped;
-
-  // Fallback: display string → snake_case
-  return frontendValue.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-}
-
-export function convertJobTypeToBackend(
-  jobType: string
-): 'casual' | 'part_time' | 'full_time' {
-  return (
-    metadata.job_type_mapping[jobType as keyof typeof metadata.job_type_mapping] ??
-    "casual"
-  ) as 'casual' | 'part_time' | 'full_time';
-}
-
-export function convertJobTypeToFrontend(backendValue: string | null | undefined): string {
-  if (!backendValue) return "Not specified";
-  const entry = Object.entries(metadata.job_type_mapping).find(([, v]) => v === backendValue);
-  return entry ? entry[0] : backendValue;
-}
-
-export function convertSpecializationToBackend(frontendValue: string): string {
-  return (
-    metadata.specialization_mapping[
-      frontendValue as keyof typeof metadata.specialization_mapping
-    ] ?? frontendValue.toLowerCase().replace(/ /g, "_")
-  );
-}
-
-export function convertSpecializationToFrontend(backendValue: string | null | undefined): string {
-  if (!backendValue) return "";
-  const entry = Object.entries(metadata.specialization_mapping).find(
-    ([, v]) => v === backendValue
-  );
-  return entry
-    ? entry[0]
-    : backendValue
-        .split("_")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-}
-
-export function convertQualificationToFrontend(backendValue: string | null | undefined): string {
-  if (!backendValue) return "";
-  const entry = Object.entries(metadata.qualification_mapping).find(
-    ([, v]) => v === backendValue
-  );
-  return entry
-    ? entry[0]
-    : backendValue
-        .split("_")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
+export function getMetadataValue(
+  options: readonly MetadataLabelValueOption[],
+  labelOrValue: string | null | undefined,
+): string | undefined {
+  if (!labelOrValue) return undefined;
+  return options.find(
+    (option) => option.value === labelOrValue || option.label === labelOrValue,
+  )?.value;
 }
 
 // ============================================================================
 // PROVINCE CONVERTERS
 // ============================================================================
 
-/**
- * Convert camelCase backend province value → snake_case frontend value
- * Used when populating form from API response
- *
- * "newBrunswick"             → "new_brunswick"
- * "newfoundlandAndLabrador"  → "newfoundland_and_labrador"
- * "princeEdwardIsland"       → "prince_edward_island"
- * Already snake_case values pass through unchanged
- */
 export function convertProvinceToFrontend(backendValue: string | null | undefined): string | undefined {
-  if (!backendValue) return undefined;
-  // Already a valid snake_case frontend value
-  if (PROVINCE_VALUE_TO_BACKEND[backendValue]) return backendValue;
-  // Map from camelCase backend value
-  return PROVINCE_BACKEND_TO_VALUE[backendValue] ?? undefined;
+  return getMetadataValue(metaData.data.canadian_provinces, backendValue);
 }
-
-// ============================================================================
-// OTHER HELPERS
-// ============================================================================
-
-// ============================================================================
-// FILE VALIDATION HELPERS
-// ============================================================================
-
-function validateFile(
-  file: File,
-  maxSizeMB = 10,
-  allowedExtensions = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"]
-): { valid: boolean; error?: string } {
-  const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  if (file.size > maxSizeBytes) {
-    return {
-      valid: false,
-      error: `File size must be less than ${maxSizeMB}MB. Current size: ${(
-        file.size /
-        1024 /
-        1024
-      ).toFixed(2)}MB`,
-    };
-  }
-  const fileName = file.name.toLowerCase();
-  const hasValidExtension = allowedExtensions.some((ext) => fileName.endsWith(ext));
-  if (!hasValidExtension) {
-    return {
-      valid: false,
-      error: `Invalid file type. Allowed: ${allowedExtensions.join(", ")}`,
-    };
-  }
-  return { valid: true };
-}
-
-export function validateOrganizationPhoto(file: File) {
-  return validateFile(file, 10, [".jpg", ".jpeg", ".png"]);
-}
-
-export function validateDocumentFile(file: File) {
-  return validateFile(file, 10, [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"]);
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-}
-
-export default metadata;
 
 // ✅ Use this for jobs (snake_case)
 export const convertProvinceToJobBackend = (province: string | undefined): string | null => {
   if (!province) return null;
-  if (PROVINCE_VALUE_TO_BACKEND[province]) return province;
-  if (PROVINCE_BACKEND_TO_VALUE[province]) return PROVINCE_BACKEND_TO_VALUE[province];
-  return province.toLowerCase().replace(/\s+/g, "_");
+  return (
+    getMetadataValue(metaData.data.canadian_provinces, province) ??
+    province.toLowerCase().replace(/\s+/g, "_")
+  );
 };

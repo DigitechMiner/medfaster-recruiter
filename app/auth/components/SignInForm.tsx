@@ -5,23 +5,12 @@ import { Loader2, ChevronDown } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import Image from 'next/image';
 import { CustomButton } from '@/components/custom/custom-button';
-import { detectContactType } from '@/utils/auth';
-import { metaData } from '@/utils/constant/metadata';
-
-interface Country {
-  name: string;
-  code: string;
-  dial_code: string;
-  flag: string;
-}
-
-const countries: Country[] = metaData.data.countryList.map((country) => ({
-  name: country.label,
-  code: country.value,
-  dial_code: country.dial_code as string,
-  flag: country.flag as string,
-}));
-const DEFAULT_COUNTRY_CODE = 'CA';
+import { useMetadataStore } from '@/stores/metadataStore';
+import {
+  DEFAULT_COUNTRY,
+  detectContactType,
+  type CountryOption,
+} from '@/utils/auth';
 
 interface SignInFormProps {
   contactValue: string;
@@ -50,16 +39,25 @@ export default function SignInForm({
   sendOtp,
   onOtpSent,
 }: SignInFormProps) {
+  const countryOptions = useMetadataStore((state) => state.countryOptions);
   const [isPhoneNumber, setIsPhoneNumber] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
 
+  const countries: CountryOption[] = countryOptions.map((country) => ({
+    name: country.label,
+    code: country.value,
+    dial_code: country.dial_code as string,
+    flag: country.flag as string,
+  }));
+
   const selectedCountry =
     countries.find((c) => c.dial_code === countryCode) ||
-    countries.find((c) => c.code === DEFAULT_COUNTRY_CODE) ||
-    countries[0];
+    countries.find((c) => c.code === DEFAULT_COUNTRY.code) ||
+    countries[0] ||
+    DEFAULT_COUNTRY;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

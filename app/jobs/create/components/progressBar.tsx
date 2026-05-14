@@ -9,6 +9,8 @@ interface CreateJobProgressHeaderProps {
   steps: readonly string[];
   currentStep: number;
   onBack: () => void;
+  onStepClick?: (step: number) => void;
+  canNavigateToStep?: (step: number) => boolean;
   backLabel?: string;
   showBackButton?: boolean;
 }
@@ -18,6 +20,8 @@ export function CreateJobProgressHeader({
   steps,
   currentStep,
   onBack,
+  onStepClick,
+  canNavigateToStep,
   backLabel = "Back",
   showBackButton = true,
 }: CreateJobProgressHeaderProps) {
@@ -52,6 +56,8 @@ export function CreateJobProgressHeader({
             const stepNumber = index + 1;
             const isComplete = stepNumber < clampedStep;
             const isCurrent = stepNumber === clampedStep;
+            const isStepDisabled =
+              !onStepClick || canNavigateToStep?.(stepNumber) === false;
 
             return (
               <div
@@ -62,8 +68,11 @@ export function CreateJobProgressHeader({
                 )}
               >
                 <div className="flex min-w-0 flex-col items-center gap-2">
-                  <div
+                  <button
+                    type="button"
                     aria-current={isCurrent ? "step" : undefined}
+                    disabled={isStepDisabled}
+                    onClick={() => onStepClick?.(stepNumber)}
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold transition-colors",
                       isComplete &&
@@ -73,20 +82,28 @@ export function CreateJobProgressHeader({
                       !isComplete &&
                         !isCurrent &&
                         "border-gray-200 bg-gray-50 text-gray-400",
+                      !isStepDisabled &&
+                        "cursor-pointer hover:border-[#F4781B] hover:text-[#F4781B]",
+                      isStepDisabled && "cursor-default",
                     )}
                   >
                     {isComplete ? <Check className="h-4 w-4" /> : stepNumber}
-                  </div>
-                  <span
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isStepDisabled}
+                    onClick={() => onStepClick?.(stepNumber)}
                     className={cn(
-                      "hidden max-w-28 text-center text-xs font-medium sm:block",
+                      "hidden max-w-28 text-center text-xs font-medium transition-colors sm:block",
                       isCurrent || isComplete
                         ? "text-gray-900"
                         : "text-gray-400",
+                      !isStepDisabled && "cursor-pointer hover:text-[#F4781B]",
+                      isStepDisabled && "cursor-default",
                     )}
                   >
                     {label}
-                  </span>
+                  </button>
                 </div>
 
                 {index < steps.length - 1 && (

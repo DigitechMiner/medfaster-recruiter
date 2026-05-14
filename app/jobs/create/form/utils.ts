@@ -1,14 +1,36 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { JobFormData } from "@/types";
 import type { JobFormSnapshot } from "@/stores/jobs-store";
-import type { JobValidationError } from "./validatePayload";
-import { DESCRIPTION_STEP_FIELDS } from "../form/constants";
-import type { CreateFormStep } from "./types";
 
 type SnapshotDateUpdate = {
-  fromDate?: Date | string;
-  tillDate?: Date | string;
+  start_date?: Date | string;
+  end_date?: Date | string;
 };
+
+export const MIN_NUMBER_OF_HIRES = 1;
+
+const BLOCKED_NUMBER_OF_HIRES_KEYS = new Set(["-", "+", "e", "E", "."]);
+
+export function isBlockedNumberOfHiresKey(key: string): boolean {
+  return BLOCKED_NUMBER_OF_HIRES_KEYS.has(key);
+}
+
+export function normalizeNumberOfHiresInput(value: string): string {
+  const trimmed = value.trim();
+
+  if (trimmed === "") return "";
+
+  const parsed = Number.parseInt(trimmed, 10);
+
+  if (!Number.isFinite(parsed)) return "";
+
+  return String(Math.max(MIN_NUMBER_OF_HIRES, parsed));
+}
+
+export function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is string => typeof item === "string");
+}
 
 export function formatDateForBackend(date?: Date): string | undefined {
   if (!date) return undefined;
@@ -33,7 +55,7 @@ export function fromSnapshot<K extends keyof JobFormSnapshot, TValue>(
 
 export function dateFromSnapshot(
   snapshot: JobFormSnapshot | null,
-  key: "fromDate" | "tillDate",
+  key: "start_date" | "end_date",
 ): Date | undefined {
   const value = snapshot?.[key];
   return value ? new Date(value) : undefined;
@@ -76,35 +98,17 @@ export function buildNextFormSnapshot<TUpdates extends object>(
   return {
     ...(currentSnapshot ?? {}),
     ...(updates as Partial<JobFormSnapshot>),
-    fromDate:
-      updates.fromDate instanceof Date
-        ? updates.fromDate.toISOString()
-        : updates.fromDate !== undefined
-          ? (updates.fromDate as string)
-          : currentSnapshot?.fromDate,
-    tillDate:
-      updates.tillDate instanceof Date
-        ? updates.tillDate.toISOString()
-        : updates.tillDate !== undefined
-          ? (updates.tillDate as string)
-          : currentSnapshot?.tillDate,
+    start_date:
+      updates.start_date instanceof Date
+        ? updates.start_date.toISOString()
+        : updates.start_date !== undefined
+          ? (updates.start_date as string)
+          : currentSnapshot?.start_date,
+    end_date:
+      updates.end_date instanceof Date
+        ? updates.end_date.toISOString()
+        : updates.end_date !== undefined
+          ? (updates.end_date as string)
+          : currentSnapshot?.end_date,
   } as JobFormSnapshot;
 }
-
-export function filterValidationErrorsForStep(
-  errors: JobValidationError[],
-  formStep: CreateFormStep,
-  options: { ignoreQuestions?: boolean } = {},
-): JobValidationError[] {
-  const stepErrors =
-    formStep === "basic"
-      ? errors.filter((error) => !DESCRIPTION_STEP_FIELDS.has(error.field))
-      : errors;
-
-  if (!options.ignoreQuestions) return stepErrors;
-
-  return stepErrors.filter((error) => error.field !== "questions");
-}
-
-export type JobFormFieldErrors<TFormData extends JobFormData = JobFormData> =
-  Partial<Record<keyof TFormData, string>>;

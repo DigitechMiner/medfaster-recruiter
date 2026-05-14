@@ -16,7 +16,7 @@ import {
   validateOrganizationPhoto,
   validateDocumentFile,
   formatFileSize,
-} from "@/utils/constant/metadata";
+} from "@/utils/file-validation";
 
 interface FileUploadProps {
   name: string;

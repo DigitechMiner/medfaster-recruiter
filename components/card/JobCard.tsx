@@ -5,13 +5,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BriefcaseBusiness, Clock, MapPin, User } from 'lucide-react';
 import { getTimeAgo } from '@/utils/getTimePeriod';
-import {
-  convertJobTypeToFrontend,
-  convertQualificationToFrontend,
-  convertSpecializationToFrontend,
-} from '@/utils/constant/metadata';
+import { getMetadataLabel } from '@/utils/constant/metadata';
 import { getBackendImageUrl } from '@/stores/api/api-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useMetadataStore } from '@/stores/metadataStore';
 import type { JobListItem } from '@/types';
 
 const gridBadgeVariantMap: Record<string, string> = {
@@ -37,11 +34,6 @@ const gridBadgeDisplayMap: Record<string, string> = {
   CLOSED: 'Closed',
   DRAFT: 'Draft',
   PAUSED: 'Paused',
-};
-
-const formatGridJobType = (raw?: string | null) => {
-  if (!raw) return null;
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 const formatGridTime = (time?: string | null) => (time ? time.slice(0, 5) : null);
@@ -95,6 +87,7 @@ interface JobListingCardProps {
 export const JobCard: React.FC<{ job: JobListItem }> = ({ job }) => {
   const router = useRouter();
   const profile = useAuthStore((state) => state.recruiterProfile);
+  const jobTypeOptions = useMetadataStore((state) => state.jobTypeOptions);
   const logoUrl = profile?.organization_photo_url
     ? getBackendImageUrl(profile.organization_photo_url)
     : null;
@@ -102,7 +95,7 @@ export const JobCard: React.FC<{ job: JobListItem }> = ({ job }) => {
 
   const urgency = job.job_urgency === 'instant' ? 'Urgent' : 'Regular';
   const location = job.city || null;
-  const jobType = formatGridJobType(job.job_type);
+  const jobType = job.job_type ? getMetadataLabel(jobTypeOptions, job.job_type) : null;
   const interview = getGridInterviewBadge(job);
   const checkIn = formatGridTime(job.check_in_time);
   const checkOut = formatGridTime(job.check_out_time);
@@ -206,18 +199,24 @@ export const JobCard: React.FC<{ job: JobListItem }> = ({ job }) => {
 
 export const JobListingCard: React.FC<JobListingCardProps> = ({ job }) => {
   const timeAgo = getTimeAgo(job.created_at);
+  const jobTypeOptions = useMetadataStore((state) => state.jobTypeOptions);
+  const specializationOptions = useMetadataStore((state) => state.specializations);
 
   const specializationDisplay =
     job.specialization_labels && job.specialization_labels.length > 0
       ? job.specialization_labels
-      : (job.specializations ?? []).map(convertSpecializationToFrontend);
+      : (job.specializations ?? []).map((specialization) =>
+          getMetadataLabel(specializationOptions, specialization),
+        );
 
-  const qualificationDisplay = (job.qualifications ?? []).map(convertQualificationToFrontend);
+  const qualificationDisplay = job.qualifications ?? [];
 
   const jobTypeDisplay =
     job.job_urgency === 'instant'
       ? 'Instant Replacement'
-      : convertJobTypeToFrontend(job.job_type);
+      : job.job_type
+        ? getMetadataLabel(jobTypeOptions, job.job_type)
+        : 'Not specified';
 
   // ✅ Location — show if backend returns it (after backend fix)
   const locationDisplay =

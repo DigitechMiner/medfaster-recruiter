@@ -6,7 +6,6 @@ import type { AiInterviewResultPayload } from "@/features/candidates/types";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CANDIDATE — CARD (grid/kanban view everywhere)
-// Source: fromJobApplication()
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface CandidateCardVM {

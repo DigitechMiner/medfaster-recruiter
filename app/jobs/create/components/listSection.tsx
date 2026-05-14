@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { type ReactNode } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -34,15 +34,18 @@ export function CreateJobListSection({
   headerActions,
   itemLabel,
 }: CreateJobListSectionProps) {
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const normalized = items.length > 0 ? items : [""];
-  const canAdd = !maxItems || normalized.length < maxItems;
+  const hasReachedMax = Boolean(maxItems && normalized.length >= maxItems);
+  const hasEmptyItem = normalized.some((item) => item.trim().length === 0);
+  const canAdd = !hasReachedMax && !hasEmptyItem;
 
   const handleAdd = () => {
-    if (!canAdd) {
+    if (hasReachedMax) {
       onMaxItemsReached?.();
       return;
     }
+
+    if (hasEmptyItem) return;
 
     onChange([...normalized, ""]);
   };
@@ -58,11 +61,6 @@ export function CreateJobListSection({
     onChange(next.length === 0 ? [""] : next);
   };
 
-  const handleEdit = (index: number) => {
-    inputRefs.current[index]?.focus();
-    inputRefs.current[index]?.select();
-  };
-
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-3 gap-4">
@@ -75,8 +73,9 @@ export function CreateJobListSection({
           <Button
             type="button"
             onClick={handleAdd}
+            disabled={hasEmptyItem}
             aria-disabled={!canAdd}
-            className="flex items-center gap-1.5 bg-[#F4781B] hover:bg-orange-600 text-white text-xs font-semibold px-3 h-8 rounded-md shadow-sm aria-disabled:opacity-40 aria-disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 bg-[#F4781B] hover:bg-orange-600 text-white text-xs font-semibold px-3 h-8 rounded-md shadow-sm aria-disabled:opacity-40 aria-disabled:cursor-not-allowed disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
             {addLabel}
@@ -97,22 +96,11 @@ export function CreateJobListSection({
               </span>
             )}
             <Input
-              ref={(element) => {
-                inputRefs.current[index] = element;
-              }}
               value={item}
               onChange={(event) => handleUpdate(index, event.target.value)}
               placeholder={placeholder}
               className="flex-1 h-11 border-gray-200 focus:border-[#F4781B] focus:ring-[#F4781B] rounded-xl"
             />
-            <button
-              type="button"
-              onClick={() => handleEdit(index)}
-              className="text-green-500 hover:text-green-600 p-1 hover:bg-green-50 rounded transition-colors flex-shrink-0"
-              aria-label="Edit item"
-            >
-              <Pencil className="w-5 h-5" />
-            </button>
             <button
               type="button"
               onClick={() => handleDelete(index)}

@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { JobDescriptionInput } from "@/features/jobs";
-import { useGenerateDescription } from "@/hooks/useGenerateDescription";
+import {
+  generateJobDescriptionFromUi,
+  type JobDescriptionInput,
+} from "@/features/jobs";
 import type { JobFormData } from "@/types";
-import { CreateJobListSection } from "./create-job-list-section";
+import { CreateJobListSection } from "../components/listSection";
+import { normalizeStringArray } from "./utils";
 
 interface DescriptionFormProps {
   formData: JobFormData;
@@ -25,9 +28,9 @@ interface ListSectionConfig {
 const LIST_SECTIONS: ListSectionConfig[] = [
   { key: "responsibilities", label: "Key Responsibilities", required: true },
   { key: "required_skills", label: "Required Skills", required: true },
-  { key: "experienceList", label: "Experience" },
-  { key: "workingConditions", label: "Working Conditions" },
-  { key: "whyJoin", label: "Why Join Us?" },
+  { key: "experience", label: "Experience" },
+  { key: "working_conditions", label: "Working Conditions" },
+  { key: "why_join", label: "Why Join Us?" },
 ];
 
 const withEmptyRow = (items?: string[]) =>
@@ -42,29 +45,29 @@ export function DescriptionForm({
   fieldErrors = {},
   hideExperienceList = false,
 }: DescriptionFormProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const updateFormDataRef = useRef(updateFormData);
   const requestedDescriptionKeyRef = useRef<string | null>(null);
-  const { loading, error, generateDescription, reset } =
-    useGenerateDescription();
   const listSections = hideExperienceList
-    ? LIST_SECTIONS.filter((section) => section.key !== "experienceList")
+    ? LIST_SECTIONS.filter((section) => section.key !== "experience")
     : LIST_SECTIONS;
 
   const hasDescriptionContent = useMemo(
     () =>
       Boolean(formData.description?.trim()) ||
-      hasFilledItem(formData.responsibilities) ||
-      hasFilledItem(formData.required_skills) ||
-      hasFilledItem(formData.experienceList) ||
-      hasFilledItem(formData.workingConditions) ||
-      hasFilledItem(formData.whyJoin),
+      hasFilledItem(normalizeStringArray(formData.responsibilities)) ||
+      hasFilledItem(normalizeStringArray(formData.required_skills)) ||
+      hasFilledItem(normalizeStringArray(formData.experience)) ||
+      hasFilledItem(normalizeStringArray(formData.working_conditions)) ||
+      hasFilledItem(normalizeStringArray(formData.why_join)),
     [
       formData.description,
       formData.responsibilities,
       formData.required_skills,
-      formData.experienceList,
-      formData.workingConditions,
-      formData.whyJoin,
+      formData.experience,
+      formData.working_conditions,
+      formData.why_join,
     ],
   );
 
@@ -72,13 +75,33 @@ export function DescriptionForm({
     updateFormDataRef.current = updateFormData;
   }, [updateFormData]);
 
+  const reset = useCallback(() => {
+    setError(null);
+  }, []);
+
+  const generateDescription = useCallback(async (input: JobDescriptionInput) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      return await generateJobDescriptionFromUi(input);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to generate description",
+      );
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const generateAndMapDescription = useCallback(async () => {
-    if (!formData.jobTitle) return;
+    if (!formData.job_title) return;
 
     const requestKey = [
-      formData.jobTitle,
+      formData.job_title,
       formData.department || "",
-      formData.jobType || "",
+      formData.job_type || "",
     ].join("|");
 
     if (requestedDescriptionKeyRef.current === requestKey) {
@@ -89,9 +112,9 @@ export function DescriptionForm({
     reset();
 
     const input: JobDescriptionInput = {
-      jobTitle: formData.jobTitle,
+      jobTitle: formData.job_title,
       department: formData.department || "",
-      jobType: formData.jobType || "Full Time",
+      jobType: formData.job_type || "full_time",
     };
 
     const generatedDescription = await generateDescription(input);
@@ -102,14 +125,14 @@ export function DescriptionForm({
       description: generatedDescription.description,
       responsibilities: withEmptyRow(generatedDescription.responsibilities),
       required_skills: withEmptyRow(generatedDescription.required_skills),
-      experienceList: withEmptyRow(generatedDescription.experience),
-      workingConditions: withEmptyRow(generatedDescription.working_conditions),
-      whyJoin: withEmptyRow(generatedDescription.why_join),
+      experience: withEmptyRow(generatedDescription.experience),
+      working_conditions: withEmptyRow(generatedDescription.working_conditions),
+      why_join: withEmptyRow(generatedDescription.why_join),
     });
   }, [
     formData.department,
-    formData.jobTitle,
-    formData.jobType,
+    formData.job_title,
+    formData.job_type,
     generateDescription,
     reset,
   ]);
@@ -157,7 +180,7 @@ export function DescriptionForm({
           key={key}
           title={label}
           required={required}
-          items={(formData[key] as string[]) ?? []}
+          items={normalizeStringArray(formData[key])}
           onChange={(items) =>
             updateFormData({ [key]: items } as Partial<JobFormData>)
           }

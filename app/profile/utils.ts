@@ -3,7 +3,10 @@ import { z } from "zod";
 import type { OrgDetailsType } from "@/components/forms";
 import type { RecruiterProfile } from "@/features/profile";
 
-import { convertProvinceToFrontend } from "@/utils/constant/metadata";
+import {
+  convertProvinceToFrontend,
+  getMetadataValue,
+} from "@/utils/constant/metadata";
 
 export const profileSchema = z.object({
   fullName: z.string().min(1, "Full Name is required"),
@@ -59,6 +62,9 @@ export function findMatchingOptionValue(
   currentValue: string,
   options: Array<{ label: string; value: string }>,
 ) {
+  const directMatch = getMetadataValue(options, currentValue);
+  if (directMatch) return directMatch;
+
   const normalizedCurrent = normalizeValue(currentValue);
   const matched = options.find((option) => {
     const normalizedOptionValue = normalizeValue(option.value);

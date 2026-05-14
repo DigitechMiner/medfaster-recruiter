@@ -1,39 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
-import { Button } from "@/components/ui/button";
 import SuccessModal from "@/components/modal";
-import { useGenerateQuestions } from "@/hooks/useGenerateQuestions";
+import { generateInterviewQuestions } from "@/features/jobs";
 import { useJobsStore } from "@/stores/jobs-store";
 import type { JobCreatePayload } from "@/types";
-import { CreateJobListSection } from "./create-job-list-section";
+import { CreateJobListSection } from "../components/listSection";
 import {
-  BUTTON_LABELS,
   MAX_AI_QUESTIONS,
-  PAGE_TITLES,
+  MIN_AI_QUESTIONS,
   SUCCESS_MESSAGES,
-} from "./constants";
-import type { AIQuestion } from "../helper/types";
+} from "../normal/constant";
 
 const uid = () => crypto.randomUUID();
+
+export interface AIQuestion {
+  id: string;
+  text: string;
+}
 
 interface QuestionFormProps {
   pendingPayload?: JobCreatePayload | null;
   questions: AIQuestion[];
   onQuestionsChange: (questions: AIQuestion[]) => void;
-  onBack?: () => void;
   onNext?: (payload: JobCreatePayload) => void;
+  formId?: string;
+  autoSubmitToken?: number;
+  onValidationBlocked?: () => void;
 }
 
 export function QuestionForm({
   pendingPayload,
   questions,
   onQuestionsChange,
-  onBack,
   onNext,
+  formId,
+  autoSubmitToken,
+  onValidationBlocked,
 }: QuestionFormProps) {
   const router = useRouter();
   const createJob = useJobsStore((s) => s.createJob);
@@ -42,27 +48,36 @@ export function QuestionForm({
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const {
-    loading: aiLoading,
-    error: aiError,
-    generate,
-    reset: resetAI,
-  } = useGenerateQuestions();
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [questionError, setQuestionError] = useState<string | null>(null);
+  const lastAutoSubmitTokenRef = useRef<number | undefined>(undefined);
 
   const handleRephrase = async () => {
     if (!pendingPayload?.job_title) {
       toast.error("Job title is required to generate questions.");
       return;
     }
-    resetAI();
 
-    const generated = await generate({
-      title: pendingPayload.job_title,
-      department: pendingPayload.department ?? "",
-      specialization: pendingPayload.specializations?.[0] ?? undefined,
-      count: Math.max(questions.length, 5),
-    });
+    setAiLoading(true);
+    setAiError(null);
+
+    let generated: string[];
+    try {
+      generated = await generateInterviewQuestions({
+        title: pendingPayload.job_title,
+        department: pendingPayload.department ?? "",
+        specialization: pendingPayload.specializations?.[0] ?? undefined,
+        count: Math.max(questions.length, 5),
+      });
+    } catch (err) {
+      setAiError(
+        err instanceof Error ? err.message : "Failed to generate questions",
+      );
+      return;
+    } finally {
+      setAiLoading(false);
+    }
 
     if (generated.length === 0) return;
 
@@ -74,10 +89,23 @@ export function QuestionForm({
   };
 
   const handleQuestionsListChange = (items: string[]) => {
+    const nextItems =
+      items.length === 0 || items.every((item) => item.trim().length === 0)
+        ? [""]
+        : items.slice(0, MAX_AI_QUESTIONS);
+
+    if (
+      nextItems.filter((item) => item.trim().length > 0).length >=
+      MIN_AI_QUESTIONS
+    ) {
+      setQuestionError(null);
+    }
+
     onQuestionsChange(
-      items
-        .slice(0, MAX_AI_QUESTIONS)
-        .map((text, index) => ({ id: questions[index]?.id ?? uid(), text })),
+      nextItems.map((text, index) => ({
+        id: questions[index]?.id ?? uid(),
+        text,
+      })),
     );
   };
 
@@ -85,20 +113,48 @@ export function QuestionForm({
     toast.error("Maximum 10 questions allowed");
   };
 
-  const buildFinalPayload = (withStatusOpen: boolean): JobCreatePayload => ({
+  const getValidQuestionTexts = () =>
+    questions
+      .map((question) => question.text.trim())
+      .filter((text) => text.length > 0);
+
+  const validateQuestions = () => {
+    const validQuestions = getValidQuestionTexts();
+
+    if (validQuestions.length < MIN_AI_QUESTIONS) {
+      const message = `Please add at least ${MIN_AI_QUESTIONS} questions.`;
+      setQuestionError(message);
+      toast.error(message);
+      onValidationBlocked?.();
+      return null;
+    }
+
+    setQuestionError(null);
+    return validQuestions;
+  };
+
+  const buildFinalPayload = (
+    withStatusOpen: boolean,
+    validQuestions: string[],
+  ): JobCreatePayload => ({
     ...(pendingPayload ?? {}),
     job_title: pendingPayload?.job_title ?? "",
     job_type: pendingPayload?.job_type ?? "casual",
     job_urgency: pendingPayload?.job_urgency ?? "normal",
     responsibilities: pendingPayload?.responsibilities ?? [],
     required_skills: pendingPayload?.required_skills ?? [],
-    questions: questions.map((q) => q.text).filter(Boolean),
+    questions: validQuestions,
     status: withStatusOpen ? "OPEN" : "DRAFT",
     ai_interview: true,
   });
 
   const handleCreate = () => {
-    const payload = buildFinalPayload(true);
+    if (isSubmitting) return;
+
+    const validQuestions = validateQuestions();
+    if (!validQuestions) return;
+
+    const payload = buildFinalPayload(true, validQuestions);
     if (onNext) {
       onNext(payload);
     } else {
@@ -120,6 +176,31 @@ export function QuestionForm({
     router.push("/jobs");
   };
 
+  const questionItems = questions.map((question) => question.text);
+  const visibleQuestionItems =
+    questionItems.length === 0 ||
+    questionItems.every((item) => item.trim().length === 0)
+      ? [""]
+      : questionItems;
+
+  useEffect(() => {
+    if (
+      autoSubmitToken === undefined ||
+      lastAutoSubmitTokenRef.current === autoSubmitToken
+    ) {
+      return;
+    }
+
+    lastAutoSubmitTokenRef.current = autoSubmitToken;
+    handleCreate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSubmitToken]);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    handleCreate();
+  };
+
   return (
     <>
       {error && (
@@ -131,30 +212,33 @@ export function QuestionForm({
       {aiError && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm flex items-center justify-between">
           <span>{aiError}</span>
-          <button onClick={handleRephrase} className="underline font-medium ml-3">
+          <button
+            type="button"
+            onClick={handleRephrase}
+            className="underline font-medium ml-3"
+          >
             Try Again
           </button>
         </div>
       )}
 
-      <div className="space-y-3 sm:space-y-4 w-full overflow-x-hidden">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 min-w-0">
-          <div className="px-6 pt-6 pb-4">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base sm:text-lg font-bold text-gray-900">
-                {PAGE_TITLES.GENERATE_WITH_AI ?? "Create Interview Questions"}
-              </h2>
-            </div>
-
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        className="contents"
+        noValidate
+      >
+        <div className="space-y-3 sm:space-y-4 w-full overflow-x-hidden">
+          <div className="min-w-0">
             <CreateJobListSection
               title="Write Your Questions Here"
-              items={questions.map((question) => question.text)}
+              items={visibleQuestionItems}
               onChange={handleQuestionsListChange}
               placeholder="Type your question here..."
               maxItems={MAX_AI_QUESTIONS}
               onMaxItemsReached={handleMaxQuestionsReached}
-              counterText={`${questions.length} / ${MAX_AI_QUESTIONS} questions`}
-              itemLabel={(index) => `Questions ${index + 1} )`}
+              counterText={`${visibleQuestionItems.length} / ${MAX_AI_QUESTIONS} questions`}
+              error={questionError ?? undefined}
               headerActions={
                 <>
                   <button
@@ -175,39 +259,8 @@ export function QuestionForm({
               }
             />
           </div>
-
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onBack}
-              disabled={isSubmitting}
-              className="flex items-center gap-2 border border-gray-200 text-gray-700 text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-gray-50"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
-
-            <Button
-              type="button"
-              onClick={handleCreate}
-              disabled={isSubmitting}
-              className="flex items-center gap-2 bg-[#F4781B] hover:bg-[#e06a10] text-white text-sm font-semibold px-7 py-2.5 rounded-xl disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" /> Creating...
-                </>
-              ) : (
-                <>
-                  {onNext ? "Preview Job" : BUTTON_LABELS.CREATE}{" "}
-                  <ArrowLeft className="w-4 h-4 rotate-180" />
-                </>
-              )}
-            </Button>
-          </div>
         </div>
-      </div>
+      </form>
 
       <SuccessModal
         visible={showSuccess}
