@@ -124,6 +124,7 @@ export const ENDPOINTS = {
     `/recruiter/dashboard/recent-activity?activityLength=${activityLength}`,
   // Recruiter notification inbox
   NOTIFICATIONS: "/recruiter/notifications",
+  NOTIFICATION_MARK_READ: (id: string) => `/recruiter/notifications/${id}/read`,
   // -------------------------------------------------------------------------
   // dashboard api section end
   // -------------------------------------------------------------------------

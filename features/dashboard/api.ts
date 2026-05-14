@@ -5,8 +5,10 @@ import type {
   DashboardOverview,
   DashboardRecentActivityPayload,
   DashboardTodayShiftsPayload,
+  MarkNotificationReadResponse,
   NotificationsParams,
   NotificationsResponse,
+  RecruiterNotification,
 } from "./types";
 
 // ============================================================================
@@ -46,3 +48,22 @@ export const getNotifications = (
   params?: NotificationsParams,
 ): Promise<NotificationsResponse> =>
   getJson<NotificationsResponse>(ENDPOINTS.NOTIFICATIONS, params);
+
+export async function markNotificationAsRead(
+  id: string,
+): Promise<MarkNotificationReadResponse> {
+  const res = await apiRequest<MarkNotificationReadResponse>(
+    ENDPOINTS.NOTIFICATION_MARK_READ(id),
+    { method: "PATCH" },
+  );
+  return res;
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  try {
+    const res = await getNotifications({ limit: 1, is_read: false });
+    return res.data.pagination.total;
+  } catch {
+    return 0;
+  }
+}

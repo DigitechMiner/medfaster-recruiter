@@ -2,24 +2,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, User, Loader2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { NotificationsResponse } from '@/types';
-import { getNotifications } from '@/features/dashboard';
+import type { RecruiterNotification } from '@/types';
+import { getNotifications, markNotificationAsRead,  } from '@/features/dashboard';
 
-type Notification = NotificationsResponse['data']['notifications'][number];
+type Notification = RecruiterNotification;
 
 const ANIM_DURATION = 200;
 
 interface Props {
   onClose: () => void;
+  onAllRead?: () => void;
 }
 
 // Map notification type/priority to a dot color
 const getDotColor = (n: Notification): string => {
   const type = n.type?.toLowerCase() ?? '';
-  if (type.includes('payment') || type.includes('lock') || type.includes('end'))  return 'bg-red-500';
-  if (type.includes('refund') || type.includes('complete'))                        return 'bg-purple-500';
-  if (type.includes('shift') || type.includes('release'))                          return 'bg-[#F4781B]';
-  if (type.includes('active') || type.includes('job'))                             return 'bg-green-500';
+  if (type.includes('payment') || type.includes('lock') || type.includes('end'))
+    return 'bg-red-500';
+  if (type.includes('refund') || type.includes('complete')) return 'bg-purple-500';
+  if (type.includes('shift') || type.includes('release')) return 'bg-[#F4781B]';
+  if (type.includes('active') || type.includes('job')) return 'bg-green-500';
   return 'bg-orange-900';
 };
 
@@ -46,7 +48,7 @@ const formatTime = (iso: string): string => {
   }
 };
 
-export const NotificationPanel = ({ onClose }: Props) => {
+export const NotificationPanel = ({ onClose, onAllRead }: Props) => {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +59,7 @@ export const NotificationPanel = ({ onClose }: Props) => {
   const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [markingRead, setMarkingRead] = useState<Set<string>>(new Set());
 
   // ── Fetch notifications ────────────────────────────────────────────────────
   const fetchNotifications = useCallback(async (pageNum: number, append = false) => {
@@ -68,7 +71,7 @@ export const NotificationPanel = ({ onClose }: Props) => {
 
       if (res.success) {
         setNotifications((prev) =>
-          append ? [...prev, ...res.data.notifications] : res.data.notifications
+          append ? [...prev, ...res.data.notifications] : res.data.notifications,
         );
         setHasNextPage(res.data.pagination.hasNextPage);
       } else {
@@ -86,21 +89,56 @@ export const NotificationPanel = ({ onClose }: Props) => {
     fetchNotifications(1);
   }, [fetchNotifications]);
 
-  // ── Load more ──────────────────────────────────────────────────────────────
+  // ── Mark as read ─────────────────────────────────────────────────────────
+  const handleMarkRead = useCallback(
+  async (n: Notification) => {
+    if (n.is_read || markingRead.has(n.id)) return;
+
+    setMarkingRead((prev) => new Set(prev).add(n.id));
+
+    try {
+      const res = await markNotificationAsRead(n.id);
+      if (res.success) {
+        setNotifications((prev) => {
+          const updated = prev.map((item) =>
+            item.id === n.id
+              ? { ...item, is_read: true, read_at: res.data.notification.read_at }
+              : item,
+          );
+          // If no unread notifications remain, clear the bell dot
+          const stillUnread = updated.some((item) => !item.is_read);
+          if (!stillUnread) onAllRead?.();
+          return updated;
+        });
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setMarkingRead((prev) => {
+        const next = new Set(prev);
+        next.delete(n.id);
+        return next;
+      });
+    }
+  },
+  [markingRead, onAllRead],
+);
+
+  // ── Load more ────────────────────────────────────────────────────────────
   const loadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchNotifications(nextPage, true);
   };
 
-  // ── Close logic ────────────────────────────────────────────────────────────
+  // ── Close logic ──────────────────────────────────────────────────────────
   const handleClose = useCallback(() => {
     if (isClosing) return;
     setIsClosing(true);
     setTimeout(() => onClose(), ANIM_DURATION);
   }, [isClosing, onClose]);
 
-  // ── Outside click ──────────────────────────────────────────────────────────
+  // ── Outside click ────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -111,7 +149,7 @@ export const NotificationPanel = ({ onClose }: Props) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [handleClose]);
 
-  // ── Escape key ────────────────────────────────────────────────────────────
+  // ── Escape key ───────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
@@ -206,46 +244,56 @@ export const NotificationPanel = ({ onClose }: Props) => {
 
           {/* Notification list */}
           {!isLoading && !error && notifications.map((n) => (
-            <div
-              key={n.id}
-              className={`bg-white rounded-2xl border px-4 py-3.5 flex items-center gap-3 shadow-sm transition-colors
-                ${!n.is_read ? 'border-orange-100 bg-orange-50/30' : 'border-gray-100'}`}
-            >
-              {/* Avatar */}
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 overflow-hidden border-2 border-blue-200">
-                <User className="w-6 h-6 text-blue-400" strokeWidth={1.5} />
-              </div>
+              <div
+                key={n.id}
+                onClick={() => handleMarkRead(n)}
+                className={`bg-white rounded-2xl border px-4 py-3.5 flex items-center gap-3 shadow-sm transition-colors cursor-pointer
+                  ${!n.is_read ? 'border-orange-100 bg-orange-50/30 hover:bg-orange-50/60' : 'border-gray-100 hover:bg-gray-50'}`}
+              >
+                {/* Avatar */}
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 overflow-hidden border-2 border-blue-200">
+                  <User className="w-6 h-6 text-blue-400" strokeWidth={1.5} />
+                </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                {n.title && (
-                  <p className="text-xs font-semibold text-[#F4781B] uppercase tracking-wide mb-0.5">
-                    {n.title}
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  {n.title && (
+                    <p className="text-xs font-semibold text-[#F4781B] uppercase tracking-wide mb-0.5">
+                      {n.title}
+                    </p>
+                  )}
+                  <p className="text-sm font-semibold text-gray-900 leading-snug">{n.body}</p>
+                  <p className="text-xs text-[#F4781B] font-medium mt-0.5">
+                    {formatTime(n.created_at)}
                   </p>
-                )}
-                <p className="text-sm font-semibold text-gray-900 leading-snug">{n.body}</p>
-                <p className="text-xs text-[#F4781B] font-medium mt-0.5">
-                  {formatTime(n.created_at)}
-                </p>
-              </div>
+                </div>
 
-              {/* Right: Release Pay OR unread dot */}
-              <div className="flex items-center gap-2 shrink-0">
-                {isReleasePay(n) && getJobId(n) && (
-                  <button
-                    onClick={() => {
-                      router.push(`/wallet?release=${getJobId(n)}`);
-                      handleClose();
-                    }}
-                    className="bg-[#F4781B] hover:bg-orange-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
-                  >
-                    Release Pay
-                  </button>
-                )}
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getDotColor(n)}`} />
+                {/* Right: Release Pay OR unread dot */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {isReleasePay(n) && getJobId(n) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent double-firing handleMarkRead
+                        handleMarkRead(n);
+                        router.push(`/wallet?release=${getJobId(n)}`);
+                        handleClose();
+                      }}
+                      className="bg-[#F4781B] hover:bg-orange-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
+                    >
+                      Release Pay
+                    </button>
+                  )}
+                  {markingRead.has(n.id) ? (
+                    <Loader2 className="w-2.5 h-2.5 animate-spin text-gray-400 shrink-0" />
+                  ) : (
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity
+                        ${n.is_read ? 'opacity-0' : getDotColor(n)}`}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
           {/* Load more */}
           {!isLoading && !error && hasNextPage && (

@@ -145,3 +145,11 @@ export interface NotificationsResponse {
     pagination: PaginationData;
   };
 }
+
+export interface MarkNotificationReadResponse {
+  success: boolean;
+  message: string;
+  data: {
+    notification: RecruiterNotification;
+  };
+}
