@@ -6,12 +6,14 @@ export function MetricCard({
   icon,
   title,
   value,
+  subLabel,
   loading = false,
   className,
 }: {
   icon: ReactNode;
   title: string;
   value: string | number;
+  subLabel?: ReactNode;
   loading?: boolean;
   className?: string;
 }) {
@@ -35,6 +37,7 @@ export function MetricCard({
       ) : (
         <p className="text-2xl font-bold text-gray-900">{value}</p>
       )}
+      {subLabel && <p className="text-xs text-gray-400">{subLabel}</p>}
     </div>
   );
 }

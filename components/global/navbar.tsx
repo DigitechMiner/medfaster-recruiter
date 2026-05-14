@@ -287,7 +287,7 @@ export function Navbar() {
         {/* Right-side actions */}
         <div className="ml-auto flex items-center gap-1 md:gap-3">
           <button
-            onClick={() => router.push("/jobs/instant-replacement")}
+            onClick={() => router.push("/jobs/create/instant")}
             className="hidden md:flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B]
               hover:bg-orange-50 rounded-lg px-4 py-1.5 text-sm font-semibold
               transition-colors whitespace-nowrap h-9"
@@ -297,7 +297,7 @@ export function Navbar() {
           </button>
 
           <button
-            onClick={() => router.push("/jobs/create")}
+            onClick={() => router.push("/jobs/create/normal")}
             className="hidden md:flex items-center gap-1.5 bg-[#F4781B] hover:bg-[#e06a10] text-white
               rounded-lg px-3 sm:px-4 py-1.5 text-sm font-semibold transition-colors whitespace-nowrap h-9 shadow-sm"
           >

@@ -54,7 +54,6 @@ function TopupPageContent() {
   const [topupsReloadKey, setTopupsReloadKey] = useState(0);
   const [showTopupSuccess, setShowTopupSuccess] = useState(false);
   const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
-  const [hasPendingJob, setHasPendingJob] = useState(false);
 
   const topupSuccess = params.get("topup_success") === "true";
   const redirectStatus = params.get("redirect_status");
@@ -76,7 +75,6 @@ function TopupPageContent() {
     }
 
     setShowTopupSuccess(true);
-    setHasPendingJob(Boolean(sessionStorage.getItem("pending_job_payload")));
   }, [paymentFailed, router, topupSuccess]);
 
   useEffect(() => {
@@ -178,11 +176,6 @@ function TopupPageContent() {
     router.replace("/wallet/topup", { scroll: false });
   };
 
-  const handleContinueJob = () => {
-    setShowTopupSuccess(false);
-    router.replace("/jobs/payment-complete");
-  };
-
   const handleViewWallet = () => {
     setShowTopupSuccess(false);
     router.replace("/wallet");
@@ -230,9 +223,7 @@ function TopupPageContent() {
         amount={successAmount}
         isRefreshing={isRefreshingWallet}
         newBalance={newBalance}
-        hasPendingJob={hasPendingJob}
         onClose={handleSuccessClose}
-        onContinueJob={handleContinueJob}
         onViewWallet={handleViewWallet}
       />
     </AppLayout>

@@ -32,6 +32,15 @@ export const ENDPOINTS = {
   JOBS_DETAIL: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_UPDATE: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DELETE: (id: string) => `/recruiter/jobs/${id}`,
+  JOBS_DETAIL_APPLICATIONS: (id: string) => `/recruiter/jobs/${id}/applications`,
+  JOBS_DETAIL_SHIFTS: (id: string) => `/recruiter/jobs/${id}/shifts`,
+  JOBS_DETAIL_WALLET_TRANSACTIONS: (id: string) =>
+    `/recruiter/jobs/${id}/wallet-transactions`,
+  JOBS_DETAIL_DISPUTES: (id: string) => `/recruiter/jobs/${id}/disputes`,
+  JOBS_DETAIL_SHIFT_PAYMENTS: (jobId: string, shiftId: string) =>
+    `/recruiter/jobs/${jobId}/shifts/${shiftId}/payments`,
+  JOBS_DETAIL_SHIFT_DETAILS: (jobId: string, shiftId: string) =>
+    `/recruiter/jobs/${jobId}/shifts/${shiftId}/details`,
   JOBS_SUMMARY: "/recruiter/jobs/summary",
   JOBS_CALENDAR: "/recruiter/jobs/calendar",
   JOBS_FEE_PREVIEW: "/recruiter/jobs/preview",

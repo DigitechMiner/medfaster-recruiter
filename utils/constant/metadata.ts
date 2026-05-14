@@ -259,11 +259,6 @@ const metadata = {
   },
 } as const;
 
-export const provinces = metaData.data.canadian_provinces.map((province) => ({
-  value: province.value,
-  label: province.label,
-}));
-
 // ============================================================================
 // CONVERTER FUNCTIONS
 // ============================================================================
@@ -272,15 +267,8 @@ export function convertExperienceToBackend(frontendValue: string): string | null
   if (!frontendValue) return null;
   return (
     metadata.experience_mapping[frontendValue as keyof typeof metadata.experience_mapping] ??
-    String(frontendValue.split("-")[0].replace(/\D/g, "")) ??
-    null
+    frontendValue.split("-")[0].replace(/\D/g, "")
   );
-}
-
-export function convertExperienceToFrontend(backendValue: string | null | undefined): string {
-  if (!backendValue) return "";
-  const entry = Object.entries(metadata.experience_mapping).find(([, v]) => v === backendValue);
-  return entry ? entry[0] : backendValue;
 }
 
 export function convertJobTitleToBackend(frontendValue: string): string {
@@ -364,7 +352,7 @@ export function convertQualificationToFrontend(backendValue: string | null | und
 export function convertProvinceToFrontend(backendValue: string | null | undefined): string | undefined {
   if (!backendValue) return undefined;
   // Already a valid snake_case frontend value
-  if (provinces.find((p) => p.value === backendValue)) return backendValue;
+  if (PROVINCE_VALUE_TO_BACKEND[backendValue]) return backendValue;
   // Map from camelCase backend value
   return PROVINCE_BACKEND_TO_VALUE[backendValue] ?? undefined;
 }
@@ -377,7 +365,7 @@ export function convertProvinceToFrontend(backendValue: string | null | undefine
 // FILE VALIDATION HELPERS
 // ============================================================================
 
-export function validateFile(
+function validateFile(
   file: File,
   maxSizeMB = 10,
   allowedExtensions = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"]

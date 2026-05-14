@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
+import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 import { useJob, useJobId } from "@/hooks/useJobData";
-import { UrgentJobDetail } from "./components/UrgentJobDetail";
-import { NormalJobDetail } from "./components/NormalJobDetail";
+import { JobDetailTabs } from "./components/Tabs";
+import { JobDetailSummary } from "./components/BasicInfo";
+import { mapJobDetail, type JobDetailPayload } from "./components/job-detail-helpers";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();
   const jobId = useJobId();
   const { job, isLoading, error } = useJob(jobId);
+  const mappedJob = useMemo(
+    () => (job ? mapJobDetail(job as unknown as JobDetailPayload) : null),
+    [job],
+  );
 
   useEffect(() => {
     if (!isLoading && !job && jobId) router.replace("/jobs");
@@ -28,7 +34,7 @@ export default function JobDetailPageRoute() {
     );
   }
 
-  if (error || !job) {
+  if (error || !mappedJob) {
     return (
       <AppLayout padding="none">
         <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
@@ -42,21 +48,18 @@ export default function JobDetailPageRoute() {
 
   return (
     <AppLayout padding="none">
-      <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
-        {/* Differentiate here — urgent vs normal */}
-        {job.job_urgency === "instant" ? (
-          <UrgentJobDetail
-            job={job}
-            jobId={jobId!}
-            onCloseJob={() => {}}
-          />
-        ) : (
-          <NormalJobDetail
-            job={job}
-            jobId={jobId!}
-            onCloseJob={() => {}}
-          />
-        )}
+      <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full flex flex-col gap-4">
+        <BreadcrumbNav
+          breadcrumbs={[
+            { label: "Jobs", path: "/jobs" },
+            { label: jobId ?? "", path: `/job/${jobId}` },
+          ]}
+        />
+
+        <JobDetailSummary job={mappedJob} />
+        <Suspense fallback={null}>
+          <JobDetailTabs job={mappedJob} jobId={jobId!} />
+        </Suspense>
       </div>
     </AppLayout>
   );

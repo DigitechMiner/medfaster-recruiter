@@ -58,6 +58,20 @@ export interface InstantJobDetails {
   updated_at: string;
 }
 
+export interface JobFundingDetails {
+  id: string;
+  job_id: string;
+  recruiter_user_id: string;
+  wallet_id: string;
+  total_amount_cents: number | string | null;
+  held_amount_cents: number | string | null;
+  released_amount_cents: number | string | null;
+  refunded_amount_cents: number | string | null;
+  status: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface JobBackendResponse {
   id: string;
   recruiter_profile_id: string;
@@ -87,6 +101,7 @@ export interface JobBackendResponse {
   updated_at: string;
   normalJob: NormalJobDetails | null;
   instantJob: InstantJobDetails | null;
+  funding: JobFundingDetails | null;
   description: string | null;
   responsibilities: string[];
   required_skills: string[];
@@ -140,17 +155,10 @@ export interface JobsListResponse {
 }
 
 export interface JobsSummaryData {
-  range: string;
-  date_from: string;
-  date_to: string;
-  open_job_count: number;
-  incomplete_shift_count: number;
-  no_checkin_candidate_count: number;
-  active_shift_count: {
-    urgent_instant: number;
-    normal: number;
-    total: number;
-  };
+  active_job_count: number;
+  active_normal_job_count: number;
+  active_instant_job_count: number;
+  active_shift_count: number;
 }
 
 export interface JobsSummaryResponse {
@@ -467,7 +475,7 @@ export interface JobApplicationListResponse {
     candidate: {
       id: string;
       first_name: string;
-      last_name: string;
+      last_name: string | null;
       full_name: string | null;
       email: string | null;
       phone_number: string | null;
@@ -476,6 +484,14 @@ export interface JobApplicationListResponse {
       skill: string | null;
       city: string | null;
       state: string | null;
+      departments?: string[];
+      department?: string | null;
+      job_title?: string | null;
+      experience?: string | null;
+      experience_months?: number | null;
+      work_eligibility?: string | null;
+      best_ai_interview_score?: number | null;
+      job_interview_score?: number | null;
       completion_percentage: number | null;
     } | null;
   }>;
@@ -484,6 +500,216 @@ export interface JobApplicationListResponse {
     count: number;
     page: number;
     limit: number;
+  };
+}
+
+export type JobDetailRecord = Record<string, unknown>;
+
+export interface JobShiftCandidate extends JobDetailRecord {
+  id?: string;
+  user_id?: string;
+  candidate_user_id?: string;
+  candidate_id?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name?: string | null;
+  profile_image?: string | null;
+  profile_image_url?: string | null;
+}
+
+export interface JobShiftAttendance extends JobDetailRecord {
+  actual_check_in?: string | null;
+  actual_check_out?: string | null;
+  check_out_source?: string | null;
+  late_minutes?: number | string | null;
+  early_leave_minutes?: number | string | null;
+  worked_minutes?: number | string | null;
+}
+
+export interface JobShiftPayment extends JobDetailRecord {
+  id?: string;
+  assignment_id?: string;
+  job_funding_id?: string;
+  planned_amount_cents?: number | string | null;
+  actual_amount_cents?: number | string | null;
+  candidate_earning_cents?: number | string | null;
+  platform_fee_cents?: number | string | null;
+  recruiter_refund_cents?: number | string | null;
+  status?: string | null;
+  release_at?: string | null;
+  released_at?: string | null;
+}
+
+export interface JobShiftAssignment extends JobDetailRecord {
+  id?: string;
+  assignment_id?: string;
+  job_id?: string;
+  job_shift_id?: string;
+  candidate_id?: string;
+  status?: string | null;
+  hourly_rate_cents?: number | string | null;
+  platform_fee_cents?: number | string | null;
+  candidate?: JobShiftCandidate | null;
+  shift?: JobShiftItem | null;
+  latest_attendance?: JobShiftAttendance | null;
+  shift_attendance?: JobShiftAttendance | null;
+  shift_payment?: JobShiftPayment | null;
+}
+
+export interface JobShiftItem extends JobDetailRecord {
+  id?: string;
+  shift_id?: string;
+  assignment_id?: string;
+  candidate_id?: string;
+  candidate_name?: string;
+  shift_date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  shift_status?: string | null;
+  planned_check_in?: string | null;
+  planned_check_out?: string | null;
+  planned_minutes?: number | string | null;
+  check_in?: string | null;
+  check_out?: string | null;
+  total_hours?: number | string | null;
+  total_amount_cents?: number | string | null;
+  assignments?: JobShiftAssignment[];
+}
+
+export interface JobShiftsResponse extends JobDetailRecord {
+  shifts: JobShiftItem[];
+  pagination?: {
+    total?: number;
+    count?: number;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface JobShiftsParams {
+  status?: string;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface JobShiftPaymentItem extends JobDetailRecord {
+  id?: string;
+  payment_id?: string;
+  candidate_id?: string;
+  candidate_name?: string;
+  status?: string | null;
+  amount_cents?: number | string | null;
+  total_amount_cents?: number | string | null;
+  created_at?: string | null;
+  paid_at?: string | null;
+}
+
+export interface JobShiftPaymentsResponse extends JobDetailRecord {
+  payments: JobShiftPaymentItem[];
+  pagination?: {
+    total?: number;
+    count?: number;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export type JobShiftDetailsResponse = JobDetailRecord;
+
+export interface JobWalletTransactionItem extends JobDetailRecord {
+  id?: string;
+  transaction_id?: string;
+  wallet_id?: string;
+  type?: string | null;
+  direction?: string | null;
+  category?: string | null;
+  amount?: number | string | null;
+  amount_cents?: number | string | null;
+  total_amount_cents?: number | string | null;
+  currency?: string | null;
+  status?: string | null;
+  description?: string | null;
+  balance_after?: number | string | null;
+  reference_group_id?: string | null;
+  related_transaction_id?: string | null;
+  job_payment_id?: string | null;
+  idempotency_key?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  metadata?: JobDetailRecord | null;
+}
+
+export interface JobWalletTransactionsResponse extends JobDetailRecord {
+  job_id?: string;
+  wallet_id?: string;
+  wallet_transactions?: JobWalletTransactionItem[];
+  transactions: JobWalletTransactionItem[];
+  pagination?: {
+    total?: number;
+    count?: number;
+    page?: number;
+    limit?: number;
+    offset?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+  };
+  total?: number;
+  page?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface JobDisputeItem extends JobDetailRecord {
+  id?: string;
+  dispute_id?: string;
+  assignment_id?: string;
+  raised_by_user_id?: string | null;
+  status?: string | null;
+  reason?: string | null;
+  description?: string | null;
+  resolution_action?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  assignment?: JobShiftAssignment | null;
+}
+
+export interface CreateRecruiterShiftDisputePayload {
+  assignment_id: string;
+  reason?: string;
+  description?: string;
+}
+
+export interface CreatedRecruiterShiftDispute extends JobDetailRecord {
+  id: string;
+  assignment_id: string;
+  raised_by_user_id?: string | null;
+  reason?: string | null;
+  description?: string | null;
+  status: string;
+  resolution_action?: string | null;
+  created_at?: string | null;
+}
+
+export interface CreateRecruiterShiftDisputeResponse extends JobDetailRecord {
+  success: boolean;
+  message: string;
+  data: CreatedRecruiterShiftDispute;
+}
+
+export interface JobDisputesResponse extends JobDetailRecord {
+  job_id?: string;
+  disputes: JobDisputeItem[];
+  pagination?: {
+    total?: number;
+    count?: number;
+    page?: number;
+    limit?: number;
+    offset?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
   };
 }
 

@@ -3,8 +3,8 @@ import { useRouter } from 'next/navigation';
 import { Zap, Plus, UserPlus, Wallet } from 'lucide-react';
 
 const actions = [
-  { icon: Zap,      label: 'Urgent Shift',    href: '/jobs/urgent-replacement', bg: 'bg-orange-50', color: 'text-[#F4781B]' },
-  { icon: Plus,     label: 'Post a Job',       href: '/jobs/create',            bg: 'bg-blue-50',   color: 'text-blue-600'  },
+  { icon: Zap,      label: 'Urgent Shift',    href: '/jobs/create/instant', bg: 'bg-orange-50', color: 'text-[#F4781B]' },
+  { icon: Plus,     label: 'Post a Job',       href: '/jobs/create/normal',  bg: 'bg-blue-50',   color: 'text-blue-600'  },
   { icon: UserPlus, label: 'Add Candidate',   href: '/candidates',             bg: 'bg-green-50',  color: 'text-green-600' },
   { icon: Wallet,   label: 'Recharge Wallet', href: '/wallet/topup',           bg: 'bg-purple-50', color: 'text-purple-600'},
 ];

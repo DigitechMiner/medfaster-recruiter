@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { DAYS_OF_WEEK } from '@/app/jobs/constants/form';
 import { Button } from '@/components/ui/button';
 
 interface CalendarCardProps {
@@ -19,6 +18,8 @@ const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ] as const;
+
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 const DAY_WIDTH = 'w-[14.28%]'; // 100 / 7
 

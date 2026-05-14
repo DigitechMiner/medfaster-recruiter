@@ -8,9 +8,7 @@ type TopupSuccessDialogProps = {
   amount: string;
   isRefreshing: boolean;
   newBalance: string | null;
-  hasPendingJob: boolean;
   onClose: () => void;
-  onContinueJob: () => void;
   onViewWallet: () => void;
 };
 
@@ -19,9 +17,7 @@ export function TopupSuccessDialog({
   amount,
   isRefreshing,
   newBalance,
-  hasPendingJob,
   onClose,
-  onContinueJob,
   onViewWallet,
 }: TopupSuccessDialogProps) {
   const numericAmount = Number(amount);
@@ -29,7 +25,6 @@ export function TopupSuccessDialog({
     Number.isFinite(numericAmount) && numericAmount > 0
       ? `$ ${numericAmount.toLocaleString("en-CA")}`
       : `$ ${amount}`;
-  const actionText = hasPendingJob ? "Continue - Post Job" : "View Wallet";
 
   return (
     <Dialog
@@ -69,11 +64,11 @@ export function TopupSuccessDialog({
 
           <button
             type="button"
-            onClick={hasPendingJob ? onContinueJob : onViewWallet}
+            onClick={onViewWallet}
             disabled={isRefreshing}
             className="w-full bg-[#F4781B] hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
           >
-            {isRefreshing ? "Confirming..." : actionText}
+            {isRefreshing ? "Confirming..." : "View Wallet"}
           </button>
         </div>
       </DialogContent>

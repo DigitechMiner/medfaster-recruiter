@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, type MouseEvent } from 'react';
+import { Fragment, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,10 +9,54 @@ import { Briefcase, Calendar, Download, MapPin, Star, Zap } from 'lucide-react';
 import type { ActionType } from '@/types';
 import type { CandidateCardVM } from '@/types/view-models';
 import ScoreCard from '@/components/card/scorecard';
-import { BaseCard, CardHeader, CardIdentity, CardStats } from '@/components/candidate/BaseCard';
 import { addInHouseCandidate } from '@/features/jobs';
 import { InviteCandidateToJobModal } from '@/app/candidates/components/CandidateActionModal';
 import { InHouseInviteSecondSlot, JobTitlesLine } from '@/app/candidates/components/TableView';
+
+interface BaseCardProps {
+  className: string;
+  style?: CSSProperties;
+  onClick?: () => void;
+  children: ReactNode;
+}
+
+interface CardSectionProps {
+  className: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}
+
+function BaseCard({ className, style, onClick, children }: BaseCardProps) {
+  return (
+    <div className={className} style={style} onClick={onClick}>
+      {children}
+    </div>
+  );
+}
+
+function CardHeader({ className, style, children }: CardSectionProps) {
+  return (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  );
+}
+
+function CardIdentity({ className, style, children }: CardSectionProps) {
+  return (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  );
+}
+
+function CardStats({ className, style, children }: CardSectionProps) {
+  return (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  );
+}
 
 function JobTypePill({ type }: { type: string }) {
   return type === 'Urgent'

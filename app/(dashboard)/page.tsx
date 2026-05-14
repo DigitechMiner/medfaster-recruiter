@@ -1,55 +1,69 @@
-'use client';
-import React, { useState, useMemo } from 'react';
-import { BriefcaseBusiness, CalendarClock, Layers, AlertOctagon, ClipboardList, Wallet } from 'lucide-react';
-import { AppLayout }            from '@/components/global/app-layout';
-import { MetricCard }           from './components/MetricCard';
-import { TopIssues }            from './components/TopIssues';
-import { TodaysOperations }     from './components/TodaysOperations';
-import { JobsOverviewChart }    from './components/JobsOverviewChart';
-import { QuickActions }         from './components/QuickActions';
-import { PerformanceOverview }  from './components/PerformanceOverview';
-import { WorkforceStatus }      from './components/WorkforceStatus';
-import { FinancialSnapshot }    from './components/FinancialSnapshot';
-import { RecentActivity }       from './components/RecentActivity';
-import { BottomCandidateCards } from './components/BottomCandidateCards';
-import { Top5CandidatesHired }  from './components/Top5CandidatesHired';
-import { useAuthStore }         from '@/stores/authStore';
-import { useWalletStore }       from '@/stores/walletStore';
-import { useDashboardOverview } from '@/hooks/useDashboard';
+"use client";
+import React, { useState, useMemo } from "react";
+import {
+  BriefcaseBusiness,
+  CalendarClock,
+  Layers,
+  AlertOctagon,
+  ClipboardList,
+  Wallet,
+} from "lucide-react";
+import { AppLayout } from "@/components/global/app-layout";
+import { MetricCard } from "./components/MetricCard";
+import { TopIssues } from "./components/TopIssues";
+import { TodaysOperations } from "./components/TodaysOperations";
+import { JobsOverviewChart } from "./components/JobsOverviewChart";
+import { QuickActions } from "./components/QuickActions";
+import { PerformanceOverview } from "./components/PerformanceOverview";
+import { WorkforceStatus } from "./components/WorkforceStatus";
+import { FinancialSnapshot } from "./components/FinancialSnapshot";
+import { RecentActivity } from "./components/RecentActivity";
+import { BottomCandidateCards } from "./components/BottomCandidateCards";
+import { Top5CandidatesHired } from "./components/Top5CandidatesHired";
+import { useAuthStore } from "@/stores/authStore";
+import { useWalletStore } from "@/stores/walletStore";
+import { useDashboardOverview } from "@/hooks/useDashboard";
 
-const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`bg-white rounded-xl border border-gray-100 animate-pulse ${className}`} />
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    className={`bg-white rounded-xl border border-gray-100 animate-pulse ${className}`}
+  />
 );
 
 const DashboardPage: React.FC = () => {
-  const { recruiterProfile }              = useAuthStore();
-  const [period, setPeriod]               = useState('This Month');
+  const { recruiterProfile } = useAuthStore();
+  const [period, setPeriod] = useState("This Month");
   const { jobs, shifts, interviews, isLoading } = useDashboardOverview();
-  const wallet                            = useWalletStore((s) => s.wallet);
+  const wallet = useWalletStore((s) => s.wallet);
 
-  const firstName = recruiterProfile?.contact_person_name?.split(' ')[0]
-    ?? recruiterProfile?.organization_name
-    ?? 'there';
+  const firstName =
+    recruiterProfile?.contact_person_name?.split(" ")[0] ??
+    recruiterProfile?.organization_name ??
+    "there";
 
   const walletBalance = wallet ? Number(wallet.available_balance) / 100 : null;
-  const lockedBalance = wallet ? Number(wallet.held_balance) / 100       : null;
+  const lockedBalance = wallet ? Number(wallet.held_balance) / 100 : null;
   const fmtCAD = (v: number | null) =>
-    v !== null ? `$${v.toLocaleString('en-CA', { minimumFractionDigits: 0 })}` : '—';
+    v !== null
+      ? `$${v.toLocaleString("en-CA", { minimumFractionDigits: 0 })}`
+      : "—";
 
   // Derive no-shows and pending check-ins from shift/interview data
-  const noShows        = shifts?.MISSED  ?? 0;
+  const noShows = shifts?.MISSED ?? 0;
   const pendingCheckIns = shifts?.UPCOMING ?? 0;
 
-  const metrics = useMemo(() => ({
-    active:   jobs?.ACTIVE   ?? 0,
-    upcoming: jobs?.UPCOMING ?? 0,
-    open:     jobs?.OPEN     ?? 0,
-  }), [jobs]);
+  const metrics = useMemo(
+    () => ({
+      active: jobs?.ACTIVE ?? 0,
+      upcoming: jobs?.UPCOMING ?? 0,
+      open: jobs?.OPEN ?? 0,
+    }),
+    [jobs],
+  );
 
   return (
     <AppLayout padding="none">
       <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
-
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -80,31 +94,47 @@ const DashboardPage: React.FC = () => {
             <>
               <MetricCard
                 icon={<BriefcaseBusiness className="w-4 h-4 text-[#F4781B]" />}
-                title="Active Jobs/Shifts"   value={metrics.active}
-                percentChange={0.10}         isPositive={false} />
+                title="Active Jobs/Shifts"
+                value={metrics.active}
+                percentChange={0.1}
+                isPositive={false}
+              />
               <MetricCard
                 icon={<CalendarClock className="w-4 h-4 text-[#F4781B]" />}
-                title="Upcoming Jobs/Shifts" value={metrics.upcoming}
-                percentChange={1.10}         isPositive={true} />
+                title="Upcoming Jobs/Shifts"
+                value={metrics.upcoming}
+                percentChange={1.1}
+                isPositive={true}
+              />
               <MetricCard
                 icon={<Layers className="w-4 h-4 text-[#F4781B]" />}
-                title="Open Jobs/Shifts"     value={metrics.open}
-                percentChange={1.10}         isPositive={true} />
+                title="Open Jobs/Shifts"
+                value={metrics.open}
+                percentChange={1.1}
+                isPositive={true}
+              />
               <MetricCard
                 icon={<AlertOctagon className="w-4 h-4 text-[#F4781B]" />}
-                title="No-Shows"             value={noShows}
+                title="No-Shows"
+                value={noShows}
                 valueColor="text-red-500"
-                percentChange={2.10}         isPositive={false} />
+                percentChange={2.1}
+                isPositive={false}
+              />
               <MetricCard
                 icon={<ClipboardList className="w-4 h-4 text-[#F4781B]" />}
-                title="Pending Check-Ins"    value={pendingCheckIns}
-                percentChange={2.10}         isPositive={false} />
+                title="Pending Check-Ins"
+                value={pendingCheckIns}
+                percentChange={2.1}
+                isPositive={false}
+              />
               <MetricCard
                 icon={<Wallet className="w-4 h-4 text-[#F4781B]" />}
                 title="Wallet Balance"
                 value={fmtCAD(walletBalance)}
                 subLabel={`Locked: ${fmtCAD(lockedBalance)}`}
-                valueColor="text-gray-900" />
+                valueColor="text-gray-900"
+              />
             </>
           )}
         </div>
@@ -133,11 +163,13 @@ const DashboardPage: React.FC = () => {
 
         {/* Row 3 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-          <BottomCandidateCards section="nearby" title="Nearby Professionals (Within 5 kms)" />
+          <BottomCandidateCards
+            section="nearby"
+            title="Nearby Professionals (Within 5 kms)"
+          />
           <BottomCandidateCards section="urgent" title="Urgent Hires" />
           <Top5CandidatesHired />
         </div>
-
       </div>
     </AppLayout>
   );

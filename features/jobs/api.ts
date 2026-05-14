@@ -4,6 +4,8 @@ import { extractData, extractRoot } from "@/stores/api/response-helpers";
 import { toJobTitleSlug } from "@/utils/constant/job-title-slug";
 
 import type {
+  CreateRecruiterShiftDisputePayload,
+  CreateRecruiterShiftDisputeResponse,
   GenerateDescriptionPayload,
   GenerateDescriptionResponse,
   GenerateQuestionsPayload,
@@ -19,13 +21,74 @@ import type {
   JobCreatePayload,
   JobCreateResponse,
   JobDeleteResponse,
+  JobDetailRecord,
   JobDetailResponse,
+  JobDisputeItem,
+  JobDisputesResponse,
   JobFeePreviewPayload,
   JobFeePreviewResponse,
+  JobShiftItem,
+  JobShiftPaymentItem,
+  JobShiftPaymentsResponse,
+  JobShiftDetailsResponse,
+  JobShiftsParams,
+  JobShiftsResponse,
+  JobWalletTransactionItem,
+  JobWalletTransactionsResponse,
   JobUpdatePayload,
   JobUpdateResponse,
+  JobsSummaryData,
+  JobsSummaryResponse,
   JobsListResponse,
 } from "./types";
+
+function isRecord(value: unknown): value is JobDetailRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeCollectionResponse<TItem, TResponse extends JobDetailRecord>(
+  data: unknown,
+  key: string,
+): TResponse {
+  if (Array.isArray(data)) {
+    return { [key]: data } as TResponse;
+  }
+
+  if (!isRecord(data)) {
+    return { [key]: [] } as TResponse;
+  }
+
+  return {
+    ...data,
+    [key]: Array.isArray(data[key]) ? (data[key] as TItem[]) : [],
+  } as TResponse;
+}
+
+function normalizeJobWalletTransactions(data: unknown): JobWalletTransactionsResponse {
+  if (Array.isArray(data)) {
+    return { transactions: data as JobWalletTransactionItem[] };
+  }
+
+  if (!isRecord(data)) {
+    return { transactions: [] };
+  }
+
+  let transactions: unknown[] = [];
+  if (Array.isArray(data.transactions)) {
+    transactions = data.transactions;
+  } else if (Array.isArray(data.wallet_transactions)) {
+    transactions = data.wallet_transactions;
+  } else if (Array.isArray(data.walletTransactions)) {
+    transactions = data.walletTransactions;
+  } else if (Array.isArray(data.items)) {
+    transactions = data.items;
+  }
+
+  return {
+    ...data,
+    transactions: transactions as JobWalletTransactionItem[],
+  } as JobWalletTransactionsResponse;
+}
 
 // ============================================================================
 // API FUNCTIONS — Jobs
@@ -34,6 +97,11 @@ import type {
 export async function getRecruiterJobs(params?: GetJobsParams): Promise<JobsListResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_LIST, { params });
   return extractRoot<JobsListResponse>(res.data);
+}
+
+export async function getRecruiterJobsSummary(): Promise<JobsSummaryData> {
+  const res = await axiosInstance.get<JobsSummaryResponse>(ENDPOINTS.JOBS_SUMMARY);
+  return res.data.data;
 }
 
 export async function getRecruiterJob(id: string): Promise<JobDetailResponse> {
@@ -127,8 +195,59 @@ export async function getJobApplications(params: {
   limit?: number;
   offset?: number;
 }): Promise<JobApplicationListResponse> {
-  const res = await axiosInstance.get(ENDPOINTS.JOB_APPLICATIONS, { params });
-  return extractData<JobApplicationListResponse>(res.data);
+  const { job_id: jobId, ...queryParams } = params;
+  const endpoint = jobId ? ENDPOINTS.JOBS_DETAIL_APPLICATIONS(jobId) : ENDPOINTS.JOB_APPLICATIONS;
+  const res = await axiosInstance.get(endpoint, { params: queryParams });
+  const data = extractData<JobApplicationListResponse | JobApplicationListResponse["applications"]>(res.data);
+
+  return Array.isArray(data) ? { applications: data, pagination: { total: data.length, count: data.length, page: 1, limit: data.length } } : data;
+}
+
+export async function getRecruiterJobShifts(
+  jobId: string,
+  params?: JobShiftsParams,
+): Promise<JobShiftsResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SHIFTS(jobId), { params });
+  return normalizeCollectionResponse<JobShiftItem, JobShiftsResponse>(extractData(res.data), "shifts");
+}
+
+export async function getRecruiterJobWalletTransactions(
+  jobId: string,
+): Promise<JobWalletTransactionsResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_WALLET_TRANSACTIONS(jobId));
+  return normalizeJobWalletTransactions(extractData(res.data));
+}
+
+export async function getRecruiterJobDisputes(jobId: string): Promise<JobDisputesResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_DISPUTES(jobId));
+  return normalizeCollectionResponse<JobDisputeItem, JobDisputesResponse>(extractData(res.data), "disputes");
+}
+
+export async function createRecruiterShiftDispute(
+  payload: CreateRecruiterShiftDisputePayload,
+): Promise<CreateRecruiterShiftDisputeResponse> {
+  const res = await axiosInstance.post(ENDPOINTS.ESCROW_DISPUTE, payload);
+  return extractRoot<CreateRecruiterShiftDisputeResponse>(res.data);
+}
+
+export async function getRecruiterJobShiftPayments(
+  jobId: string,
+  shiftId: string,
+): Promise<JobShiftPaymentsResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SHIFT_PAYMENTS(jobId, shiftId));
+  return normalizeCollectionResponse<JobShiftPaymentItem, JobShiftPaymentsResponse>(
+    extractData(res.data),
+    "payments",
+  );
+}
+
+export async function getRecruiterJobShiftDetails(
+  jobId: string,
+  shiftId: string,
+): Promise<JobShiftDetailsResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SHIFT_DETAILS(jobId, shiftId));
+  const data = extractData<JobShiftDetailsResponse>(res.data);
+  return isRecord(data) ? data : {};
 }
 
 export async function updateApplicationStatus(

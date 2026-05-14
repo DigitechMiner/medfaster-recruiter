@@ -3,10 +3,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useJobsStore } from '@/stores/jobs-store';
-import type { JobBackendResponse, JobsListResponse } from '@/types';
+import type {
+  ApplicationStatus,
+  JobBackendResponse,
+  JobDisputesResponse,
+  JobShiftDetailsResponse,
+  JobShiftsParams,
+  JobShiftPaymentsResponse,
+  JobShiftsResponse,
+  JobWalletTransactionsResponse,
+  JobsListResponse,
+} from '@/types';
 
 import type { JobListItem } from '@/types';
-import { getJobApplications, JobApplicationListResponse } from '@/features/jobs';
+import {
+  getJobApplications,
+  getRecruiterJobDisputes,
+  getRecruiterJobShiftDetails,
+  getRecruiterJobShiftPayments,
+  getRecruiterJobShifts,
+  getRecruiterJobWalletTransactions,
+  JobApplicationListResponse,
+} from '@/features/jobs';
 
 
 // ── Full status union matching the actual API ─────────────────────────────────
@@ -88,20 +106,24 @@ export function useJob(jobId: string | null) {
 // ─── useJobApplications ───────────────────────────────────────────────────────
 export function useJobApplications(params?: {
   job_id?:  string;
-  status?:  'APPLIED' | 'SHORTLISTED' | 'INTERVIEWING' | 'INTERVIEWED' | 'HIRE' | 'REJECTED' | 'ACCEPTED' | 'CANCELLED';
+  status?:  ApplicationStatus;
   page?:    number;
   limit?:   number;
 }) {
   const [applications, setApplications] = useState<JobApplicationListResponse | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [error,        setError]        = useState<string | null>(null);
+  const jobId = params?.job_id;
+  const status = params?.status;
+  const page = params?.page;
+  const limit = params?.limit;
 
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
 
-    getJobApplications(params ?? {})
+    getJobApplications({ job_id: jobId, status, page, limit })
       .then((data) => { if (!cancelled) setApplications(data); })
       .catch((err) => {
         if (!cancelled)
@@ -110,9 +132,146 @@ export function useJobApplications(params?: {
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [params?.job_id, params?.status, params?.page, params?.limit]);
+  }, [jobId, status, page, limit]);
 
   return { applications, isLoading, error };
+}
+
+// ─── useJobShifts ─────────────────────────────────────────────────────────────
+export function useJobShifts(jobId?: string | null, params?: JobShiftsParams) {
+  const [shifts, setShifts] = useState<JobShiftsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const status = params?.status;
+  const startDate = params?.start_date;
+  const endDate = params?.end_date;
+
+  useEffect(() => {
+    if (!jobId) { setIsLoading(false); return; }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobShifts(jobId, {
+      status,
+      start_date: startDate,
+      end_date: endDate,
+    })
+      .then((data) => { if (!cancelled) setShifts(data); })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Failed to load job shifts');
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [jobId, status, startDate, endDate]);
+
+  return { shifts, isLoading, error };
+}
+
+// ─── useJobWalletTransactions ─────────────────────────────────────────────────
+export function useJobWalletTransactions(jobId?: string | null) {
+  const [transactions, setTransactions] = useState<JobWalletTransactionsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId) { setIsLoading(false); return; }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobWalletTransactions(jobId)
+      .then((data) => { if (!cancelled) setTransactions(data); })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Failed to load wallet transactions');
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [jobId]);
+
+  return { transactions, isLoading, error };
+}
+
+// ─── useJobDisputes ───────────────────────────────────────────────────────────
+export function useJobDisputes(jobId?: string | null) {
+  const [disputes, setDisputes] = useState<JobDisputesResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId) { setIsLoading(false); return; }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobDisputes(jobId)
+      .then((data) => { if (!cancelled) setDisputes(data); })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Failed to load disputes');
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [jobId]);
+
+  return { disputes, isLoading, error };
+}
+
+// ─── useJobShiftPayments ──────────────────────────────────────────────────────
+export function useJobShiftPayments(jobId?: string | null, shiftId?: string | null) {
+  const [payments, setPayments] = useState<JobShiftPaymentsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !shiftId) { setIsLoading(false); setPayments(null); return; }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobShiftPayments(jobId, shiftId)
+      .then((data) => { if (!cancelled) setPayments(data); })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Failed to load shift payments');
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [jobId, shiftId]);
+
+  return { payments, isLoading, error };
+}
+
+// ─── useJobShiftDetails ───────────────────────────────────────────────────────
+export function useJobShiftDetails(jobId?: string | null, shiftId?: string | null) {
+  const [details, setDetails] = useState<JobShiftDetailsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !shiftId) { setIsLoading(false); setDetails(null); return; }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobShiftDetails(jobId, shiftId)
+      .then((data) => { if (!cancelled) setDetails(data); })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Failed to load shift details');
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [jobId, shiftId]);
+
+  return { details, isLoading, error };
 }
 
 // ─── useJobId (Next.js route param helper) ────────────────────────────────────
