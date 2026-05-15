@@ -9,6 +9,7 @@ export function MetricCard({
   subLabel,
   loading = false,
   className,
+  valueClassName,
 }: {
   icon: ReactNode;
   title: string;
@@ -16,6 +17,8 @@ export function MetricCard({
   subLabel?: ReactNode;
   loading?: boolean;
   className?: string;
+  /** Merged with default value typography (e.g. `text-red-500` for alerts). */
+  valueClassName?: string;
 }) {
   return (
     <div
@@ -35,7 +38,11 @@ export function MetricCard({
           aria-hidden
         />
       ) : (
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p
+          className={cn('text-2xl font-bold text-gray-900', valueClassName)}
+        >
+          {value}
+        </p>
       )}
       {subLabel && <p className="text-xs text-gray-400">{subLabel}</p>}
     </div>

@@ -14,6 +14,14 @@ import {
   getRecruiterProfileWithDocuments,
 } from '@/features/profile/api';
 import type { RecruiterDocument, RecruiterProfile } from '@/features/profile/types';
+import {
+  getNotifications,
+  markNotificationAsRead,
+} from '@/features/dashboard/api';
+import type { RecruiterNotification } from '@/features/dashboard/types';
+
+let ensureNotificationsPromise: Promise<void> | null = null;
+let loadMoreNotificationsPromise: Promise<void> | null = null;
 
 // ============================================================================
 // TYPES
@@ -32,6 +40,14 @@ interface AuthState {
   otpError: string | null;
   recruiterProfile: RecruiterProfile | null;
   recruiterDocuments: RecruiterDocument[] | null;
+  notifications: RecruiterNotification[];
+  notificationsPage: number;
+  notificationsHasNextPage: boolean;
+  unreadCount: number;
+  notificationsLoading: boolean;
+  notificationsLoadingMore: boolean;
+  notificationsError: string | null;
+  notificationsInitialized: boolean;
 }
 
 interface AuthActions {
@@ -65,6 +81,12 @@ interface AuthActions {
     data?: unknown;
     errors?: Array<{ field: string; message: string }>;
   }>;
+
+  ensureNotificationsLoaded: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
+  loadMoreNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<boolean>;
+  clearNotifications: () => void;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -80,6 +102,14 @@ const initialState: AuthState = {
   otpError: null,
   recruiterProfile: null,
   recruiterDocuments: null,
+  notifications: [],
+  notificationsPage: 0,
+  notificationsHasNextPage: false,
+  unreadCount: 0,
+  notificationsLoading: false,
+  notificationsLoadingMore: false,
+  notificationsError: null,
+  notificationsInitialized: false,
 };
 
 const normalizeCountryCode = (countryCode: string) =>
@@ -106,6 +136,9 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   const parsed = asApiError(error);
   return parsed.response?.data?.message || parsed.message || fallback;
 };
+
+const countUnread = (notifications: RecruiterNotification[]) =>
+  notifications.filter((n) => !n.is_read).length;
 
 // ============================================================================
 // STORE
@@ -268,6 +301,128 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      // ── Notifications ─────────────────────────────────────────────────────
+      ensureNotificationsLoaded: async () => {
+        if (get().notificationsInitialized) return;
+        if (ensureNotificationsPromise) return ensureNotificationsPromise;
+
+        ensureNotificationsPromise = (async () => {
+          set({ notificationsLoading: true, notificationsError: null });
+          try {
+            const listRes = await getNotifications({ page: 1, limit: 15 });
+
+            if (listRes.success) {
+              const notifications = listRes.data.notifications;
+              set({
+                notifications,
+                notificationsPage: 1,
+                notificationsHasNextPage: listRes.data.pagination.hasNextPage,
+                notificationsInitialized: true,
+                unreadCount: countUnread(notifications),
+              });
+            } else {
+              set({
+                notificationsError: listRes.message ?? 'Failed to load notifications',
+              });
+            }
+          } catch {
+            set({ notificationsError: 'Failed to load notifications' });
+          } finally {
+            set({ notificationsLoading: false });
+            ensureNotificationsPromise = null;
+          }
+        })();
+
+        return ensureNotificationsPromise;
+      },
+
+      refreshNotifications: async () => {
+        ensureNotificationsPromise = null;
+        set({
+          notificationsInitialized: false,
+          notifications: [],
+          notificationsPage: 0,
+          notificationsHasNextPage: false,
+          notificationsError: null,
+        });
+        await get().ensureNotificationsLoaded();
+      },
+
+      loadMoreNotifications: async () => {
+        const { notificationsLoadingMore, notificationsHasNextPage, notificationsPage } =
+          get();
+        if (notificationsLoadingMore || !notificationsHasNextPage) return;
+        if (loadMoreNotificationsPromise) return loadMoreNotificationsPromise;
+
+        loadMoreNotificationsPromise = (async () => {
+          set({ notificationsLoadingMore: true });
+          try {
+            const nextPage = notificationsPage + 1;
+            const res = await getNotifications({ page: nextPage, limit: 15 });
+            if (res.success) {
+              set((state) => {
+                const notifications = [
+                  ...state.notifications,
+                  ...res.data.notifications,
+                ];
+                return {
+                  notifications,
+                  notificationsPage: nextPage,
+                  notificationsHasNextPage: res.data.pagination.hasNextPage,
+                  unreadCount: countUnread(notifications),
+                };
+              });
+            }
+          } finally {
+            set({ notificationsLoadingMore: false });
+            loadMoreNotificationsPromise = null;
+          }
+        })();
+
+        return loadMoreNotificationsPromise;
+      },
+
+      markNotificationRead: async (id) => {
+        const notification = get().notifications.find((n) => n.id === id);
+        if (!notification || notification.is_read) return false;
+
+        try {
+          const res = await markNotificationAsRead(id);
+          if (res.success) {
+            set((state) => {
+              const notifications = state.notifications.map((item) =>
+                item.id === id
+                  ? { ...item, is_read: true, read_at: res.data.notification.read_at }
+                  : item,
+              );
+              return {
+                notifications,
+                unreadCount: countUnread(notifications),
+              };
+            });
+            return true;
+          }
+        } catch {
+          // silent fail
+        }
+        return false;
+      },
+
+      clearNotifications: () => {
+        ensureNotificationsPromise = null;
+        loadMoreNotificationsPromise = null;
+        set({
+          notifications: [],
+          notificationsPage: 0,
+          notificationsHasNextPage: false,
+          unreadCount: 0,
+          notificationsLoading: false,
+          notificationsLoadingMore: false,
+          notificationsError: null,
+          notificationsInitialized: false,
+        });
+      },
+
       // ── Logout ────────────────────────────────────────────────────────────
       logout: async () => {
         try {
@@ -276,6 +431,7 @@ export const useAuthStore = create<AuthStore>()(
         } finally {
           // ✅ Clear the Authorization header on logout
           delete axiosInstance.defaults.headers.common['Authorization'];
+          get().clearNotifications();
           set({ ...initialState });
         }
       },

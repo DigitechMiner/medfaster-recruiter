@@ -3,12 +3,14 @@ import { ENDPOINTS } from "@/stores/api/api-endpoints";
 
 import type {
   DashboardOverview,
-  DashboardRecentActivityPayload,
+  DashboardTodayShiftsParams,
   DashboardTodayShiftsPayload,
   MarkNotificationReadResponse,
   NotificationsParams,
   NotificationsResponse,
-  RecruiterNotification,
+  RecruiterDashboardApiResponse,
+  RecruiterUnderfilledJobsApiResponse,
+  UnderfilledJobsPayload,
 } from "./types";
 
 // ============================================================================
@@ -19,28 +21,31 @@ const getJson = <T>(url: string, params?: unknown): Promise<T> =>
   axiosInstance.get<T>(url, params ? { params } : undefined).then((r) => r.data);
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
-  const res = await apiRequest<{ success: boolean; data: DashboardOverview }>(
+  const res = await apiRequest<RecruiterDashboardApiResponse>(
     ENDPOINTS.DASHBOARD_OVERVIEW,
     { method: "GET" },
   );
   return res.data;
 }
 
-export async function getDashboardTodayShifts(): Promise<DashboardTodayShiftsPayload> {
-  const res = await apiRequest<{
-    success: boolean;
-    data: DashboardTodayShiftsPayload;
-  }>(ENDPOINTS.DASHBOARD_TODAY_SHIFTS, { method: "GET" });
+export async function getDashboardUnderfilledJobs(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<UnderfilledJobsPayload> {
+  const res = await apiRequest<RecruiterUnderfilledJobsApiResponse>(
+    ENDPOINTS.DASHBOARD_UNDERFILLED_JOBS,
+    { method: "GET", params },
+  );
   return res.data;
 }
 
-export async function getDashboardRecentActivity(
-  activityLength = 10,
-): Promise<DashboardRecentActivityPayload> {
+export async function getDashboardTodayShifts(
+  params?: DashboardTodayShiftsParams,
+): Promise<DashboardTodayShiftsPayload> {
   const res = await apiRequest<{
     success: boolean;
-    data: DashboardRecentActivityPayload;
-  }>(ENDPOINTS.DASHBOARD_RECENT_ACTIVITY(activityLength), { method: "GET" });
+    data: DashboardTodayShiftsPayload;
+  }>(ENDPOINTS.DASHBOARD_TODAY_SHIFTS, { method: "GET", params });
   return res.data;
 }
 
@@ -57,13 +62,4 @@ export async function markNotificationAsRead(
     { method: "PATCH" },
   );
   return res;
-}
-
-export async function getUnreadNotificationCount(): Promise<number> {
-  try {
-    const res = await getNotifications({ limit: 1, is_read: false });
-    return res.data.pagination.total;
-  } catch {
-    return 0;
-  }
 }

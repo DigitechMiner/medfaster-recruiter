@@ -85,6 +85,20 @@ export default function ClientLayout({
 
     if (recruiterProfile && pathname === "/auth") {
       router.replace("/");
+      return;
+    }
+
+    const isProfileComplete = !!(
+      recruiterProfile?.organization_name &&
+      recruiterProfile?.contact_person_name
+    );
+
+    if (
+      recruiterProfile &&
+      !isProfileComplete &&
+      pathname !== "/registration"
+    ) {
+      router.replace("/registration");
     }
   }, [isProfileResolving, recruiterProfile, pathname, router]);
 

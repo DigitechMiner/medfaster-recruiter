@@ -14,7 +14,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import { NotificationPanel } from "@/components/global/NotificationPanel";
 import { WalletBalance } from "@/components/global/wallet-balance";
-import { getUnreadNotificationCount } from "@/features/dashboard";
 
 const NO_SIDEBAR_ROUTES = ["/messages"];
 const desktopProfileItemClass =
@@ -31,17 +30,17 @@ export function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen,   setNotifOpen]   = useState(false);
   const [loggingOut,  setLoggingOut]  = useState(false);
-  const [hasUnread,   setHasUnread]   = useState(false);
-
   const pathname        = usePathname();
   const router          = useRouter();
   const logout          = useAuthStore((s) => s.logout);
   const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
+  const unreadCount = useAuthStore((s) => s.unreadCount);
+  const ensureNotificationsLoaded = useAuthStore((s) => s.ensureNotificationsLoaded);
   const showSidebar = !NO_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
 
   useEffect(() => {
-  getUnreadNotificationCount().then((count) => setHasUnread(count > 0));
-}, []);
+    void ensureNotificationsLoaded();
+  }, [ensureNotificationsLoaded]);
 
   const navLinks = [
     { href: "/",           label: "Dashboard", icon: LayoutDashboard },
@@ -365,7 +364,7 @@ export function Navbar() {
             aria-label="Notifications"
           >
             <Bell size={20} />
-            {hasUnread && !notifOpen && (
+            {unreadCount > 0 && !notifOpen && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-1 ring-white" />
             )}
           </button>
@@ -431,10 +430,7 @@ export function Navbar() {
             aria-hidden="true"
           />
           <div className="relative z-[60]">
-            <NotificationPanel
-              onClose={() => setNotifOpen(false)}
-              onAllRead={() => setHasUnread(false)}
-            />
+            <NotificationPanel onClose={() => setNotifOpen(false)} />
           </div>
         </>
       )}

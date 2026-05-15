@@ -1,175 +1,110 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React from "react";
 import {
+  Activity,
+  AlertOctagon,
+  Ban,
   BriefcaseBusiness,
   CalendarClock,
+  CalendarRange,
+  ClipboardClock,
   Layers,
-  AlertOctagon,
-  ClipboardList,
-  Wallet,
 } from "lucide-react";
 import { AppLayout } from "@/components/global/app-layout";
-import { MetricCard } from "./components/MetricCard";
-import { TopIssues } from "./components/TopIssues";
-import { TodaysOperations } from "./components/TodaysOperations";
-import { JobsOverviewChart } from "./components/JobsOverviewChart";
+import { MetricCard } from "@/components/ui/metric-card";
+import { DashboardOperationsTabs } from "./components/DashboardOperationsTabs";
 import { QuickActions } from "./components/QuickActions";
-import { PerformanceOverview } from "./components/PerformanceOverview";
-import { WorkforceStatus } from "./components/WorkforceStatus";
-import { FinancialSnapshot } from "./components/FinancialSnapshot";
-import { RecentActivity } from "./components/RecentActivity";
-import { BottomCandidateCards } from "./components/BottomCandidateCards";
-import { Top5CandidatesHired } from "./components/Top5CandidatesHired";
+import { DashboardWalletCard } from "./components/DashboardWalletCard";
 import { useAuthStore } from "@/stores/authStore";
-import { useWalletStore } from "@/stores/walletStore";
 import { useDashboardOverview } from "@/hooks/useDashboard";
 
-const Skeleton = ({ className = "" }: { className?: string }) => (
-  <div
-    className={`bg-white rounded-xl border border-gray-100 animate-pulse ${className}`}
-  />
-);
+const iconClass = "w-4 h-4 text-[#F4781B]";
 
 const DashboardPage: React.FC = () => {
   const { recruiterProfile } = useAuthStore();
-  const [period, setPeriod] = useState("This Month");
-  const { jobs, shifts, interviews, isLoading } = useDashboardOverview();
-  const wallet = useWalletStore((s) => s.wallet);
+  const { jobs, shifts, isLoading } = useDashboardOverview();
 
   const firstName =
     recruiterProfile?.contact_person_name?.split(" ")[0] ??
     recruiterProfile?.organization_name ??
     "there";
 
-  const walletBalance = wallet ? Number(wallet.available_balance) / 100 : null;
-  const lockedBalance = wallet ? Number(wallet.held_balance) / 100 : null;
-  const fmtCAD = (v: number | null) =>
-    v !== null
-      ? `$${v.toLocaleString("en-CA", { minimumFractionDigits: 0 })}`
-      : "—";
-
-  // Derive no-shows and pending check-ins from shift/interview data
-  const noShows = shifts?.MISSED ?? 0;
-  const pendingCheckIns = shifts?.UPCOMING ?? 0;
-
-  const metrics = useMemo(
-    () => ({
-      active: jobs?.ACTIVE ?? 0,
-      upcoming: jobs?.UPCOMING ?? 0,
-      open: jobs?.OPEN ?? 0,
-    }),
-    [jobs],
-  );
-
   return (
     <AppLayout padding="none">
       <div className="flex flex-col gap-4 p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Hello, {firstName} 👋
-            </h1>
-            <p className="text-sm text-gray-500">
-              Here&apos;s what&apos;s happening in your operations today
-            </p>
-          </div>
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="shrink-0 text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-600 bg-white shadow-sm focus:outline-none"
-          >
-            <option>This Month</option>
-            <option>Last Month</option>
-            <option>Last 3 Months</option>
-            <option>This Year</option>
-          </select>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Hello, {firstName} 👋
+          </h1>
+          <p className="text-sm text-gray-500">
+            Here&apos;s what&apos;s happening in your operations today
+          </p>
         </div>
 
-        {/* 6 Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-          {isLoading ? (
-            [...Array(6)].map((_, i) => <Skeleton key={i} className="h-28" />)
-          ) : (
-            <>
-              <MetricCard
-                icon={<BriefcaseBusiness className="w-4 h-4 text-[#F4781B]" />}
-                title="Active Jobs/Shifts"
-                value={metrics.active}
-                percentChange={0.1}
-                isPositive={false}
-              />
-              <MetricCard
-                icon={<CalendarClock className="w-4 h-4 text-[#F4781B]" />}
-                title="Upcoming Jobs/Shifts"
-                value={metrics.upcoming}
-                percentChange={1.1}
-                isPositive={true}
-              />
-              <MetricCard
-                icon={<Layers className="w-4 h-4 text-[#F4781B]" />}
-                title="Open Jobs/Shifts"
-                value={metrics.open}
-                percentChange={1.1}
-                isPositive={true}
-              />
-              <MetricCard
-                icon={<AlertOctagon className="w-4 h-4 text-[#F4781B]" />}
-                title="No-Shows"
-                value={noShows}
-                valueColor="text-red-500"
-                percentChange={2.1}
-                isPositive={false}
-              />
-              <MetricCard
-                icon={<ClipboardList className="w-4 h-4 text-[#F4781B]" />}
-                title="Pending Check-Ins"
-                value={pendingCheckIns}
-                percentChange={2.1}
-                isPositive={false}
-              />
-              <MetricCard
-                icon={<Wallet className="w-4 h-4 text-[#F4781B]" />}
-                title="Wallet Balance"
-                value={fmtCAD(walletBalance)}
-                subLabel={`Locked: ${fmtCAD(lockedBalance)}`}
-                valueColor="text-gray-900"
-              />
-            </>
-          )}
-        </div>
-
-        {/* Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_1fr] gap-3 items-stretch">
-          <TopIssues shifts={shifts} interviews={interviews} />
-          <TodaysOperations />
-          <div className="flex flex-col gap-3 h-full">
-            <div className="flex-1 min-h-0">
-              <JobsOverviewChart jobs={jobs} />
-            </div>
-            <div className="shrink-0">
-              <QuickActions />
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
-          <PerformanceOverview />
-          <WorkforceStatus jobs={jobs} />
-          <FinancialSnapshot />
-          <RecentActivity />
-        </div>
-
-        {/* Row 3 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-          <BottomCandidateCards
-            section="nearby"
-            title="Nearby Professionals (Within 5 kms)"
+        {/* Job + shift overview (API jobStatusOverview & shiftOverview) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricCard
+            loading={isLoading}
+            icon={<Layers className={iconClass} />}
+            title="Jobs · Open"
+            value={jobs?.OPEN ?? 0}
           />
-          <BottomCandidateCards section="urgent" title="Urgent Hires" />
-          <Top5CandidatesHired />
+          <MetricCard
+            loading={isLoading}
+            icon={<CalendarClock className={iconClass} />}
+            title="Jobs · Upcoming"
+            value={jobs?.UPCOMING ?? 0}
+          />
+          <MetricCard
+            loading={isLoading}
+            icon={<BriefcaseBusiness className={iconClass} />}
+            title="Jobs · Active"
+            value={jobs?.ACTIVE ?? 0}
+          />
+          <MetricCard
+            loading={isLoading}
+            icon={<CalendarRange className={iconClass} />}
+            title="Shifts · Upcoming"
+            value={shifts?.UPCOMING ?? 0}
+          />
+          <MetricCard
+            loading={isLoading}
+            icon={<Activity className={iconClass} />}
+            title="Shifts · Active"
+            value={shifts?.ACTIVE ?? 0}
+          />
+          <MetricCard
+            loading={isLoading}
+            icon={<ClipboardClock className={iconClass} />}
+            title="Shifts · Late Check-In"
+            value={shifts?.LATE_CHECK_IN ?? 0}
+            valueClassName="text-orange-600"
+          />
+          <MetricCard
+            loading={isLoading}
+            icon={<AlertOctagon className={iconClass} />}
+            title="Shifts · Missed"
+            value={shifts?.MISSED ?? 0}
+            valueClassName="text-red-500"
+          />
+          <MetricCard
+            loading={isLoading}
+            icon={<Ban className={iconClass} />}
+            title="Shifts · Cancelled"
+            value={shifts?.CANCELLED ?? 0}
+          />
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+          <QuickActions />
+          <DashboardWalletCard />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 items-stretch">
+          <DashboardOperationsTabs />
+        </div>
+
       </div>
     </AppLayout>
   );

@@ -11,6 +11,28 @@ import {
 } from "@/features/common";
 import { metaData as initialMetaData } from "@/utils/constant/metadata";
 
+/** Map province value, label, or abbreviation to display label using store/API province options. */
+export function resolveCanadianProvinceLabel(
+  provinces: readonly MetadataValueOption[],
+  province: string | null | undefined,
+): string {
+  if (!province?.trim()) return "";
+  const v = province.trim();
+  const normalized = v.toLowerCase().replace(/-/g, "_");
+  const match = provinces.find((p) => {
+    const abvRaw = (p as { abvName?: unknown }).abvName;
+    const abv = typeof abvRaw === "string" ? abvRaw : "";
+    return (
+      p.value === normalized ||
+      p.value === v.toLowerCase() ||
+      p.label === v ||
+      p.label.toLowerCase() === normalized ||
+      (abv.length > 0 && abv.toUpperCase() === v.toUpperCase())
+    );
+  });
+  return match?.label ?? v;
+}
+
 const initialData = initialMetaData.data as AppMetadata;
 
 const dedupeMetadataOptions = (options: MetadataOption[] = []): MetadataOption[] => {

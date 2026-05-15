@@ -24,44 +24,69 @@ export interface RecruiterDashboardData {
   };
 }
 
+/** `data.jobStatusOverview` — GET `/recruiter/dashboard` */
+export interface JobStatusOverview {
+  OPEN: number;
+  UPCOMING: number;
+  ACTIVE: number;
+}
+
+/** `data.shiftOverview` — GET `/recruiter/dashboard` */
+export interface ShiftOverview {
+  UPCOMING: number;
+  ACTIVE: number;
+  LATE_CHECK_IN: number;
+  MISSED: number;
+  CANCELLED: number;
+}
+
+/** `data` — GET `/recruiter/dashboard` */
 export interface DashboardOverview {
-  jobStatusOverview: {
-    TOTAL: number;
-    DRAFT: number;
-    OPEN: number;
-    PAUSED: number;
-    UPCOMING: number;
-    ACTIVE: number;
-    COMPLETED: number;
-    CLOSED: number;
-  };
-  interviewOverview: {
-    REQUESTS: {
-      TOTAL: number;
-      PENDING: number;
-      ACCEPTED: number;
-      REJECTED: number;
-      EXPIRED: number;
-      CANCELLED: number;
-      SCHEDULED: number;
-    };
-    BOOKINGS: { CONFIRMED: number; CANCELLED: number };
-    INTERVIEWS: {
-      TOTAL: number;
-      PENDING: number;
-      IN_PROGRESS: number;
-      ENDED: number;
-      FAILED: number;
-    };
-  };
-  shiftOverview: {
-    TOTAL: number;
-    UPCOMING: number;
-    ACTIVE: number;
-    MISSED: number;
-    COMPLETED: number;
-    CANCELLED: number;
-  };
+  jobStatusOverview: JobStatusOverview;
+  shiftOverview: ShiftOverview;
+}
+
+/** Full JSON body — GET `/recruiter/dashboard` */
+export interface RecruiterDashboardApiResponse {
+  success: boolean;
+  message: string;
+  data: DashboardOverview;
+}
+
+/** GET `/recruiter/dashboard/underfilled-jobs` — single job row */
+export interface UnderfilledJob {
+  job_id: string;
+  job_title: string;
+  street: string;
+  city: string;
+  province: string;
+  no_of_hires_required: number;
+  no_of_hires_hired: number;
+  status: string;
+  start_date: string | null;
+}
+
+/** `data.pagination` — optional `count` = items returned on current page */
+export type UnderfilledJobsPagination = PaginationData & {
+  count?: number;
+};
+
+export interface UnderfilledJobsPayload {
+  jobs: UnderfilledJob[];
+  pagination: UnderfilledJobsPagination;
+}
+
+export interface RecruiterUnderfilledJobsApiResponse {
+  success: boolean;
+  message: string;
+  data: UnderfilledJobsPayload;
+}
+
+export interface TodayShiftCandidateProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  profile_image_url?: string | null;
 }
 
 export interface TodayShift {
@@ -70,40 +95,41 @@ export interface TodayShift {
   shift_date: string;
   shift_check_in_time: string;
   shift_check_out_time: string;
+  total_expected_work_minutes?: number | null;
+  check_in?: string | null;
+  check_out?: string | null;
+  check_out_source?: string | null;
+  total_work_minutes?: number | null;
+  late_minutes?: number | null;
+  early_leave_minutes?: number | null;
   job_title: string;
-  candidate_profile: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
+  street?: string | null;
+  city?: string | null;
+  province?: string | null;
+  candidate_profile: TodayShiftCandidateProfile;
 }
 
-export interface ActivityItem {
-  type: string;
-  title: string;
-  occurred_at: string;
-  status_color: "green" | "orange" | "red" | string;
-  meta: {
-    shift_status?: string;
-    shift_date?: string;
-    shift_check_in_time?: string;
-    shift_check_out_time?: string;
-    job_title?: string;
-    late_minutes?: number;
-    assignment_status?: string;
-  };
+export type DashboardShiftRange = "today" | "week" | "month";
+
+export interface DashboardTodayShiftsParams {
+  range?: DashboardShiftRange;
+  period?: DashboardShiftRange;
+  page?: number;
+  limit?: number;
+  offset?: number;
 }
+
+export type TodayShiftsPagination = PaginationData & {
+  count?: number;
+};
 
 export interface DashboardTodayShiftsPayload {
+  range: DashboardShiftRange;
+  date_from: string;
+  date_to: string;
   today: string;
-  count: number;
   shifts: TodayShift[];
-}
-
-export interface DashboardRecentActivityPayload {
-  total: number;
-  activityLength: number;
-  activities: ActivityItem[];
+  pagination: TodayShiftsPagination;
 }
 
 // ── Recruiter notification inbox (GET `/recruiter/notifications`) ───────────

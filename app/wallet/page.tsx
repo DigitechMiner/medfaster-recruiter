@@ -81,15 +81,21 @@ export default function WalletPage() {
   }, [activeTab, page, perPage]);
 
   const isLoading = walletLoading && !wallet;
-  const { available, locked, pending, total } = useMemo(() => {
+  const { available, locked, total, monthlySpendTotal } = useMemo(() => {
     const availableBalance = wallet ? Number(wallet.available_balance) : 0;
     const heldBalance = wallet ? Number(wallet.held_balance) : 0;
     const pendingBalance = wallet ? Number(wallet.pending_balance) : 0;
+    const jobSpend = wallet ? Number(wallet.monthly_job_spend_cents) : NaN;
+    const interviewSpend = wallet
+      ? Number(wallet.monthly_interview_spend_cents)
+      : NaN;
+    const job = Number.isFinite(jobSpend) ? jobSpend : 0;
+    const interview = Number.isFinite(interviewSpend) ? interviewSpend : 0;
     return {
       available: availableBalance,
       locked: heldBalance,
-      pending: pendingBalance,
       total: availableBalance + heldBalance + pendingBalance,
+      monthlySpendTotal: job + interview,
     };
   }, [wallet]);
 
@@ -151,8 +157,12 @@ export default function WalletPage() {
           />
           <MetricCard
             icon={<TrendingUp className="w-5 h-5" />}
-            title="Spent"
-            value={formatCents(pending)}
+            title={
+              wallet?.monthly_spend_month
+                ? `Monthly spend (${wallet.monthly_spend_month})`
+                : "Monthly spend"
+            }
+            value={formatCents(monthlySpendTotal)}
           />
         </div>
 

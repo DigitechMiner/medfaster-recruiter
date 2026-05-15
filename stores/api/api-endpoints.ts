@@ -119,9 +119,8 @@ export const ENDPOINTS = {
   // -------------------------------------------------------------------------
   // ── Dashboard — features/dashboard/api.ts ───────────────────────────────
   DASHBOARD_OVERVIEW: "/recruiter/dashboard",
+  DASHBOARD_UNDERFILLED_JOBS: "/recruiter/dashboard/underfilled-jobs",
   DASHBOARD_TODAY_SHIFTS: "/recruiter/dashboard/todayshift",
-  DASHBOARD_RECENT_ACTIVITY: (activityLength = 10) =>
-    `/recruiter/dashboard/recent-activity?activityLength=${activityLength}`,
   // Recruiter notification inbox
   NOTIFICATIONS: "/recruiter/notifications",
   NOTIFICATION_MARK_READ: (id: string) => `/recruiter/notifications/${id}/read`,

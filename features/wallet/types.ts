@@ -13,6 +13,11 @@ export interface RecruiterWallet {
   balance_version: number;
   created_at: string;
   updated_at: string;
+  /** Total spend for `monthly_spend_month` (cents, string). */
+  monthly_spend_cents: string;
+  monthly_job_spend_cents: string;
+  monthly_interview_spend_cents: string;
+  monthly_spend_month: string;
 }
 
 export type WalletData = RecruiterWallet;
