@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { MapPin, MessageSquare, MoreVertical, Phone } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
@@ -15,6 +15,7 @@ import {
 } from "@/stores/metadataStore";
 import { getBackendImageUrl } from "@/stores/api/api-client";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const HEADERS = [
   "Candidate",
@@ -95,6 +96,7 @@ type ShiftRow = {
   lateMinutes: number;
   earlyLeaveMinutes: number;
   status: string;
+  candidateId: string;
 };
 
 function formatShiftTime(checkIn: string, checkOut: string): string {
@@ -203,6 +205,7 @@ function mapShiftToRow(
     lateMinutes: shift.late_minutes ?? 0,
     earlyLeaveMinutes: shift.early_leave_minutes ?? 0,
     status: shift.shift_status,
+    candidateId: shift.candidate_profile.id,
   };
 }
 
@@ -268,6 +271,7 @@ export const TodaysOperations = ({ embedded = false }: TodaysOperationsProps) =>
   const [range, setRange] = useState<DashboardShiftRange>("today");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(5);
+  const router = useRouter();
 
   const {
     shifts,
@@ -284,7 +288,12 @@ export const TodaysOperations = ({ embedded = false }: TodaysOperationsProps) =>
   const dateRangeLabel = formatDateRange(dateFrom, dateTo);
   const emptyState = EMPTY_BY_RANGE[range];
   const rows = shifts.map((shift) => mapShiftToRow(shift, provinceOptions));
-
+  const handleMessageClick = useCallback(
+  (candidateId: string) => {
+    router.push(`/messages?candidateId=${encodeURIComponent(candidateId)}`);
+  },
+  [router],
+);
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="min-w-0">
@@ -453,6 +462,7 @@ export const TodaysOperations = ({ embedded = false }: TodaysOperationsProps) =>
                       type="button"
                       className="hover:text-[#F4781B] transition-colors"
                       aria-label="Message"
+                      onClick={() => handleMessageClick(row.candidateId)}
                     >
                       <MessageSquare className="w-4 h-4" />
                     </button>

@@ -25,9 +25,12 @@ import {
   EmptySelection,
   MessagesThread,
 } from "./components/messages-panel";
+import { useSearchParams } from "next/navigation";
+import { createOrGetChatConversation } from "@/features/chat";
 
 export default function MessagesPage() {
   const { recruiterProfile, loadRecruiterProfile } = useAuthStore();
+  const searchParams = useSearchParams();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -49,31 +52,52 @@ export default function MessagesPage() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoadingList(true);
-        setListError(null);
-        if (!recruiterProfile) await loadRecruiterProfile();
-        const data = (await fetchChatConversations()) as Conversation[];
-        if (!mounted) return;
-        setConversations(data ?? []);
-        if (data?.length) setActiveId(data[0].id);
-      } catch (err) {
-        if (mounted) {
-          setListError(
-            err instanceof Error ? err.message : "Failed to load conversations",
-          );
+  let mounted = true;
+  (async () => {
+    try {
+      setLoadingList(true);
+      setListError(null);
+      if (!recruiterProfile) await loadRecruiterProfile();
+
+      const data = (await fetchChatConversations()) as Conversation[];
+      if (!mounted) return;
+      setConversations(data ?? []);
+
+      const deepLinkCandidateId = searchParams.get("candidateId");
+
+      if (deepLinkCandidateId) {
+        const existing = data?.find((c) => c.candidate_id === deepLinkCandidateId);
+        if (existing) {
+          setActiveId(existing.id);
+        } else {
+          try {
+            const result = (await createOrGetChatConversation(deepLinkCandidateId)) as Conversation;
+            if (!mounted) return;
+            const refreshed = (await fetchChatConversations()) as Conversation[];
+            if (!mounted) return;
+            setConversations(refreshed ?? []);
+            setActiveId(result.id);
+          } catch (err) {
+            console.error("Failed to open conversation:", err);
+            if (data?.length) setActiveId(data[0].id);
+          }
         }
-      } finally {
-        if (mounted) setLoadingList(false);
+      } else {
+        if (data?.length) setActiveId(data[0].id);
       }
-    })();
-    return () => {
-      mounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recruiterProfile]);
+    } catch (err) {
+      if (mounted) {
+        setListError(
+          err instanceof Error ? err.message : "Failed to load conversations",
+        );
+      }
+    } finally {
+      if (mounted) setLoadingList(false);
+    }
+  })();
+  return () => { mounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [recruiterProfile]);
 
   useEffect(() => {
     if (!activeId) return;
