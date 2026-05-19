@@ -4,7 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
 import { useMetadataStore } from "@/stores/metadataStore";
-import type { JobCreatePayload, JobFormData, JobType } from "@/types";
+import type {
+  JobCreatePayload,
+  JobFormData,
+  JobType,
+  EmploymentType,
+  JobPeriodOption,
+  StaffingType,
+  ShiftDurationType,
+  ShiftType,
+} from "@/types";
 import {
   convertProvinceToJobBackend,
   getMetadataValue,
@@ -64,6 +73,12 @@ function buildInitialFormData(
   snapshot: JobFormSnapshot | null,
   jobTypeOptions: readonly JobTypeOption[],
 ): JobFormData {
+  // Defaults for new enums
+  const defaultEmploymentType: EmploymentType = "temporary";
+  const defaultJobPeriod: JobPeriodOption = "3_months";
+  const defaultStaffingType: StaffingType = "standard";
+  const defaultShiftDuration: ShiftDurationType = "8_hrs";
+
   return {
     ...DEFAULT_JOB_FORM_DATA,
     job_urgency: urgencyMode,
@@ -120,7 +135,11 @@ function buildInitialFormData(
       DEFAULT_JOB_FORM_DATA.description,
     ),
     qualifications: normalizeStringArray(
-      fromSnapshot(snapshot, "qualifications", DEFAULT_JOB_FORM_DATA.qualifications),
+      fromSnapshot(
+        snapshot,
+        "qualifications",
+        DEFAULT_JOB_FORM_DATA.qualifications,
+      ),
     ),
     specializations: normalizeStringArray(
       fromSnapshot(
@@ -135,10 +154,18 @@ function buildInitialFormData(
       DEFAULT_JOB_FORM_DATA.years_of_experience,
     ),
     responsibilities: normalizeStringArray(
-      fromSnapshot(snapshot, "responsibilities", DEFAULT_JOB_FORM_DATA.responsibilities),
+      fromSnapshot(
+        snapshot,
+        "responsibilities",
+        DEFAULT_JOB_FORM_DATA.responsibilities,
+      ),
     ),
     required_skills: normalizeStringArray(
-      fromSnapshot(snapshot, "required_skills", DEFAULT_JOB_FORM_DATA.required_skills),
+      fromSnapshot(
+        snapshot,
+        "required_skills",
+        DEFAULT_JOB_FORM_DATA.required_skills,
+      ),
     ),
     experience: normalizeStringArray(
       fromSnapshot(snapshot, "experience", DEFAULT_JOB_FORM_DATA.experience),
@@ -157,9 +184,40 @@ function buildInitialFormData(
       fromSnapshot(snapshot, "questions", DEFAULT_JOB_FORM_DATA.questions),
     ),
     start_date:
-      dateFromSnapshot(snapshot, "start_date") ?? DEFAULT_JOB_FORM_DATA.start_date,
+      dateFromSnapshot(snapshot, "start_date") ??
+      DEFAULT_JOB_FORM_DATA.start_date,
     end_date:
       dateFromSnapshot(snapshot, "end_date") ?? DEFAULT_JOB_FORM_DATA.end_date,
+
+    // NEW ENUM-BASED FIELDS
+    employment_type: fromSnapshot(
+      snapshot,
+      "employment_type",
+      defaultEmploymentType,
+    ) as EmploymentType,
+    job_period_option: fromSnapshot(
+      snapshot,
+      "job_period_option",
+      defaultJobPeriod,
+    ) as JobPeriodOption,
+    staffing_type: fromSnapshot(
+      snapshot,
+      "staffing_type",
+      defaultStaffingType,
+    ) as StaffingType,
+    shift_duration_type: fromSnapshot(
+      snapshot,
+      "shift_duration_type",
+      defaultShiftDuration,
+    ) as ShiftDurationType,
+    selected_shift_types:
+      normalizeStringArray(
+        fromSnapshot(
+          snapshot,
+          "selected_shift_types",
+          DEFAULT_JOB_FORM_DATA.selected_shift_types ?? [],
+        ),
+      ) as ShiftType[],
   };
 }
 
@@ -243,12 +301,25 @@ export function NormalJobForm({
       end_date: isFullTime ? undefined : formatDateForBackend(data.end_date),
       check_in_time: data.check_in_time || undefined,
       check_out_time: data.check_out_time || undefined,
-      responsibilities: normalizeStringArray(data.responsibilities).filter(Boolean),
-      required_skills: normalizeStringArray(data.required_skills).filter(Boolean),
+      responsibilities: normalizeStringArray(data.responsibilities).filter(
+        Boolean,
+      ),
+      required_skills: normalizeStringArray(data.required_skills).filter(
+        Boolean,
+      ),
       experience: normalizeStringArray(data.experience).filter(Boolean),
-      working_conditions: normalizeStringArray(data.working_conditions).filter(Boolean),
+      working_conditions: normalizeStringArray(
+        data.working_conditions,
+      ).filter(Boolean),
       why_join: normalizeStringArray(data.why_join).filter(Boolean),
       ...normalJobFields,
+
+      // NEW ENUM FIELDS INTO PAYLOAD
+      employment_type: data.employment_type,
+      job_period_option: data.job_period_option,
+      staffing_type: data.staffing_type,
+      shift_duration_type: data.shift_duration_type,
+      selected_shift_types: data.selected_shift_types,
     };
 
     return Object.fromEntries(
@@ -269,8 +340,27 @@ export function NormalJobForm({
     }
 
     const validationErrors = validateJobPayload(backendData);
+
+    // For Step 1 (basic), ignore fields that belong to later steps
+    let filteredErrors = validationErrors;
+    if (formStep === "basic") {
+      const ignoreForBasic = new Set([
+        "start_date",
+        "end_date",
+        "check_in_time",
+        "check_out_time",
+        "description",
+        "responsibilities",
+        "required_skills",
+        "questions",
+      ]);
+      filteredErrors = validationErrors.filter(
+        (err) => !ignoreForBasic.has(err.field),
+      );
+    }
+
     const scopedValidationErrors = filterValidationErrorsForStep(
-      validationErrors,
+      filteredErrors,
       formStep,
       {
         ignoreQuestions:

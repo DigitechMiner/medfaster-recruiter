@@ -29,6 +29,12 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   why_join: [],
   experience: [],
   questions: [],
+ morning_shift_start: "", // "HH:MM"
+morning_shift_end: "",
+evening_shift_start: "",
+evening_shift_end: "",
+night_shift_start: "",
+night_shift_end: "",
 };
 
 export const MAX_AI_QUESTIONS = 10;

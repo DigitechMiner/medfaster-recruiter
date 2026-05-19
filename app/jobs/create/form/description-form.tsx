@@ -27,7 +27,7 @@ interface ListSectionConfig {
 
 const LIST_SECTIONS: ListSectionConfig[] = [
   { key: "responsibilities", label: "Key Responsibilities", required: true },
-  { key: "required_skills", label: "Required Skills", required: true },
+  { key: "required_skills", label: "Required Skill", required: true },
   { key: "experience", label: "Experience" },
   { key: "working_conditions", label: "Working Conditions" },
   { key: "why_join", label: "Why Join Us?" },
@@ -126,7 +126,9 @@ export function DescriptionForm({
       responsibilities: withEmptyRow(generatedDescription.responsibilities),
       required_skills: withEmptyRow(generatedDescription.required_skills),
       experience: withEmptyRow(generatedDescription.experience),
-      working_conditions: withEmptyRow(generatedDescription.working_conditions),
+      working_conditions: withEmptyRow(
+        generatedDescription.working_conditions,
+      ),
       why_join: withEmptyRow(generatedDescription.why_join),
     });
   }, [
@@ -143,10 +145,15 @@ export function DescriptionForm({
     void generateAndMapDescription();
   }, [generateAndMapDescription, hasDescriptionContent]);
 
+  const wantsInterview =
+    formData.inPersonInterview === "Yes" ||
+    formData.inPersonInterview === true;
+
   return (
     <>
-      <div className="space-y-2 sm:space-y-3 mb-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      {/* Job Summary */}
+      <div className="mb-8 space-y-2 sm:space-y-3">
+        <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
           <Label
             htmlFor="description"
             className="text-sm font-medium text-gray-700"
@@ -155,8 +162,8 @@ export function DescriptionForm({
           </Label>
           {loading && (
             <span className="flex items-center gap-1.5 text-xs text-[#F4781B]">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Generating description...
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Generating description with KeRaeva&apos;s AI...
             </span>
           )}
         </div>
@@ -166,7 +173,7 @@ export function DescriptionForm({
           value={formData.description}
           onChange={(e) => updateFormData({ description: e.target.value })}
           placeholder="Enter job description..."
-          className="w-full min-h-[120px] sm:min-h-[140px] resize-none text-sm"
+          className="min-h-[120px] w-full resize-none text-sm sm:min-h-[140px]"
           rows={5}
         />
         {fieldErrors.description && (
@@ -175,6 +182,7 @@ export function DescriptionForm({
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
 
+      {/* Always-present list sections up to 'Why Join Us' */}
       {listSections.map(({ key, label, required }) => (
         <CreateJobListSection
           key={key}
@@ -187,6 +195,7 @@ export function DescriptionForm({
           error={fieldErrors[key]}
         />
       ))}
+
     </>
   );
 }

@@ -236,6 +236,13 @@ export interface JobCreatePayload {
   pay_per_hour_cents?: number;
   status?: JobStatus;
   interview_questions?: string[];
+
+  // NEW FIELDS mirroring form state where needed
+  employment_type?: EmploymentType;
+  job_period_option?: JobPeriodOption;
+  staffing_type?: StaffingType;
+  shift_duration_type?: ShiftDurationType;
+  selected_shift_types?: ShiftType[];
 }
 
 export type JobUpdatePayload = Partial<JobCreatePayload>;
@@ -373,6 +380,23 @@ export interface JobFormData {
   payRange?: number | string;
   inPersonInterview?: string | boolean;
   physicalInterview?: string | boolean;
+
+  // NEW FIELDS for Figma flow
+  employment_type?: EmploymentType;
+  job_period_option?: JobPeriodOption;
+  staffing_type?: StaffingType;
+  shift_duration_type?: ShiftDurationType;
+  selected_shift_types?: ShiftType[]; // radios → array length 1, checkboxes → 1+
+
+
+ morning_shift_start?: string; // "HH:MM"
+morning_shift_end?: string;
+evening_shift_start?: string;
+evening_shift_end?: string;
+night_shift_start?: string;
+night_shift_end?: string;
+
+job_duration_per_day?: "24" | "12" | "8";
 }
 
 export interface InstantJobFormData extends JobFormData {
@@ -814,3 +838,26 @@ export interface InterviewListItem {
 /** Aliases for UI/helper modules — same values as interview session types above. */
 export type InterviewStatus = InterviewSessionStatus;
 export type InterviewType = InterviewKind;
+// New enums
+
+export type EmploymentType = "temporary" | "permanent";
+
+export type TemporaryJobPeriod =
+  | "3_months"
+  | "6_months"
+  | "9_months"
+  | "custom_end_date";
+
+export type PermanentJobPeriod =
+  | "1_year"
+  | "2_years"
+  | "3_years"
+  | "custom_end_date";
+
+export type JobPeriodOption = TemporaryJobPeriod | PermanentJobPeriod;
+
+export type StaffingType = "standard" | "rotational";
+
+export type ShiftDurationType = "8_hrs" | "12_hrs";
+
+export type ShiftType = "morning" | "day" | "evening" | "night";

@@ -44,6 +44,7 @@ export function QuestionForm({
   const router = useRouter();
   const createJob = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
+  const formSnapshot = useJobsStore((s) => s.formSnapshot);
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,39 +55,49 @@ export function QuestionForm({
   const lastAutoSubmitTokenRef = useRef<number | undefined>(undefined);
 
   const handleRephrase = async () => {
-    if (!pendingPayload?.job_title) {
-      toast.error("Job title is required to generate questions.");
-      return;
-    }
+  // Prefer job title from pendingPayload, but fall back to snapshot
+  const title =
+    pendingPayload?.job_title || formSnapshot?.job_title || "";
+  const department =
+    pendingPayload?.department ?? formSnapshot?.department ?? "";
+  const specialization =
+    pendingPayload?.specializations?.[0] ??
+    formSnapshot?.specializations?.[0] ??
+    undefined;
 
-    setAiLoading(true);
-    setAiError(null);
+  if (!title.trim()) {
+    toast.error("Job title is required to generate questions.");
+    return;
+  }
 
-    let generated: string[];
-    try {
-      generated = await generateInterviewQuestions({
-        title: pendingPayload.job_title,
-        department: pendingPayload.department ?? "",
-        specialization: pendingPayload.specializations?.[0] ?? undefined,
-        count: Math.max(questions.length, 5),
-      });
-    } catch (err) {
-      setAiError(
-        err instanceof Error ? err.message : "Failed to generate questions",
-      );
-      return;
-    } finally {
-      setAiLoading(false);
-    }
+  setAiLoading(true);
+  setAiError(null);
 
-    if (generated.length === 0) return;
-
-    onQuestionsChange(
-      generated
-        .slice(0, MAX_AI_QUESTIONS)
-        .map((text) => ({ id: uid(), text })),
+  let generated: string[];
+  try {
+    generated = await generateInterviewQuestions({
+      title,
+      department,
+      specialization,
+      count: Math.max(questions.length, 5),
+    });
+  } catch (err) {
+    setAiError(
+      err instanceof Error ? err.message : "Failed to generate questions",
     );
-  };
+    return;
+  } finally {
+    setAiLoading(false);
+  }
+
+  if (generated.length === 0) return;
+
+  onQuestionsChange(
+    generated
+      .slice(0, MAX_AI_QUESTIONS)
+      .map((text) => ({ id: uid(), text })),
+  );
+};
 
   const handleQuestionsListChange = (items: string[]) => {
     const nextItems =
@@ -165,7 +176,9 @@ export function QuestionForm({
           if (res.success) setShowSuccess(true);
           else setError(res.message || "Failed to create job");
         })
-        .catch((err) => setError((err as Error).message || "An error occurred"))
+        .catch((err) =>
+          setError((err as Error).message || "An error occurred"),
+        )
         .finally(() => setIsSubmitting(false));
     }
   };
@@ -204,18 +217,18 @@ export function QuestionForm({
   return (
     <>
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {aiError && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           <span>{aiError}</span>
           <button
             type="button"
             onClick={handleRephrase}
-            className="underline font-medium ml-3"
+            className="ml-3 font-medium underline"
           >
             Try Again
           </button>
@@ -228,10 +241,10 @@ export function QuestionForm({
         className="contents"
         noValidate
       >
-        <div className="space-y-3 sm:space-y-4 w-full overflow-x-hidden">
+        <div className="w-full space-y-3 overflow-x-hidden sm:space-y-4">
           <div className="min-w-0">
             <CreateJobListSection
-              title="Write Your Questions Here"
+              title="AI Interview Sample Questionnaire"
               items={visibleQuestionItems}
               onChange={handleQuestionsListChange}
               placeholder="Type your question here..."
@@ -245,7 +258,7 @@ export function QuestionForm({
                     type="button"
                     onClick={handleRephrase}
                     disabled={aiLoading}
-                    className="flex items-center gap-1.5 text-[#F4781B] text-sm font-semibold italic hover:opacity-75 transition-opacity disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-sm font-semibold italic text-[#F4781B] transition-opacity hover:opacity-75 disabled:opacity-50"
                   >
                     {aiLoading ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -254,7 +267,7 @@ export function QuestionForm({
                     )}
                     Rephrase Questions with KeReaeva&apos;s AI
                   </button>
-                  <span className="text-gray-400 text-sm">or</span>
+                  <span className="text-sm text-gray-400">or</span>
                 </>
               }
             />

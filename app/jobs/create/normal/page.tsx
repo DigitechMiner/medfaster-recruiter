@@ -3,31 +3,45 @@
 import { Suspense, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
-import { useJobsStore } from "@/stores/jobs-store";
-import type { JobCreatePayload } from "@/types";
+import { JobFormSnapshot, useJobsStore } from "@/stores/jobs-store";
+import type { JobCreatePayload, JobFormData } from "@/types";
 import { CreateJobLoadingFallback } from "../components/loading";
 import { CreateJobProgressHeader } from "../components/progressBar";
-import { JobReview, type JobReviewActionState } from "../components/preview";
-import { CreateJobStepActions, CreateJobStepCard } from "../components/step-shell";
+import {
+  JobReview,
+  type JobReviewActionState,
+} from "../components/preview";
+import {
+  CreateJobStepActions,
+  CreateJobStepCard,
+} from "../components/step-shell";
 import { NormalJobForm } from "./normal-job-form";
-import { QuestionForm, type AIQuestion } from "../form/question-form";
+import {
+  QuestionForm,
+  type AIQuestion,
+} from "../form/question-form";
+import { NormalSchedulingStep } from "./normal-scheduling-step";
+import { toast } from "react-toastify";
 
 const uid = () => crypto.randomUUID();
+
 const NORMAL_BASIC_FORM_ID = "normal-job-basic-form";
 const NORMAL_DESCRIPTION_FORM_ID = "normal-job-description-form";
 const NORMAL_QUESTIONS_FORM_ID = "normal-job-questions-form";
 const NORMAL_REVIEW_FORM_ID = "normal-job-review-form";
+
 const NORMAL_JOB_STEPS = [
-  "Basic Info",
-  "Job Description",
-  "Questions",
-  "Review",
+  "Job Basics",
+  "Scheduling Setup",
+  "Description",
+  "Review, Pay & Publish",
 ] as const;
-const NORMAL_JOB_STEPS_WITHOUT_INTERVIEW = [
-  "Basic Info",
-  "Job Description",
-  "Review",
-] as const;
+
+/**
+ * When AI interview is disabled, we still show 4 steps visually (to match Figma),
+ * but internally we will skip the questions content and jump from Description to Review.
+ */
+const NORMAL_JOB_STEPS_WITHOUT_INTERVIEW = NORMAL_JOB_STEPS;
 
 const makeDefaultQuestions = (): AIQuestion[] =>
   Array.from({ length: 5 }, () => ({ id: uid(), text: "" }));
@@ -48,15 +62,13 @@ function NormalJobStepForm() {
   const formSnapshot = useJobsStore((s) => s.formSnapshot);
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [pendingPayload, setPendingPayload] = useState<JobCreatePayload | null>(
-    null,
-  );
+  const [pendingPayload, setPendingPayload] =
+    useState<JobCreatePayload | null>(null);
   const [wantsInterview, setWantsInterview] = useState(true);
   const [aiQuestions, setAiQuestions] =
     useState<AIQuestion[]>(makeDefaultQuestions);
-  const [pendingProgressStep, setPendingProgressStep] = useState<number | null>(
-    null,
-  );
+  const [pendingProgressStep, setPendingProgressStep] =
+    useState<number | null>(null);
   const [progressValidationToken, setProgressValidationToken] =
     useState<number>();
   const [reviewActionState, setReviewActionState] =
@@ -68,8 +80,14 @@ function NormalJobStepForm() {
   const steps = wantsInterview
     ? NORMAL_JOB_STEPS
     : NORMAL_JOB_STEPS_WITHOUT_INTERVIEW;
-  const currentProgressStep =
-    !wantsInterview && step === 4 ? 3 : step;
+
+  /**
+   * Visually, the progress header always shows 4 steps.
+   * Logically, when AI interview is disabled, we skip the questions content,
+   * but still keep Step 3 labeled "Description" and Step 4 as "Review, Pay & Publish".
+   */
+  const currentProgressStep = step;
+
   const descriptionWantsInterview =
     formSnapshot?.inPersonInterview === undefined ||
     formSnapshot.inPersonInterview === "Yes" ||
@@ -96,7 +114,12 @@ function NormalJobStepForm() {
       return;
     }
 
-    setStep(wantsInterview ? 3 : 2);
+    // step === 4
+    if (wantsInterview) {
+      setStep(3);
+    } else {
+      setStep(3); // Description is always step 3 now
+    }
   };
 
   const resetProgressValidation = () => {
@@ -105,30 +128,27 @@ function NormalJobStepForm() {
   };
 
   const navigateToProgressStep = (targetStep: number) => {
-    if (!wantsInterview && targetStep === 3) {
-      setStep(4);
-      return;
-    }
-
     if (targetStep >= 1 && targetStep <= 4) {
       setStep(targetStep as 1 | 2 | 3 | 4);
     }
   };
 
   const handleProgressStepClick = (targetStep: number) => {
+    // Allow navigating back freely
     if (targetStep <= currentProgressStep) {
       resetProgressValidation();
       navigateToProgressStep(targetStep);
       return;
     }
 
+    // For forward navigation, trigger validation of current form
     setPendingProgressStep(targetStep);
     setProgressValidationToken((token) => (token ?? 0) + 1);
   };
 
   const handleBasicStepNext = () => {
     if (pendingProgressStep && pendingProgressStep > 2) {
-      setStep(2);
+      setStep(2); // go to Scheduling Setup
       return;
     }
 
@@ -136,6 +156,7 @@ function NormalJobStepForm() {
     setStep(2);
   };
 
+  
   const handleDescriptionNext = (
     payload: JobCreatePayload,
     hasInterview: boolean,
@@ -145,24 +166,22 @@ function NormalJobStepForm() {
     setPendingPayload(payload);
     setWantsInterview(hasInterview);
 
-    if (targetProgressStep) {
-      const finalTarget = Math.min(
-        targetProgressStep,
-        hasInterview ? NORMAL_JOB_STEPS.length : NORMAL_JOB_STEPS_WITHOUT_INTERVIEW.length,
-      );
-
-      if (hasInterview && finalTarget > 3) {
-        setStep(3);
+    if (hasInterview) {
+      // When AI interview is enabled, Step 3 content includes questions.
+      if (targetProgressStep && targetProgressStep > 3) {
+        resetProgressValidation();
+        setStep(4);
         return;
       }
 
       resetProgressValidation();
-      setStep(!hasInterview && finalTarget === 3 ? 4 : (finalTarget as 1 | 2 | 3 | 4));
+      setStep(3);
       return;
     }
 
+    // No AI interview: skip questions section and go to Review
     resetProgressValidation();
-    setStep(hasInterview ? 3 : 4);
+    setStep(4);
   };
 
   const handleReviewActionStateChange = useCallback(
@@ -179,23 +198,24 @@ function NormalJobStepForm() {
 
   return (
     <AppLayout>
-      <div className="py-2 md:py-4 lg:py-6 overflow-x-hidden w-full space-y-4">
+      <div className="w-full space-y-4 overflow-x-hidden py-2 md:py-4 lg:py-6">
         <CreateJobProgressHeader
-          title=""
+          title="Create Job Post"
           steps={steps}
           currentStep={currentProgressStep}
           onBack={handleBackToJobs}
           onStepClick={handleProgressStepClick}
-          backLabel="Back to Job"
+          backLabel="Back to Jobs"
         />
 
+        {/* Step 1: Job Basics */}
         {step === 1 && (
           <CreateJobStepCard
-            title="Basic Info"
+            title="Job Basics"
             footer={
               <CreateJobStepActions
                 onBack={handleBack}
-                nextLabel="Next"
+                nextLabel="Next: Scheduling Setup"
                 nextType="submit"
                 nextForm={NORMAL_BASIC_FORM_ID}
               />
@@ -212,62 +232,119 @@ function NormalJobStepForm() {
           </CreateJobStepCard>
         )}
 
-        {step === 2 && (
-          <CreateJobStepCard
-            title="Job Description"
-            footer={
-              <CreateJobStepActions
-                onBack={handleBack}
-                nextLabel={
-                  descriptionWantsInterview ? "Next: Questions" : "Preview Job"
-                }
-                nextType="submit"
-                nextForm={NORMAL_DESCRIPTION_FORM_ID}
-              />
-            }
-          >
-            <NormalJobForm
-              urgencyMode="normal"
-              formStep="description"
-              formId={NORMAL_DESCRIPTION_FORM_ID}
-              onNext={handleDescriptionNext}
-              autoSubmitToken={progressValidationToken}
-              onValidationBlocked={resetProgressValidation}
-            />
-          </CreateJobStepCard>
-        )}
-
+        {/* Step 2: Scheduling Setup
+            NOTE: For now we still use NormalJobForm(formStep="description")
+            as before; in Batch 3 we’ll introduce a dedicated scheduling step component.
+        */}
+       {step === 2 && (
+  <CreateJobStepCard
+    title="Scheduling Setup"
+    footer={
+      <CreateJobStepActions
+        onBack={handleBack}
+        nextLabel="Next: Description"
+        nextType="button"
+        onNext={() => {
+          // no extra validation here; dates and scheduling details
+          // will be validated when Step 3 or final submit runs
+          resetProgressValidation();
+          setStep(3);
+        }}
+      />
+    }
+  >
+    {/* Use the same form snapshot as Step 1 */}
+    {useJobsStore.getState().formSnapshot && (
+      <NormalSchedulingStep
+        formData={
+          useJobsStore.getState().formSnapshot as unknown as JobFormData
+        }
+        updateFormData={(updates) => {
+          const current = useJobsStore.getState().formSnapshot ?? {};
+          const nextSnapshot = {
+            ...current,
+            ...updates,
+          } as JobFormSnapshot;
+          useJobsStore.getState().setFormSnapshot(nextSnapshot);
+        }}
+      />
+    )}
+  </CreateJobStepCard>
+)}
+        {/* Step 3: Description (+ AI questions when enabled)
+            For now, we keep questions as a separate step when wantsInterview=true.
+            In Batch 3 we’ll visually embed the questions section into the description page.
+        */}
         {step === 3 && (
-          <CreateJobStepCard
-            title="Questions"
-            footer={
-              <CreateJobStepActions
-                onBack={handleBack}
-                nextLabel="Preview Job"
-                nextType="submit"
-                nextForm={NORMAL_QUESTIONS_FORM_ID}
-              />
-            }
-          >
-            <QuestionForm
-              pendingPayload={pendingPayload!}
-              questions={aiQuestions}
-              onQuestionsChange={setAiQuestions}
-              formId={NORMAL_QUESTIONS_FORM_ID}
-              autoSubmitToken={progressValidationToken}
-              onValidationBlocked={resetProgressValidation}
-              onNext={(updatedPayload) => {
-                setPendingPayload(updatedPayload);
-                resetProgressValidation();
-                setStep(4);
-              }}
-            />
-          </CreateJobStepCard>
-        )}
+  <CreateJobStepCard
+    title="Description"
+    footer={
+      <CreateJobStepActions
+        onBack={handleBack}
+        nextLabel="Next: Review, Pay & Publish"
+        nextType="submit"
+        nextForm={wantsInterview ? NORMAL_QUESTIONS_FORM_ID : NORMAL_DESCRIPTION_FORM_ID}
+      />
+    }
+  >
+    {/* Description part: always visible */}
+    <NormalJobForm
+      urgencyMode="normal"
+      formStep="description"
+      formId={NORMAL_DESCRIPTION_FORM_ID}
+      autoSubmitToken={undefined} // we don't auto-submit description here
+      onValidationBlocked={resetProgressValidation}
+      onNext={(payload, hasInterview) => {
+        // just keep the latest payload; actual navigation happens when questions submit
+        setPendingPayload(payload);
+        setWantsInterview(hasInterview);
+      }}
+    />
 
+        {/* AI questions part: only when AI interview is enabled */}
+    {descriptionWantsInterview && wantsInterview && (
+      <div className="mt-8">
+        <QuestionForm
+          pendingPayload={pendingPayload ?? undefined}
+          questions={aiQuestions}
+          onQuestionsChange={setAiQuestions}
+          formId={NORMAL_QUESTIONS_FORM_ID}
+          autoSubmitToken={progressValidationToken}
+          onValidationBlocked={resetProgressValidation}
+          onNext={(updatedPayload) => {
+            // QuestionForm has validated questions and built final payload
+            setPendingPayload(updatedPayload);
+            resetProgressValidation();
+            setStep(4);
+          }}
+        />
+      </div>
+    )}
+
+    {/* When AI interview is off, clicking Next should move directly to review */}
+    {!descriptionWantsInterview || !wantsInterview ? (
+      <form
+        id={NORMAL_DESCRIPTION_FORM_ID}
+        className="hidden"
+        onSubmit={(e) => {
+          e.preventDefault();
+          // validate description again and go to review using latest payload
+          if (pendingPayload) {
+            resetProgressValidation();
+            setStep(4);
+          } else {
+            toast.error("Please complete the description section first.");
+          }
+        }}
+      />
+    ) : null}
+  </CreateJobStepCard>
+)}
+
+        {/* Step 4: Review, Pay & Publish */}
         {step === 4 && pendingPayload && (
           <CreateJobStepCard
-            title="Review"
+            title="Review, Pay & Publish"
             footer={
               <CreateJobStepActions
                 onBack={handleBack}
