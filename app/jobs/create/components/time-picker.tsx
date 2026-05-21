@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 interface CustomTimePickerProps {
   selectedTime?: string;
+  label?: string;
   onSelect: (time: string) => void;
   onCancel: () => void;
   onSelectTime: () => void;
@@ -11,6 +12,7 @@ interface CustomTimePickerProps {
 
 export function CustomTimePicker({
   selectedTime,
+  label,
   onSelect,
   onCancel,
   onSelectTime,
@@ -35,7 +37,6 @@ export function CustomTimePicker({
     const radius = 100;
     const x = radius * Math.cos((angle * Math.PI) / 180);
     const y = radius * Math.sin((angle * Math.PI) / 180);
-
     return { x, y };
   };
 
@@ -44,8 +45,8 @@ export function CustomTimePicker({
       period === "PM" && hour !== 12
         ? hour + 12
         : hour === 12 && period === "AM"
-          ? 0
-          : hour;
+        ? 0
+        : hour;
 
     setHours(adjustedHour);
     setMode("minutes");
@@ -77,9 +78,12 @@ export function CustomTimePicker({
 
   return (
     <div className="w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-200 p-6">
-      <h3 className="text-xl font-semibold text-gray-900 text-center mb-6">
-        Select Time
+      <h3 className="text-xl font-semibold text-gray-900 text-center mb-1">
+        {label ?? "Select Time"}
       </h3>
+      <p className="text-xs text-gray-500 text-center mb-5">
+        Tap a number to set hours, then minutes. Use AM/PM to adjust.
+      </p>
 
       <div className="flex items-center justify-center gap-3 mb-8">
         <button

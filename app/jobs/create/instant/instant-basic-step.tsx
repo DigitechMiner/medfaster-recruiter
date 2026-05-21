@@ -350,19 +350,20 @@ export function InstantBasicStep({
       </div>
 
       {showCalendar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <DateRangePicker
-            fromDate={formData.start_date}
-            tillDate={formData.end_date}
-            minDate={today}
-            onChange={(from, till) =>
-              updateFormData({ start_date: from, end_date: till })
-            }
-            onCancel={() => setShowCalendar(false)}
-            onSchedule={() => setShowCalendar(false)}
-          />
-        </div>
-      )}
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <DateRangePicker
+      fromDate={formData.start_date}
+      tillDate={formData.end_date}
+      minDate={today}
+      editMode="start"
+      onChange={(from, till) =>
+        updateFormData({ start_date: from, end_date: till })
+      }
+      onCancel={() => setShowCalendar(false)}
+      onApply={() => setShowCalendar(false)}
+    />
+  </div>
+)}
 
       {showFromTimePicker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

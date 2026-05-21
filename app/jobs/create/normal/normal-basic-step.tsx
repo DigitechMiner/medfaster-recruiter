@@ -68,7 +68,7 @@ export function NormalBasicStep({
     specializations,
   } = useMetadataStore();
 
-  const isFullTime = formData.job_type === "full_time";
+  // const isFullTime = formData.job_type === "full_time";
   const isPartTime = formData.job_type === "part_time";
   const departmentJobTitles = jobTitlesForDepartment(formData.department ?? "");
   const normalJobTypeOptions = jobTypeOptions.filter(

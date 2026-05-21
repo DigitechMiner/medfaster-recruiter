@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarIcon, Clock } from "lucide-react";
 import type {
   EmploymentType,
@@ -43,6 +43,7 @@ const SHIFT_TYPES: { label: string; value: ShiftType }[] = [
 
 type ShiftKey = "morning" | "evening" | "night";
 type TimePart = "start" | "end";
+type DateEditMode = "start" | "end";
 
 export function NormalSchedulingStep({
   formData,
@@ -59,10 +60,14 @@ export function NormalSchedulingStep({
     (formData.selected_shift_types as ShiftType[]) ?? [];
 
   const [showCalendar, setShowCalendar] = useState(false);
+  const [dateEditMode, setDateEditMode] = useState<DateEditMode>("start");
+
   const [activeShiftForTime, setActiveShiftForTime] = useState<ShiftKey | null>(
     null,
   );
   const [activeTimePart, setActiveTimePart] = useState<TimePart>("start");
+  const [timeEditMode, setTimeEditMode] = useState<TimePart>("start");
+
   const today = new Date();
 
   const periodOptions =
@@ -90,8 +95,8 @@ export function NormalSchedulingStep({
     return ["Team A", "Team B", "Team C"];
   })();
 
-  const candidatesRequired =
-    Number(formData.no_of_hires_required || "1") || 1;
+  // const candidatesRequired =
+  //   Number(formData.no_of_hires_required || "1") || 1;
 
   const handleJobDurationChange = (value: "24" | "12" | "8") => {
     updateFormData({ job_duration_per_day: value });
@@ -99,12 +104,10 @@ export function NormalSchedulingStep({
 
   const toggleShiftType = (value: ShiftType) => {
     if (isStandard) {
-      // radio behaviour: exactly one
       updateFormData({ selected_shift_types: [value] });
       return;
     }
 
-    // rotational: checkbox behaviour
     const current = selectedShiftTypes ?? [];
     if (current.includes(value)) {
       const next = current.filter((t) => t !== value);
@@ -114,23 +117,10 @@ export function NormalSchedulingStep({
     }
   };
 
-  const handleJobPeriodChange = (value: JobPeriodOption) => {
-    updateFormData({ job_period_option: value });
-  };
-
-  const formatStartDate = () => {
-    const value = formData.start_date;
-    if (!value) return "MM/DD/YYYY";
-
-    let dateObj: Date;
-    if (value instanceof Date) {
-      dateObj = value;
-    } else {
-      dateObj = new Date(value as any);
-    }
-
-    if (Number.isNaN(dateObj.getTime())) return "MM/DD/YYYY";
-
+  const formatDate = (value?: Date | string) => {
+    if (!value) return "";
+    const dateObj = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dateObj.getTime())) return "";
     return dateObj.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",
@@ -138,8 +128,46 @@ export function NormalSchedulingStep({
     });
   };
 
-  // Time helpers
+  const handleJobPeriodChange = (value: JobPeriodOption) => {
+    updateFormData({ job_period_option: value });
 
+    if (!formData.start_date) {
+      // No start date yet; just change the option and exit
+      return;
+    }
+
+    const start = new Date(formData.start_date);
+
+    if (value === "3_months" || value === "6_months" || value === "9_months") {
+      const monthsToAdd =
+        value === "3_months" ? 3 : value === "6_months" ? 6 : 9;
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + monthsToAdd);
+      updateFormData({ end_date: end });
+    }
+
+    if (value === "custom_end_date") {
+      // Open calendar to pick only end date
+      setDateEditMode("end");
+      setShowCalendar(true);
+    }
+  };
+
+  // Keep Job Period in sync when both dates are manually set (e.g. via calendar)
+  useEffect(() => {
+    if (formData.start_date && formData.end_date) {
+      if (formData.job_period_option !== "custom_end_date") {
+        updateFormData({ job_period_option: "custom_end_date" });
+      }
+    }
+  }, [
+    formData.start_date,
+    formData.end_date,
+    formData.job_period_option,
+    updateFormData,
+  ]);
+
+  // Time helpers
   const getShiftStart = (key: ShiftKey): string => {
     if (key === "morning") return formData.morning_shift_start || "";
     if (key === "evening") return formData.evening_shift_start || "";
@@ -188,20 +216,33 @@ export function NormalSchedulingStep({
   const getShiftDisplay = (key: ShiftKey): string => {
     const start = getShiftStart(key);
     const end = getShiftEnd(key);
-    if (!start || !end) return "Select time";
+    if (!start && !end) return "Select start and end time";
+    if (start && !end) return `${to12(start)} - Select end time`;
+    if (!start && end) return `Select start time - ${to12(end)}`;
     return `${to12(start)} - ${to12(end)}`;
   };
 
-  const openTimePickerForShift = (key: ShiftKey) => {
-    setActiveShiftForTime(key);
+  const openTimePickerForShift = (key: ShiftKey, part?: TimePart) => {
     const hasStart = !!getShiftStart(key);
     const hasEnd = !!getShiftEnd(key);
-    if (!hasStart) setActiveTimePart("start");
-    else if (!hasEnd) setActiveTimePart("end");
-    else setActiveTimePart("start");
+
+    let nextPart: TimePart = "start";
+
+    if (part) {
+      nextPart = part;
+    } else if (!hasStart) {
+      nextPart = "start";
+    } else if (!hasEnd) {
+      nextPart = "end";
+    } else {
+      nextPart = timeEditMode;
+    }
+
+    setActiveShiftForTime(key);
+    setActiveTimePart(nextPart);
+    setTimeEditMode(nextPart);
   };
 
-  // Simple grid behaviour: Team B fills Team A gaps
   const isTeamADayActive = (dayIndex: number) => dayIndex % 2 === 0;
   const isTeamBDayActive = (dayIndex: number) => !isTeamADayActive(dayIndex);
 
@@ -212,11 +253,26 @@ export function NormalSchedulingStep({
         <JobFormField label="Job Start Date" required>
           <button
             type="button"
-            onClick={() => setShowCalendar(true)}
+            onClick={() => {
+              setDateEditMode("start");
+              setShowCalendar(true);
+            }}
             className="flex h-11 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700"
           >
-            <span>{formatStartDate()}</span>
-            <CalendarIcon className="h-4 w-4 text-gray-400" />
+            <div className="flex flex-col text-left">
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                Start
+              </span>
+              <span>{formatDate(formData.start_date) || "MM/DD/YYYY"}</span>
+            </div>
+            <span className="mx-3 text-gray-300">–</span>
+            <div className="flex flex-col text-right">
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                End
+              </span>
+              <span>{formatDate(formData.end_date) || "Optional"}</span>
+            </div>
+            <CalendarIcon className="ml-3 h-4 w-4 text-gray-400" />
           </button>
         </JobFormField>
 
@@ -363,18 +419,37 @@ export function NormalSchedulingStep({
                   key={key}
                   className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="min-w-[110px] text-gray-600">
-                      {label}:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => openTimePickerForShift(key)}
-                      className="flex h-11 flex-1 items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700"
-                    >
-                      <span>{display}</span>
-                      <Clock className="h-4 w-4 text-gray-400" />
-                    </button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <span className="min-w-[110px] text-gray-600">
+                        {label}:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => openTimePickerForShift(key)}
+                        className="flex h-11 flex-1 items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700"
+                      >
+                        <span>{display}</span>
+                        <Clock className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                    {/* Explicit edit controls when both exist */}
+                    <div className="flex items-center gap-2 pl-[110px]">
+                      <button
+                        type="button"
+                        onClick={() => openTimePickerForShift(key, "start")}
+                        className="text-[11px] text-[#F4781B] underline-offset-2 hover:underline"
+                      >
+                        Edit start
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openTimePickerForShift(key, "end")}
+                        className="text-[11px] text-[#F4781B] underline-offset-2 hover:underline"
+                      >
+                        Edit end
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="min-w-[110px] text-gray-600">
@@ -469,7 +544,6 @@ export function NormalSchedulingStep({
                 {days.map((_, dayIndex) => {
                   let active: boolean;
                   if (!isRotational) {
-                    // simple pattern for standard
                     active = dayIndex % 2 === 0;
                   } else {
                     if (teamIndex === 0) {
@@ -508,22 +582,37 @@ export function NormalSchedulingStep({
       {showCalendar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <DateRangePicker
-            fromDate={formData.start_date}
-            tillDate={formData.end_date}
+            fromDate={
+              formData.start_date
+                ? new Date(formData.start_date)
+                : undefined
+            }
+            tillDate={
+              formData.end_date ? new Date(formData.end_date) : undefined
+            }
             minDate={today}
+            editMode={dateEditMode}
             onChange={(from, till) =>
-              updateFormData({ start_date: from, end_date: till })
+              updateFormData({
+                start_date: from,
+                end_date: till,
+              })
             }
             onCancel={() => setShowCalendar(false)}
-            onSchedule={() => setShowCalendar(false)}
+            onApply={() => setShowCalendar(false)}
           />
         </div>
       )}
 
       {/* Time picker overlay */}
       {activeShiftForTime && (
-        <div className="fixed inset-0 z-50 flex items-center justify.center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <CustomTimePicker
+            label={
+              activeTimePart === "start"
+                ? "Select Start Time"
+                : "Select End Time"
+            }
             selectedTime={
               activeTimePart === "start"
                 ? getShiftStart(activeShiftForTime)

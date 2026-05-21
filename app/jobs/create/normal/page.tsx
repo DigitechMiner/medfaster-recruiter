@@ -156,13 +156,13 @@ function NormalJobStepForm() {
     setStep(2);
   };
 
-  
   const handleDescriptionNext = (
     payload: JobCreatePayload,
     hasInterview: boolean,
   ) => {
     const targetProgressStep = pendingProgressStep;
 
+    // store description/basic payload as-is
     setPendingPayload(payload);
     setWantsInterview(hasInterview);
 
@@ -195,6 +195,54 @@ function NormalJobStepForm() {
     },
     [],
   );
+
+  // Merge all steps (basics + scheduling + description) into one JobCreatePayload
+ const buildFinalPayload = (base: JobCreatePayload): JobCreatePayload => {
+  const snapshot = useJobsStore.getState()
+    .formSnapshot as JobFormData | undefined;
+  if (!snapshot) return base;
+
+  const toDateString = (value?: Date): string | undefined => {
+    if (!value) return undefined;
+    // API expects MM/DD/YYYY
+    const mm = String(value.getMonth() + 1).padStart(2, "0");
+    const dd = String(value.getDate()).padStart(2, "0");
+    const yyyy = value.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  };
+
+  // Prefer explicit shift fields from scheduling; fall back to generic ones,
+  // and finally to what was already in base.
+  const mergedCheckIn =
+    snapshot.morning_shift_start ??
+    snapshot.check_in_time ??
+    base.check_in_time;
+
+  const mergedCheckOut =
+    snapshot.morning_shift_end ??
+    snapshot.check_out_time ??
+    base.check_out_time;
+
+  return {
+    ...base,
+    // Dates from scheduling step, converted to MM/DD/YYYY strings
+    start_date: toDateString(snapshot.start_date) ?? base.start_date,
+    end_date: toDateString(snapshot.end_date) ?? base.end_date,
+
+    // Shift times
+    check_in_time: mergedCheckIn,
+    check_out_time: mergedCheckOut,
+
+    // New scheduling/scope fields
+    employment_type: snapshot.employment_type ?? base.employment_type,
+    job_period_option: snapshot.job_period_option ?? base.job_period_option,
+    staffing_type: snapshot.staffing_type ?? base.staffing_type,
+    shift_duration_type:
+      snapshot.shift_duration_type ?? base.shift_duration_type,
+    selected_shift_types:
+      snapshot.selected_shift_types ?? base.selected_shift_types,
+  };
+};
 
   return (
     <AppLayout>
@@ -232,114 +280,115 @@ function NormalJobStepForm() {
           </CreateJobStepCard>
         )}
 
-        {/* Step 2: Scheduling Setup
-            NOTE: For now we still use NormalJobForm(formStep="description")
-            as before; in Batch 3 we’ll introduce a dedicated scheduling step component.
-        */}
-       {step === 2 && (
-  <CreateJobStepCard
-    title="Scheduling Setup"
-    footer={
-      <CreateJobStepActions
-        onBack={handleBack}
-        nextLabel="Next: Description"
-        nextType="button"
-        onNext={() => {
-          // no extra validation here; dates and scheduling details
-          // will be validated when Step 3 or final submit runs
-          resetProgressValidation();
-          setStep(3);
-        }}
-      />
-    }
-  >
-    {/* Use the same form snapshot as Step 1 */}
-    {useJobsStore.getState().formSnapshot && (
-      <NormalSchedulingStep
-        formData={
-          useJobsStore.getState().formSnapshot as unknown as JobFormData
-        }
-        updateFormData={(updates) => {
-          const current = useJobsStore.getState().formSnapshot ?? {};
-          const nextSnapshot = {
-            ...current,
-            ...updates,
-          } as JobFormSnapshot;
-          useJobsStore.getState().setFormSnapshot(nextSnapshot);
-        }}
-      />
-    )}
-  </CreateJobStepCard>
-)}
-        {/* Step 3: Description (+ AI questions when enabled)
-            For now, we keep questions as a separate step when wantsInterview=true.
-            In Batch 3 we’ll visually embed the questions section into the description page.
-        */}
+        {/* Step 2: Scheduling Setup */}
+        {step === 2 && (
+          <CreateJobStepCard
+            title="Scheduling Setup"
+            footer={
+              <CreateJobStepActions
+                onBack={handleBack}
+                nextLabel="Next: Description"
+                nextType="button"
+                onNext={() => {
+                  // no extra validation here; dates and scheduling details
+                  // will be validated when Step 3 or final submit runs
+                  resetProgressValidation();
+                  setStep(3);
+                }}
+              />
+            }
+          >
+            {useJobsStore.getState().formSnapshot && (
+              <NormalSchedulingStep
+                formData={
+                  useJobsStore.getState()
+                    .formSnapshot as unknown as JobFormData
+                }
+                updateFormData={(updates) => {
+                  const current =
+                    useJobsStore.getState().formSnapshot ?? {};
+                  const nextSnapshot = {
+                    ...current,
+                    ...updates,
+                  } as JobFormSnapshot;
+                  useJobsStore.getState().setFormSnapshot(nextSnapshot);
+                }}
+              />
+            )}
+          </CreateJobStepCard>
+        )}
+
+        {/* Step 3: Description (+ AI questions when enabled) */}
         {step === 3 && (
-  <CreateJobStepCard
-    title="Description"
-    footer={
-      <CreateJobStepActions
-        onBack={handleBack}
-        nextLabel="Next: Review, Pay & Publish"
-        nextType="submit"
-        nextForm={wantsInterview ? NORMAL_QUESTIONS_FORM_ID : NORMAL_DESCRIPTION_FORM_ID}
-      />
-    }
-  >
-    {/* Description part: always visible */}
-    <NormalJobForm
-      urgencyMode="normal"
-      formStep="description"
-      formId={NORMAL_DESCRIPTION_FORM_ID}
-      autoSubmitToken={undefined} // we don't auto-submit description here
-      onValidationBlocked={resetProgressValidation}
-      onNext={(payload, hasInterview) => {
-        // just keep the latest payload; actual navigation happens when questions submit
-        setPendingPayload(payload);
-        setWantsInterview(hasInterview);
-      }}
-    />
+          <CreateJobStepCard
+            title="Description"
+            footer={
+              <CreateJobStepActions
+                onBack={handleBack}
+                nextLabel="Next: Review, Pay & Publish"
+                nextType="submit"
+                nextForm={
+                  wantsInterview
+                    ? NORMAL_QUESTIONS_FORM_ID
+                    : NORMAL_DESCRIPTION_FORM_ID
+                }
+              />
+            }
+          >
+            {/* Description part: always visible */}
+            <NormalJobForm
+              urgencyMode="normal"
+              formStep="description"
+              formId={NORMAL_DESCRIPTION_FORM_ID}
+              autoSubmitToken={undefined}
+              onValidationBlocked={resetProgressValidation}
+              onNext={(payload, hasInterview) => {
+                // store latest description/basic payload
+                setPendingPayload(payload);
+                setWantsInterview(hasInterview);
+              }}
+            />
 
-        {/* AI questions part: only when AI interview is enabled */}
-    {descriptionWantsInterview && wantsInterview && (
-      <div className="mt-8">
-        <QuestionForm
-          pendingPayload={pendingPayload ?? undefined}
-          questions={aiQuestions}
-          onQuestionsChange={setAiQuestions}
-          formId={NORMAL_QUESTIONS_FORM_ID}
-          autoSubmitToken={progressValidationToken}
-          onValidationBlocked={resetProgressValidation}
-          onNext={(updatedPayload) => {
-            // QuestionForm has validated questions and built final payload
-            setPendingPayload(updatedPayload);
-            resetProgressValidation();
-            setStep(4);
-          }}
-        />
-      </div>
-    )}
+            {/* AI questions part: only when AI interview is enabled */}
+            {descriptionWantsInterview && wantsInterview && (
+              <div className="mt-8">
+                <QuestionForm
+                  pendingPayload={pendingPayload ?? undefined}
+                  questions={aiQuestions}
+                  onQuestionsChange={setAiQuestions}
+                  formId={NORMAL_QUESTIONS_FORM_ID}
+                  autoSubmitToken={progressValidationToken}
+                  onValidationBlocked={resetProgressValidation}
+                  onNext={(updatedPayload) => {
+                    // QuestionForm has validated questions and built final payload
+                    setPendingPayload(updatedPayload);
+                    resetProgressValidation();
+                    setStep(4);
+                  }}
+                />
+              </div>
+            )}
 
-    {/* When AI interview is off, clicking Next should move directly to review */}
-    {!descriptionWantsInterview || !wantsInterview ? (
-      <form
-        id={NORMAL_DESCRIPTION_FORM_ID}
-        className="hidden"
-        onSubmit={(e) => {
-          e.preventDefault();
-          // validate description again and go to review using latest payload
-          if (pendingPayload) {
-            resetProgressValidation();
-            setStep(4);
-          } else {
-            toast.error("Please complete the description section first.");
-          }
-        }}
-      />
-    ) : null}
-  </CreateJobStepCard>
-)}
+            {/* When AI interview is off, clicking Next should move directly to review */}
+            {!descriptionWantsInterview || !wantsInterview ? (
+              <form
+                id={NORMAL_DESCRIPTION_FORM_ID}
+                className="hidden"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (pendingPayload) {
+                    resetProgressValidation();
+                    setStep(4);
+                  } else {
+                    toast.error(
+                      "Please complete the description section first.",
+                    );
+                  }
+                }}
+              />
+            ) : null}
+          </CreateJobStepCard>
+        )}
 
         {/* Step 4: Review, Pay & Publish */}
         {step === 4 && pendingPayload && (
@@ -356,33 +405,40 @@ function NormalJobStepForm() {
               />
             }
           >
-            <JobReview
-              mode="normal"
-              payload={pendingPayload}
-              formId={NORMAL_REVIEW_FORM_ID}
-              onActionStateChange={handleReviewActionStateChange}
-              onSubmit={async (finalPayload) => {
-                try {
-                  const res = await createJob(finalPayload);
-                  if (res.success) {
-                    setHasJobs(true);
-                    clearDraft();
-                  }
-                  return {
-                    success: res.success,
-                    message: res.message,
-                    jobId: res.data?.id,
-                  };
-                } catch (err) {
-                  console.log(err);
-                  return {
-                    success: false,
-                    message:
-                      (err as Error).message ?? "Failed. Please try again.",
-                  };
-                }
-              }}
-            />
+            {(() => {
+              const finalPayload = buildFinalPayload(pendingPayload);
+
+              return (
+                <JobReview
+                  mode="normal"
+                  payload={finalPayload}
+                  formId={NORMAL_REVIEW_FORM_ID}
+                  onActionStateChange={handleReviewActionStateChange}
+                  onSubmit={async (apiPayload) => {
+                    try {
+                      const res = await createJob(apiPayload);
+                      if (res.success) {
+                        setHasJobs(true);
+                        clearDraft();
+                      }
+                      return {
+                        success: res.success,
+                        message: res.message,
+                        jobId: res.data?.id,
+                      };
+                    } catch (err) {
+                      console.log(err);
+                      return {
+                        success: false,
+                        message:
+                          (err as Error).message ??
+                          "Failed. Please try again.",
+                      };
+                    }
+                  }}
+                />
+              );
+            })()}
           </CreateJobStepCard>
         )}
       </div>

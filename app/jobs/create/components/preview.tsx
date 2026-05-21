@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, MapPin, Phone, Users } from "lucide-react";
+import { Clock, Mail, MapPin, Phone, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import SuccessModal from "@/components/modal";
 import { getJobFeePreview } from "@/features/jobs";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { useWalletStore } from "@/stores/walletStore";
-import type { JobCreatePayload, JobFeePreviewResponse, JobStatus } from "@/types";
+import type {
+  JobCreatePayload,
+  JobFeePreviewResponse,
+  JobStatus,
+} from "@/types";
 import { getMetadataLabel } from "@/utils/constant/metadata";
 
 interface JobReviewProps {
@@ -48,6 +52,18 @@ function diffHours(checkIn?: string | null, checkOut?: string | null): number {
   return Math.abs(h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
 }
 
+// Dummy: in your real app this should be the rotational template output.
+// For now: Team A for every day; you can wire real data later.
+function getRotationalTeamForDay(_index: number): string {
+  return "Team A";
+}
+
+// Dummy: from your scheduling step, probably "8 hrs" / "12 hrs" etc.
+function getShiftDurationLabel(payload: JobCreatePayload): string {
+  if (payload.shift_duration_type === "12_hrs") return "12 hrs";
+  return "8 hrs";
+}
+
 function buildShiftRows(payload: JobCreatePayload) {
   if (!payload.start_date || !payload.end_date) return [];
   const start = new Date(payload.start_date + "T00:00:00");
@@ -59,16 +75,13 @@ function buildShiftRows(payload: JobCreatePayload) {
   while (cursor <= end) {
     rows.push({
       day: `Day ${day}`,
-      startDate: cursor.toLocaleDateString("en-CA", {
+      startDate: cursor.toLocaleDateString("en-GB", {
         day: "numeric",
         month: "long",
         year: "numeric",
       }),
-      endDate: cursor.toLocaleDateString("en-CA", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
+      rotationalTeam: getRotationalTeamForDay(day - 1),
+      eachShiftDuration: getShiftDurationLabel(payload),
       timing: `${formatTime(payload.check_in_time)} to ${formatTime(
         payload.check_out_time,
       )}`,
@@ -156,6 +169,7 @@ export function JobReview({
 
   const isUrgent = mode === "urgent";
   const isFullTime = payload.job_type === "full_time";
+  const isRotationalShift = payload.staffing_type === "rotational";
 
   useEffect(() => {
     void loadMetadata();
@@ -173,9 +187,18 @@ export function JobReview({
     return Array.from(byValue.values());
   }, [departments, jobTitles]);
 
-  const displayJobTitle = getMetadataLabel(allJobTitleOptions, payload.job_title);
-  const displayDepartment = getMetadataLabel(departments, payload.department);
-  const displayProvince = getMetadataLabel(provinceOptions, payload.province);
+  const displayJobTitle = getMetadataLabel(
+    allJobTitleOptions,
+    payload.job_title,
+  );
+  const displayDepartment = getMetadataLabel(
+    departments,
+    payload.department,
+  );
+  const displayProvince = getMetadataLabel(
+    provinceOptions,
+    payload.province,
+  );
   const displayJobType = getMetadataLabel(jobTypeOptions, payload.job_type);
 
   useEffect(() => {
@@ -217,7 +240,9 @@ export function JobReview({
   ]);
 
   const hourlyRateCents =
-    feePreview?.recruiter_pay_per_hour_cents ?? payload.pay_per_hour_cents ?? 0;
+    feePreview?.recruiter_pay_per_hour_cents ??
+    payload.pay_per_hour_cents ??
+    0;
   const hourlyRate = hourlyRateCents / 100;
   const hoursPerCandidate = feePreview?.total_working_hours ?? 0;
   const requiredCandidates = payload.no_of_hires_required ?? 1;
@@ -286,10 +311,13 @@ export function JobReview({
               shortfallCents,
             )} to publish this job.`,
           );
-          toast.error("Insufficient wallet balance. Redirecting to top-up...", {
-            autoClose: 2000,
-            onClose: () => redirectToTopup(router),
-          });
+          toast.error(
+            "Insufficient wallet balance. Redirecting to top-up...",
+            {
+              autoClose: 2000,
+              onClose: () => redirectToTopup(router),
+            },
+          );
           return;
         }
       }
@@ -304,23 +332,29 @@ export function JobReview({
       } else {
         const msg = res?.message ?? "";
         if (isInsufficientBalanceError(msg)) {
-          toast.error("Insufficient wallet balance. Redirecting to top-up...", {
-            autoClose: 2000,
-            onClose: () => redirectToTopup(router),
-          });
+          toast.error(
+            "Insufficient wallet balance. Redirecting to top-up...",
+            {
+              autoClose: 2000,
+              onClose: () => redirectToTopup(router),
+            },
+          );
           return;
         }
         setError(msg || "Failed to create job. Please try again.");
       }
     } catch (err) {
       const axiosMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ?? "";
+        (err as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ?? "";
       if (isInsufficientBalanceError(axiosMsg)) {
-        toast.error("Insufficient wallet balance. Redirecting to top-up...", {
-          autoClose: 2000,
-          onClose: () => redirectToTopup(router),
-        });
+        toast.error(
+          "Insufficient wallet balance. Redirecting to top-up...",
+          {
+            autoClose: 2000,
+            onClose: () => redirectToTopup(router),
+          },
+        );
         return;
       }
       setError(
@@ -334,32 +368,55 @@ export function JobReview({
     }
   };
 
-  const summaryTitle = isUrgent ? "Shift Summary" : "Job Summary";
-  const tableTitle = isUrgent ? "Shift Details" : "Job Details";
   const shifts = buildShiftRows(payload);
   const location = [payload.city, displayProvince].filter(Boolean).join(", ");
+  const summaryTitle = "Job Summary";
+  const tableTitle = "Job Details";
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void handlePublishJob();
   };
-
+console.log("JobReview payload", {
+  job_type: payload.job_type,
+  start_date: payload.start_date,
+  end_date: payload.end_date,
+  check_in_time: payload.check_in_time,
+  check_out_time: payload.check_out_time,
+  shiftsLen: shifts.length,
+});
   return (
     <>
       <form id={formId} onSubmit={handleSubmit} className="contents" noValidate>
-        <div className="space-y-4 w-full mx-auto">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
-            <div className="flex items-start justify-between">
-              <h2 className="text-lg font-bold text-gray-900">{summaryTitle}</h2>
-              <span
-                className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                  isUrgent
-                    ? "bg-orange-50 text-orange-600 border-orange-200"
-                    : "bg-green-50 text-green-600 border-green-200"
-                }`}
-              >
-                {isUrgent ? "Urgent" : "Normal"}
-              </span>
+        <div className="w-full mx-auto space-y-6">
+          {/* Job Summary card */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {summaryTitle}
+              </h2>
+
+              <div className="flex items-center gap-3">
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                    isUrgent
+                      ? "bg-red-50 text-red-600 border-red-200"
+                      : "bg-emerald-50 text-emerald-600 border-emerald-200"
+                  }`}
+                >
+                  {isUrgent ? "Urgent" : "Regular"}
+                </span>
+
+                <span
+                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                    isRotationalShift
+                      ? "bg-orange-50 text-orange-600 border-orange-200"
+                      : "bg-blue-50 text-blue-600 border-blue-200"
+                  }`}
+                >
+                  {isRotationalShift ? "Rotational Shifts" : "Standard Shifts"}
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -380,6 +437,12 @@ export function JobReview({
                   {location}
                 </span>
               )}
+              {/* {payload.contact_email && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5" />
+                  {payload.contact_email}
+                </span>
+              )} */}
               {payload.direct_number && (
                 <span className="flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5" />
@@ -389,40 +452,43 @@ export function JobReview({
               {payload.job_type && (
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  {displayJobType}
+                  {displayJobType}{" "}
+                  {payload.shift_duration_type === "8_hrs"
+                    ? "(8 hrs Job)"
+                    : ""}
                 </span>
               )}
               <span className="flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" />
-                <strong className="text-gray-800">{requiredCandidates}</strong>
-                &nbsp;Staff Required
+                <strong className="text-gray-800">
+                  {requiredCandidates}
+                </strong>
+                <span className="ml-1">Staff Required</span>
               </span>
             </div>
           </div>
 
+          {/* Job Details table */}
           {!isFullTime && shifts.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 className="text-base font-bold text-gray-900 mb-4">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <h3 className="text-base font-semibold text-gray-900 mb-4">
                 {tableTitle}
               </h3>
-              <div className="overflow-x-auto rounded-lg border border-gray-100">
+
+              <div className="overflow-x-auto rounded-xl border border-orange-100">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-orange-50 text-gray-700 font-medium text-left">
-                      {[
-                        "Shift Day",
-                        "Shift Start Date",
-                        "Shift End Date",
-                        "Shift Timing",
-                        "Shift Duration",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="px-4 py-3 whitespace-nowrap"
-                        >
-                          {heading}
-                        </th>
-                      ))}
+                      <th className="px-4 py-3 whitespace-nowrap">Shift Day</th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        Shift Start Date
+                      </th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        Rotational Team
+                      </th>
+                      <th className="px-4 py-3 whitespace-nowrap">
+                        Each Shift Duration
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -436,108 +502,166 @@ export function JobReview({
                           {row.startDate}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          {row.endDate}
+                          {row.rotationalTeam}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          {row.timing}
+                          {row.eachShiftDuration}
                         </td>
-                        <td className="px-4 py-3">{row.duration}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination stub to look like Figma; wire real pagination later */}
+              <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="w-7 h-7 flex items-center justify-center rounded-md bg-orange-500 text-white font-semibold"
+                  >
+                    1
+                  </button>
+                  <button
+                    type="button"
+                    className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 bg-white"
+                  >
+                    2
+                  </button>
+                  <span>3 … 50 51 52</span>
+                  <button
+                    type="button"
+                    className="ml-2 px-3 h-7 rounded-md border border-gray-200 bg-white"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span>Showing 1 of 52 weeks</span>
+                  <button
+                    type="button"
+                    className="px-3 h-7 rounded-md border border-gray-200 bg-white"
+                  >
+                    10 per page ▾
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
-        {!isFullTime && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-base font-bold text-gray-900 mb-4">
-                Total Fees
-              </h3>
-            </div>
+          {/* Cost Breakdown */}
+          {!isFullTime && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">
+                  Cost Breakdown
+                </h3>
+              </div>
 
-            {feeLoading && (
-              <p className="px-6 pb-4 text-sm text-gray-500 animate-pulse">
-                Loading cost estimate...
-              </p>
-            )}
-            {feeError && (
-              <p className="px-6 pb-4 text-sm text-red-600">{feeError}</p>
-            )}
+              {feeLoading && (
+                <p className="px-6 pb-4 text-sm text-gray-500 animate-pulse">
+                  Loading cost estimate...
+                </p>
+              )}
+              {feeError && (
+                <p className="px-6 pb-4 text-sm text-red-600">{feeError}</p>
+              )}
 
-            {!feeLoading && !feeError && (
-              <>
-                <div className="divide-y divide-gray-100 px-6">
-                  <div className="flex justify-between py-3 text-sm">
-                    <span className="text-gray-700 font-medium flex items-center gap-1.5">
-                      Hourly Rate
-                      <span
-                        className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
-                        title="Hourly pay rate for this role"
-                      >
-                        ?
+              {!feeLoading && !feeError && (
+                <>
+                  <div className="divide-y divide-gray-100 px-6">
+                    <div className="flex justify-between py-3 text-sm">
+                      <span className="text-gray-700 font-medium flex items-center gap-1.5">
+                        Hourly Rate
+                        <span
+                          className="w-4 h-4 rounded-full border border-gray-300 text-gray-400 text-[10px] flex items-center justify-center cursor-help"
+                          title="Hourly pay rate for this role"
+                        >
+                          i
+                        </span>
                       </span>
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      $
-                      {hourlyRate.toLocaleString("en-CA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-3 text-sm">
-                    <span className="text-gray-700 font-medium">
-                      Hours per Candidate
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      {hoursPerCandidate} hrs
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-3 text-sm">
-                    <span className="text-gray-700 font-medium">
-                      Cost per Candidate
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      $
-                      {costPerCandidate.toLocaleString("en-CA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-3 text-sm">
-                    <span className="text-gray-700 font-medium">
-                      Required Candidates
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      x {requiredCandidates}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
-                  <span className="font-bold text-gray-900">Total Fees</span>
-                  <span className="font-bold text-gray-900 text-xl">
-                    $
-                    {totalPayable.toLocaleString("en-CA", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                      <span className="font-medium text-gray-900">
+                        $
+                        {hourlyRate.toLocaleString("en-CA", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-      </div>
+                    <div className="flex justify-between py-3 text-sm">
+                      <span className="text-gray-700 font-medium">
+                        Workable Hours per Candidate per Day
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        {hoursPerCandidate} hrs
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between py-3 text-sm">
+                      <span className="text-gray-700 font-medium">
+                        Cost per Candidate per Day
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        $
+                        {costPerCandidate.toLocaleString("en-CA", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between py-3 text-sm">
+                      <span className="text-gray-700 font-medium">
+                        Required Candidates per Day
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        x {requiredCandidates}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between py-3 text-sm">
+                      <span className="text-gray-700 font-medium">
+                        Total Cost per Required Candidates per Day
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        $
+                        {(costPerCandidate * requiredCandidates).toLocaleString(
+                          "en-CA",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          },
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
+                    <span className="font-bold text-gray-900">
+                      Recurring Monthly Payable
+                    </span>
+                    <span className="font-bold text-gray-900 text-xl">
+                      $
+                      {totalPayable.toLocaleString("en-CA", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Bottom actions – your steps footer / Pay & Publish lives outside this component */}
+        </div>
       </form>
 
       <SuccessModal
