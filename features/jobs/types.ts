@@ -243,6 +243,8 @@ export interface JobCreatePayload {
   staffing_type?: StaffingType;
   shift_duration_type?: ShiftDurationType;
   selected_shift_types?: ShiftType[];
+
+  break_duration_minutes?: number;
 }
 
 export type JobUpdatePayload = Partial<JobCreatePayload>;
@@ -397,6 +399,8 @@ night_shift_start?: string;
 night_shift_end?: string;
 
 job_duration_per_day?: "24" | "12" | "8";
+
+break_duration_minutes?: number;
 }
 
 export interface InstantJobFormData extends JobFormData {

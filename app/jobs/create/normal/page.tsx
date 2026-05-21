@@ -204,15 +204,12 @@ function NormalJobStepForm() {
 
   const toDateString = (value?: Date): string | undefined => {
     if (!value) return undefined;
-    // API expects MM/DD/YYYY
     const mm = String(value.getMonth() + 1).padStart(2, "0");
     const dd = String(value.getDate()).padStart(2, "0");
     const yyyy = value.getFullYear();
     return `${mm}/${dd}/${yyyy}`;
   };
 
-  // Prefer explicit shift fields from scheduling; fall back to generic ones,
-  // and finally to what was already in base.
   const mergedCheckIn =
     snapshot.morning_shift_start ??
     snapshot.check_in_time ??
@@ -225,15 +222,14 @@ function NormalJobStepForm() {
 
   return {
     ...base,
-    // Dates from scheduling step, converted to MM/DD/YYYY strings
     start_date: toDateString(snapshot.start_date) ?? base.start_date,
     end_date: toDateString(snapshot.end_date) ?? base.end_date,
-
-    // Shift times
     check_in_time: mergedCheckIn,
     check_out_time: mergedCheckOut,
 
-    // New scheduling/scope fields
+    break_duration_minutes:
+      snapshot.break_duration_minutes ?? base.break_duration_minutes,
+
     employment_type: snapshot.employment_type ?? base.employment_type,
     job_period_option: snapshot.job_period_option ?? base.job_period_option,
     staffing_type: snapshot.staffing_type ?? base.staffing_type,

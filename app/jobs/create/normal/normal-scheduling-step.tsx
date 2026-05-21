@@ -452,15 +452,32 @@ export function NormalSchedulingStep({
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="min-w-[110px] text-gray-600">
-                      Break/Rest Time:
-                    </span>
-                    <Input
-                      className="h-11 w-40"
-                      placeholder="30 minutes"
-                      readOnly
-                    />
-                  </div>
+  <span className="min-w-[110px] text-gray-600">
+    Break/Rest Time:
+  </span>
+  <div className="flex items-center gap-2">
+    <Input
+      className="h-11 w-20 text-right"
+      type="number"
+      min={0}
+      max={240}
+      value={
+        formData.break_duration_minutes !== undefined
+          ? formData.break_duration_minutes
+          : ""
+      }
+      onChange={(e) => {
+        const value = e.target.value;
+        const num = Number(value);
+        updateFormData({
+          break_duration_minutes: Number.isFinite(num) ? num : undefined,
+        });
+      }}
+      placeholder="30"
+    />
+    <span className="text-xs text-gray-500">minutes</span>
+  </div>
+</div>
                 </div>
               );
             })}
