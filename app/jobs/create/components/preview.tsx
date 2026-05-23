@@ -5,21 +5,46 @@ import { useRouter } from "next/navigation";
 import { Clock, Mail, MapPin, Phone, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import SuccessModal from "@/components/modal";
+import { DataTable } from "@/components/table/DataTable";
+import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { getJobFeePreview } from "@/features/jobs";
+import { buildNormalJobCreatePayload } from "../normal/build-create-payload";
+import { buildNormalJobFeePreviewPayload } from "../normal/build-preview-payload";
+import { buildInstantJobCreatePayload, buildInstantJobFeePreviewPayload } from "../instant/build-instant-payload";
+import {
+  buildInstantPreviewCostSummary,
+  hasInstantPreviewShifts,
+} from "../instant/map-instant-preview-response";
+import {
+  buildNormalPreviewCostSummary,
+  hasNormalPreviewShifts,
+  mapPreviewShiftsToRows,
+  type ShiftPreviewRow,
+} from "../normal/map-preview-response";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { useWalletStore } from "@/stores/walletStore";
 import type {
+  InstantJobFeePreviewPayload,
   JobCreatePayload,
   JobFeePreviewResponse,
   JobStatus,
+  LegacyJobFeePreviewPayload,
+  NormalJobFeePreviewPayload,
+  RecruiterJobCreateBody,
 } from "@/types";
+import {
+  getShiftDurationHours,
+  parseLocalDate,
+  shiftSpansMidnight,
+} from "../validation/helpers";
 import { getMetadataLabel } from "@/utils/constant/metadata";
+import { getTeamForTemplateDay } from "../normal/scheduling-utils";
 
 interface JobReviewProps {
   mode: "normal" | "urgent";
   payload: JobCreatePayload;
   onSubmit: (
-    payload: JobCreatePayload,
+    payload: RecruiterJobCreateBody,
   ) => Promise<{
     success: boolean;
     message?: string;
@@ -45,48 +70,94 @@ function formatTime(timeStr?: string | null): string {
   });
 }
 
-function diffHours(checkIn?: string | null, checkOut?: string | null): number {
-  if (!checkIn || !checkOut) return 0;
-  const [h1, m1] = checkIn.split(":").map(Number);
-  const [h2, m2] = checkOut.split(":").map(Number);
-  return Math.abs(h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+function parsePayloadDate(value?: string | Date | null): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const trimmed = value.trim();
+  const slashMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if (slashMatch) {
+    const month = Number(slashMatch[1]) - 1;
+    const day = Number(slashMatch[2]);
+    const year = Number(slashMatch[3]);
+    const parsed = new Date(year, month, day);
+    if (
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month &&
+      parsed.getDate() === day
+    ) {
+      return parsed;
+    }
+    return null;
+  }
+
+  return parseLocalDate(trimmed);
 }
 
-// Dummy: in your real app this should be the rotational template output.
-// For now: Team A for every day; you can wire real data later.
-function getRotationalTeamForDay(_index: number): string {
-  return "Team A";
+function formatDisplayDate(date: Date): string {
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
-// Dummy: from your scheduling step, probably "8 hrs" / "12 hrs" etc.
-function getShiftDurationLabel(payload: JobCreatePayload): string {
-  if (payload.shift_duration_type === "12_hrs") return "12 hrs";
-  return "8 hrs";
+function resolveShiftTimes(payload: JobCreatePayload): {
+  checkIn?: string;
+  checkOut?: string;
+} {
+  return {
+    checkIn:
+      payload.check_in_time ??
+      payload.morning_shift_start ??
+      undefined,
+    checkOut:
+      payload.check_out_time ??
+      payload.morning_shift_end ??
+      undefined,
+  };
 }
 
-function buildShiftRows(payload: JobCreatePayload) {
-  if (!payload.start_date || !payload.end_date) return [];
-  const start = new Date(payload.start_date + "T00:00:00");
-  const end = new Date(payload.end_date + "T00:00:00");
-  const rows = [];
+/** Matches schedule template in normal-scheduling-step. */
+function getTeamForDay(payload: JobCreatePayload, dayIndex: number): string {
+  return getTeamForTemplateDay(payload.schedule_template, dayIndex);
+}
+
+function buildShiftRows(payload: JobCreatePayload): ShiftPreviewRow[] {
+  const start = parsePayloadDate(payload.start_date);
+  const end = parsePayloadDate(payload.end_date);
+  if (!start || !end || start > end) return [];
+
+  const { checkIn, checkOut } = resolveShiftTimes(payload);
+  const hoursPerDay = getShiftDurationHours(checkIn, checkOut);
+  const overnight = shiftSpansMidnight(checkIn, checkOut);
+  const rows: ShiftPreviewRow[] = [];
   const cursor = new Date(start);
   let day = 1;
 
   while (cursor <= end) {
+    const rowStart = new Date(cursor);
+    const rowEnd = new Date(cursor);
+    if (overnight) {
+      rowEnd.setDate(rowEnd.getDate() + 1);
+    }
+
     rows.push({
+      id: `legacy-day-${day}`,
       day: `Day ${day}`,
-      startDate: cursor.toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
-      rotationalTeam: getRotationalTeamForDay(day - 1),
-      eachShiftDuration: getShiftDurationLabel(payload),
-      timing: `${formatTime(payload.check_in_time)} to ${formatTime(
-        payload.check_out_time,
-      )}`,
-      duration: `${diffHours(payload.check_in_time, payload.check_out_time)} hrs`,
+      shiftName: "-",
+      startDate: formatDisplayDate(rowStart),
+      endDate: formatDisplayDate(rowEnd),
+      checkIn: formatTime(checkIn),
+      checkOut: formatTime(checkOut),
+      totalWorkingHours:
+        hoursPerDay != null ? `${hoursPerDay} hrs` : "-",
+      team: getTeamForDay(payload, day - 1),
+      workers: payload.no_of_hires_required ?? 1,
     });
+
     cursor.setDate(cursor.getDate() + 1);
     day++;
   }
@@ -94,16 +165,36 @@ function buildShiftRows(payload: JobCreatePayload) {
   return rows;
 }
 
+/** Row span per index: number = render merged cell; null = skip (same date as row above). */
+function computeConsecutiveCellSpans(
+  rows: ShiftPreviewRow[],
+  getValue: (row: ShiftPreviewRow) => string,
+): (number | null)[] {
+  const spans: (number | null)[] = new Array(rows.length).fill(null);
+  let index = 0;
+
+  while (index < rows.length) {
+    const value = getValue(rows[index]);
+    let end = index + 1;
+    while (end < rows.length && getValue(rows[end]) === value) {
+      end += 1;
+    }
+    spans[index] = end - index;
+    index = end;
+  }
+
+  return spans;
+}
+
+const MERGED_TABLE_CELL_CLASS =
+  "px-4 py-3 whitespace-nowrap align-middle bg-white border-r border-gray-100";
+
 function validateShiftDuration(
   checkIn?: string | null,
   checkOut?: string | null,
 ): string | null {
-  if (!checkIn || !checkOut) return null;
-  const [h1, m1] = checkIn.split(":").map(Number);
-  const [h2, m2] = checkOut.split(":").map(Number);
-  let diffMins = h2 * 60 + m2 - (h1 * 60 + m1);
-  if (diffMins < 0) diffMins += 24 * 60;
-  const hours = diffMins / 60;
+  const hours = getShiftDurationHours(checkIn ?? undefined, checkOut ?? undefined);
+  if (hours == null) return null;
 
   if (hours < 4) {
     return "Shift duration must be at least 4 hours. Please go back and adjust the shift times.";
@@ -137,6 +228,9 @@ function formatCurrency(cents: number): string {
 
 type LabelOption = { label: string; value: string };
 
+const SHIFT_PER_PAGE_OPTIONS = [5, 10, 25, 50] as const;
+const DEFAULT_SHIFT_PER_PAGE = 10;
+
 function getAvailableWalletBalanceCents(): number | null {
   const wallet = useWalletStore.getState().wallet;
   const balanceCents = Number(wallet?.available_balance);
@@ -166,6 +260,8 @@ export function JobReview({
     useState<JobFeePreviewResponse["data"] | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
   const [feeError, setFeeError] = useState<string | null>(null);
+  const [shiftPage, setShiftPage] = useState(1);
+  const [shiftPerPage, setShiftPerPage] = useState(DEFAULT_SHIFT_PER_PAGE);
 
   const isUrgent = mode === "urgent";
   const isFullTime = payload.job_type === "full_time";
@@ -201,60 +297,110 @@ export function JobReview({
   );
   const displayJobType = getMetadataLabel(jobTypeOptions, payload.job_type);
 
-  useEffect(() => {
-    if (isFullTime) return;
-    if (
-      !payload.job_title ||
-      !payload.start_date ||
-      !payload.end_date ||
-      !payload.check_in_time ||
-      !payload.check_out_time
-    ) {
-      return;
+  /** Stable string key so fee preview only refetches when request data actually changes. */
+  const feePreviewRequestKey = useMemo(() => {
+    if (isFullTime) return null;
+
+    if (mode === "normal") {
+      const body = buildNormalJobFeePreviewPayload(payload);
+      return body ? `normal:${JSON.stringify(body)}` : null;
     }
 
+    const instantBody = buildInstantJobFeePreviewPayload(payload);
+    return instantBody ? `instant:${JSON.stringify(instantBody)}` : null;
+  }, [isFullTime, mode, payload]);
+
+  useEffect(() => {
+    if (!feePreviewRequestKey) return;
+
+    let cancelled = false;
     setFeeLoading(true);
     setFeeError(null);
 
-    getJobFeePreview({
-      job_title: payload.job_title,
-      no_of_hires_required: payload.no_of_hires_required ?? 1,
-      start_date: payload.start_date,
-      end_date: payload.end_date,
-      check_in_time: payload.check_in_time,
-      check_out_time: payload.check_out_time,
-    })
-      .then(setFeePreview)
-      .catch(() =>
-        setFeeError("Could not load cost estimate. Please go back and try again."),
-      )
-      .finally(() => setFeeLoading(false));
-  }, [
-    isFullTime,
-    payload.job_title,
-    payload.no_of_hires_required,
-    payload.start_date,
-    payload.end_date,
-    payload.check_in_time,
-    payload.check_out_time,
-  ]);
+    const requestBody:
+      | NormalJobFeePreviewPayload
+      | InstantJobFeePreviewPayload
+      | LegacyJobFeePreviewPayload = feePreviewRequestKey.startsWith("normal:")
+      ? (JSON.parse(
+          feePreviewRequestKey.slice("normal:".length),
+        ) as NormalJobFeePreviewPayload)
+      : feePreviewRequestKey.startsWith("instant:")
+        ? (JSON.parse(
+            feePreviewRequestKey.slice("instant:".length),
+          ) as InstantJobFeePreviewPayload)
+        : (JSON.parse(
+            feePreviewRequestKey.slice("legacy:".length),
+          ) as LegacyJobFeePreviewPayload);
+
+    getJobFeePreview(requestBody)
+      .then((data) => {
+        if (!cancelled) setFeePreview(data);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFeeError(
+            "Could not load cost estimate. Please go back and try again.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setFeeLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [feePreviewRequestKey]);
+
+  const requiredCandidates =
+    feePreview?.no_of_hires ?? payload.no_of_hires_required ?? 1;
+
+  const instantPreviewCost = useMemo(
+    () =>
+      isUrgent
+        ? buildInstantPreviewCostSummary(
+            feePreview,
+            payload.no_of_hires_required ?? 1,
+          )
+        : null,
+    [isUrgent, feePreview, payload.no_of_hires_required],
+  );
+
+  const previewCost = useMemo(
+    () =>
+      isUrgent
+        ? null
+        : buildNormalPreviewCostSummary(
+            feePreview,
+            payload.no_of_hires_required ?? 1,
+          ),
+    [isUrgent, feePreview, payload.no_of_hires_required],
+  );
 
   const hourlyRateCents =
+    previewCost?.hourlyRateCents ??
     feePreview?.recruiter_pay_per_hour_cents ??
     payload.pay_per_hour_cents ??
     0;
   const hourlyRate = hourlyRateCents / 100;
-  const hoursPerCandidate = feePreview?.total_working_hours ?? 0;
-  const requiredCandidates = payload.no_of_hires_required ?? 1;
-  const costPerCandidateCents =
+  const hoursPerCandidate =
+    instantPreviewCost?.hoursPerShift ?? feePreview?.total_working_hours ?? 0;
+  const costPerShiftCents =
+    instantPreviewCost?.costPerShiftCents ??
+    previewCost?.costPerShiftCents ??
     feePreview?.per_candidate_shift_recruiter_pay_cents ??
     Math.round(hourlyRate * hoursPerCandidate * 100);
-  const costPerCandidate = costPerCandidateCents / 100;
+  const costPerShift = costPerShiftCents / 100;
   const totalFeeCents = isFullTime
     ? 0
-    : (feePreview?.total_recruiter_pay_cents ??
-      costPerCandidateCents * requiredCandidates);
-  const totalPayable = totalFeeCents / 100;
+    : (instantPreviewCost?.dueNowCents ??
+      previewCost?.dueNowCents ??
+      feePreview?.total_recruiter_pay_cents ??
+      costPerShiftCents * requiredCandidates);
+  const firstMonthPayment = previewCost?.monthlyPayments[0];
+  const useApiShiftTable = isUrgent
+    ? hasInstantPreviewShifts(feePreview)
+    : hasNormalPreviewShifts(feePreview);
 
   const isSubmitDisabled =
     isProcessing || (!isFullTime && (feeLoading || !!feeError || !feePreview));
@@ -322,7 +468,30 @@ export function JobReview({
         }
       }
 
-      const finalPayload = { ...payload, status: "OPEN" as JobStatus };
+      let finalPayload: RecruiterJobCreateBody;
+
+      if (mode === "normal") {
+        const normalBody = buildNormalJobCreatePayload(payload);
+        if (!normalBody) {
+          setError(
+            "Scheduling data is incomplete. Go back to Scheduling Setup and try again.",
+          );
+          setIsProcessing(false);
+          return;
+        }
+        finalPayload = { ...normalBody, status: "OPEN" as JobStatus };
+      } else {
+        const instantBody = buildInstantJobCreatePayload(payload);
+        if (!instantBody) {
+          setError(
+            "Shift times are incomplete. Go back to Basic Info and try again.",
+          );
+          setIsProcessing(false);
+          return;
+        }
+        finalPayload = { ...instantBody, status: "OPEN" as JobStatus };
+      }
+
       const res = await onSubmit(finalPayload);
 
       if (res?.success) {
@@ -368,7 +537,64 @@ export function JobReview({
     }
   };
 
-  const shifts = buildShiftRows(payload);
+  const shifts = useMemo((): ShiftPreviewRow[] => {
+    if (useApiShiftTable && feePreview?.preview_shifts) {
+      return mapPreviewShiftsToRows(feePreview.preview_shifts);
+    }
+    return buildShiftRows(payload);
+  }, [useApiShiftTable, feePreview?.preview_shifts, payload]);
+
+  const shiftHeaders = useMemo(() => {
+    const headers = ["Start Date", "End Date", "Day"];
+    if (useApiShiftTable) {
+      headers.push("Shift", "Team");
+    }
+    headers.push(
+      "Check-In Time",
+      "Check-Out Time",
+      "Total Working Hours",
+    );
+    if (useApiShiftTable) headers.push("Workers");
+    return headers;
+  }, [useApiShiftTable]);
+
+  const totalShiftPages = Math.max(1, Math.ceil(shifts.length / shiftPerPage));
+  const currentShiftPage = Math.min(shiftPage, totalShiftPages);
+
+  const paginatedShifts = useMemo(() => {
+    const start = (currentShiftPage - 1) * shiftPerPage;
+    return shifts.slice(start, start + shiftPerPage);
+  }, [shifts, currentShiftPage, shiftPerPage]);
+
+  const startDateSpans = useMemo(
+    () =>
+      computeConsecutiveCellSpans(
+        paginatedShifts,
+        (row) => row.startDate,
+      ),
+    [paginatedShifts],
+  );
+
+  const endDateSpans = useMemo(
+    () =>
+      computeConsecutiveCellSpans(paginatedShifts, (row) => row.endDate),
+    [paginatedShifts],
+  );
+
+  const daySpans = useMemo(
+    () => computeConsecutiveCellSpans(paginatedShifts, (row) => row.day),
+    [paginatedShifts],
+  );
+
+  const teamSpans = useMemo(
+    () => computeConsecutiveCellSpans(paginatedShifts, (row) => row.team),
+    [paginatedShifts],
+  );
+
+  useEffect(() => {
+    setShiftPage(1);
+  }, [shifts.length, shiftPerPage, isUrgent]);
+
   const location = [payload.city, displayProvince].filter(Boolean).join(", ");
   const summaryTitle = "Job Summary";
   const tableTitle = "Job Details";
@@ -377,14 +603,7 @@ export function JobReview({
     event.preventDefault();
     void handlePublishJob();
   };
-console.log("JobReview payload", {
-  job_type: payload.job_type,
-  start_date: payload.start_date,
-  end_date: payload.end_date,
-  check_in_time: payload.check_in_time,
-  check_out_time: payload.check_out_time,
-  shiftsLen: shifts.length,
-});
+
   return (
     <>
       <form id={formId} onSubmit={handleSubmit} className="contents" noValidate>
@@ -407,15 +626,19 @@ console.log("JobReview payload", {
                   {isUrgent ? "Urgent" : "Regular"}
                 </span>
 
-                <span
-                  className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-                    isRotationalShift
-                      ? "bg-orange-50 text-orange-600 border-orange-200"
-                      : "bg-blue-50 text-blue-600 border-blue-200"
-                  }`}
-                >
-                  {isRotationalShift ? "Rotational Shifts" : "Standard Shifts"}
-                </span>
+                {!isUrgent && (
+                  <span
+                    className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+                      isRotationalShift
+                        ? "bg-orange-50 text-orange-600 border-orange-200"
+                        : "bg-blue-50 text-blue-600 border-blue-200"
+                    }`}
+                  >
+                    {isRotationalShift
+                      ? "Rotational Shifts"
+                      : "Standard Shifts"}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -475,76 +698,86 @@ console.log("JobReview payload", {
                 {tableTitle}
               </h3>
 
-              <div className="overflow-x-auto rounded-xl border border-orange-100">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-orange-50 text-gray-700 font-medium text-left">
-                      <th className="px-4 py-3 whitespace-nowrap">Shift Day</th>
-                      <th className="px-4 py-3 whitespace-nowrap">
-                        Shift Start Date
-                      </th>
-                      <th className="px-4 py-3 whitespace-nowrap">
-                        Rotational Team
-                      </th>
-                      <th className="px-4 py-3 whitespace-nowrap">
-                        Each Shift Duration
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shifts.map((row, i) => (
-                      <tr
-                        key={i}
-                        className="border-t border-gray-100 text-gray-700"
-                      >
-                        <td className="px-4 py-3">{row.day}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+              <div className="rounded-xl border border-orange-100 overflow-hidden">
+                <DataTable
+                  headers={shiftHeaders}
+                  minWidthClassName="min-w-[800px]"
+                  headerRowClassName="bg-orange-50 border-b border-orange-100"
+                  tableClassName="text-gray-700"
+                >
+                  {paginatedShifts.map((row, rowIndex) => (
+                    <tr
+                      key={row.id}
+                      className="border-b border-gray-100 last:border-b-0 text-gray-700"
+                    >
+                      {startDateSpans[rowIndex] != null && (
+                        <td
+                          rowSpan={startDateSpans[rowIndex] ?? 1}
+                          className={MERGED_TABLE_CELL_CLASS}
+                        >
                           {row.startDate}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {row.rotationalTeam}
+                      )}
+                      {endDateSpans[rowIndex] != null && (
+                        <td
+                          rowSpan={endDateSpans[rowIndex] ?? 1}
+                          className={MERGED_TABLE_CELL_CLASS}
+                        >
+                          {row.endDate}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {row.eachShiftDuration}
+                      )}
+                      {daySpans[rowIndex] != null && (
+                        <td
+                          rowSpan={daySpans[rowIndex] ?? 1}
+                          className={MERGED_TABLE_CELL_CLASS}
+                        >
+                          {row.day}
                         </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                      )}
+                      {useApiShiftTable && (
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.shiftName}
+                        </td>
+                      )}
+                      {useApiShiftTable && teamSpans[rowIndex] != null && (
+                        <td
+                          rowSpan={teamSpans[rowIndex] ?? 1}
+                          className={MERGED_TABLE_CELL_CLASS}
+                        >
+                          {row.team}
+                        </td>
+                      )}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.checkIn}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.checkOut}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {row.totalWorkingHours}
+                      </td>
+                      {useApiShiftTable && (
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {row.workers}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </DataTable>
 
-              {/* Pagination stub to look like Figma; wire real pagination later */}
-              <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="w-7 h-7 flex items-center justify-center rounded-md bg-orange-500 text-white font-semibold"
-                  >
-                    1
-                  </button>
-                  <button
-                    type="button"
-                    className="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 bg-white"
-                  >
-                    2
-                  </button>
-                  <span>3 … 50 51 52</span>
-                  <button
-                    type="button"
-                    className="ml-2 px-3 h-7 rounded-md border border-gray-200 bg-white"
-                  >
-                    Next
-                  </button>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span>Showing 1 of 52 weeks</span>
-                  <button
-                    type="button"
-                    className="px-3 h-7 rounded-md border border-gray-200 bg-white"
-                  >
-                    10 per page ▾
-                  </button>
-                </div>
+                <PaginationFooter
+                  page={currentShiftPage}
+                  totalItems={shifts.length}
+                  perPage={shiftPerPage}
+                  onPageChange={setShiftPage}
+                  itemLabel={useApiShiftTable ? "shifts" : "days"}
+                  perPageOptions={[...SHIFT_PER_PAGE_OPTIONS]}
+                  onPerPageChange={(nextPerPage) => {
+                    setShiftPerPage(nextPerPage);
+                    setShiftPage(1);
+                  }}
+                  className="flex items-center justify-between px-4 py-3 mt-0 bg-orange-50/40 border-t border-orange-100"
+                />
               </div>
             </div>
           )}
@@ -589,66 +822,251 @@ console.log("JobReview payload", {
                       </span>
                     </div>
 
-                    <div className="flex justify-between py-3 text-sm">
-                      <span className="text-gray-700 font-medium">
-                        Workable Hours per Candidate per Day
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        {hoursPerCandidate} hrs
-                      </span>
-                    </div>
+                    {instantPreviewCost ? (
+                      <>
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Workable hours per shift
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {instantPreviewCost.hoursLabel ||
+                              `${instantPreviewCost.hoursPerShift} hrs`}
+                          </span>
+                        </div>
 
-                    <div className="flex justify-between py-3 text-sm">
-                      <span className="text-gray-700 font-medium">
-                        Cost per Candidate per Day
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        $
-                        {costPerCandidate.toLocaleString("en-CA", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Cost per candidate per shift
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {formatCurrency(instantPreviewCost.costPerShiftCents)}
+                          </span>
+                        </div>
 
-                    <div className="flex justify-between py-3 text-sm">
-                      <span className="text-gray-700 font-medium">
-                        Required Candidates per Day
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        x {requiredCandidates}
-                      </span>
-                    </div>
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Staff required
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            x {instantPreviewCost.hires}
+                          </span>
+                        </div>
 
-                    <div className="flex justify-between py-3 text-sm">
-                      <span className="text-gray-700 font-medium">
-                        Total Cost per Required Candidates per Day
-                      </span>
-                      <span className="font-medium text-gray-900">
-                        $
-                        {(costPerCandidate * requiredCandidates).toLocaleString(
-                          "en-CA",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          },
+                        {instantPreviewCost.shiftCount > 1 && (
+                          <div className="flex justify-between py-3 text-sm">
+                            <span className="text-gray-700 font-medium">
+                              Shifts in preview
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {instantPreviewCost.shiftCount}
+                            </span>
+                          </div>
                         )}
-                      </span>
-                    </div>
+                      </>
+                    ) : previewCost?.hasMonthlyBreakdown ? (
+                      <>
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Cost per shift
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            $
+                            {costPerShift.toLocaleString("en-CA", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Workers required per shift
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            x {previewCost.hires}
+                          </span>
+                        </div>
+
+                        {previewCost.monthlyPayments.map((month, index) => (
+                          <div
+                            key={`${month.label}-${month.periodLabel}`}
+                            className={
+                              index > 0
+                                ? "border-t border-dashed border-gray-200 pt-1"
+                                : undefined
+                            }
+                          >
+                            <p className="py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              {month.label}
+                              {month.periodLabel
+                                ? ` · ${month.periodLabel}`
+                                : ""}
+                            </p>
+                            <div className="flex justify-between py-2 text-sm">
+                              <span className="text-gray-600">Shifts</span>
+                              <span className="font-medium text-gray-900">
+                                {month.shiftCount}
+                              </span>
+                            </div>
+                            <div className="flex justify-between py-2 text-sm">
+                              <span className="text-gray-600">
+                                Total working hours
+                              </span>
+                              <span className="font-medium text-gray-900">
+                                {month.totalWorkingHours} hrs
+                              </span>
+                            </div>
+                            <div className="flex justify-between py-2 pb-3 text-sm">
+                              <span className="text-gray-600 font-medium">
+                                {index === 0
+                                  ? "First month total"
+                                  : "Second month total"}
+                              </span>
+                              <span className="font-semibold text-gray-900">
+                                {formatCurrency(month.totalCents)}
+                              </span>
+                            </div>
+                            {month.nextPaymentDueLabel && index === 0 && (
+                              <p className="pb-3 text-xs text-gray-500">
+                                Next payment due: {month.nextPaymentDueLabel}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+
+                        {previewCost.oneCyclePayment && (
+                          <div className="flex justify-between py-3 text-sm border-t border-gray-100">
+                            <span className="text-gray-700 font-medium">
+                              {previewCost.oneCyclePayment.label} (
+                              {previewCost.oneCyclePayment.shiftCount} shifts ·{" "}
+                              {previewCost.oneCyclePayment.hours} hrs)
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {formatCurrency(
+                                previewCost.oneCyclePayment.totalCents,
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : previewCost?.isRotationalPreview ? (
+                      <>
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Cost per shift
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            $
+                            {costPerShift.toLocaleString("en-CA", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Workers required per shift
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            x {previewCost.hires}
+                          </span>
+                        </div>
+
+                        {previewCost.oneCyclePayment && (
+                          <div className="flex justify-between py-3 text-sm">
+                            <span className="text-gray-700 font-medium">
+                              {previewCost.oneCyclePayment.label} (
+                              {previewCost.oneCyclePayment.shiftCount} shifts ·{" "}
+                              {previewCost.oneCyclePayment.hours} hrs)
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {formatCurrency(
+                                previewCost.oneCyclePayment.totalCents,
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Workable Hours per Candidate per Day
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {hoursPerCandidate} hrs
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Cost per Candidate per Day
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            $
+                            {costPerShift.toLocaleString("en-CA", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Required Candidates per Day
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            x {requiredCandidates}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between py-3 text-sm">
+                          <span className="text-gray-700 font-medium">
+                            Total Cost per Required Candidates per Day
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            $
+                            {(
+                              costPerShift * requiredCandidates
+                            ).toLocaleString("en-CA", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-center bg-orange-50 px-6 py-4 mt-1">
-                    <span className="font-bold text-gray-900">
-                      Recurring Monthly Payable
-                    </span>
+                    <div>
+                      <span className="font-bold text-gray-900 block">
+                        {instantPreviewCost
+                          ? "Total payable"
+                          : previewCost?.hasMonthlyBreakdown
+                            ? "Amount due now (first month)"
+                            : "Recurring Monthly Payable"}
+                      </span>
+                      {firstMonthPayment?.periodLabel && (
+                        <span className="text-xs text-gray-600 mt-0.5 block">
+                          {firstMonthPayment.periodLabel}
+                        </span>
+                      )}
+                    </div>
                     <span className="font-bold text-gray-900 text-xl">
-                      $
-                      {totalPayable.toLocaleString("en-CA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatCurrency(totalFeeCents)}
                     </span>
                   </div>
+                  {previewCost?.monthlyPayments[1] && (
+                    <p className="px-6 pb-4 text-xs text-gray-500 bg-orange-50/40">
+                      Second month billing ({previewCost.monthlyPayments[1].periodLabel}
+                      ): estimated{" "}
+                      {formatCurrency(previewCost.monthlyPayments[1].totalCents)}{" "}
+                      — charged on next billing cycle, not included in publish
+                      amount.
+                    </p>
+                  )}
                 </>
               )}
             </div>

@@ -1,4 +1,5 @@
 import type { JobCreatePayload } from "@/types";
+import { getInstantBreakDurationBounds } from "../instant/build-instant-payload";
 import { INSTANT_JOB_MIN_DURATION_HOURS } from "./constants";
 import { getShiftDurationHours, isEmpty } from "./helpers";
 import type { PushError } from "./types";
@@ -9,6 +10,7 @@ export function validateInstantJob(
   push: PushError,
 ) {
   validateInstantDuration(payload, push);
+  validateInstantBreak(payload, push);
   validateNeighborhood(payload, push);
   validateDirectNumber(payload, push);
   validateInstantQuestions(payload, push);
@@ -30,6 +32,36 @@ function validateInstantDuration(payload: JobCreatePayload, push: PushError) {
   }
 }
 // END SECTION: Instant Duration Validation
+
+// START SECTION: Instant Break Validation
+function validateInstantBreak(payload: JobCreatePayload, push: PushError) {
+  const bounds = getInstantBreakDurationBounds(
+    payload.check_in_time,
+    payload.check_out_time,
+  );
+  const breakMinutes = payload.break_duration_minutes;
+
+  if (breakMinutes === undefined || breakMinutes === null) {
+    push("break_duration_minutes", "Break duration is required.");
+    return;
+  }
+
+  if (
+    !Number.isFinite(breakMinutes) ||
+    breakMinutes < bounds.min ||
+    breakMinutes > bounds.max
+  ) {
+    const rangeLabel =
+      bounds.min === 0
+        ? `0 to ${bounds.max}`
+        : `${bounds.min} and ${bounds.max}`;
+    push(
+      "break_duration_minutes",
+      `Break duration must be between ${rangeLabel} minutes.`,
+    );
+  }
+}
+// END SECTION: Instant Break Validation
 
 // START SECTION: Instant Neighborhood Validation
 function validateNeighborhood(payload: JobCreatePayload, push: PushError) {

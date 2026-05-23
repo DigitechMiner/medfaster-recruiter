@@ -13,6 +13,7 @@ import type {
   JobDetailResponse,
   JobCreateResponse,
   JobCreatePayload,
+  RecruiterJobCreateBody,
   JobFormData,
 } from '@/types';
 
@@ -66,7 +67,7 @@ interface JobsActions {
   getJobs:       (params?: GetJobsParams) => Promise<JobsListResponse>;
   getJobsSilent: (params?: GetJobsParams) => Promise<JobsListResponse>;
   getJob:        (jobId: string) => Promise<JobDetailResponse>;
-  createJob:     (jobData: JobCreatePayload) => Promise<JobCreateResponse>;
+  createJob:     (jobData: RecruiterJobCreateBody) => Promise<JobCreateResponse>;
 }
 
 export type JobsStore = JobsState & JobsActions;

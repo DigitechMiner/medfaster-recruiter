@@ -13,6 +13,7 @@ export const PAYLOAD_TO_FORM_FIELD = {
   end_date: "end_date",
   check_in_time: "check_in_time",
   check_out_time: "check_out_time",
+  break_duration_minutes: "break_duration_minutes",
   description: "description",
   responsibilities: "responsibilities",
   required_skills: "required_skills",
@@ -25,5 +26,6 @@ export const PAYLOAD_TO_FORM_FIELD = {
   years_of_experience: "years_of_experience",
   ai_interview: "ai_interview",
   questions: "questions",
+  schedule_template: "schedule_template",
 } as const satisfies Partial<Record<keyof JobCreatePayload, keyof JobFormData>>;
 // END SECTION: Payload To Form Field Map

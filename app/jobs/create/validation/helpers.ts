@@ -155,7 +155,9 @@ export function filterValidationErrorsForStep(
   const stepErrors =
     formStep === "basic"
       ? errors.filter((error) => !DESCRIPTION_STEP_FIELDS.has(error.field))
-      : errors;
+      : formStep === "description"
+        ? errors.filter((error) => DESCRIPTION_STEP_FIELDS.has(error.field))
+        : errors;
 
   if (!options.ignoreQuestions) return stepErrors;
 

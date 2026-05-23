@@ -20,7 +20,7 @@ export const JOB_TABLE_HEADERS = [
   "Applications",
   "Job Start Date",
   "Job End Date",
-  "Job Timings",
+  "Shifts",
   "Job Type",
   "Budget",
   "AI-Interview",
@@ -64,13 +64,31 @@ export const formatDate = (date?: string | null) => {
 
 export const formatTime = (time?: string | null) => (time ? time.slice(0, 5) : null);
 
+/** One line per shift template, or check-in/out fallback for instant jobs. */
+export function getJobShiftDisplayLines(job: JobListItem): string[] {
+  if (job.shift_templates?.length) {
+    return job.shift_templates.map((shift) => {
+      const start = formatTime(shift.start_time);
+      const end = formatTime(shift.end_time);
+      const times = start && end ? ` (${start} – ${end})` : "";
+      return `${shift.shift_name}${times}`;
+    });
+  }
+
+  const checkIn = formatTime(job.check_in_time);
+  const checkOut = formatTime(job.check_out_time);
+  if (checkIn && checkOut) return [`${checkIn} – ${checkOut}`];
+
+  return [];
+}
+
 export const formatBudget = (cents?: number | null) => {
   if (cents == null) return "—";
   return `$${(cents / 100).toFixed(2)}/hr`;
 };
 
 export function getInterviewLabel(job: JobListItem): { label: string; cls: string } {
-  if (job.job_urgency === "instant") {
+  if (job.job_urgency === "INSTANT") {
     return { label: "No Interview Needed", cls: "bg-[#FEE4E2] text-[#912018]" };
   }
 

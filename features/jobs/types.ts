@@ -14,7 +14,7 @@ export type JobStatus =
   | "CLOSED";
 
 export type JobType = "casual" | "part_time" | "full_time";
-export type JobUrgency = "instant" | "normal";
+export type JobUrgency = "INSTANT" | "NORMAL";
 
 export interface JobFeeSnapshot {
   candidate_total_per_hour_fees_with_gst_cents: number | null;
@@ -41,11 +41,16 @@ export interface NormalJobDetails {
   job_id: string;
   years_of_experience: string;
   qualifications: string[];
-  specializations: number[];
+  specializations: (number | string)[];
   ai_interview: boolean;
   questions: Record<string, { title: string; questions: string[] }> | null;
   created_at: string;
   updated_at: string;
+  shift_mode?: PreviewShiftMode | null;
+  rotation_cycle_days?: number | null;
+  cycle_start_day?: CycleStartDay | null;
+  rotational_teams?: JobRotationalTeam[];
+  team_candidate_rotations?: unknown[];
 }
 
 export interface InstantJobDetails {
@@ -63,10 +68,17 @@ export interface JobFundingDetails {
   job_id: string;
   recruiter_user_id: string;
   wallet_id: string;
+  funding_type?: string | null;
   total_amount_cents: number | string | null;
   held_amount_cents: number | string | null;
   released_amount_cents: number | string | null;
   refunded_amount_cents: number | string | null;
+  total_contract_amount_cents?: number | string | null;
+  total_paid_amount_cents?: number | string | null;
+  total_held_amount_cents?: number | string | null;
+  total_spent_amount_cents?: number | string | null;
+  total_refunded_amount_cents?: number | string | null;
+  total_remaining_amount_cents?: number | string | null;
   status: string | null;
   created_at: string;
   updated_at: string;
@@ -108,12 +120,58 @@ export interface JobBackendResponse {
   experience: string[];
   working_conditions: string[];
   why_join: string[];
+  employment_tenure?: string | null;
+  shift_templates?: JobListShiftTemplate[];
+  shift_mode?: PreviewShiftMode | null;
+  rotation_cycle_days?: number | null;
+  cycle_start_day?: CycleStartDay | null;
+  rotational_teams?: JobRotationalTeam[];
+  team_candidate_rotations?: unknown[];
+  /** Total scheduled shifts (from API / fee preview). */
+  shift_count?: number | null;
 }
 
 export interface JobDetailResponse {
   success: boolean;
   message: string;
   data: { job: JobBackendResponse };
+}
+
+export interface JobListShiftTemplate {
+  id?: string;
+  shift_name: string;
+  shift_type: string;
+  start_time: string;
+  end_time: string;
+  duration_hours?: number;
+  break_minutes?: number;
+}
+
+/** One scheduled shift slot for a team on a rotation cycle day (job detail API). */
+export interface JobRotationalTeamCycle {
+  id: string;
+  cycle_day: number;
+  shift_template_index: number;
+  shift_template_id?: string;
+  required_workers: number;
+  is_working: boolean;
+  shift_name: string;
+  shift_type: string;
+  start_time: string;
+  end_time: string;
+  duration_hours?: number;
+  break_minutes?: number;
+}
+
+/** Rotational staffing team with expanded cycle rows (job detail API). */
+export interface JobRotationalTeam {
+  id: string;
+  team_name: string;
+  display_order: number;
+  is_active: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  cycles: JobRotationalTeamCycle[];
 }
 
 export interface JobListItem {
@@ -140,6 +198,7 @@ export interface JobListItem {
   end_date?: string | null;
   check_in_time?: string | null;
   check_out_time?: string | null;
+  shift_templates?: JobListShiftTemplate[];
   specializations?: number[] | null;
   qualifications?: string[] | null;
   ai_interview?: boolean | null;
@@ -245,6 +304,17 @@ export interface JobCreatePayload {
   selected_shift_types?: ShiftType[];
 
   break_duration_minutes?: number;
+  morning_shift_start?: string;
+  morning_shift_end?: string;
+  evening_shift_start?: string;
+  evening_shift_end?: string;
+  night_shift_start?: string;
+  night_shift_end?: string;
+  job_duration_per_day?: "24" | "12" | "8";
+  cycle_start_day?: CycleStartDay;
+  number_of_teams?: number;
+  shift_schedule_details?: Partial<Record<ShiftType, ShiftScheduleDetail>>;
+  schedule_template?: string[];
 }
 
 export type JobUpdatePayload = Partial<JobCreatePayload>;
@@ -266,7 +336,8 @@ export interface JobDeleteResponse {
   message: string;
 }
 
-export interface JobFeePreviewPayload {
+/** Legacy instant / simple shift preview request. */
+export interface LegacyJobFeePreviewPayload {
   job_title: string;
   no_of_hires_required: number;
   start_date: string;
@@ -275,21 +346,188 @@ export interface JobFeePreviewPayload {
   check_out_time: string;
 }
 
+/** Instant job preview request (POST /recruiter/jobs/preview). */
+export interface InstantJobFeePreviewPayload {
+  job_title: string;
+  no_of_hires_required: number;
+  start_date: string;
+  end_date: string;
+  shift_templates: JobPreviewShiftTemplate[];
+}
+
+export type PreviewShiftMode = "STANDARD" | "ROTATIONAL";
+
+export type PreviewShiftTemplateType = "MORNING" | "DAY" | "EVENING" | "NIGHT";
+
+export interface JobPreviewShiftTemplate {
+  shift_name: string;
+  shift_type: PreviewShiftTemplateType;
+  start_time: string;
+  end_time: string;
+  duration_hours: number;
+  break_minutes: number;
+}
+
+export interface JobPreviewTeamCycleEntry {
+  cycle_day: number;
+  shift_template_index: number;
+  required_workers: number;
+}
+
+export interface JobPreviewTeam {
+  team_name: string;
+  cycle: JobPreviewTeamCycleEntry[];
+}
+
+/** Shared scheduling block for normal job preview and create requests. */
+export interface NormalJobSchedulingPayload {
+  job_title: string;
+  job_urgency: JobUrgency;
+  job_type: JobType;
+  shift_mode: PreviewShiftMode;
+  rotation_cycle_days: number;
+  cycle_start_day: CycleStartDay;
+  start_date: string;
+  end_date: string;
+  shift_templates: JobPreviewShiftTemplate[];
+  teams: JobPreviewTeam[];
+}
+
+/** Normal job preview/fee request (POST /recruiter/jobs/preview). */
+export type NormalJobFeePreviewPayload = NormalJobSchedulingPayload;
+
+export type EmploymentTenure = "TEMPORARY" | "PERMANENT";
+
+/** Normal job create request (POST /recruiter/jobs). */
+export interface NormalJobCreatePayload extends NormalJobSchedulingPayload {
+  department?: string;
+  employment_tenure: EmploymentTenure;
+  street?: string;
+  postal_code?: string;
+  province?: string;
+  city?: string;
+  years_of_experience?: string;
+  qualifications?: string[];
+  specializations?: string[];
+  ai_interview: boolean;
+  description?: string;
+  responsibilities?: string[];
+  required_skills?: string[];
+  experience?: string[];
+  working_conditions?: string[];
+  why_join?: string[];
+  no_of_hires_required: number;
+  questions?: string[] | null;
+  pay_per_hour_cents?: number;
+  status?: JobStatus;
+}
+
+export type JobFeePreviewPayload =
+  | LegacyJobFeePreviewPayload
+  | InstantJobFeePreviewPayload
+  | NormalJobFeePreviewPayload;
+
+/** Instant job create request (POST /recruiter/jobs). */
+export type InstantJobCreatePayload = Omit<
+  JobCreatePayload,
+  "check_in_time" | "check_out_time"
+> & {
+  shift_templates: JobPreviewShiftTemplate[];
+};
+
+export type RecruiterJobCreateBody =
+  | JobCreatePayload
+  | InstantJobCreatePayload
+  | NormalJobCreatePayload;
+
+export interface JobPreviewBillingPeriod {
+  billingStartDate: string;
+  billingEndDate: string;
+  nextPaymentDueDate: string;
+}
+
+export interface JobPreviewWindow {
+  start_date: string;
+  end_date: string;
+  max_preview_days?: number;
+  was_capped?: boolean;
+  /** @deprecated Prefer was_capped from API */
+  capped_to_one_month?: boolean;
+}
+
+export interface JobPreviewShift {
+  shift_date: string;
+  /** Normal / rotational template day (1–14). */
+  cycle_day?: number;
+  /** Instant preview: sequential shift in the preview window. */
+  shift_index?: number;
+  shift_type: PreviewShiftTemplateType;
+  shift_name: string;
+  is_night_shift: boolean;
+  planned_check_in: string;
+  planned_check_out: string;
+  /** Net workable minutes (after break) for this shift. */
+  planned_minutes?: number;
+  required_workers: number;
+  team_name?: string;
+  summary?: string;
+}
+
+export interface JobPreviewPaymentSlice {
+  period: JobPreviewBillingPeriod;
+  total_working_hours: number;
+  total_recruiter_pay_cents: number;
+  per_shift_recruiter_pay_cents: number;
+  shift_count: number;
+  rotation_cycle_days?: number;
+}
+
+/** Shared fields returned by POST /recruiter/jobs/preview (legacy + normal + instant). */
+export interface JobFeePreviewDataBase {
+  job_title: string;
+  job_title_label?: string;
+  no_of_hires: number;
+  recruiter_pay_per_hour_cents: number;
+  is_night_shift: boolean;
+  shift_summaries?: string[];
+  total_working_hours_label: string;
+  total_working_hours: number;
+  per_candidate_shift_recruiter_pay_cents: number;
+  total_recruiter_pay_cents: number;
+}
+
+/** Instant job preview from POST /recruiter/jobs/preview. */
+export interface InstantJobFeePreviewData extends JobFeePreviewDataBase {
+  job_urgency?: JobUrgency | string;
+  funding_type?: string;
+  shift_templates?: JobPreviewShiftTemplate[];
+  preview_window?: JobPreviewWindow;
+  preview_shifts?: JobPreviewShift[];
+  shift_count?: number;
+}
+
+/** Normal / rotational preview from POST /recruiter/jobs/preview. */
+export interface NormalJobFeePreviewData extends JobFeePreviewDataBase {
+  job_urgency?: string;
+  shift_mode?: PreviewShiftMode;
+  funding_type?: string;
+  billing_period?: JobPreviewBillingPeriod;
+  preview_window?: JobPreviewWindow;
+  preview_shifts?: JobPreviewShift[];
+  shift_count?: number;
+  one_cycle_payment?: JobPreviewPaymentSlice;
+  first_month_payment?: JobPreviewPaymentSlice;
+  second_month_payment?: JobPreviewPaymentSlice;
+}
+
+export type JobFeePreviewData =
+  | InstantJobFeePreviewData
+  | NormalJobFeePreviewData;
+
 export interface JobFeePreviewResponse {
   success: boolean;
   message: string;
-  data: {
-    job_title: string;
-    job_title_label: string;
-    no_of_hires: number;
-    recruiter_pay_per_hour_cents: number;
-    is_night_shift: boolean;
-    shift_summaries: string[];
-    total_working_hours_label: string;
-    total_working_hours: number;
-    per_candidate_shift_recruiter_pay_cents: number;
-    total_recruiter_pay_cents: number;
-  };
+  data: JobFeePreviewData;
 }
 
 export interface GenerateDescriptionPayload {
@@ -401,6 +639,12 @@ night_shift_end?: string;
 job_duration_per_day?: "24" | "12" | "8";
 
 break_duration_minutes?: number;
+  cycle_start_day?: CycleStartDay;
+  number_of_teams?: string;
+  shift_schedule_details?: Partial<Record<ShiftType, ShiftScheduleDetail>>;
+  schedule_template?: string[];
+  /** Platform hourly pay (dollars), from JOBS_FEES for the selected job title. */
+  backend_pay_rate?: number;
 }
 
 export interface InstantJobFormData extends JobFormData {
@@ -865,3 +1109,10 @@ export type StaffingType = "standard" | "rotational";
 export type ShiftDurationType = "8_hrs" | "12_hrs";
 
 export type ShiftType = "morning" | "day" | "evening" | "night";
+
+export type CycleStartDay = "SATURDAY" | "SUNDAY" | "MONDAY";
+
+export interface ShiftScheduleDetail {
+  break_duration_minutes?: number;
+  no_of_candidates?: number;
+}

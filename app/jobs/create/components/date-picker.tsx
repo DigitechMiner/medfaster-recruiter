@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import "react-day-picker/dist/style.css";
@@ -30,22 +30,34 @@ export function DateRangePicker({
     editMode === "start" ? fromDate : tillDate,
   );
 
+  useEffect(() => {
+    setSelected(editMode === "start" ? fromDate : tillDate);
+  }, [editMode, fromDate, tillDate]);
+
   const handleSelect = (day?: Date) => {
     setSelected(day);
 
     if (editMode === "start") {
       onChange(day, tillDate);
-    } else {
-      onChange(fromDate, day);
+      return;
     }
+
+    if (day && fromDate && day < fromDate) {
+      onChange(fromDate, fromDate);
+      setSelected(fromDate);
+      return;
+    }
+
+    onChange(fromDate, day);
   };
 
   const label = editMode === "start" ? "Start Date" : "End Date";
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-fit">
+    <div className="date-range-picker bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-fit [&_.rdp-caption_label]:pointer-events-none">
       <DayPicker
         mode="single"
+        navLayout="around"
         selected={selected}
         onSelect={handleSelect}
         disabled={minDate ? { before: minDate } : undefined}
@@ -61,13 +73,14 @@ export function DateRangePicker({
         classNames={{
           months: "flex",
           month: "space-y-3",
-          month_caption: "flex justify-center items-center h-9 relative",
-          caption_label: "text-sm font-semibold text-gray-900",
-          nav: "flex items-center gap-1",
+          month_caption:
+            "relative flex w-full min-h-9 items-center justify-center",
+          caption_label:
+            "pointer-events-none z-0 text-sm font-semibold text-gray-900",
           button_previous:
-            "absolute left-0 p-1.5 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
+            "absolute left-0 top-0 z-10 inline-flex h-9 cursor-pointer items-center justify-center p-1.5 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
           button_next:
-            "absolute right-0 p-1.5 hover:bg-gray-100 rounded-md transition-colors",
+            "absolute right-0 top-0 z-10 inline-flex h-9 cursor-pointer items-center justify-center p-1.5 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed",
           month_grid: "w-full border-collapse",
           weekdays: "flex",
           weekday:

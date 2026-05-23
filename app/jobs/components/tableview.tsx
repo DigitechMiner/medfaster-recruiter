@@ -7,8 +7,8 @@ import {
   JOB_TABLE_HEADERS,
   formatBudget,
   formatDate,
-  formatTime,
   getInterviewLabel,
+  getJobShiftDisplayLines,
   jobBadgeDisplayMap,
   jobBadgeVariantMap,
 } from "./helper";
@@ -36,11 +36,9 @@ export function TableView({ jobs, onJobClick }: TableViewProps) {
       headerRowClassName="bg-[#FEF3E9]"
     >
       {jobs.map((job) => {
-        const urgency = job.job_urgency === "instant" ? "Urgent" : "Regular";
+        const urgency = job.job_urgency === "INSTANT" ? "Urgent" : "Regular";
         const ai = getInterviewLabel(job);
-        const checkIn = formatTime(job.check_in_time);
-        const checkOut = formatTime(job.check_out_time);
-        const timings = checkIn && checkOut ? `${checkIn} – ${checkOut}` : "—";
+        const shiftLines = getJobShiftDisplayLines(job);
 
         return (
           <tr
@@ -60,8 +58,21 @@ export function TableView({ jobs, onJobClick }: TableViewProps) {
             <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">
               {formatDate(job.end_date)}
             </td>
-            <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">
-              {timings}
+            <td className="px-4 py-3.5 text-gray-600">
+              {shiftLines.length > 0 ? (
+                <div className="flex flex-col gap-0.5 min-w-[140px]">
+                  {shiftLines.map((line, index) => (
+                    <span
+                      key={`${job.id}-shift-${index}`}
+                      className="text-xs leading-snug whitespace-nowrap"
+                    >
+                      {line}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                "—"
+              )}
             </td>
             <td className="px-4 py-3.5">
               <JobBadge label={urgency} />
