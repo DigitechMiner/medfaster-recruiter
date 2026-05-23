@@ -145,9 +145,9 @@ export function DescriptionForm({
     void generateAndMapDescription();
   }, [generateAndMapDescription, hasDescriptionContent]);
 
-  const wantsInterview =
-    formData.inPersonInterview === "Yes" ||
-    formData.inPersonInterview === true;
+  // const wantsInterview =
+  //   formData.inPersonInterview === "Yes" ||
+  //   formData.inPersonInterview === true;
 
   return (
     <>

@@ -16,6 +16,7 @@ import {
   type JobFormFieldErrors,
 } from "../validation";
 import { DEFAULT_INSTANT_FORM } from "./constant";
+import { buildInstantJobCreatePayload } from "./build-instant-payload";
 import {
   buildNextFormSnapshot,
   clearErrorsForUpdatedFields,
@@ -85,6 +86,11 @@ function buildInitialInstantForm(
       snapshot,
       "check_out_time",
       DEFAULT_INSTANT_FORM.check_out_time,
+    ),
+    break_duration_minutes: fromSnapshot(
+      snapshot,
+      "break_duration_minutes",
+      DEFAULT_INSTANT_FORM.break_duration_minutes,
     ),
     street: fromSnapshot(
       snapshot,
@@ -255,7 +261,7 @@ export function InstantJobForm({
       job_title: formData.job_title ?? "",
       status: "DRAFT",
       job_type: "casual",
-      job_urgency: "instant",
+      job_urgency: "INSTANT",
       department: formData.department || undefined,
       street: formData.street || undefined,
       postal_code: formData.postal_code || undefined,
@@ -277,6 +283,7 @@ export function InstantJobForm({
       end_date: formatDateForBackend(formData.end_date),
       check_in_time: formData.check_in_time || undefined,
       check_out_time: formData.check_out_time || undefined,
+      break_duration_minutes: formData.break_duration_minutes,
       responsibilities: formData.responsibilities?.filter(Boolean).length
         ? formData.responsibilities.filter(Boolean)
         : [`Provide ${jobTitleLabel} duties as assigned`],
@@ -328,7 +335,13 @@ export function InstantJobForm({
     }
 
     try {
-      const response = await createJob(backendData);
+      const instantPayload = buildInstantJobCreatePayload(backendData);
+      if (!instantPayload) {
+        toast.error("Shift times are incomplete. Please go back and try again.");
+        return;
+      }
+
+      const response = await createJob(instantPayload);
       if (response.success) {
         sessionStorage.setItem("createdJobId", response.data.id);
         setShowSuccessModal(true);

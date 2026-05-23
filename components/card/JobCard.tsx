@@ -10,6 +10,7 @@ import { getBackendImageUrl } from '@/stores/api/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { useMetadataStore } from '@/stores/metadataStore';
 import type { JobListItem } from '@/types';
+import { getJobShiftDisplayLines } from '@/app/jobs/components/helper';
 
 const gridBadgeVariantMap: Record<string, string> = {
   Regular: 'bg-[#D1FAE5] text-[#059669]',
@@ -36,10 +37,8 @@ const gridBadgeDisplayMap: Record<string, string> = {
   PAUSED: 'Paused',
 };
 
-const formatGridTime = (time?: string | null) => (time ? time.slice(0, 5) : null);
-
 function getGridInterviewBadge(job: JobListItem): { label: string; cls: string } {
-  if (job.job_urgency === 'instant') {
+  if (job.job_urgency === 'INSTANT') {
     return { label: 'No Interview Needed', cls: 'bg-[#FEE4E2] text-[#912018]' };
   }
 
@@ -93,13 +92,11 @@ export const JobCard: React.FC<{ job: JobListItem }> = ({ job }) => {
     : null;
   const orgName = profile?.organization_name ?? 'ORG';
 
-  const urgency = job.job_urgency === 'instant' ? 'Urgent' : 'Regular';
+  const urgency = job.job_urgency === 'INSTANT' ? 'Urgent' : 'Regular';
   const location = job.city || null;
   const jobType = job.job_type ? getMetadataLabel(jobTypeOptions, job.job_type) : null;
   const interview = getGridInterviewBadge(job);
-  const checkIn = formatGridTime(job.check_in_time);
-  const checkOut = formatGridTime(job.check_out_time);
-  const timings = checkIn && checkOut ? `${checkIn} - ${checkOut}` : null;
+  const shiftLines = getJobShiftDisplayLines(job);
 
   const metaParts = [
     job.years_of_experience
@@ -115,7 +112,6 @@ export const JobCard: React.FC<{ job: JobListItem }> = ({ job }) => {
         }
       : null,
     jobType ? { icon: <Clock size={12} color="orange" />, text: jobType } : null,
-    timings ? { icon: <Clock size={12} color="orange" />, text: timings } : null,
   ].filter(Boolean) as { icon: React.ReactNode; text: string }[];
 
   return (
@@ -164,6 +160,19 @@ export const JobCard: React.FC<{ job: JobListItem }> = ({ job }) => {
                     <span className="text-gray-500">{part.text}</span>
                   </span>
                 </React.Fragment>
+              ))}
+            </div>
+          )}
+          {shiftLines.length > 0 && (
+            <div className="flex flex-col gap-1 mt-2">
+              {shiftLines.map((line, index) => (
+                <span
+                  key={`${job.id}-shift-${index}`}
+                  className="flex items-center gap-1 text-xs text-gray-500"
+                >
+                  <Clock size={12} className="text-[#F4781B] flex-shrink-0" />
+                  <span className="leading-snug">{line}</span>
+                </span>
               ))}
             </div>
           )}

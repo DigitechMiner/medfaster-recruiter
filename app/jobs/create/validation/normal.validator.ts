@@ -1,7 +1,14 @@
-import type { JobCreatePayload } from "@/types";
+import type { JobCreatePayload, ShiftDurationType, ShiftType } from "@/types";
 import { MAX_ARRAY_ITEMS, MAX_QUESTIONS } from "./constants";
 import { isEmpty, isStringArrayBetween } from "./helpers";
 import type { PushError } from "./types";
+import {
+  buildTeamLabels,
+  clampTeamCount,
+  formatCandidateWeeklyHoursViolations,
+  getCandidateWeeklyHoursViolations,
+  getDefaultTeamCount,
+} from "../normal/scheduling-utils";
 
 const MAX_YEARS_OF_EXPERIENCE = 20;
 
@@ -12,6 +19,7 @@ export function validateNormalJob(payload: JobCreatePayload, push: PushError) {
   validateSpecializations(payload, push);
   validateAIInterview(payload, push);
   validateNormalQuestions(payload, push);
+  validateScheduleWeeklyHours(payload, push);
 }
 // END SECTION: Normal Job Validator
 
@@ -111,3 +119,32 @@ function validateNormalQuestions(payload: JobCreatePayload, push: PushError) {
   }
 }
 // END SECTION: Normal Question Validation
+
+// START SECTION: Schedule Weekly Hours Validation
+function validateScheduleWeeklyHours(
+  payload: JobCreatePayload,
+  push: PushError,
+) {
+  const selectedShifts = (payload.selected_shift_types ?? []) as ShiftType[];
+  if (!selectedShifts.length) return;
+
+  const shiftDuration =
+    (payload.shift_duration_type as ShiftDurationType) ?? "8_hrs";
+  const teamCount = clampTeamCount(
+    Number(payload.number_of_teams) || getDefaultTeamCount(payload.staffing_type),
+    payload.staffing_type,
+  );
+  const teamLabels = buildTeamLabels(teamCount);
+  const violations = getCandidateWeeklyHoursViolations({
+    scheduleTemplate: payload.schedule_template,
+    teamLabels,
+    selectedShifts,
+    shiftScheduleDetails: payload.shift_schedule_details,
+    shiftDuration,
+  });
+  const message = formatCandidateWeeklyHoursViolations(violations);
+  if (message) {
+    push("schedule_template", message);
+  }
+}
+// END SECTION: Schedule Weekly Hours Validation

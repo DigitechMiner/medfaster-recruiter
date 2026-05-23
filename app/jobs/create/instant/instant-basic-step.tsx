@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarIcon, Clock } from "lucide-react";
 import { useMetadataStore } from "@/stores/metadataStore";
 import type { InstantJobFormData, Province } from "@/types";
@@ -22,6 +22,10 @@ import {
   normalizeNumberOfHiresInput,
 } from "../form/utils";
 import type { JobFormFieldErrors } from "../validation";
+import {
+  clampInstantBreakDurationMinutes,
+  getInstantBreakDurationBounds,
+} from "./build-instant-payload";
 
 interface InstantBasicStepProps {
   formData: InstantJobFormData;
@@ -52,6 +56,7 @@ export function InstantBasicStep({
   const today = new Date();
 
   const [showCalendar, setShowCalendar] = useState(false);
+  const [dateEditMode, setDateEditMode] = useState<"start" | "end">("start");
   const [showFromTimePicker, setShowFromTimePicker] = useState(false);
   const [showToTimePicker, setShowToTimePicker] = useState(false);
 
@@ -108,6 +113,45 @@ export function InstantBasicStep({
   const payRateDisplay =
     payRateCents !== null ? `$${(payRateCents / 100).toFixed(2)} / hr` : "-";
 
+  const breakBounds = useMemo(
+    () =>
+      getInstantBreakDurationBounds(
+        formData.check_in_time,
+        formData.check_out_time,
+      ),
+    [formData.check_in_time, formData.check_out_time],
+  );
+
+  const breakValue =
+    formData.break_duration_minutes !== undefined
+      ? String(formData.break_duration_minutes)
+      : "";
+
+  useEffect(() => {
+    const current = formData.break_duration_minutes;
+    if (current === undefined) return;
+
+    if (current < breakBounds.min || current > breakBounds.max) {
+      updateFormData({ break_duration_minutes: breakBounds.default });
+      return;
+    }
+
+    const clamped = clampInstantBreakDurationMinutes(
+      current,
+      formData.check_in_time,
+      formData.check_out_time,
+    );
+    if (clamped !== undefined && clamped !== current) {
+      updateFormData({ break_duration_minutes: clamped });
+    }
+  }, [
+    breakBounds,
+    formData.check_in_time,
+    formData.check_out_time,
+    formData.break_duration_minutes,
+    updateFormData,
+  ]);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -151,7 +195,10 @@ export function InstantBasicStep({
           icon={
             <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
           }
-          onClick={() => setShowCalendar(true)}
+          onClick={() => {
+            setDateEditMode("start");
+            setShowCalendar(true);
+          }}
           required
           error={fieldErrors.start_date}
         />
@@ -163,7 +210,10 @@ export function InstantBasicStep({
           icon={
             <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
           }
-          onClick={() => setShowCalendar(true)}
+          onClick={() => {
+            setDateEditMode("end");
+            setShowCalendar(true);
+          }}
           required
           error={fieldErrors.end_date}
         />
@@ -192,6 +242,59 @@ export function InstantBasicStep({
           onClick={() => setShowToTimePicker(true)}
           required
           error={fieldErrors.check_out_time}
+        />
+
+        <JobFormInput
+          id="break-duration-minutes"
+          label={
+            <>
+              Break Duration (minutes)
+              <span className="ml-1 font-normal text-gray-400">
+                ({breakBounds.min}–{breakBounds.max} min)
+              </span>
+            </>
+          }
+          type="number"
+          min={breakBounds.min}
+          max={breakBounds.max}
+          step={1}
+          value={breakValue}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (!raw) {
+              updateFormData({ break_duration_minutes: undefined });
+              return;
+            }
+            const num = Number(raw);
+            if (!Number.isFinite(num)) return;
+            updateFormData({
+              break_duration_minutes: clampInstantBreakDurationMinutes(
+                num,
+                formData.check_in_time,
+                formData.check_out_time,
+              ),
+            });
+          }}
+          onBlur={() => {
+            const current = formData.break_duration_minutes;
+            if (current === undefined) {
+              updateFormData({
+                break_duration_minutes: breakBounds.default,
+              });
+              return;
+            }
+            const clamped = clampInstantBreakDurationMinutes(
+              current,
+              formData.check_in_time,
+              formData.check_out_time,
+            );
+            if (clamped !== undefined && clamped !== current) {
+              updateFormData({ break_duration_minutes: clamped });
+            }
+          }}
+          placeholder={String(breakBounds.default)}
+          required
+          error={fieldErrors.break_duration_minutes}
         />
 
         <JobFormInput
@@ -355,11 +458,12 @@ export function InstantBasicStep({
             fromDate={formData.start_date}
             tillDate={formData.end_date}
             minDate={today}
+            editMode={dateEditMode}
             onChange={(from, till) =>
               updateFormData({ start_date: from, end_date: till })
             }
             onCancel={() => setShowCalendar(false)}
-            onSchedule={() => setShowCalendar(false)}
+            onApply={() => setShowCalendar(false)}
           />
         </div>
       )}

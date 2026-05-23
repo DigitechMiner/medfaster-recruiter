@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
+import { getCachedPayRateCents } from "./use-platform-pay-rate";
 import { useMetadataStore } from "@/stores/metadataStore";
 import type {
   EmploymentType,
@@ -36,18 +37,6 @@ const getExperienceYearsValue = (experience?: string): number => {
   return Math.min(EXPERIENCE_MAX, Math.max(EXPERIENCE_MIN, parsed));
 };
 
-const getCachedPayRateCents = (jobTitle: string): number | null => {
-  const snapshot = useJobsStore.getState().formSnapshot;
-  const cachedPayRate = snapshot?.cachedPayRate;
-  if (
-    cachedPayRate?.jobTitle === jobTitle &&
-    typeof cachedPayRate.cents === "number"
-  ) {
-    return cachedPayRate.cents;
-  }
-  return null;
-};
-
 interface NormalBasicStepProps {
   formData: JobFormData;
   updateFormData: (updates: Partial<JobFormData>) => void;
@@ -68,7 +57,7 @@ export function NormalBasicStep({
     specializations,
   } = useMetadataStore();
 
-  const isFullTime = formData.job_type === "full_time";
+  // const isFullTime = formData.job_type === "full_time";
   const isPartTime = formData.job_type === "part_time";
   const departmentJobTitles = jobTitlesForDepartment(formData.department ?? "");
   const normalJobTypeOptions = jobTypeOptions.filter(
@@ -89,19 +78,26 @@ export function NormalBasicStep({
   const [rateError, setRateError] = useState<string | null>(null);
 
   useEffect(() => {
-    // still prefetch backend rate so Scheduling can show "$50/hr" correctly
+    // Prefetch backend rate for scheduling; only sync form when value changes.
     if (!isPartTime || !formData.job_title) {
       setBackendRate(null);
       setRateError(null);
       setRateLoading(false);
+      if (formData.backend_pay_rate !== undefined) {
+        updateFormData({ backend_pay_rate: undefined });
+      }
       return;
     }
 
     const cachedRateCents = getCachedPayRateCents(formData.job_title);
     if (cachedRateCents !== null) {
-      setBackendRate(cachedRateCents / 100);
+      const dollars = cachedRateCents / 100;
+      setBackendRate(dollars);
       setRateError(null);
       setRateLoading(false);
+      if (formData.backend_pay_rate !== dollars) {
+        updateFormData({ backend_pay_rate: dollars });
+      }
       return;
     }
 
@@ -119,7 +115,9 @@ export function NormalBasicStep({
             0,
         );
         const cents = Math.round(dollars * 100);
-        setBackendRate(cents / 100);
+        const rateDollars = cents / 100;
+        setBackendRate(rateDollars);
+        updateFormData({ backend_pay_rate: rateDollars });
 
         const currentSnapshot = useJobsStore.getState().formSnapshot;
         useJobsStore.getState().setFormSnapshot({
@@ -144,10 +142,15 @@ export function NormalBasicStep({
     return () => {
       didCancel = true;
     };
-  }, [formData.job_title, isPartTime]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateFormData is unstable; guarded above
+  }, [formData.job_title, isPartTime, formData.backend_pay_rate]);
 
   const handleDepartmentChange = (value: string) => {
-    updateFormData({ department: value, job_title: "" });
+    updateFormData({
+      department: value,
+      job_title: "",
+      backend_pay_rate: undefined,
+    });
   };
 
   const removeTag = (
@@ -191,8 +194,48 @@ export function NormalBasicStep({
   return (
     <>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Employment Type */}
-        <JobFormField
+     
+        {/* Department */}
+        <JobFormSelect
+          id="department"
+          label="Department"
+          value={formData.department}
+          onValueChange={handleDepartmentChange}
+          options={departments.map(({ uuid, label, value }, index) => ({
+            key: `${uuid}-${value}-${index}`,
+            label,
+            value,
+          }))}
+          placeholder={loading ? "Loading..." : "Select"}
+          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
+          required
+          error={fieldErrors.department}
+        />
+
+        {/* Job Title */}
+        <JobFormSelect
+          id="job-title"
+          label="Job Title"
+          value={formData.job_title}
+          onValueChange={(value) =>
+            updateFormData({ job_title: value, backend_pay_rate: undefined })
+          }
+          options={departmentJobTitles.map(
+            ({ uuid, label, value }, index) => ({
+              key: `${uuid}-${value}-${index}`,
+              label,
+              value,
+            }),
+          )}
+          placeholder={loading ? "Loading..." : "Select"}
+          disabled={!formData.department || loading}
+          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
+          required
+          error={fieldErrors.job_title}
+        />
+
+           {/* Employment Type */}
+           <JobFormField
           label="Employment Type"
           required
           error={fieldErrors.employment_type}
@@ -225,42 +268,6 @@ export function NormalBasicStep({
           </RadioGroup>
         </JobFormField>
 
-        {/* Department */}
-        <JobFormSelect
-          id="department"
-          label="Department"
-          value={formData.department}
-          onValueChange={handleDepartmentChange}
-          options={departments.map(({ uuid, label, value }, index) => ({
-            key: `${uuid}-${value}-${index}`,
-            label,
-            value,
-          }))}
-          placeholder={loading ? "Loading..." : "Select"}
-          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
-          required
-          error={fieldErrors.department}
-        />
-
-        {/* Job Title */}
-        <JobFormSelect
-          id="job-title"
-          label="Job Title"
-          value={formData.job_title}
-          onValueChange={(value) => updateFormData({ job_title: value })}
-          options={departmentJobTitles.map(
-            ({ uuid, label, value }, index) => ({
-              key: `${uuid}-${value}-${index}`,
-              label,
-              value,
-            }),
-          )}
-          placeholder={loading ? "Loading..." : "Select"}
-          disabled={!formData.department || loading}
-          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
-          required
-          error={fieldErrors.job_title}
-        />
 
         {/* Job Type */}
         <JobFormField label="Job Type" required error={fieldErrors.job_type}>
@@ -501,6 +508,18 @@ export function NormalBasicStep({
           error={fieldErrors.street}
         />
 
+          {/* City */}
+          <JobFormInput
+          id="city"
+          label="City"
+          type="text"
+          value={formData.city || ""}
+          onChange={(e) => updateFormData({ city: e.target.value })}
+          placeholder="Ontario"
+          required
+          error={fieldErrors.city}
+        />
+
         {/* Province */}
         <JobFormSelect
           id="province"
@@ -518,16 +537,16 @@ export function NormalBasicStep({
           error={fieldErrors.province}
         />
 
-        {/* City */}
+        {/* Postal Code */}
         <JobFormInput
-          id="city"
-          label="City"
+          id="postal-code"
+          label="Postal Code"
           type="text"
-          value={formData.city || ""}
-          onChange={(e) => updateFormData({ city: e.target.value })}
-          placeholder="Ontario"
+          value={formData.postal_code || ""}
+          onChange={(e) => updateFormData({ postal_code: e.target.value })}
+          placeholder="M5H 2N2"
           required
-          error={fieldErrors.city}
+          error={fieldErrors.postal_code}
         />
 
         {/* Country */}
@@ -541,17 +560,7 @@ export function NormalBasicStep({
           required
         />
 
-        {/* Postal Code */}
-        <JobFormInput
-          id="postal-code"
-          label="Postal Code"
-          type="text"
-          value={formData.postal_code || ""}
-          onChange={(e) => updateFormData({ postal_code: e.target.value })}
-          placeholder="M5H 2N2"
-          required
-          error={fieldErrors.postal_code}
-        />
+        
       </div>
 
       {/* Optional: backend rate info (not shown in Figma, but kept for later use) */}

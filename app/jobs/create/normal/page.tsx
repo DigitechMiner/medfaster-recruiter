@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
 import { JobFormSnapshot, useJobsStore } from "@/stores/jobs-store";
@@ -21,6 +21,16 @@ import {
   type AIQuestion,
 } from "../form/question-form";
 import { NormalSchedulingStep } from "./normal-scheduling-step";
+import { MIN_AI_QUESTIONS } from "./constant";
+import {
+  buildTeamLabels,
+  clampTeamCount,
+  formatCandidateWeeklyHoursViolations,
+  getCandidateWeeklyHoursViolations,
+  getDefaultTeamCount,
+} from "./scheduling-utils";
+import { formatDateForBackend } from "../form/utils";
+import type { ShiftDurationType, ShiftType, StaffingType } from "@/types";
 import { toast } from "react-toastify";
 
 const uid = () => crypto.randomUUID();
@@ -45,6 +55,72 @@ const NORMAL_JOB_STEPS_WITHOUT_INTERVIEW = NORMAL_JOB_STEPS;
 
 const makeDefaultQuestions = (): AIQuestion[] =>
   Array.from({ length: 5 }, () => ({ id: uid(), text: "" }));
+
+/** Merges live scheduling snapshot into the description-step payload for review/preview. */
+function mergeSnapshotIntoJobPayload(
+  base: JobCreatePayload,
+  snapshot: JobFormSnapshot | null,
+): JobCreatePayload {
+  if (!snapshot) return base;
+
+  const toBackendDateString = (
+    value?: Date | string,
+  ): string | undefined => {
+    if (!value) return undefined;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return formatDateForBackend(date);
+  };
+
+  const mergedCheckIn =
+    snapshot.morning_shift_start ??
+    snapshot.check_in_time ??
+    base.check_in_time;
+
+  const mergedCheckOut =
+    snapshot.morning_shift_end ??
+    snapshot.check_out_time ??
+    base.check_out_time;
+
+  return {
+    ...base,
+    start_date:
+      toBackendDateString(snapshot.start_date) ?? base.start_date,
+    end_date: toBackendDateString(snapshot.end_date) ?? base.end_date,
+    check_in_time: mergedCheckIn,
+    check_out_time: mergedCheckOut,
+    morning_shift_start: snapshot.morning_shift_start ?? base.morning_shift_start,
+    morning_shift_end: snapshot.morning_shift_end ?? base.morning_shift_end,
+    evening_shift_start:
+      snapshot.evening_shift_start ?? base.evening_shift_start,
+    evening_shift_end: snapshot.evening_shift_end ?? base.evening_shift_end,
+    night_shift_start: snapshot.night_shift_start ?? base.night_shift_start,
+    night_shift_end: snapshot.night_shift_end ?? base.night_shift_end,
+    break_duration_minutes:
+      snapshot.break_duration_minutes ?? base.break_duration_minutes,
+    employment_type: snapshot.employment_type ?? base.employment_type,
+    job_period_option: snapshot.job_period_option ?? base.job_period_option,
+    staffing_type: snapshot.staffing_type ?? base.staffing_type,
+    shift_duration_type:
+      snapshot.shift_duration_type ?? base.shift_duration_type,
+    selected_shift_types:
+      snapshot.selected_shift_types ?? base.selected_shift_types,
+    job_duration_per_day:
+      snapshot.job_duration_per_day ?? base.job_duration_per_day,
+    cycle_start_day: snapshot.cycle_start_day ?? base.cycle_start_day,
+    number_of_teams: snapshot.number_of_teams
+      ? parseInt(String(snapshot.number_of_teams), 10)
+      : base.number_of_teams,
+    shift_schedule_details:
+      snapshot.shift_schedule_details ?? base.shift_schedule_details,
+    schedule_template:
+      snapshot.schedule_template ?? base.schedule_template,
+    pay_per_hour_cents:
+      snapshot.backend_pay_rate != null
+        ? Math.round(snapshot.backend_pay_rate * 100)
+        : base.pay_per_hour_cents,
+  };
+}
 
 export default function CreateJobPage() {
   return (
@@ -156,30 +232,37 @@ function NormalJobStepForm() {
     setStep(2);
   };
 
-  
   const handleDescriptionNext = (
     payload: JobCreatePayload,
     hasInterview: boolean,
   ) => {
-    const targetProgressStep = pendingProgressStep;
-
-    setPendingPayload(payload);
     setWantsInterview(hasInterview);
 
     if (hasInterview) {
-      // When AI interview is enabled, Step 3 content includes questions.
-      if (targetProgressStep && targetProgressStep > 3) {
-        resetProgressValidation();
-        setStep(4);
+      const validQuestions = aiQuestions
+        .map((question) => question.text.trim())
+        .filter((text) => text.length > 0);
+
+      if (validQuestions.length < MIN_AI_QUESTIONS) {
+        toast.error(
+          `Please add at least ${MIN_AI_QUESTIONS} AI interview questions.`,
+        );
         return;
       }
 
-      resetProgressValidation();
-      setStep(3);
-      return;
+      setPendingPayload({
+        ...payload,
+        questions: validQuestions,
+        ai_interview: true,
+      });
+    } else {
+      setPendingPayload({
+        ...payload,
+        questions: null,
+        ai_interview: false,
+      });
     }
 
-    // No AI interview: skip questions section and go to Review
     resetProgressValidation();
     setStep(4);
   };
@@ -195,6 +278,11 @@ function NormalJobStepForm() {
     },
     [],
   );
+
+  const reviewPayload = useMemo(() => {
+    if (!pendingPayload) return null;
+    return mergeSnapshotIntoJobPayload(pendingPayload, formSnapshot);
+  }, [pendingPayload, formSnapshot]);
 
   return (
     <AppLayout>
@@ -232,117 +320,132 @@ function NormalJobStepForm() {
           </CreateJobStepCard>
         )}
 
-        {/* Step 2: Scheduling Setup
-            NOTE: For now we still use NormalJobForm(formStep="description")
-            as before; in Batch 3 we’ll introduce a dedicated scheduling step component.
-        */}
-       {step === 2 && (
-  <CreateJobStepCard
-    title="Scheduling Setup"
-    footer={
-      <CreateJobStepActions
-        onBack={handleBack}
-        nextLabel="Next: Description"
-        nextType="button"
-        onNext={() => {
-          // no extra validation here; dates and scheduling details
-          // will be validated when Step 3 or final submit runs
-          resetProgressValidation();
-          setStep(3);
-        }}
-      />
-    }
-  >
-    {/* Use the same form snapshot as Step 1 */}
-    {useJobsStore.getState().formSnapshot && (
-      <NormalSchedulingStep
-        formData={
-          useJobsStore.getState().formSnapshot as unknown as JobFormData
-        }
-        updateFormData={(updates) => {
-          const current = useJobsStore.getState().formSnapshot ?? {};
-          const nextSnapshot = {
-            ...current,
-            ...updates,
-          } as JobFormSnapshot;
-          useJobsStore.getState().setFormSnapshot(nextSnapshot);
-        }}
-      />
-    )}
-  </CreateJobStepCard>
-)}
-        {/* Step 3: Description (+ AI questions when enabled)
-            For now, we keep questions as a separate step when wantsInterview=true.
-            In Batch 3 we’ll visually embed the questions section into the description page.
-        */}
+        {/* Step 2: Scheduling Setup */}
+        {step === 2 && (
+          <CreateJobStepCard
+            title="Scheduling Setup"
+            footer={
+              <CreateJobStepActions
+                onBack={handleBack}
+                nextLabel="Next: Description"
+                nextType="button"
+                onNext={() => {
+                  const snapshot = useJobsStore.getState().formSnapshot;
+                  if (!snapshot) return;
+
+                  const selectedShifts =
+                    (snapshot.selected_shift_types as ShiftType[]) ?? [];
+                  const shiftDuration =
+                    (snapshot.shift_duration_type as ShiftDurationType) ??
+                    "8_hrs";
+                  const staffingType =
+                    (snapshot.staffing_type as StaffingType) ?? "standard";
+                  const teamCount = clampTeamCount(
+                    Number(snapshot.number_of_teams) ||
+                      getDefaultTeamCount(staffingType),
+                    staffingType,
+                  );
+                  const teamLabels = buildTeamLabels(teamCount);
+                  const weeklyError = formatCandidateWeeklyHoursViolations(
+                    getCandidateWeeklyHoursViolations({
+                      scheduleTemplate: snapshot.schedule_template,
+                      teamLabels,
+                      selectedShifts,
+                      shiftScheduleDetails: snapshot.shift_schedule_details,
+                      shiftDuration,
+                    }),
+                  );
+
+                  if (weeklyError) {
+                    toast.error(weeklyError);
+                    return;
+                  }
+
+                  resetProgressValidation();
+                  setStep(3);
+                }}
+              />
+            }
+          >
+            {useJobsStore.getState().formSnapshot && (
+              <NormalSchedulingStep
+                formData={
+                  useJobsStore.getState()
+                    .formSnapshot as unknown as JobFormData
+                }
+                updateFormData={(updates) => {
+                  const current =
+                    useJobsStore.getState().formSnapshot ?? {};
+                  const nextSnapshot = {
+                    ...current,
+                    ...updates,
+                  } as JobFormSnapshot;
+                  useJobsStore.getState().setFormSnapshot(nextSnapshot);
+                }}
+              />
+            )}
+          </CreateJobStepCard>
+        )}
+
+        {/* Step 3: Description (+ AI questions when enabled) */}
         {step === 3 && (
-  <CreateJobStepCard
-    title="Description"
-    footer={
-      <CreateJobStepActions
-        onBack={handleBack}
-        nextLabel="Next: Review, Pay & Publish"
-        nextType="submit"
-        nextForm={wantsInterview ? NORMAL_QUESTIONS_FORM_ID : NORMAL_DESCRIPTION_FORM_ID}
-      />
-    }
-  >
-    {/* Description part: always visible */}
-    <NormalJobForm
-      urgencyMode="normal"
-      formStep="description"
-      formId={NORMAL_DESCRIPTION_FORM_ID}
-      autoSubmitToken={undefined} // we don't auto-submit description here
-      onValidationBlocked={resetProgressValidation}
-      onNext={(payload, hasInterview) => {
-        // just keep the latest payload; actual navigation happens when questions submit
-        setPendingPayload(payload);
-        setWantsInterview(hasInterview);
-      }}
-    />
+          <CreateJobStepCard
+            title="Description"
+            footer={
+              <CreateJobStepActions
+                onBack={handleBack}
+                nextLabel="Next: Review, Pay & Publish"
+                nextType="submit"
+                nextForm={NORMAL_DESCRIPTION_FORM_ID}
+              />
+            }
+          >
+            {/* Description part: always visible */}
+            <NormalJobForm
+              urgencyMode="normal"
+              formStep="description"
+              formId={NORMAL_DESCRIPTION_FORM_ID}
+              autoSubmitToken={progressValidationToken}
+              onValidationBlocked={resetProgressValidation}
+              onNext={handleDescriptionNext}
+            />
 
-        {/* AI questions part: only when AI interview is enabled */}
-    {descriptionWantsInterview && wantsInterview && (
-      <div className="mt-8">
-        <QuestionForm
-          pendingPayload={pendingPayload ?? undefined}
-          questions={aiQuestions}
-          onQuestionsChange={setAiQuestions}
-          formId={NORMAL_QUESTIONS_FORM_ID}
-          autoSubmitToken={progressValidationToken}
-          onValidationBlocked={resetProgressValidation}
-          onNext={(updatedPayload) => {
-            // QuestionForm has validated questions and built final payload
-            setPendingPayload(updatedPayload);
-            resetProgressValidation();
-            setStep(4);
-          }}
-        />
-      </div>
-    )}
-
-    {/* When AI interview is off, clicking Next should move directly to review */}
-    {!descriptionWantsInterview || !wantsInterview ? (
-      <form
-        id={NORMAL_DESCRIPTION_FORM_ID}
-        className="hidden"
-        onSubmit={(e) => {
-          e.preventDefault();
-          // validate description again and go to review using latest payload
-          if (pendingPayload) {
-            resetProgressValidation();
-            setStep(4);
-          } else {
-            toast.error("Please complete the description section first.");
-          }
-        }}
-      />
-    ) : null}
-  </CreateJobStepCard>
-)}
+            {/* AI questions part: only when AI interview is enabled */}
+            {descriptionWantsInterview && wantsInterview && (
+              <div className="mt-8">
+                <QuestionForm
+                  pendingPayload={pendingPayload ?? undefined}
+                  questions={aiQuestions}
+                  onQuestionsChange={setAiQuestions}
+                  formId={NORMAL_QUESTIONS_FORM_ID}
+                  onValidationBlocked={resetProgressValidation}
+                />
+              </div>
+            )}
+          </CreateJobStepCard>
+        )}
 
         {/* Step 4: Review, Pay & Publish */}
-        {step === 4 && pendingPayload && (
+        {step === 4 && !pendingPayload && (
+          <CreateJobStepCard
+            title="Review, Pay & Publish"
+            footer={
+              <CreateJobStepActions
+                onBack={handleBack}
+                nextLabel="Publish Job"
+                showBack
+                nextDisabled
+              />
+            }
+          >
+            <p className="text-sm text-gray-600">
+              Complete the description step first, then continue to review and
+              publish.
+            </p>
+          </CreateJobStepCard>
+        )}
+
+        {step === 4 && reviewPayload && (
           <CreateJobStepCard
             title="Review, Pay & Publish"
             footer={
@@ -358,12 +461,12 @@ function NormalJobStepForm() {
           >
             <JobReview
               mode="normal"
-              payload={pendingPayload}
+              payload={reviewPayload}
               formId={NORMAL_REVIEW_FORM_ID}
               onActionStateChange={handleReviewActionStateChange}
-              onSubmit={async (finalPayload) => {
+              onSubmit={async (apiPayload) => {
                 try {
-                  const res = await createJob(finalPayload);
+                  const res = await createJob(apiPayload);
                   if (res.success) {
                     setHasJobs(true);
                     clearDraft();

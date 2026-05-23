@@ -46,6 +46,7 @@ export function PaginationFooter({
     <div className={className}>
       <div className="flex items-center gap-1.5">
         <button
+          type="button"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page === 1}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 bg-white rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors font-medium"
@@ -62,6 +63,7 @@ export function PaginationFooter({
             ) : (
               <button
                 key={value}
+                type="button"
                 onClick={() => onPageChange(Number(value))}
                 className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
                   page === value
@@ -76,6 +78,7 @@ export function PaginationFooter({
         </div>
 
         <button
+          type="button"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page === totalPages}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 bg-white rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors font-medium"

@@ -18,14 +18,17 @@ import type {
   InterviewRequestStatus,
   JobApplicationListResponse,
   JobCreatePayload,
+  RecruiterJobCreateBody,
   JobCreateResponse,
   JobDeleteResponse,
   JobDetailRecord,
   JobDetailResponse,
   JobDisputeItem,
   JobDisputesResponse,
+  InstantJobFeePreviewPayload,
   JobFeePreviewPayload,
   JobFeePreviewResponse,
+  LegacyJobFeePreviewPayload,
   JobShiftItem,
   JobShiftPaymentItem,
   JobShiftPaymentsResponse,
@@ -108,7 +111,9 @@ export async function getRecruiterJob(id: string): Promise<JobDetailResponse> {
   return extractRoot<JobDetailResponse>(res.data);
 }
 
-export async function createRecruiterJob(payload: JobCreatePayload & { status?: string }) {
+export async function createRecruiterJob(
+  payload: RecruiterJobCreateBody & { status?: string },
+) {
   const res = await axiosInstance.post(ENDPOINTS.JOBS_CREATE, payload);
   return extractRoot<JobCreateResponse>(res.data);
 }
@@ -159,17 +164,50 @@ export async function generateInterviewQuestions(
   return envelope.data?.questions ?? [];
 }
 
+function isLegacyFeePreviewPayload(
+  params: JobFeePreviewPayload,
+): params is LegacyJobFeePreviewPayload {
+  return (
+    "check_in_time" in params &&
+    "no_of_hires_required" in params &&
+    !("shift_templates" in params)
+  );
+}
+
+function isInstantFeePreviewPayload(
+  params: JobFeePreviewPayload,
+): params is InstantJobFeePreviewPayload {
+  return (
+    "shift_templates" in params &&
+    "no_of_hires_required" in params &&
+    !("teams" in params)
+  );
+}
+
 export async function getJobFeePreview(
   params: JobFeePreviewPayload,
 ): Promise<JobFeePreviewResponse["data"]> {
-  const body: JobFeePreviewPayload = {
-    job_title: params.job_title,
-    no_of_hires_required: params.no_of_hires_required,
-    start_date: new Date(params.start_date).toISOString(),
-    end_date: new Date(params.end_date).toISOString(),
-    check_in_time: params.check_in_time,
-    check_out_time: params.check_out_time,
-  };
+  const body = isLegacyFeePreviewPayload(params)
+    ? {
+        job_title: params.job_title,
+        no_of_hires_required: params.no_of_hires_required,
+        start_date: new Date(params.start_date).toISOString(),
+        end_date: new Date(params.end_date).toISOString(),
+        check_in_time: params.check_in_time,
+        check_out_time: params.check_out_time,
+      }
+    : isInstantFeePreviewPayload(params)
+      ? {
+          ...params,
+          start_date: new Date(params.start_date).toISOString(),
+          end_date: new Date(params.end_date).toISOString(),
+        }
+      : {
+          ...params,
+          start_date: new Date(params.start_date).toISOString(),
+          end_date: new Date(params.end_date).toISOString(),
+        };
+
   const res = await axiosInstance.post(ENDPOINTS.JOBS_FEE_PREVIEW, body);
   return extractData<JobFeePreviewResponse["data"]>(res.data);
 }

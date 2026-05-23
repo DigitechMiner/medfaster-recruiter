@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
 import { useMetadataStore } from "@/stores/metadataStore";
@@ -8,6 +8,7 @@ import type {
   JobCreatePayload,
   JobFormData,
   JobType,
+  JobUrgency,
   EmploymentType,
   JobPeriodOption,
   StaffingType,
@@ -42,6 +43,9 @@ const EXPERIENCE_MAX = 20;
 
 type JobTypeOption = { label: string; value: string };
 
+const toJobUrgency = (mode: "normal" | "instant"): JobUrgency =>
+  mode === "instant" ? "INSTANT" : "NORMAL";
+
 const getExperienceYearsValue = (experience?: string): number => {
   const rawValue = experience?.split("-")[0] ?? "";
   const parsed = Number.parseInt(rawValue, 10);
@@ -75,13 +79,13 @@ function buildInitialFormData(
 ): JobFormData {
   // Defaults for new enums
   const defaultEmploymentType: EmploymentType = "temporary";
-  const defaultJobPeriod: JobPeriodOption = "3_months";
+  const defaultJobPeriod: JobPeriodOption = "custom_end_date";
   const defaultStaffingType: StaffingType = "standard";
   const defaultShiftDuration: ShiftDurationType = "8_hrs";
 
   return {
     ...DEFAULT_JOB_FORM_DATA,
-    job_urgency: urgencyMode,
+    job_urgency: toJobUrgency(urgencyMode),
     ai_interview: fromSnapshot(snapshot, "ai_interview", true),
     inPersonInterview: fromSnapshot(snapshot, "inPersonInterview", "Yes"),
     check_in_time: fromSnapshot(
@@ -218,6 +222,36 @@ function buildInitialFormData(
           DEFAULT_JOB_FORM_DATA.selected_shift_types ?? [],
         ),
       ) as ShiftType[],
+    job_duration_per_day: fromSnapshot(
+      snapshot,
+      "job_duration_per_day",
+      DEFAULT_JOB_FORM_DATA.job_duration_per_day,
+    ) as JobFormData["job_duration_per_day"],
+    cycle_start_day: fromSnapshot(
+      snapshot,
+      "cycle_start_day",
+      DEFAULT_JOB_FORM_DATA.cycle_start_day,
+    ) as JobFormData["cycle_start_day"],
+    number_of_teams: fromSnapshot(
+      snapshot,
+      "number_of_teams",
+      DEFAULT_JOB_FORM_DATA.number_of_teams,
+    ),
+    shift_schedule_details: fromSnapshot(
+      snapshot,
+      "shift_schedule_details",
+      DEFAULT_JOB_FORM_DATA.shift_schedule_details ?? {},
+    ),
+    schedule_template: fromSnapshot(
+      snapshot,
+      "schedule_template",
+      DEFAULT_JOB_FORM_DATA.schedule_template ?? [],
+    ),
+    backend_pay_rate: fromSnapshot(
+      snapshot,
+      "backend_pay_rate",
+      DEFAULT_JOB_FORM_DATA.backend_pay_rate,
+    ),
   };
 }
 
@@ -237,17 +271,28 @@ export function NormalJobForm({
   const [formData, setFormData] = useState<JobFormData>(() =>
     buildInitialFormData(urgencyMode, formSnapshot, jobTypeOptions),
   );
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<JobFormFieldErrors>({});
   const lastAutoSubmitTokenRef = useRef<number | undefined>(undefined);
 
-  const updateFormData = (updates: Partial<JobFormData>) => {
-    setFormData((prev) => ({ ...prev, ...updates }));
+  const updateFormData = useCallback((updates: Partial<JobFormData>) => {
+    const prev = formDataRef.current;
+    const hasChange = (Object.keys(updates) as (keyof JobFormData)[]).some(
+      (key) => prev[key] !== updates[key],
+    );
+    if (!hasChange) return;
+
+    const next = { ...prev, ...updates };
+    formDataRef.current = next;
+    setFormData(next);
 
     const currentSnapshot = useJobsStore.getState().formSnapshot;
     clearErrorsForUpdatedFields(updates, setFieldErrors);
     setFormSnapshot(buildNextFormSnapshot(currentSnapshot, updates));
-  };
+  }, [setFormSnapshot]);
 
   const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
     const isNormalJob = urgencyMode === "normal";
@@ -292,15 +337,19 @@ export function NormalJobForm({
       postal_code: data.postal_code || undefined,
       province: convertProvinceToJobBackend(data.province) || undefined,
       city: data.city || undefined,
-      job_urgency: urgencyMode,
+      job_urgency: toJobUrgency(urgencyMode),
       description: data.description || undefined,
       no_of_hires_required: data.no_of_hires_required
         ? parseInt(data.no_of_hires_required, 10)
         : 1,
       start_date: formatDateForBackend(data.start_date),
       end_date: isFullTime ? undefined : formatDateForBackend(data.end_date),
-      check_in_time: data.check_in_time || undefined,
-      check_out_time: data.check_out_time || undefined,
+      check_in_time:
+        data.morning_shift_start ||
+        data.check_in_time ||
+        undefined,
+      check_out_time:
+        data.morning_shift_end || data.check_out_time || undefined,
       responsibilities: normalizeStringArray(data.responsibilities).filter(
         Boolean,
       ),
@@ -320,6 +369,15 @@ export function NormalJobForm({
       staffing_type: data.staffing_type,
       shift_duration_type: data.shift_duration_type,
       selected_shift_types: data.selected_shift_types,
+      job_duration_per_day: data.job_duration_per_day,
+      cycle_start_day: data.cycle_start_day,
+      number_of_teams: data.number_of_teams
+        ? parseInt(String(data.number_of_teams), 10)
+        : undefined,
+      shift_schedule_details: data.shift_schedule_details,
+      schedule_template: data.schedule_template,
+      break_duration_minutes: data.shift_schedule_details?.morning
+        ?.break_duration_minutes,
     };
 
     return Object.fromEntries(

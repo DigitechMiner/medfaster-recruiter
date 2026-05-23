@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Briefcase, Clock3, Mail, Phone, MapPin, Download } from "lucide-react";
+import { Briefcase, Clock3, Mail, Phone, MapPin } from "lucide-react";
 import type {
   ActionType,
   CandidateDetailProfile,
@@ -16,7 +16,7 @@ import { toLabel } from "./helpers";
 
 export function CandidateHero({
   candidate,
-  onExport,
+  //onExport,
   onPrimaryAction,
 }: {
   candidate: CandidateDetailProfile;

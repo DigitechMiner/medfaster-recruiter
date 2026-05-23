@@ -27,11 +27,13 @@ export function validateJobPayload(
 
   validateSharedFields(payload, push);
 
-  if (payload.job_urgency === "instant") {
+  const urgency = payload.job_urgency?.toString().toUpperCase();
+
+  if (urgency === "INSTANT") {
     validateInstantJob(payload, push);
   }
 
-  if (payload.job_urgency === "normal") {
+  if (urgency === "NORMAL") {
     validateNormalJob(payload, push);
   }
 

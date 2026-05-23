@@ -20,6 +20,7 @@ import type { ActionType } from "@/types";
 import type { CandidateDetailVM } from "@/types/view-models";
 import type { JobApiItem, JobOption, JobsResponse } from "@/types/candidate-job-picker";
 import { inviteCandidate } from "@/features/candidates";
+import Image from "next/image";
 
 const MODAL_CONFIG: Record<
   ActionType,
@@ -258,7 +259,7 @@ export function CandidateActionModal({
 
                 <div className="flex items-start gap-4">
                   {job.org_photo ? (
-                    <img
+                    <Image
                       src={job.org_photo}
                       alt={`${job.title} organization`}
                       className="w-16 h-16 rounded-2xl border border-gray-100 object-cover flex-shrink-0"

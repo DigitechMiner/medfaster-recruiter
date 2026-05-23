@@ -24,6 +24,11 @@ import {
   formatLabel,
   formatPay,
   formatTime,
+  getJobRotationalTeams,
+  getJobShiftCount,
+  getJobShiftDisplayLines,
+  getRotationalScheduleSubLabel,
+  isRotationalJob,
 } from "./job-detail-helpers";
 
 interface JobDetailSummaryProps {
@@ -179,13 +184,25 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
     job.check_in_time && job.check_out_time
       ? `${formatTime(job.check_in_time)} to ${formatTime(job.check_out_time)}`
       : "N/A";
-  const isInstantJob = job.job_urgency === "instant";
+  const shiftDisplayLines = getJobShiftDisplayLines(job);
+  const isInstantJob = job.job_urgency === "INSTANT";
+  const isRotational = isRotationalJob(job);
+  const rotationalTeams = getJobRotationalTeams(job);
   const specializations = normalJob?.specializations ?? [];
   const qualifications = normalJob?.qualifications ?? [];
   const funding = job.funding;
-  const shiftCount =
-    job.no_of_hires_required *
-    getDateDurationDays(job.start_date, job.end_date);
+  const shiftCount = getJobShiftCount(job);
+  const rotationalSubLabel = getRotationalScheduleSubLabel(job);
+  const shiftsPerDay =
+    job.shift_templates?.length ||
+    new Set(
+      rotationalTeams.flatMap((team) =>
+        team.cycles
+          .filter((cycle) => cycle.is_working)
+          .map((cycle) => cycle.shift_template_index),
+      ),
+    ).size ||
+    1;
 
   return (
     <div className="flex flex-col gap-4">
@@ -209,6 +226,17 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
             <span className="px-3 py-1 rounded-md text-xs font-semibold text-[#F4781B] bg-orange-50 border border-orange-100">
               {formatLabel(job.job_type)}
             </span>
+            {!isInstantJob && (
+              <span
+                className={`px-3 py-1 rounded-md text-xs font-semibold border ${
+                  isRotational
+                    ? "text-orange-600 bg-orange-50 border-orange-100"
+                    : "text-blue-600 bg-blue-50 border-blue-100"
+                }`}
+              >
+                {isRotational ? "Rotational Shifts" : "Standard Shifts"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -304,11 +332,36 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
                 </DetailChip>
               ))}
             </DetailRow>
+            {job.employment_tenure && (
+              <DetailRow label="Employment Tenure">
+                <DetailChip>{formatLabel(job.employment_tenure)}</DetailChip>
+              </DetailRow>
+            )}
             <DetailRow label="AI Interview">
               <DetailChip>
                 {normalJob?.ai_interview ? "Enabled" : "Disabled"}
               </DetailChip>
             </DetailRow>
+            {isRotational && (
+              <>
+                <DetailRow
+                  label="Rotation Teams"
+                  isEmpty={!rotationalTeams.length}
+                >
+                  {rotationalTeams.map((team) => (
+                    <DetailChip key={team.id}>{team.team_name}</DetailChip>
+                  ))}
+                </DetailRow>
+                <DetailRow label="Rotation Cycle">
+                  <DetailChip>
+                    {job.rotation_cycle_days ?? 14} days
+                    {job.cycle_start_day
+                      ? ` · starts ${formatLabel(job.cycle_start_day)}`
+                      : ""}
+                  </DetailChip>
+                </DetailRow>
+              </>
+            )}
           </div>
         )}
 
@@ -323,8 +376,23 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
           <SummaryItem
             icon={<Clock size={16} />}
             label="Time"
-            value={timing}
-            subLabel={formatTimeDuration(job.check_in_time, job.check_out_time)}
+            value={
+              shiftDisplayLines.length > 0 ? (
+                <span className="flex flex-col gap-0.5">
+                  {shiftDisplayLines.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                </span>
+              ) : (
+                timing
+              )
+            }
+            subLabel={
+              rotationalSubLabel ??
+              (shiftDisplayLines.length > 0
+                ? `${shiftsPerDay} shift${shiftsPerDay === 1 ? "" : "s"} per day`
+                : formatTimeDuration(job.check_in_time, job.check_out_time))
+            }
             inline
           />
         </div>
@@ -371,29 +439,39 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
           <>
             <MetricCard
               icon={<DollarSign size={18} />}
-              title="Total Funding"
-              value={formatPay(funding.total_amount_cents)}
-              subLabel={formatLabel(funding.status)}
+              title="Total Contracted"
+              value={formatPay(
+                funding.total_contract_amount_cents ?? funding.total_amount_cents,
+              )}
+              subLabel={
+                funding.funding_type
+                  ? formatLabel(funding.funding_type)
+                  : formatLabel(funding.status)
+              }
               className="border-gray-200"
             />
             <MetricCard
               icon={<Wallet size={18} />}
               title="Held Amount"
-              value={formatPay(funding.held_amount_cents)}
-              subLabel="Currently held"
+              value={formatPay(
+                funding.total_held_amount_cents ?? funding.held_amount_cents,
+              )}
+              subLabel={formatLabel(funding.status)}
               className="border-gray-200"
             />
             <MetricCard
               icon={<CreditCard size={18} />}
-              title="Released Amount"
-              value={formatPay(funding.released_amount_cents)}
-              subLabel="Paid out"
+              title="Spent Amount"
+              value={formatPay(funding.total_spent_amount_cents)}
+              subLabel="Paid to candidates"
               className="border-gray-200"
             />
             <MetricCard
               icon={<RotateCcw size={18} />}
               title="Refunded Amount"
-              value={formatPay(funding.refunded_amount_cents)}
+              value={formatPay(
+                funding.total_refunded_amount_cents ?? funding.refunded_amount_cents,
+              )}
               subLabel="Returned"
               className="border-gray-200"
             />
