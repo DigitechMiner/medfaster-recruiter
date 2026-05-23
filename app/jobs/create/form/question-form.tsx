@@ -151,7 +151,7 @@ export function QuestionForm({
     ...(pendingPayload ?? {}),
     job_title: pendingPayload?.job_title ?? "",
     job_type: pendingPayload?.job_type ?? "casual",
-    job_urgency: pendingPayload?.job_urgency ?? "normal",
+    job_urgency: pendingPayload?.job_urgency ?? "NORMAL",
     responsibilities: pendingPayload?.responsibilities ?? [],
     required_skills: pendingPayload?.required_skills ?? [],
     questions: validQuestions,
