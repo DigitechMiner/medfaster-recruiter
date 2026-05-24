@@ -38,6 +38,7 @@ export interface ShiftOverview {
   LATE_CHECK_IN: number;
   MISSED: number;
   CANCELLED: number;
+  COMPLETED: number;
 }
 
 /** `data` — GET `/recruiter/dashboard` */
