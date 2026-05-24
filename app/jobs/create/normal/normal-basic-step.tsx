@@ -207,7 +207,7 @@ export function NormalBasicStep({
             value,
           }))}
           placeholder={loading ? "Loading..." : "Select"}
-          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
+          triggerClassName="h-11 w-full"
           required
           error={fieldErrors.department}
         />
@@ -229,7 +229,7 @@ export function NormalBasicStep({
           )}
           placeholder={loading ? "Loading..." : "Select"}
           disabled={!formData.department || loading}
-          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
+          triggerClassName="h-11 w-full"
           required
           error={fieldErrors.job_title}
         />
@@ -331,15 +331,9 @@ export function NormalBasicStep({
         {/* Job AI-Interview */}
         <JobFormField label="Job AI-Interview" required>
           <RadioGroup
-            value={
-              formData.inPersonInterview === true
-                ? "Yes"
-                : formData.inPersonInterview === false
-                ? "No"
-                : (formData.inPersonInterview as string | undefined)
-            }
+            value={formData.ai_interview === true ? "Yes" : "No"}
             onValueChange={(value) =>
-              updateFormData({ inPersonInterview: value })
+              updateFormData({ ai_interview: value === "Yes" })
             }
             className="flex flex-wrap gap-4 pt-2"
           >
@@ -437,7 +431,7 @@ export function NormalBasicStep({
             };
           })}
           contentClassName="max-h-60"
-          triggerClassName="h-11 w-full border-[#F4781B] focus:ring-[#F4781B]"
+          triggerClassName="h-11 w-full"
           triggerContent={
             <div className="flex items-center gap-2 text-gray-500">
               <span className="text-sm">Select specialization</span>
@@ -533,7 +527,7 @@ export function NormalBasicStep({
             value: province.value,
           }))}
           placeholder="Select Province"
-          triggerClassName="h-11 border-[#F4781B]"
+          triggerClassName="h-11"
           error={fieldErrors.province}
         />
 

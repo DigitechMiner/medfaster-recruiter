@@ -165,20 +165,10 @@ export function mapPreviewShiftToRow(shift: JobPreviewShift): ShiftPreviewRow {
   };
 }
 
-function comparePreviewShifts(a: JobPreviewShift, b: JobPreviewShift): number {
-  const dayA = a.cycle_day ?? a.shift_index ?? 0;
-  const dayB = b.cycle_day ?? b.shift_index ?? 0;
-  if (dayA !== dayB) return dayA - dayB;
-  const dateA = a.shift_date ?? "";
-  const dateB = b.shift_date ?? "";
-  if (dateA !== dateB) return dateA.localeCompare(dateB);
-  return a.shift_type.localeCompare(b.shift_type);
-}
-
 export function mapPreviewShiftsToRows(
   shifts: JobPreviewShift[],
 ): ShiftPreviewRow[] {
-  return [...shifts].sort(comparePreviewShifts).map(mapPreviewShiftToRow);
+  return shifts.map(mapPreviewShiftToRow);
 }
 
 export function buildNormalPreviewCostSummary(

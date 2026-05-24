@@ -547,7 +547,10 @@ export function JobReview({
   const shiftHeaders = useMemo(() => {
     const headers = ["Start Date", "End Date", "Day"];
     if (useApiShiftTable) {
-      headers.push("Shift", "Team");
+      headers.push("Shift");
+      if (!isUrgent) {
+        headers.push("Team");
+      }
     }
     headers.push(
       "Check-In Time",
@@ -556,7 +559,7 @@ export function JobReview({
     );
     if (useApiShiftTable) headers.push("Workers");
     return headers;
-  }, [useApiShiftTable]);
+  }, [useApiShiftTable, isUrgent]);
 
   const totalShiftPages = Math.max(1, Math.ceil(shifts.length / shiftPerPage));
   const currentShiftPage = Math.min(shiftPage, totalShiftPages);
@@ -587,8 +590,11 @@ export function JobReview({
   );
 
   const teamSpans = useMemo(
-    () => computeConsecutiveCellSpans(paginatedShifts, (row) => row.team),
-    [paginatedShifts],
+    () =>
+      useApiShiftTable && !isUrgent
+        ? computeConsecutiveCellSpans(paginatedShifts, (row) => row.team)
+        : [],
+    [paginatedShifts, useApiShiftTable, isUrgent],
   );
 
   useEffect(() => {
@@ -598,6 +604,27 @@ export function JobReview({
   const location = [payload.city, displayProvince].filter(Boolean).join(", ");
   const summaryTitle = "Job Summary";
   const tableTitle = "Job Details";
+
+  const jobDateRangeLabel = useMemo(() => {
+    const start = parsePayloadDate(payload.start_date);
+    const end = parsePayloadDate(payload.end_date);
+    if (!start || !end) return null;
+    return `${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+  }, [payload.start_date, payload.end_date]);
+
+  const previewDaysNote = useMemo(() => {
+    const previewWindow = feePreview?.preview_window;
+    if (!previewWindow) return null;
+
+    const isCapped =
+      previewWindow.was_capped === true ||
+      previewWindow.capped_to_one_month === true;
+
+    if (!isCapped) return null;
+
+    const maxDays = previewWindow.max_preview_days ?? 15;
+    return `Showing first ${maxDays} days of shifts below.`;
+  }, [feePreview?.preview_window]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -694,9 +721,21 @@ export function JobReview({
           {/* Job Details table */}
           {!isFullTime && shifts.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">
-                {tableTitle}
-              </h3>
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900">
+                  {tableTitle}
+                </h3>
+                {jobDateRangeLabel && (
+                  <p className="mt-1 text-sm text-gray-600">
+                    {jobDateRangeLabel}
+                  </p>
+                )}
+                {previewDaysNote && (
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {previewDaysNote}
+                  </p>
+                )}
+              </div>
 
               <div className="rounded-xl border border-orange-100 overflow-hidden">
                 <DataTable
@@ -739,7 +778,7 @@ export function JobReview({
                           {row.shiftName}
                         </td>
                       )}
-                      {useApiShiftTable && teamSpans[rowIndex] != null && (
+                      {useApiShiftTable && !isUrgent && teamSpans[rowIndex] != null && (
                         <td
                           rowSpan={teamSpans[rowIndex] ?? 1}
                           className={MERGED_TABLE_CELL_CLASS}

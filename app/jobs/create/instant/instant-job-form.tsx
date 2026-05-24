@@ -36,6 +36,7 @@ interface InstantJobFormProps {
   formId?: string;
   autoSubmitToken?: number;
   onValidationBlocked?: () => void;
+  onDescriptionLoadingChange?: (loading: boolean) => void;
 }
 
 const getCachedPayRateCents = (jobTitle: string): number | null => {
@@ -154,6 +155,7 @@ export function InstantJobForm({
   formId,
   autoSubmitToken,
   onValidationBlocked,
+  onDescriptionLoadingChange,
 }: InstantJobFormProps) {
   const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
@@ -408,6 +410,7 @@ export function InstantJobForm({
               updateFormData={updateFormData}
               fieldErrors={fieldErrors}
               hideExperienceList
+              onLoadingChange={onDescriptionLoadingChange}
             />
           )}
         </form>

@@ -29,6 +29,7 @@ function InstantJobStepForm() {
   const createJob = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
   const clearDraft = useJobsStore((s) => s.clearDraft);
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [pendingPayload, setPendingPayload] =
@@ -168,6 +169,7 @@ function InstantJobStepForm() {
                 nextLabel="Preview Job"
                 nextType="submit"
                 nextForm={INSTANT_DESCRIPTION_FORM_ID}
+                nextDisabled={descriptionLoading}
               />
             }
           >
@@ -178,6 +180,7 @@ function InstantJobStepForm() {
               onNext={handleDescriptionNext}
               autoSubmitToken={progressValidationToken}
               onValidationBlocked={resetProgressValidation}
+              onDescriptionLoadingChange={setDescriptionLoading}
             />
           </CreateJobStepCard>
         )}

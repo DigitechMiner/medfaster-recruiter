@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/features/jobs";
 import type { JobFormData } from "@/types";
 import { CreateJobListSection } from "../components/listSection";
+import { DescriptionStepSkeleton } from "../components/loading";
 import { normalizeStringArray } from "./utils";
 
 interface DescriptionFormProps {
@@ -17,6 +17,7 @@ interface DescriptionFormProps {
   updateFormData: (updates: Partial<JobFormData>) => void;
   fieldErrors?: Partial<Record<keyof JobFormData, string>>;
   hideExperienceList?: boolean;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 interface ListSectionConfig {
@@ -44,11 +45,8 @@ export function DescriptionForm({
   updateFormData,
   fieldErrors = {},
   hideExperienceList = false,
+  onLoadingChange,
 }: DescriptionFormProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const updateFormDataRef = useRef(updateFormData);
-  const requestedDescriptionKeyRef = useRef<string | null>(null);
   const listSections = hideExperienceList
     ? LIST_SECTIONS.filter((section) => section.key !== "experience")
     : LIST_SECTIONS;
@@ -71,9 +69,20 @@ export function DescriptionForm({
     ],
   );
 
+  const [loading, setLoading] = useState(
+    () => !hasDescriptionContent && Boolean(formData.job_title),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const updateFormDataRef = useRef(updateFormData);
+  const requestedDescriptionKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     updateFormDataRef.current = updateFormData;
   }, [updateFormData]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const reset = useCallback(() => {
     setError(null);
@@ -145,28 +154,20 @@ export function DescriptionForm({
     void generateAndMapDescription();
   }, [generateAndMapDescription, hasDescriptionContent]);
 
-  // const wantsInterview =
-  //   formData.inPersonInterview === "Yes" ||
-  //   formData.inPersonInterview === true;
+  if (loading) {
+    return <DescriptionStepSkeleton sectionCount={listSections.length} />;
+  }
 
   return (
     <>
       {/* Job Summary */}
       <div className="mb-8 space-y-2 sm:space-y-3">
-        <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-          <Label
-            htmlFor="description"
-            className="text-sm font-medium text-gray-700"
-          >
-            Job Summary <span className="text-red-500">*</span>
-          </Label>
-          {loading && (
-            <span className="flex items-center gap-1.5 text-xs text-[#F4781B]">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Generating description with KeRaeva&apos;s AI...
-            </span>
-          )}
-        </div>
+        <Label
+          htmlFor="description"
+          className="text-sm font-medium text-gray-700"
+        >
+          Job Summary <span className="text-red-500">*</span>
+        </Label>
 
         <Textarea
           id="description"

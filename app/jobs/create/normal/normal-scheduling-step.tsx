@@ -164,6 +164,9 @@ export function NormalSchedulingStep({
     null,
   );
   const [activeTimePart, setActiveTimePart] = useState<TimePart>("start");
+  const [breakDurationDrafts, setBreakDurationDrafts] = useState<
+    Partial<Record<ShiftType, string>>
+  >({});
 
   const today = new Date();
 
@@ -347,6 +350,10 @@ export function NormalSchedulingStep({
     shiftDetails,
     updateFormData,
   ]);
+
+  useEffect(() => {
+    setBreakDurationDrafts({});
+  }, [shiftDuration, selectedShiftTypes]);
 
   useEffect(() => {
     if (!selectedShiftTypes.length) return;
@@ -906,9 +913,10 @@ export function NormalSchedulingStep({
                         : "Night";
                   const detail = shiftDetails[shiftType] ?? {};
                   const breakValue =
-                    detail.break_duration_minutes !== undefined
+                    breakDurationDrafts[shiftType] ??
+                    (detail.break_duration_minutes !== undefined
                       ? String(detail.break_duration_minutes)
-                      : "";
+                      : "");
 
                   return (
                     <div key={key} className={shiftRowGridClass}>
@@ -943,43 +951,58 @@ export function NormalSchedulingStep({
                         type="number"
                         min={breakBounds.min}
                         max={breakBounds.max}
+                        step={1}
                         value={breakValue}
                         onChange={(e) => {
-                          const raw = e.target.value;
-                          if (!raw) {
-                            updateShiftDetail(shiftType, {
-                              break_duration_minutes: undefined,
-                            });
-                            return;
-                          }
-                          const num = Number(raw);
-                          if (!Number.isFinite(num)) return;
-                          updateShiftDetail(shiftType, {
-                            break_duration_minutes: clampBreakDurationMinutes(
-                              num,
-                              shiftDuration,
-                            ),
-                          });
+                          setBreakDurationDrafts((prev) => ({
+                            ...prev,
+                            [shiftType]: e.target.value,
+                          }));
                         }}
                         onBlur={() => {
-                          const current =
-                            shiftDetails[shiftType]?.break_duration_minutes;
-                          if (current === undefined) {
+                          const raw = breakDurationDrafts[shiftType];
+                          setBreakDurationDrafts((prev) => {
+                            const next = { ...prev };
+                            delete next[shiftType];
+                            return next;
+                          });
+
+                          if (raw === undefined) {
+                            const current =
+                              shiftDetails[shiftType]?.break_duration_minutes;
+                            if (current === undefined) {
+                              updateShiftDetail(shiftType, {
+                                break_duration_minutes:
+                                  getDefaultBreakDurationMinutes(shiftDuration),
+                              });
+                              return;
+                            }
+                            const clamped = clampBreakDurationMinutes(
+                              current,
+                              shiftDuration,
+                            );
+                            if (clamped !== current) {
+                              updateShiftDetail(shiftType, {
+                                break_duration_minutes: clamped,
+                              });
+                            }
+                            return;
+                          }
+
+                          if (!raw.trim()) {
                             updateShiftDetail(shiftType, {
                               break_duration_minutes:
                                 getDefaultBreakDurationMinutes(shiftDuration),
                             });
                             return;
                           }
-                          const clamped = clampBreakDurationMinutes(
-                            current,
-                            shiftDuration,
-                          );
-                          if (clamped !== current) {
-                            updateShiftDetail(shiftType, {
-                              break_duration_minutes: clamped,
-                            });
-                          }
+
+                          const num = Number(raw);
+                          updateShiftDetail(shiftType, {
+                            break_duration_minutes: Number.isFinite(num)
+                              ? clampBreakDurationMinutes(num, shiftDuration)
+                              : getDefaultBreakDurationMinutes(shiftDuration),
+                          });
                         }}
                         placeholder={String(breakBounds.default)}
                       />

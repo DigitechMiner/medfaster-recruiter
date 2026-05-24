@@ -59,6 +59,9 @@ export function InstantBasicStep({
   const [dateEditMode, setDateEditMode] = useState<"start" | "end">("start");
   const [showFromTimePicker, setShowFromTimePicker] = useState(false);
   const [showToTimePicker, setShowToTimePicker] = useState(false);
+  const [breakDurationDraft, setBreakDurationDraft] = useState<
+    string | undefined
+  >(undefined);
 
   const formatDate = (date?: Date | string) => {
     if (!date) return "MM/DD/YYYY";
@@ -123,9 +126,14 @@ export function InstantBasicStep({
   );
 
   const breakValue =
-    formData.break_duration_minutes !== undefined
+    breakDurationDraft ??
+    (formData.break_duration_minutes !== undefined
       ? String(formData.break_duration_minutes)
-      : "";
+      : "");
+
+  useEffect(() => {
+    setBreakDurationDraft(undefined);
+  }, [formData.check_in_time, formData.check_out_time]);
 
   useEffect(() => {
     const current = formData.break_duration_minutes;
@@ -166,7 +174,7 @@ export function InstantBasicStep({
             value,
           }))}
           placeholder={loading ? "Loading..." : "Select"}
-          triggerClassName="w-full border-[#F4781B] focus:ring-[#F4781B] h-11"
+          triggerClassName="h-11 w-full"
           required
           error={fieldErrors.department}
         />
@@ -183,7 +191,7 @@ export function InstantBasicStep({
           }))}
           placeholder={loading ? "Loading..." : "Select"}
           disabled={!formData.department || loading}
-          triggerClassName="w-full border-[#F4781B] focus:ring-[#F4781B] h-11"
+          triggerClassName="h-11 w-full"
           required
           error={fieldErrors.job_title}
         />
@@ -260,37 +268,48 @@ export function InstantBasicStep({
           step={1}
           value={breakValue}
           onChange={(e) => {
-            const raw = e.target.value;
-            if (!raw) {
-              updateFormData({ break_duration_minutes: undefined });
-              return;
-            }
-            const num = Number(raw);
-            if (!Number.isFinite(num)) return;
-            updateFormData({
-              break_duration_minutes: clampInstantBreakDurationMinutes(
-                num,
-                formData.check_in_time,
-                formData.check_out_time,
-              ),
-            });
+            setBreakDurationDraft(e.target.value);
           }}
           onBlur={() => {
-            const current = formData.break_duration_minutes;
-            if (current === undefined) {
+            const raw = breakDurationDraft;
+            setBreakDurationDraft(undefined);
+
+            if (raw === undefined) {
+              const current = formData.break_duration_minutes;
+              if (current === undefined) {
+                updateFormData({
+                  break_duration_minutes: breakBounds.default,
+                });
+                return;
+              }
+              const clamped = clampInstantBreakDurationMinutes(
+                current,
+                formData.check_in_time,
+                formData.check_out_time,
+              );
+              if (clamped !== undefined && clamped !== current) {
+                updateFormData({ break_duration_minutes: clamped });
+              }
+              return;
+            }
+
+            if (!raw.trim()) {
               updateFormData({
                 break_duration_minutes: breakBounds.default,
               });
               return;
             }
-            const clamped = clampInstantBreakDurationMinutes(
-              current,
-              formData.check_in_time,
-              formData.check_out_time,
-            );
-            if (clamped !== undefined && clamped !== current) {
-              updateFormData({ break_duration_minutes: clamped });
-            }
+
+            const num = Number(raw);
+            updateFormData({
+              break_duration_minutes: Number.isFinite(num)
+                ? clampInstantBreakDurationMinutes(
+                    num,
+                    formData.check_in_time,
+                    formData.check_out_time,
+                  )
+                : breakBounds.default,
+            });
           }}
           placeholder={String(breakBounds.default)}
           required
@@ -426,7 +445,7 @@ export function InstantBasicStep({
             value: p.value,
           }))}
           placeholder="Select Province"
-          triggerClassName="h-11 border-[#F4781B]"
+          triggerClassName="h-11"
           required
           error={fieldErrors.province}
         />

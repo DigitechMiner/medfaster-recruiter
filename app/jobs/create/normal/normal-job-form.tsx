@@ -62,6 +62,24 @@ const getJobTypeValue = (
   return (getMetadataValue(jobTypeOptions, jobType) ?? "casual") as JobType;
 };
 
+function resolveAiInterviewFromSnapshot(
+  snapshot: JobFormSnapshot | null,
+): boolean {
+  if (snapshot?.ai_interview !== undefined && snapshot?.ai_interview !== null) {
+    return snapshot.ai_interview === true;
+  }
+
+  const legacyInterview = (
+    snapshot as { inPersonInterview?: string | boolean } | null
+  )?.inPersonInterview;
+
+  if (legacyInterview === "No" || legacyInterview === false) {
+    return false;
+  }
+
+  return true;
+}
+
 interface NormalJobFormProps {
   urgencyMode: "normal" | "instant";
   onNext?: (payload: JobCreatePayload, wantsInterview: boolean) => void;
@@ -70,6 +88,7 @@ interface NormalJobFormProps {
   formId?: string;
   autoSubmitToken?: number;
   onValidationBlocked?: () => void;
+  onDescriptionLoadingChange?: (loading: boolean) => void;
 }
 
 function buildInitialFormData(
@@ -86,8 +105,7 @@ function buildInitialFormData(
   return {
     ...DEFAULT_JOB_FORM_DATA,
     job_urgency: toJobUrgency(urgencyMode),
-    ai_interview: fromSnapshot(snapshot, "ai_interview", true),
-    inPersonInterview: fromSnapshot(snapshot, "inPersonInterview", "Yes"),
+    ai_interview: resolveAiInterviewFromSnapshot(snapshot),
     check_in_time: fromSnapshot(
       snapshot,
       "check_in_time",
@@ -263,6 +281,7 @@ export function NormalJobForm({
   formId,
   autoSubmitToken,
   onValidationBlocked,
+  onDescriptionLoadingChange,
 }: NormalJobFormProps) {
   const setFormSnapshot = useJobsStore((s) => s.setFormSnapshot);
   const formSnapshot = useJobsStore((s) => s.formSnapshot);
@@ -296,7 +315,7 @@ export function NormalJobForm({
 
   const convertToBackendFormat = (data: JobFormData): JobCreatePayload => {
     const isNormalJob = urgencyMode === "normal";
-    const wantsInterview = data.inPersonInterview === "Yes";
+    const wantsInterview = data.ai_interview === true;
     const yearsOfExperience = String(
       getExperienceYearsValue(data.years_of_experience),
     );
@@ -312,7 +331,7 @@ export function NormalJobForm({
           specializations: normalizeStringArray(data.specializations).filter(
             (s) => s?.trim(),
           ),
-          ai_interview: wantsInterview ? data.ai_interview === true : false,
+          ai_interview: wantsInterview,
           questions: wantsInterview
             ? (data.questions?.filter(Boolean) ?? [])
             : null,
@@ -421,9 +440,7 @@ export function NormalJobForm({
       filteredErrors,
       formStep,
       {
-        ignoreQuestions:
-          formData.inPersonInterview === "Yes" ||
-          formData.inPersonInterview === true,
+        ignoreQuestions: formData.ai_interview === true,
       },
     );
 
@@ -449,7 +466,7 @@ export function NormalJobForm({
     setIsSubmitting(true);
 
     try {
-      if (onNext) onNext(backendData, formData.inPersonInterview === "Yes");
+      if (onNext) onNext(backendData, formData.ai_interview === true);
     } catch (err) {
       toast.error((err as Error).message || "An error occurred");
     } finally {
@@ -489,6 +506,7 @@ export function NormalJobForm({
           updateFormData={updateFormData}
           fieldErrors={fieldErrors}
           hideExperienceList
+          onLoadingChange={onDescriptionLoadingChange}
         />
       )}
     </form>

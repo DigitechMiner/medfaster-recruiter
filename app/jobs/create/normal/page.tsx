@@ -136,6 +136,7 @@ function NormalJobStepForm() {
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
   const clearDraft = useJobsStore((s) => s.clearDraft);
   const formSnapshot = useJobsStore((s) => s.formSnapshot);
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [pendingPayload, setPendingPayload] =
@@ -165,9 +166,8 @@ function NormalJobStepForm() {
   const currentProgressStep = step;
 
   const descriptionWantsInterview =
-    formSnapshot?.inPersonInterview === undefined ||
-    formSnapshot.inPersonInterview === "Yes" ||
-    formSnapshot.inPersonInterview === true;
+    formSnapshot?.ai_interview === undefined ||
+    formSnapshot.ai_interview === true;
 
   const handleBackToJobs = () => {
     clearDraft();
@@ -397,6 +397,7 @@ function NormalJobStepForm() {
                 nextLabel="Next: Review, Pay & Publish"
                 nextType="submit"
                 nextForm={NORMAL_DESCRIPTION_FORM_ID}
+                nextDisabled={descriptionLoading}
               />
             }
           >
@@ -408,6 +409,7 @@ function NormalJobStepForm() {
               autoSubmitToken={progressValidationToken}
               onValidationBlocked={resetProgressValidation}
               onNext={handleDescriptionNext}
+              onDescriptionLoadingChange={setDescriptionLoading}
             />
 
             {/* AI questions part: only when AI interview is enabled */}

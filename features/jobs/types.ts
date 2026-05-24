@@ -618,7 +618,6 @@ export interface JobFormData {
   why_join?: string[];
   location?: string;
   payRange?: number | string;
-  inPersonInterview?: string | boolean;
   physicalInterview?: string | boolean;
 
   // NEW FIELDS for Figma flow
