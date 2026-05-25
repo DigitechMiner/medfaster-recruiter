@@ -256,7 +256,7 @@ export function InstantBasicStep({
           id="break-duration-minutes"
           label={
             <>
-              Break Duration (minutes)
+              Unpaid Break Duration (minutes)
               <span className="ml-1 font-normal text-gray-400">
                 ({breakBounds.min}–{breakBounds.max} min)
               </span>

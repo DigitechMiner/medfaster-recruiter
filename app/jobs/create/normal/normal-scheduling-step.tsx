@@ -875,7 +875,8 @@ export function NormalSchedulingStep({
 
       <JobFormField label="Shift Timings per Team" required>
         <p className="mb-3 text-xs text-gray-400">
-          Break duration for {shiftDuration === "12_hrs" ? "12" : "8"} hr shifts:{" "}
+          Unpaid break duration for {shiftDuration === "12_hrs" ? "12" : "8"}{" "}
+          hr shifts:{" "}
           {breakBounds.min}–{breakBounds.max} min (default {breakBounds.default}{" "}
           min).
           {shouldChainShiftTimes(jobDurationPerDay, selectedShiftTypes) && (
@@ -905,7 +906,7 @@ export function NormalSchedulingStep({
                   </span>
                 </span>
                 <span>
-                  Break Duration
+                  Unpaid Break Duration
                   <span className="mt-0.5 block font-normal text-gray-400">
                     ({breakBounds.min}–{breakBounds.max} min)
                   </span>
