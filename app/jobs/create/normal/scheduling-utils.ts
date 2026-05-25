@@ -197,6 +197,21 @@ export function normalizeScheduleTemplate(
   return base;
 }
 
+/** User-facing error when no day in the 14-day template has a team assigned. */
+export function formatScheduleTemplateAssignmentErrors(
+  scheduleTemplate: string[] | undefined,
+  teamLabels: string[],
+): string | null {
+  const template = normalizeScheduleTemplate(scheduleTemplate, teamLabels);
+  const hasAssignment = template.some((assigned) => Boolean(assigned?.trim()));
+
+  if (!hasAssignment) {
+    return "Assign at least one team to a day in the 14-day schedule template.";
+  }
+
+  return null;
+}
+
 const SHIFTS_FOR_24H_8H: ShiftType[] = ["morning", "evening", "night"];
 
 /** 24 h + 8 h → all 3 shifts auto-selected. 24 h + 12 h → user picks 2 (FIFO). */

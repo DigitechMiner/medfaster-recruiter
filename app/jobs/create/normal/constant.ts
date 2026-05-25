@@ -1,4 +1,6 @@
-import type { JobFormData } from "@/types";
+import type { CycleStartDay, JobFormData } from "@/types";
+
+export const DEFAULT_CYCLE_START_DAY: CycleStartDay = "SATURDAY";
 
 export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   job_title: "",
@@ -30,7 +32,7 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   staffing_type: "rotational",
   selected_shift_types: ["morning", "evening", "night"],
   job_period_option: "custom_end_date",
-  cycle_start_day: "SATURDAY",
+  cycle_start_day: DEFAULT_CYCLE_START_DAY,
   number_of_teams: "2",
   shift_schedule_details: {},
   schedule_template: [],

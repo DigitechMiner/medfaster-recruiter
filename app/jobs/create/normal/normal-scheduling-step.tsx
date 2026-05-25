@@ -54,6 +54,7 @@ import {
   usesFifoShiftSelection,
   type ShiftTimesState,
 } from "./scheduling-utils";
+import { DEFAULT_CYCLE_START_DAY } from "./constant";
 import { useSyncBackendPayRate } from "./use-platform-pay-rate";
 
 interface NormalSchedulingStepProps {
@@ -239,7 +240,8 @@ export function NormalSchedulingStep({
     teamCount,
   );
 
-  const cycleStartDay: CycleStartDay = formData.cycle_start_day ?? "MONDAY";
+  const cycleStartDay: CycleStartDay =
+    formData.cycle_start_day ?? DEFAULT_CYCLE_START_DAY;
   const templateDayColumns = useMemo(
     () => buildTemplateDayColumns(cycleStartDay, formData.start_date),
     [cycleStartDay, formData.start_date],

@@ -24,6 +24,7 @@ import {
   TEMPLATE_DAY_COUNT,
   type ShiftTimesState,
 } from "./scheduling-utils";
+import { DEFAULT_CYCLE_START_DAY } from "./constant";
 import { getShiftDurationHours } from "../validation/helpers";
 
 export type { NormalJobFeePreviewPayload };
@@ -100,7 +101,7 @@ export function buildNormalJobSchedulingPayload(
   const staffingType = source.staffing_type ?? "standard";
   const shiftMode: PreviewShiftMode =
     staffingType === "rotational" ? "ROTATIONAL" : "STANDARD";
-  const cycleStartDay = source.cycle_start_day ?? "MONDAY";
+  const cycleStartDay = source.cycle_start_day ?? DEFAULT_CYCLE_START_DAY;
   const shiftDetails = source.shift_schedule_details ?? {};
   const scheduleTemplate = source.schedule_template ?? [];
 

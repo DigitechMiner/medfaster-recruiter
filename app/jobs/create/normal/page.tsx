@@ -30,6 +30,7 @@ import {
   getDefaultTeamCount,
 } from "./scheduling-utils";
 import { formatDateForBackend } from "../form/utils";
+import { formatSchedulingStepErrors } from "../validation/normal.validator";
 import type { ShiftDurationType, ShiftType, StaffingType } from "@/types";
 import { toast } from "react-toastify";
 
@@ -332,6 +333,12 @@ function NormalJobStepForm() {
                 onNext={() => {
                   const snapshot = useJobsStore.getState().formSnapshot;
                   if (!snapshot) return;
+
+                  const schedulingError = formatSchedulingStepErrors(snapshot);
+                  if (schedulingError) {
+                    toast.error(schedulingError);
+                    return;
+                  }
 
                   const selectedShifts =
                     (snapshot.selected_shift_types as ShiftType[]) ?? [];

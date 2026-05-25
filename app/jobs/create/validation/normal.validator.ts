@@ -1,13 +1,24 @@
-import type { JobCreatePayload, ShiftDurationType, ShiftType } from "@/types";
+import type { JobFormSnapshot } from "@/stores/jobs-store";
+import type {
+  JobCreatePayload,
+  ShiftDurationType,
+  ShiftType,
+  StaffingType,
+} from "@/types";
 import { MAX_ARRAY_ITEMS, MAX_QUESTIONS } from "./constants";
-import { isEmpty, isStringArrayBetween } from "./helpers";
+import { isEmpty, isStringArrayBetween, parseClockTimeToMinutes } from "./helpers";
 import type { PushError } from "./types";
 import {
   buildTeamLabels,
   clampTeamCount,
   formatCandidateWeeklyHoursViolations,
+  formatScheduleTemplateAssignmentErrors,
   getCandidateWeeklyHoursViolations,
   getDefaultTeamCount,
+  getShiftEndFromState,
+  getShiftStartFromState,
+  sortShiftsInDayOrder,
+  type ShiftTimesState,
 } from "../normal/scheduling-utils";
 
 const MAX_YEARS_OF_EXPERIENCE = 20;
@@ -148,3 +159,113 @@ function validateScheduleWeeklyHours(
   }
 }
 // END SECTION: Schedule Weekly Hours Validation
+
+// START SECTION: Scheduling Step Date Validation
+function isSnapshotDateMissing(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (value instanceof Date) return Number.isNaN(value.getTime());
+  if (typeof value === "string") {
+    if (value.trim() === "") return true;
+    return Number.isNaN(new Date(value).getTime());
+  }
+  return true;
+}
+
+/** Returns a user-facing message when scheduling step dates are missing. */
+export function formatSchedulingStepDateErrors(
+  snapshot: Pick<JobFormSnapshot, "start_date" | "end_date">,
+): string | null {
+  const messages: string[] = [];
+
+  if (isSnapshotDateMissing(snapshot.start_date)) {
+    messages.push("Job start date is required.");
+  }
+
+  if (isSnapshotDateMissing(snapshot.end_date)) {
+    messages.push("Job end date is required.");
+  }
+
+  return messages.length > 0 ? messages.join(" ") : null;
+}
+// END SECTION: Scheduling Step Date Validation
+
+// START SECTION: Scheduling Step Shift Timing Validation
+const SHIFT_TYPE_LABEL: Record<ShiftType, string> = {
+  morning: "Morning",
+  day: "Day",
+  evening: "Evening",
+  night: "Night",
+};
+
+function isShiftClockTimeMissing(time?: string): boolean {
+  if (isEmpty(time)) return true;
+  return parseClockTimeToMinutes(time as string) === null;
+}
+
+/** Returns a user-facing message when selected shifts lack start/end times. */
+export function formatSchedulingStepShiftTimingErrors(
+  snapshot: Pick<JobFormSnapshot, "selected_shift_types"> & ShiftTimesState,
+): string | null {
+  const selectedShifts = sortShiftsInDayOrder(
+    (snapshot.selected_shift_types as ShiftType[] | undefined) ?? [],
+  );
+
+  if (!selectedShifts.length) {
+    return "Select at least one shift type.";
+  }
+
+  const messages: string[] = [];
+
+  for (const shift of selectedShifts) {
+    const label = SHIFT_TYPE_LABEL[shift];
+    const start = getShiftStartFromState(shift, snapshot);
+    const end = getShiftEndFromState(shift, snapshot);
+    const startMissing = isShiftClockTimeMissing(start);
+    const endMissing = isShiftClockTimeMissing(end);
+
+    if (startMissing && endMissing) {
+      messages.push(`${label} shift start and end times are required.`);
+    } else if (startMissing) {
+      messages.push(`${label} shift start time is required.`);
+    } else if (endMissing) {
+      messages.push(`${label} shift end time is required.`);
+    }
+  }
+
+  return messages.length > 0 ? messages.join(" ") : null;
+}
+
+/** 14-day template: at least one day must have a team assigned. */
+export function formatSchedulingStepTemplateErrors(
+  snapshot: Pick<
+    JobFormSnapshot,
+    "schedule_template" | "staffing_type" | "number_of_teams"
+  >,
+): string | null {
+  const staffingType =
+    (snapshot.staffing_type as StaffingType | undefined) ?? "standard";
+  const teamCount = clampTeamCount(
+    Number(snapshot.number_of_teams) || getDefaultTeamCount(staffingType),
+    staffingType,
+  );
+  const teamLabels = buildTeamLabels(teamCount);
+
+  return formatScheduleTemplateAssignmentErrors(
+    snapshot.schedule_template,
+    teamLabels,
+  );
+}
+
+/** Date, shift-timing, and template checks before leaving the scheduling step. */
+export function formatSchedulingStepErrors(
+  snapshot: JobFormSnapshot,
+): string | null {
+  const messages = [
+    formatSchedulingStepDateErrors(snapshot),
+    formatSchedulingStepShiftTimingErrors(snapshot),
+    formatSchedulingStepTemplateErrors(snapshot),
+  ].filter((message): message is string => message !== null);
+
+  return messages.length > 0 ? messages.join(" ") : null;
+}
+// END SECTION: Scheduling Step Shift Timing Validation
