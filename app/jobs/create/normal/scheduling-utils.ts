@@ -5,6 +5,7 @@ import type {
   ShiftType,
   StaffingType,
 } from "@/types";
+import { SHIFT_HANDOFF_OVERLAP_MINUTES } from "./constant";
 
 export const TEMPLATE_DAY_COUNT = 14;
 export const SCHEDULE_EMPTY_VALUE = "__none__";
@@ -294,22 +295,60 @@ export function sortShiftsInDayOrder(selected: ShiftType[]): ShiftType[] {
   return SHIFT_DAY_ORDER.filter((shift) => selected.includes(shift));
 }
 
-/** Adds shift length to start time (24h `HH:MM`). Wraps past midnight. */
+function parseTimeToMinutes(time: string): number | null {
+  const [h, m] = time.split(":").map((v) => parseInt(v, 10));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+
+function formatMinutesAsTime(totalMinutes: number): string {
+  const normalized = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function addMinutesToTime(
+  time: string,
+  deltaMinutes: number,
+): string | null {
+  const minutes = parseTimeToMinutes(time);
+  if (minutes === null) return null;
+  return formatMinutesAsTime(minutes + deltaMinutes);
+}
+
+/** Adds shift length (+ optional handoff overlap) to start time (24h `HH:MM`). */
 export function calculateShiftEndTime(
   startTime: string,
   shiftDuration: ShiftDurationType,
+  overlapMinutes = 0,
 ): string | null {
-  const [h, m] = startTime.split(":").map((v) => parseInt(v, 10));
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-
-  const startMinutes = h * 60 + m;
+  const startMinutes = parseTimeToMinutes(startTime);
+  if (startMinutes === null) return null;
   const durationMinutes = getShiftLengthHours(shiftDuration) * 60;
-  const endMinutes = (startMinutes + durationMinutes) % (24 * 60);
-  const endH = Math.floor(endMinutes / 60);
-  const endM = endMinutes % 60;
+  return formatMinutesAsTime(startMinutes + durationMinutes + overlapMinutes);
+}
 
-  return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+/** Subtracts shift length (+ optional handoff overlap) from end time (24h `HH:MM`). */
+export function calculateShiftStartTime(
+  endTime: string,
+  shiftDuration: ShiftDurationType,
+  overlapMinutes = 0,
+): string | null {
+  const endMinutes = parseTimeToMinutes(endTime);
+  if (endMinutes === null) return null;
+  const durationMinutes = getShiftLengthHours(shiftDuration) * 60;
+  return formatMinutesAsTime(
+    endMinutes - durationMinutes - overlapMinutes,
+  );
+}
+
+function getChainedNextShiftStart(previousShiftEnd: string): string | null {
+  return addMinutesToTime(
+    previousShiftEnd,
+    -SHIFT_HANDOFF_OVERLAP_MINUTES,
+  );
 }
 
 export function getShiftStartFromState(
@@ -370,6 +409,19 @@ export function buildSingleShiftTimes(
   return patch;
 }
 
+/** One shift: start = end − shift length. */
+export function buildSingleShiftTimesFromEnd(
+  shift: ShiftType,
+  endTime: string,
+  shiftDuration: ShiftDurationType,
+): ShiftTimesState {
+  const start = calculateShiftStartTime(endTime, shiftDuration);
+  if (!start) return {};
+  const patch: ShiftTimesState = {};
+  setShiftTimesInState(shift, start, endTime, patch);
+  return patch;
+}
+
 /**
  * 24 h day with multiple shifts: each shift starts when the previous ends.
  * Editing a start time recalculates that shift and all following shifts in order.
@@ -386,13 +438,66 @@ export function buildChainedShiftTimes(params: {
 
   const patch: ShiftTimesState = {};
   let currentStart = params.anchorStartTime;
+  const overlap = SHIFT_HANDOFF_OVERLAP_MINUTES;
 
   for (let i = anchorIndex; i < ordered.length; i++) {
     const shift = ordered[i];
-    const end = calculateShiftEndTime(currentStart, params.shiftDuration);
+    const end = calculateShiftEndTime(
+      currentStart,
+      params.shiftDuration,
+      overlap,
+    );
     if (!end) break;
     setShiftTimesInState(shift, currentStart, end, patch);
-    currentStart = end;
+    currentStart = getChainedNextShiftStart(end) ?? end;
+  }
+
+  return patch;
+}
+
+/**
+ * 24 h day with multiple shifts: editing an end time sets that shift's start from
+ * duration, then recalculates all following shifts in order.
+ */
+export function buildChainedShiftTimesFromEnd(params: {
+  selectedShifts: ShiftType[];
+  shiftDuration: ShiftDurationType;
+  anchorShift: ShiftType;
+  anchorEndTime: string;
+}): ShiftTimesState {
+  const ordered = sortShiftsInDayOrder(params.selectedShifts);
+  const anchorIndex = ordered.indexOf(params.anchorShift);
+  if (anchorIndex < 0) return {};
+
+  const overlap = SHIFT_HANDOFF_OVERLAP_MINUTES;
+  const anchorStart = calculateShiftStartTime(
+    params.anchorEndTime,
+    params.shiftDuration,
+    overlap,
+  );
+  if (!anchorStart) return {};
+
+  const patch: ShiftTimesState = {};
+  setShiftTimesInState(
+    params.anchorShift,
+    anchorStart,
+    params.anchorEndTime,
+    patch,
+  );
+
+  let currentStart = getChainedNextShiftStart(params.anchorEndTime);
+  if (!currentStart) return patch;
+
+  for (let i = anchorIndex + 1; i < ordered.length; i++) {
+    const shift = ordered[i];
+    const end = calculateShiftEndTime(
+      currentStart,
+      params.shiftDuration,
+      overlap,
+    );
+    if (!end) break;
+    setShiftTimesInState(shift, currentStart, end, patch);
+    currentStart = getChainedNextShiftStart(end) ?? end;
   }
 
   return patch;

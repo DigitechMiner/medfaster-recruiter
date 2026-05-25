@@ -19,7 +19,9 @@ import { DateRangePicker } from "../components/date-picker";
 import { CustomTimePicker } from "../components/time-picker";
 import {
   buildChainedShiftTimes,
+  buildChainedShiftTimesFromEnd,
   buildSingleShiftTimes,
+  buildSingleShiftTimesFromEnd,
   buildTeamLabels,
   canSelectMultipleShifts,
   clearShiftTimesInState,
@@ -585,11 +587,19 @@ export function NormalSchedulingStep({
     const shiftType = key as ShiftType;
 
     if (part === "end") {
-      const patch: Partial<JobFormData> = {};
-      if (key === "morning") patch.morning_shift_end = time;
-      else if (key === "evening") patch.evening_shift_end = time;
-      else patch.night_shift_end = time;
-      updateFormData(patch);
+      const timesPatch = shouldChainShiftTimes(
+        jobDurationPerDay,
+        selectedShiftTypes,
+      )
+        ? buildChainedShiftTimesFromEnd({
+            selectedShifts: selectedShiftTypes,
+            shiftDuration,
+            anchorShift: shiftType,
+            anchorEndTime: time,
+          })
+        : buildSingleShiftTimesFromEnd(shiftType, time, shiftDuration);
+
+      updateFormData(timesPatch);
       return;
     }
 
@@ -871,9 +881,9 @@ export function NormalSchedulingStep({
           {shouldChainShiftTimes(jobDurationPerDay, selectedShiftTypes) && (
             <>
               {" "}
-              For 24 hr coverage, each shift starts when the previous ends (e.g.
-              9:00 AM–5:00 PM, then 5:00 PM–1:00 AM, then 1:00 AM–9:00 AM for 8
-              hr shifts).
+              For 24 hr coverage, consecutive shifts overlap by 15 min at
+              handoff (e.g. 9:00 AM–5:15 PM, then 5:00 PM–1:15 AM, then 1:00
+              AM–9:15 AM for 8 hr shifts).
             </>
           )}
         </p>

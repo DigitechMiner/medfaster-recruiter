@@ -48,6 +48,9 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
 export const MAX_AI_QUESTIONS = 10;
 export const MIN_AI_QUESTIONS = 5;
 
+/** Handoff overlap between consecutive shifts on a 24 h multi-shift day. */
+export const SHIFT_HANDOFF_OVERLAP_MINUTES = 15;
+
 export const SUCCESS_MESSAGES = {
   JOB_CREATED: {
     title: "Job created successfully",

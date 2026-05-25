@@ -163,7 +163,7 @@ export default function JobsPageWrapper() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-bold leading-8 text-gray-900">Jobs</h1>
-            <div className="flex flex-wrap items-center gap-3">
+            {/* <div className="flex flex-wrap items-center gap-3">
               <CustomButton
                 type="button"
                 onClick={() => router.push("/jobs/create/instant")}
@@ -182,7 +182,7 @@ export default function JobsPageWrapper() {
                 <span className="text-sm leading-none font-bold">+</span>
                 <span>Normal Job</span>
               </CustomButton>
-            </div>
+            </div> */}
           </div>
 
           <Summary counts={counts} loading={statsLoading} />
