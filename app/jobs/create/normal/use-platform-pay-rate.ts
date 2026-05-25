@@ -20,17 +20,21 @@ export function getCachedPayRateCents(jobTitle: string): number | null {
   return null;
 }
 
+export function shouldSyncPlatformPayRate(jobType?: string): boolean {
+  return jobType === "part_time" || jobType === "full_time";
+}
+
 /** Loads platform pay rate into form state when missing (e.g. on scheduling step). */
 export function useSyncBackendPayRate(
   formData: Pick<JobFormData, "job_type" | "job_title" | "backend_pay_rate">,
   updateFormData: (updates: Partial<JobFormData>) => void,
 ) {
-  const isPartTime = formData.job_type === "part_time";
+  const shouldSync = shouldSyncPlatformPayRate(formData.job_type);
   const jobTitle = formData.job_title;
   const backendPayRate = formData.backend_pay_rate;
 
   useEffect(() => {
-    if (!isPartTime || !jobTitle || backendPayRate != null) return;
+    if (!shouldSync || !jobTitle || backendPayRate != null) return;
 
     const cachedRateCents = getCachedPayRateCents(jobTitle);
     if (cachedRateCents !== null) {
@@ -69,5 +73,5 @@ export function useSyncBackendPayRate(
       didCancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- updateFormData is unstable; guarded above
-  }, [isPartTime, jobTitle, backendPayRate]);
+  }, [shouldSync, jobTitle, backendPayRate]);
 }

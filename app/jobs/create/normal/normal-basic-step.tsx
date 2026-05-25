@@ -11,7 +11,10 @@ import { Slider } from "@/components/ui/slider";
 import { axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
-import { getCachedPayRateCents } from "./use-platform-pay-rate";
+import {
+  getCachedPayRateCents,
+  shouldSyncPlatformPayRate,
+} from "./use-platform-pay-rate";
 import { useMetadataStore } from "@/stores/metadataStore";
 import type {
   EmploymentType,
@@ -58,7 +61,7 @@ export function NormalBasicStep({
   } = useMetadataStore();
 
   // const isFullTime = formData.job_type === "full_time";
-  const isPartTime = formData.job_type === "part_time";
+  const shouldSyncPayRate = shouldSyncPlatformPayRate(formData.job_type);
   const departmentJobTitles = jobTitlesForDepartment(formData.department ?? "");
   const normalJobTypeOptions = jobTypeOptions.filter(
     ({ value }) => value === "part_time" || value === "full_time",
@@ -79,7 +82,7 @@ export function NormalBasicStep({
 
   useEffect(() => {
     // Prefetch backend rate for scheduling; only sync form when value changes.
-    if (!isPartTime || !formData.job_title) {
+    if (!shouldSyncPayRate || !formData.job_title) {
       setBackendRate(null);
       setRateError(null);
       setRateLoading(false);
@@ -143,7 +146,7 @@ export function NormalBasicStep({
       didCancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- updateFormData is unstable; guarded above
-  }, [formData.job_title, isPartTime, formData.backend_pay_rate]);
+  }, [formData.job_title, shouldSyncPayRate, formData.backend_pay_rate]);
 
   const handleDepartmentChange = (value: string) => {
     updateFormData({
@@ -558,7 +561,7 @@ export function NormalBasicStep({
       </div>
 
       {/* Optional: backend rate info (not shown in Figma, but kept for later use) */}
-      {isPartTime && (
+      {shouldSyncPayRate && (
         <div className="mt-4">
           {rateLoading && (
             <p className="animate-pulse text-xs text-gray-400">
