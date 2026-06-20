@@ -44,6 +44,8 @@ export type JobFormSnapshot = Omit<JobFormData, 'start_date' | 'end_date'> & {
   // Cached backend-fetched pay rate — UI-only and survives Back navigation.
   cachedPayRate?: {
     jobTitle: string;
+    feeType: "instant" | "normal";
+    yearsOfExperience?: number;
     cents: number;
   };
 };

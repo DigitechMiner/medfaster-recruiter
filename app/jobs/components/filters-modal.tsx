@@ -2,13 +2,11 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import type { JobStatusFilter, JobUrgencyFilter } from "./helper";
+import type { JobStatusFilter } from "./helper";
 
 interface JobsFiltersModalProps {
   open: boolean;
-  jobUrgency: JobUrgencyFilter;
   jobStatus: JobStatusFilter;
-  onJobUrgencyChange: (value: JobUrgencyFilter) => void;
   onJobStatusChange: (value: JobStatusFilter) => void;
   onClose: () => void;
   onClear: () => void;
@@ -17,9 +15,7 @@ interface JobsFiltersModalProps {
 
 export function JobsFiltersModal({
   open,
-  jobUrgency,
   jobStatus,
-  onJobUrgencyChange,
   onJobStatusChange,
   onClose,
   onClear,
@@ -68,35 +64,20 @@ export function JobsFiltersModal({
         </div>
 
         <div className="p-4 flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-[11px] text-gray-600">
-              <span className="font-medium">Job urgency</span>
-              <select
-                value={jobUrgency}
-                onChange={(event) => onJobUrgencyChange(event.target.value as JobUrgencyFilter)}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-800 outline-none focus:border-[#F4781B]"
-              >
-                <option value="all">All</option>
-                <option value="instant">Instant</option>
-                <option value="normal">Normal</option>
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1 text-[11px] text-gray-600">
-              <span className="font-medium">Status</span>
-              <select
-                value={jobStatus}
-                onChange={(event) => onJobStatusChange(event.target.value as JobStatusFilter)}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-800 outline-none focus:border-[#F4781B]"
-              >
-                <option value="all">All</option>
-                <option value="UPCOMING">Upcoming</option>
-                <option value="OPEN">Open</option>
-                <option value="CLOSED">Closed</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
-            </label>
-          </div>
+          <label className="flex flex-col gap-1 text-[11px] text-gray-600">
+            <span className="font-medium">Status</span>
+            <select
+              value={jobStatus}
+              onChange={(event) => onJobStatusChange(event.target.value as JobStatusFilter)}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-800 outline-none focus:border-[#F4781B]"
+            >
+              <option value="all">All</option>
+              <option value="UPCOMING">Upcoming</option>
+              <option value="OPEN">Open</option>
+              <option value="CLOSED">Closed</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </label>
 
           <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-gray-100">
             <button

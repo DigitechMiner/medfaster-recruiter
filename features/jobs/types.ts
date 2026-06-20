@@ -13,7 +13,7 @@ export type JobStatus =
   | "COMPLETED"
   | "CLOSED";
 
-export type JobType = "casual" | "part_time" | "full_time";
+export type JobType = "casual" | "part_time" | "full_time" | "PART_TIME" | "FULL_TIME" | "CASUAL" | string;
 export type JobUrgency = "INSTANT" | "NORMAL";
 
 export interface JobFeeSnapshot {
@@ -182,26 +182,38 @@ export interface JobListItem {
   job_urgency: JobUrgency;
   status: JobStatus;
   closed_reason: "FILLED" | "EXPIRED" | "MANUAL" | null;
-  recruiter_close_note: string | null;
-  years_of_experience: string | null;
   application_count: number;
-  no_of_hires_required: number;
-  no_of_hires_hired: number;
-  pay_per_hour_cents: string;
-  created_at: string;
-  updated_at: string;
-  street?: string | null;
-  postal_code?: string | null;
-  province?: string | null;
-  city?: string | null;
+  workforce_count?: number;
+  filled_positions?: number;
+  required_positions?: number;
+  remaining_hires?: number;
   start_date?: string | null;
   end_date?: string | null;
+  city?: string | null;
+  province?: string | null;
+  shift_count?: number;
+  shift_types?: string[];
+  has_ai_interview?: boolean;
+  total_recruiter_pay_cents?: number;
+  /** @deprecated use filled_positions */
+  no_of_hires_hired?: number;
+  /** @deprecated use required_positions */
+  no_of_hires_required?: number;
+  /** @deprecated use has_ai_interview */
+  ai_interview?: boolean | null;
+  /** @deprecated use total_recruiter_pay_cents for list totals */
+  pay_per_hour_cents?: string;
+  recruiter_close_note?: string | null;
+  years_of_experience?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  street?: string | null;
+  postal_code?: string | null;
   check_in_time?: string | null;
   check_out_time?: string | null;
   shift_templates?: JobListShiftTemplate[];
   specializations?: number[] | null;
   qualifications?: string[] | null;
-  ai_interview?: boolean | null;
 }
 
 export interface JobsListResponse {

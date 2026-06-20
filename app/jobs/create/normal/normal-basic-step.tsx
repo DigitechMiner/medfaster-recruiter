@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { axiosInstance } from "@/stores/api/api-client";
-import { ENDPOINTS } from "@/stores/api/api-endpoints";
-import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
+import { getJobFees } from "@/features/jobs";
 import {
+  cacheJobPayRate,
+  canFetchJobFees,
   getCachedPayRateCents,
+  parseJobFeesYears,
   shouldSyncPlatformPayRate,
 } from "./use-platform-pay-rate";
 import { useMetadataStore } from "@/stores/metadataStore";
@@ -74,15 +75,18 @@ export function NormalBasicStep({
 
   const [qualificationDraft, setQualificationDraft] = useState("");
   const [backendRate, setBackendRate] = useState<number | null>(() => {
-    const cachedRateCents = getCachedPayRateCents(formData.job_title);
+    const years = parseJobFeesYears(formData.years_of_experience);
+    if (!canFetchJobFees(formData.job_title, formData.years_of_experience) || years === null) {
+      return null;
+    }
+    const cachedRateCents = getCachedPayRateCents(formData.job_title, "normal", years);
     return cachedRateCents === null ? null : cachedRateCents / 100;
   });
   const [rateLoading, setRateLoading] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Prefetch backend rate for scheduling; only sync form when value changes.
-    if (!shouldSyncPayRate || !formData.job_title) {
+    if (!shouldSyncPayRate || !canFetchJobFees(formData.job_title, formData.years_of_experience)) {
       setBackendRate(null);
       setRateError(null);
       setRateLoading(false);
@@ -92,7 +96,12 @@ export function NormalBasicStep({
       return;
     }
 
-    const cachedRateCents = getCachedPayRateCents(formData.job_title);
+    const experienceYears = parseJobFeesYears(formData.years_of_experience) as number;
+    const cachedRateCents = getCachedPayRateCents(
+      formData.job_title,
+      "normal",
+      experienceYears,
+    );
     if (cachedRateCents !== null) {
       const dollars = cachedRateCents / 100;
       setBackendRate(dollars);
@@ -108,28 +117,18 @@ export function NormalBasicStep({
     setRateLoading(true);
     setRateError(null);
 
-    axiosInstance
-      .get(ENDPOINTS.JOBS_FEES(formData.job_title))
-      .then((res) => {
+    getJobFees(formData.job_title, {
+      feeType: "normal",
+      yearsOfExperience: experienceYears,
+    })
+      .then((data) => {
         if (didCancel) return;
-        const dollars = Number(
-          res.data?.data?.recruiter_pay_per_hour ??
-            res.data?.recruiter_pay_per_hour ??
-            0,
-        );
+        const dollars = Number(data.recruiter_pay_per_hour ?? 0);
         const cents = Math.round(dollars * 100);
         const rateDollars = cents / 100;
         setBackendRate(rateDollars);
         updateFormData({ backend_pay_rate: rateDollars });
-
-        const currentSnapshot = useJobsStore.getState().formSnapshot;
-        useJobsStore.getState().setFormSnapshot({
-          ...(currentSnapshot ?? {}),
-          cachedPayRate: {
-            jobTitle: formData.job_title,
-            cents,
-          },
-        } as JobFormSnapshot);
+        cacheJobPayRate(formData.job_title, "normal", cents, experienceYears);
       })
       .catch(() => {
         if (!didCancel) {
@@ -146,7 +145,7 @@ export function NormalBasicStep({
       didCancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- updateFormData is unstable; guarded above
-  }, [formData.job_title, shouldSyncPayRate, formData.backend_pay_rate]);
+  }, [formData.job_title, formData.years_of_experience, shouldSyncPayRate]);
 
   const handleDepartmentChange = (value: string) => {
     updateFormData({
@@ -487,7 +486,10 @@ export function NormalBasicStep({
               step={1}
               value={[experienceValue]}
               onValueChange={(value) =>
-                updateFormData({ years_of_experience: String(value[0]) })
+                updateFormData({
+                  years_of_experience: String(value[0]),
+                  backend_pay_rate: undefined,
+                })
               }
               className="w-full"
             />

@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { SuccessModal } from "@/components/modal";
-import { axiosInstance } from "@/stores/api/api-client";
-import { ENDPOINTS } from "@/stores/api/api-endpoints";
+import { getJobFees } from "@/features/jobs";
 import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
 import type { InstantJobFormData, JobCreatePayload, Province } from "@/types";
+import {
+  cacheJobPayRate,
+  canFetchInstantJobFees,
+  getCachedPayRateCents,
+} from "../normal/use-platform-pay-rate";
 import {
   filterValidationErrorsForStep,
   toFormFieldErrors,
@@ -38,20 +42,6 @@ interface InstantJobFormProps {
   onValidationBlocked?: () => void;
   onDescriptionLoadingChange?: (loading: boolean) => void;
 }
-
-const getCachedPayRateCents = (jobTitle: string): number | null => {
-  const snapshot = useJobsStore.getState().formSnapshot;
-  const cachedPayRate = snapshot?.cachedPayRate;
-
-  if (
-    cachedPayRate?.jobTitle === jobTitle &&
-    typeof cachedPayRate.cents === "number"
-  ) {
-    return cachedPayRate.cents;
-  }
-
-  return null;
-};
 
 function buildInitialInstantForm(
   snapshot: JobFormSnapshot | null,
@@ -171,21 +161,22 @@ export function InstantJobForm({
   const [formData, setFormData] = useState<InstantJobFormData>(() =>
     buildInitialInstantForm(formSnapshot),
   );
-  const [payRateCents, setPayRateCents] = useState<number | null>(() =>
-    getCachedPayRateCents(formData.job_title),
-  );
+  const [payRateCents, setPayRateCents] = useState<number | null>(() => {
+    if (!canFetchInstantJobFees(formData.job_title)) return null;
+    return getCachedPayRateCents(formData.job_title, "instant");
+  });
   const [payRateLoading, setPayRateLoading] = useState(false);
   const [payRateError, setPayRateError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!formData.job_title) {
+    if (!canFetchInstantJobFees(formData.job_title)) {
       setPayRateCents(null);
       setPayRateError(null);
       setPayRateLoading(false);
       return;
     }
 
-    const cachedRateCents = getCachedPayRateCents(formData.job_title);
+    const cachedRateCents = getCachedPayRateCents(formData.job_title, "instant");
     if (cachedRateCents !== null) {
       setPayRateCents(cachedRateCents);
       setPayRateError(null);
@@ -198,29 +189,15 @@ export function InstantJobForm({
     setPayRateLoading(true);
     setPayRateError(null);
 
-    axiosInstance
-      .get(ENDPOINTS.JOBS_FEES(formData.job_title))
-      .then((res) => {
+    getJobFees(formData.job_title, { feeType: "instant" })
+      .then((data) => {
         if (didCancel) return;
 
-        const dollars = Number(
-          res.data?.data?.recruiter_pay_per_hour ??
-            res.data?.recruiter_pay_per_hour ??
-            0,
-        );
-
+        const dollars = Number(data.recruiter_pay_per_hour ?? 0);
         const cents = Math.round(dollars * 100);
 
         setPayRateCents(cents);
-
-        const currentSnapshot = useJobsStore.getState().formSnapshot;
-        setFormSnapshot({
-          ...(currentSnapshot ?? {}),
-          cachedPayRate: {
-            jobTitle: formData.job_title,
-            cents,
-          },
-        } as JobFormSnapshot);
+        cacheJobPayRate(formData.job_title, "instant", cents);
       })
       .catch(() => {
         if (!didCancel) {
@@ -236,7 +213,7 @@ export function InstantJobForm({
     return () => {
       didCancel = true;
     };
-  }, [formData.job_title, setFormSnapshot]);
+  }, [formData.job_title]);
 
   const updateFormData = (updates: Partial<InstantJobFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));

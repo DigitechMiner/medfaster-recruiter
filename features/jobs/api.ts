@@ -118,6 +118,28 @@ export async function createRecruiterJob(
   return extractRoot<JobCreateResponse>(res.data);
 }
 
+export type JobFeesParams =
+  | { feeType: "instant" }
+  | { feeType: "normal"; yearsOfExperience: number };
+
+export async function getJobFees(
+  jobTitle: string,
+  params: JobFeesParams,
+): Promise<{ recruiter_pay_per_hour: number }> {
+  const queryParams =
+    params.feeType === "instant"
+      ? { fee_type: "instant" }
+      : {
+          fee_type: "normal",
+          years_of_experience: params.yearsOfExperience,
+        };
+
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_FEES(jobTitle), {
+    params: queryParams,
+  });
+  return extractData<{ recruiter_pay_per_hour: number }>(res.data);
+}
+
 export async function updateRecruiterJob(
   id: string,
   payload: JobUpdatePayload,

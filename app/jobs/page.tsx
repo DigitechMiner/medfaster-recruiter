@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CustomButton } from "@/components/custom/custom-button";
 import { AppLayout } from "@/components/global/app-layout";
 import { JobCard } from "@/components/card/JobCard";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
-import { TabToolbarFilterViewToggle } from "@/components/table/TableTabs";
+import { TableTabs, TabToolbarFilterViewToggle } from "@/components/table/TableTabs";
 import { getRecruiterJobsSummary } from "@/features/jobs";
+import type { GetJobsParams } from "@/features/jobs";
 import { useJobsStore } from "@/stores/jobs-store";
 import { useAuthStore } from "@/stores/authStore";
-import type { JobListItem } from "@/types";
+import { useJobs } from "@/hooks/useJobData";
 import { JobsFiltersModal } from "./components/filters-modal";
 import { Summary } from "./components/summary";
 import { TableView } from "./components/tableview";
@@ -19,15 +19,44 @@ import {
   JobsErrorView,
   JobsLoadingSkeleton,
   type JobStatusFilter,
-  type JobUrgencyFilter,
+  type JobTypeTab,
   type StatCounts,
-  type TabFilter,
 } from "./components/helper";
+
+function JobTabLabel({
+  label,
+  count,
+  isActive,
+  loading,
+}: {
+  label: string;
+  count: number;
+  isActive: boolean;
+  loading: boolean;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {label}
+      {loading ? (
+        <span className="h-5 w-5 rounded-full bg-gray-100 animate-pulse" />
+      ) : (
+        <span
+          className={
+            isActive
+              ? "flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F4781B] px-1.5 text-xs font-semibold text-white"
+              : "text-sm font-medium text-gray-400"
+          }
+        >
+          {count}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default function JobsPageWrapper() {
   const router           = useRouter();
   const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
-  const getJobs = useJobsStore((state) => state.getJobs);
   const jobsLoading = useJobsStore((state) => state.isLoading);
   const [counts, setCounts] = useState<StatCounts>({
     activeJobs: 0,
@@ -36,20 +65,25 @@ export default function JobsPageWrapper() {
     activeShifts: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  const [jobs, setJobs] = useState<JobListItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [jobsRequestLoading, setJobsRequestLoading] = useState(true);
+  const [tabCountsLoading, setTabCountsLoading] = useState(true);
   const [view, setView] = useState<"list" | "grid">("list");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [jobUrgency, setJobUrgency] = useState<JobUrgencyFilter>("all");
+  const [activeTab, setActiveTab] = useState<JobTypeTab>("normal");
   const [jobStatus, setJobStatus] = useState<JobStatusFilter>("all");
-  const [appliedJobUrgency, setAppliedJobUrgency] = useState<JobUrgencyFilter>("all");
   const [appliedJobStatus, setAppliedJobStatus] = useState<JobStatusFilter>("all");
 
-  // Redirect if unauthenticated
+  const jobQueryParams: GetJobsParams = {
+    page,
+    limit,
+    job_urgency: activeTab,
+    ...(appliedJobStatus !== "all" ? { status: appliedJobStatus } : {}),
+  };
+
+  const { jobs, pagination, isLoading: jobsRequestLoading, error: jobsError } = useJobs(jobQueryParams);
+  const total = pagination?.total ?? 0;
+  const error = jobsError;
   useEffect(() => {
     if (!recruiterProfile) {
       router.replace("/");
@@ -60,7 +94,7 @@ export default function JobsPageWrapper() {
   useEffect(() => {
     if (!recruiterProfile) return;
 
-    useJobsStore.getState().getJobsSilent({ page: 1, limit: 1 })
+    useJobsStore.getState().getJobsSilent({ page: 1, limit: 1, job_urgency: activeTab })
       .then((res) => {
         if (res.success) {
           useJobsStore.getState().setHasJobs(res.data.pagination.total > 0);
@@ -69,6 +103,35 @@ export default function JobsPageWrapper() {
       .catch(() => {
         useJobsStore.getState().setHasJobs(false);
       });
+  }, [recruiterProfile, activeTab]);
+
+  useEffect(() => {
+    if (!recruiterProfile) return;
+
+    let cancelled = false;
+    setTabCountsLoading(true);
+
+    Promise.all([
+      useJobsStore.getState().getJobsSilent({ page: 1, limit: 1, job_urgency: "normal" }),
+      useJobsStore.getState().getJobsSilent({ page: 1, limit: 1, job_urgency: "instant" }),
+    ])
+      .then(([normalRes, instantRes]) => {
+        if (cancelled) return;
+        setCounts((prev) => ({
+          ...prev,
+          normalJobs: normalRes.success ? normalRes.data.pagination.total : 0,
+          instantJobs: instantRes.success ? instantRes.data.pagination.total : 0,
+        }));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCounts((prev) => ({ ...prev, normalJobs: 0, instantJobs: 0 }));
+      })
+      .finally(() => {
+        if (!cancelled) setTabCountsLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [recruiterProfile]);
 
   useEffect(() => {
@@ -79,21 +142,19 @@ export default function JobsPageWrapper() {
     getRecruiterJobsSummary()
       .then((summary) => {
         if (cancelled) return;
-        setCounts({
+        setCounts((prev) => ({
+          ...prev,
           activeJobs: summary.active_job_count,
-          normalJobs: summary.active_normal_job_count,
-          instantJobs: summary.active_instant_job_count,
           activeShifts: summary.active_shift_count,
-        });
+        }));
       })
       .catch(() => {
         if (cancelled) return;
-        setCounts({
+        setCounts((prev) => ({
+          ...prev,
           activeJobs: 0,
-          normalJobs: 0,
-          instantJobs: 0,
           activeShifts: 0,
-        });
+        }));
       })
       .finally(() => {
         if (!cancelled) setStatsLoading(false);
@@ -102,55 +163,18 @@ export default function JobsPageWrapper() {
     return () => { cancelled = true; };
   }, [recruiterProfile]);
 
-  useEffect(() => {
-    if (!recruiterProfile) return;
-
-    let cancelled = false;
-    setError(null);
-    setJobsRequestLoading(true);
-    const filters: TabFilter = {};
-
-    if (appliedJobUrgency !== "all") {
-      filters.job_urgency = appliedJobUrgency;
-    }
-    if (appliedJobStatus !== "all") {
-      filters.status = appliedJobStatus;
-    }
-
-    getJobs({ page, limit, ...filters })
-      .then((res) => {
-        if (cancelled) return;
-        if (res.success) {
-          setJobs(res.data.jobs);
-          setTotal(res.data.pagination.total);
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err?.message ?? "Failed to load jobs");
-      })
-      .finally(() => {
-        if (!cancelled) setJobsRequestLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [getJobs, recruiterProfile, appliedJobUrgency, appliedJobStatus, page, limit]);
-
   if (!recruiterProfile) {
     return null;
   }
 
   const handleApplyFilters = () => {
-    setAppliedJobUrgency(jobUrgency);
     setAppliedJobStatus(jobStatus);
     setPage(1);
     setFiltersOpen(false);
   };
 
   const handleClearFilters = () => {
-    setJobUrgency("all");
     setJobStatus("all");
-    setAppliedJobUrgency("all");
     setAppliedJobStatus("all");
     setPage(1);
   };
@@ -191,20 +215,53 @@ export default function JobsPageWrapper() {
             className="bg-white rounded-2xl overflow-hidden"
             style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-3">
-              <h2 className="text-base font-semibold text-gray-900">Jobs list</h2>
-              <TabToolbarFilterViewToggle
-                view={view}
-                onViewChange={setView}
-                onFilterClick={() => setFiltersOpen(true)}
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-1">
+              <TableTabs
+                tabs={[
+                  {
+                    key: "normal" as const,
+                    label: (
+                      <JobTabLabel
+                        label="Normal Jobs"
+                        count={counts.normalJobs}
+                        isActive={activeTab === "normal"}
+                        loading={tabCountsLoading}
+                      />
+                    ),
+                  },
+                  {
+                    key: "instant" as const,
+                    label: (
+                      <JobTabLabel
+                        label="Instant / Urgent"
+                        count={counts.instantJobs}
+                        isActive={activeTab === "instant"}
+                        loading={tabCountsLoading}
+                      />
+                    ),
+                  },
+                ]}
+                activeTab={activeTab}
+                onTabChange={(tab) => {
+                  setActiveTab(tab);
+                  setPage(1);
+                }}
+                tabClassName="relative px-4 py-3.5 text-sm font-medium whitespace-nowrap transition-colors"
+                endSlot={
+                  <TabToolbarFilterViewToggle
+                    view={view}
+                    onViewChange={setView}
+                    onFilterClick={() => setFiltersOpen(true)}
+                  />
+                }
+                toolbarClassName="w-full"
+                endSlotClassName="py-2"
               />
             </div>
 
             <JobsFiltersModal
               open={filtersOpen}
-              jobUrgency={jobUrgency}
               jobStatus={jobStatus}
-              onJobUrgencyChange={setJobUrgency}
               onJobStatusChange={setJobStatus}
               onClose={() => setFiltersOpen(false)}
               onClear={handleClearFilters}
