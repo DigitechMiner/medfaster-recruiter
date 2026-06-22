@@ -8,10 +8,11 @@ import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { TableTabs, TabToolbarFilterViewToggle } from "@/components/table/TableTabs";
 import { getRecruiterJobsSummary } from "@/features/jobs";
 import type { GetJobsParams } from "@/features/jobs";
-import { useJobsStore } from "@/stores/jobs-store";
+import type { JobListItem } from "@/types";
 import { useAuthStore } from "@/stores/authStore";
 import { useJobs } from "@/hooks/useJobData";
 import { JobsFiltersModal } from "./components/filters-modal";
+import { JobDetailDrawer } from "./components/job-detail-drawer";
 import { Summary } from "./components/summary";
 import { TableView } from "./components/tableview";
 import {
@@ -23,49 +24,16 @@ import {
   type StatCounts,
 } from "./components/helper";
 
-function JobTabLabel({
-  label,
-  count,
-  isActive,
-  loading,
-}: {
-  label: string;
-  count: number;
-  isActive: boolean;
-  loading: boolean;
-}) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      {label}
-      {loading ? (
-        <span className="h-5 w-5 rounded-full bg-gray-100 animate-pulse" />
-      ) : (
-        <span
-          className={
-            isActive
-              ? "flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F4781B] px-1.5 text-xs font-semibold text-white"
-              : "text-sm font-medium text-gray-400"
-          }
-        >
-          {count}
-        </span>
-      )}
-    </span>
-  );
-}
-
 export default function JobsPageWrapper() {
   const router           = useRouter();
   const recruiterProfile = useAuthStore((state) => state.recruiterProfile);
-  const jobsLoading = useJobsStore((state) => state.isLoading);
   const [counts, setCounts] = useState<StatCounts>({
     activeJobs: 0,
-    normalJobs: 0,
-    instantJobs: 0,
+    activeNormalJobs: 0,
+    activeInstantJobs: 0,
     activeShifts: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  const [tabCountsLoading, setTabCountsLoading] = useState(true);
   const [view, setView] = useState<"list" | "grid">("list");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -73,6 +41,7 @@ export default function JobsPageWrapper() {
   const [activeTab, setActiveTab] = useState<JobTypeTab>("normal");
   const [jobStatus, setJobStatus] = useState<JobStatusFilter>("all");
   const [appliedJobStatus, setAppliedJobStatus] = useState<JobStatusFilter>("all");
+  const [previewJob, setPreviewJob] = useState<JobListItem | null>(null);
 
   const jobQueryParams: GetJobsParams = {
     page,
@@ -84,77 +53,37 @@ export default function JobsPageWrapper() {
   const { jobs, pagination, isLoading: jobsRequestLoading, error: jobsError } = useJobs(jobQueryParams);
   const total = pagination?.total ?? 0;
   const error = jobsError;
+
   useEffect(() => {
     if (!recruiterProfile) {
       router.replace("/");
     }
-  }, [recruiterProfile]);
-
-  // One silent check in background to know if jobs exist for empty state
-  useEffect(() => {
-    if (!recruiterProfile) return;
-
-    useJobsStore.getState().getJobsSilent({ page: 1, limit: 1, job_urgency: activeTab })
-      .then((res) => {
-        if (res.success) {
-          useJobsStore.getState().setHasJobs(res.data.pagination.total > 0);
-        }
-      })
-      .catch(() => {
-        useJobsStore.getState().setHasJobs(false);
-      });
-  }, [recruiterProfile, activeTab]);
+  }, [recruiterProfile, router]);
 
   useEffect(() => {
     if (!recruiterProfile) return;
 
     let cancelled = false;
-    setTabCountsLoading(true);
-
-    Promise.all([
-      useJobsStore.getState().getJobsSilent({ page: 1, limit: 1, job_urgency: "normal" }),
-      useJobsStore.getState().getJobsSilent({ page: 1, limit: 1, job_urgency: "instant" }),
-    ])
-      .then(([normalRes, instantRes]) => {
-        if (cancelled) return;
-        setCounts((prev) => ({
-          ...prev,
-          normalJobs: normalRes.success ? normalRes.data.pagination.total : 0,
-          instantJobs: instantRes.success ? instantRes.data.pagination.total : 0,
-        }));
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setCounts((prev) => ({ ...prev, normalJobs: 0, instantJobs: 0 }));
-      })
-      .finally(() => {
-        if (!cancelled) setTabCountsLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [recruiterProfile]);
-
-  useEffect(() => {
-    if (!recruiterProfile) return;
-
-    let cancelled = false;
+    setStatsLoading(true);
 
     getRecruiterJobsSummary()
       .then((summary) => {
         if (cancelled) return;
-        setCounts((prev) => ({
-          ...prev,
+        setCounts({
           activeJobs: summary.active_job_count,
+          activeNormalJobs: summary.active_normal_job_count,
+          activeInstantJobs: summary.active_instant_job_count,
           activeShifts: summary.active_shift_count,
-        }));
+        });
       })
       .catch(() => {
         if (cancelled) return;
-        setCounts((prev) => ({
-          ...prev,
+        setCounts({
           activeJobs: 0,
+          activeNormalJobs: 0,
+          activeInstantJobs: 0,
           activeShifts: 0,
-        }));
+        });
       })
       .finally(() => {
         if (!cancelled) setStatsLoading(false);
@@ -179,7 +108,7 @@ export default function JobsPageWrapper() {
     setPage(1);
   };
 
-  const showJobsLoading = jobsLoading || jobsRequestLoading;
+  const showJobsLoading = jobsRequestLoading;
 
   return (
     <AppLayout padding="none">
@@ -187,26 +116,6 @@ export default function JobsPageWrapper() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-bold leading-8 text-gray-900">Jobs</h1>
-            {/* <div className="flex flex-wrap items-center gap-3">
-              <CustomButton
-                type="button"
-                onClick={() => router.push("/jobs/create/instant")}
-                size="sm"
-                className="my-0 inline-flex h-8 items-center justify-center gap-1.5 px-3 rounded-lg border border-[#F4781B] bg-white text-[#F4781B] text-sm font-semibold shadow-none hover:bg-orange-50 transition-colors"
-              >
-                <span className="text-sm leading-none font-bold">+</span>
-                <span>Instant Job</span>
-              </CustomButton>
-              <CustomButton
-                type="button"
-                onClick={() => router.push("/jobs/create/normal")}
-                size="sm"
-                className="my-0 inline-flex h-8 items-center justify-center gap-1.5 px-3 rounded-lg bg-[#F4781B] text-white text-sm font-semibold shadow-none hover:bg-[#e06a10] transition-colors"
-              >
-                <span className="text-sm leading-none font-bold">+</span>
-                <span>Normal Job</span>
-              </CustomButton>
-            </div> */}
           </div>
 
           <Summary counts={counts} loading={statsLoading} />
@@ -218,28 +127,8 @@ export default function JobsPageWrapper() {
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-1">
               <TableTabs
                 tabs={[
-                  {
-                    key: "normal" as const,
-                    label: (
-                      <JobTabLabel
-                        label="Normal Jobs"
-                        count={counts.normalJobs}
-                        isActive={activeTab === "normal"}
-                        loading={tabCountsLoading}
-                      />
-                    ),
-                  },
-                  {
-                    key: "instant" as const,
-                    label: (
-                      <JobTabLabel
-                        label="Instant / Urgent"
-                        count={counts.instantJobs}
-                        isActive={activeTab === "instant"}
-                        loading={tabCountsLoading}
-                      />
-                    ),
-                  },
+                  { key: "normal" as const, label: "Normal Jobs" },
+                  { key: "instant" as const, label: "Instant / Urgent" },
                 ]}
                 activeTab={activeTab}
                 onTabChange={(tab) => {
@@ -269,18 +158,28 @@ export default function JobsPageWrapper() {
             />
 
             <div className="px-6 py-4 min-h-[300px]">
-              {showJobsLoading ? (
+              {view === "list" ? (
+                <TableView
+                  jobs={jobs}
+                  loading={showJobsLoading}
+                  error={error}
+                  onJobPreview={setPreviewJob}
+                />
+              ) : showJobsLoading ? (
                 <JobsLoadingSkeleton />
               ) : error ? (
                 <JobsErrorView error={error} />
               ) : jobs.length === 0 ? (
                 <JobsEmptyView />
-              ) : view === "list" ? (
-                <TableView jobs={jobs} onJobClick={(jobId) => router.push(`/jobs/${jobId}`)} />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {jobs.map((job) => (
-                    <JobCard key={job.id} job={job} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      onPreview={setPreviewJob}
+                      onViewDetails={(job) => router.push(`/jobs/${job.id}`)}
+                    />
                   ))}
                 </div>
               )}
@@ -304,6 +203,8 @@ export default function JobsPageWrapper() {
           </div>
         </div>
       </div>
+
+      <JobDetailDrawer job={previewJob} onClose={() => setPreviewJob(null)} />
     </AppLayout>
   );
 }

@@ -137,6 +137,60 @@ export interface JobDetailResponse {
   data: { job: JobBackendResponse };
 }
 
+export interface JobInfoShiftTemplate {
+  id: string;
+  shift_name: string;
+  shift_type: string;
+  start_time: string;
+  end_time: string;
+  duration_hours: number;
+  break_minutes: number;
+}
+
+export interface JobInfoNeighborhood {
+  neighborhood_name?: string;
+  neighborhood_type?: string;
+  direct_number?: string;
+  instant_job_type?: string;
+  is_public?: boolean;
+  public_radius_km?: number;
+  expires_at?: string;
+}
+
+/** Focused job preview payload — normal-only and instant-only fields may be omitted by the API. */
+export interface RecruiterJobInfo {
+  id: string;
+  job_title: string;
+  department?: string | null;
+  city?: string | null;
+  province?: string | null;
+  job_type?: JobType | null;
+  recruiter_pay_per_hour_cents?: number | null;
+  /** Normal jobs only — omitted for instant jobs. */
+  specializations?: string[];
+  /** Normal jobs only — omitted for instant jobs. */
+  qualifications?: string[];
+  /** Normal jobs only — omitted for instant jobs. */
+  employment_tenure?: EmploymentTenure | null;
+  /** Normal jobs only — omitted for instant jobs. */
+  ai_interview?: boolean | null;
+  application_count?: number;
+  no_of_hires_required?: number;
+  workforce_count?: number;
+  /** Omitted when empty. */
+  shift_templates?: JobInfoShiftTemplate[];
+  start_date?: string | null;
+  end_date?: string | null;
+  /** Instant jobs only — omitted for normal jobs; only non-null sub-fields are sent. */
+  neighborhood?: JobInfoNeighborhood | null;
+}
+
+export interface JobInfoResponse {
+  success: boolean;
+  message: string;
+  data: RecruiterJobInfo;
+}
+
 export interface JobListShiftTemplate {
   id?: string;
   shift_name: string;
@@ -177,11 +231,13 @@ export interface JobRotationalTeam {
 export interface JobListItem {
   id: string;
   job_title: string;
-  department: string | null;
-  job_type: JobType | null;
-  job_urgency: JobUrgency;
+  /** Shift types from list API, e.g. ["MORNING", "EVENING", "NIGHT"] */
+  shift?: string | string[] | null;
+  department?: string | null;
+  job_type?: JobType | null;
+  job_urgency?: JobUrgency;
   status: JobStatus;
-  closed_reason: "FILLED" | "EXPIRED" | "MANUAL" | null;
+  closed_reason?: "FILLED" | "EXPIRED" | "MANUAL" | null;
   application_count: number;
   workforce_count?: number;
   filled_positions?: number;
@@ -195,13 +251,9 @@ export interface JobListItem {
   shift_types?: string[];
   has_ai_interview?: boolean;
   total_recruiter_pay_cents?: number;
-  /** @deprecated use filled_positions */
   no_of_hires_hired?: number;
-  /** @deprecated use required_positions */
   no_of_hires_required?: number;
-  /** @deprecated use has_ai_interview */
   ai_interview?: boolean | null;
-  /** @deprecated use total_recruiter_pay_cents for list totals */
   pay_per_hour_cents?: string;
   recruiter_close_note?: string | null;
   years_of_experience?: string | null;
@@ -996,6 +1048,7 @@ export interface GetJobsParams {
   job_types?: string;
   job_urgency?: "instant" | "normal";
   status?: "DRAFT" | "OPEN" | "PAUSED" | "CLOSED" | "UPCOMING" | "ACTIVE" | "COMPLETED";
+  closed_reason?: "FILLED" | "EXPIRED" | "MANUAL";
   page?: number;
   limit?: number;
   offset?: number;

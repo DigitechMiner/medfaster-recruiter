@@ -5,7 +5,7 @@ import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, Briefcase, Users, CalendarCheck,
-  Wallet, HelpCircle, Settings, Building2,
+  Wallet, HelpCircle, Building2,
   Zap, Plus, Bell, User, LogOut, Menu, MessageCircleMore, BadgeDollarSign,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -54,7 +54,7 @@ export function Navbar() {
 
   const bottomLinks = [
     { href: "/support",  label: "Support",  icon: HelpCircle },
-    { href: "/settings", label: "Settings", icon: Settings   },
+    // { href: "/settings", label: "Settings", icon: Settings },
   ];
 
   const isActive = (href: string) =>
@@ -91,7 +91,7 @@ export function Navbar() {
 
   const extraMobileProfileItems = [
     { label: "Support", icon: HelpCircle, href: "/support" },
-    { label: "Settings", icon: Settings, href: "/settings" },
+    // { label: "Settings", icon: Settings, href: "/settings" },
   ];
 
   const desktopProfileItems: ProfileMenuItem[] = [

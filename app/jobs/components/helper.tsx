@@ -1,10 +1,11 @@
+import { JobCardSkeleton } from "@/components/card/JobCard";
 import type { JobListItem, JobListShiftTemplate } from "@/types";
 import { getMetadataLabel, metaData } from "@/utils/constant/metadata";
 
 export interface StatCounts {
   activeJobs: number;
-  normalJobs: number;
-  instantJobs: number;
+  activeNormalJobs: number;
+  activeInstantJobs: number;
   activeShifts: number;
 }
 
@@ -18,13 +19,25 @@ export type JobUrgencyFilter = "all" | "instant" | "normal";
 export type JobStatusFilter = "all" | "UPCOMING" | "OPEN" | "CLOSED" | "COMPLETED";
 
 export const JOB_TABLE_HEADERS = [
-  "Job",
-  "Hiring",
-  "Schedule",
-  "Type",
+  "Job Title",
+  "Shift",
+  "Start Date",
+  "End Date",
+  "Location",
+  "Hires",
+  "Applications",
   "Status",
+  "Created",
   "Actions",
 ];
+
+export type ListingJobStatus = "Open" | "Closed" | "Expired";
+
+const LISTING_STATUS_BADGE_CLASS: Record<ListingJobStatus, string> = {
+  Open: "bg-[#D1FAE5] text-[#059669]",
+  Closed: "bg-[#FEE2E2] text-[#DC2626]",
+  Expired: "bg-[#FEF3C7] text-[#D97706]",
+};
 
 export const DEFAULT_JOB_BADGE_CLASS = "bg-[#F3F4F6] text-[#6B7280]";
 
@@ -109,8 +122,8 @@ export function formatJobLocationLine(
   job: JobListItem,
   provinceLabel?: string | null,
 ): string {
-  const location = [job.city, provinceLabel || job.province].filter(Boolean).join(", ");
-  const parts = [job.department, location].filter(Boolean);
+  const location = formatLocationCityProvince(job, provinceLabel);
+  const parts = [job.department, location !== "—" ? location : null].filter(Boolean);
   return parts.length > 0 ? parts.join(" • ") : "—";
 }
 
@@ -122,12 +135,30 @@ export function formatScheduleRange(job: JobListItem): string | null {
   return start ?? end;
 }
 
+function normalizeJobListShifts(shift?: string | string[] | null): string[] {
+  if (!shift) return [];
+  if (Array.isArray(shift)) return shift.map((s) => s.trim()).filter(Boolean);
+  return shift.trim() ? [shift.trim()] : [];
+}
+
 export function getShiftCount(job: JobListItem): number {
+  const apiShifts = normalizeJobListShifts(job.shift);
+  if (apiShifts.length > 0) return apiShifts.length;
   if (job.shift_count != null) return job.shift_count;
   if (job.shift_types?.length) return job.shift_types.length;
   if (job.shift_templates?.length) return job.shift_templates.length;
   if (job.check_in_time && job.check_out_time) return 1;
   return 0;
+}
+
+export function formatShiftListLabel(shift: string): string {
+  if (!shift.trim()) return "";
+
+  const trimmed = shift.trim().replace(/\s+shift$/i, "").trim();
+  const key = trimmed.toUpperCase();
+  if (SHIFT_TYPE_LABELS[key]) return SHIFT_TYPE_LABELS[key];
+
+  return formatShiftTypeLabel(trimmed);
 }
 
 export function formatShiftTypeLabel(shiftType: string): string {
@@ -138,6 +169,38 @@ export function formatShiftTypeLabel(shiftType: string): string {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+export const SHIFT_TYPE_BADGE_CLASS: Record<string, string> = {
+  Morning: "bg-amber-50 text-amber-700 border-amber-100",
+  Evening: "bg-orange-50 text-orange-700 border-orange-100",
+  Night: "bg-indigo-50 text-indigo-700 border-indigo-100",
+  General: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
+export function getShiftTypeBadgeClass(label: string): string {
+  return SHIFT_TYPE_BADGE_CLASS[label] ?? "bg-gray-100 text-gray-600 border-gray-200";
+}
+
+export function getJobShiftTypeLabels(job: JobListItem): string[] {
+  const apiShifts = normalizeJobListShifts(job.shift);
+  if (apiShifts.length > 0) {
+    return [...new Set(apiShifts.map(formatShiftListLabel))];
+  }
+
+  if (job.shift_types?.length) {
+    return [...new Set(job.shift_types.map(formatShiftTypeLabel))];
+  }
+
+  if (job.shift_templates?.length) {
+    return [...new Set(job.shift_templates.map((shift) => formatShiftTypeLabel(shift.shift_type)))];
+  }
+
+  if (job.check_in_time && job.check_out_time) {
+    return ["General"];
+  }
+
+  return [];
 }
 
 export function getJobShiftPopoverLines(job: JobListItem): string[] {
@@ -185,6 +248,7 @@ export function getJobTypeBadgeClass(jobType: string | null | undefined): string
 }
 
 export function getFilledPositions(job: JobListItem): number {
+  if (job.workforce_count != null) return job.workforce_count;
   return job.filled_positions ?? job.no_of_hires_hired ?? 0;
 }
 
@@ -204,6 +268,44 @@ export function getStatusSubLabel(job: JobListItem): string | null {
 
 export function formatApplicantLabel(count: number): string {
   return count === 1 ? "1 Applicant" : `${count} Applicants`;
+}
+
+export function formatListingStatus(job: JobListItem): ListingJobStatus {
+  if (job.status === "CLOSED" && job.closed_reason === "EXPIRED") return "Expired";
+  if (job.status === "CLOSED" || job.status === "COMPLETED") return "Closed";
+  return "Open";
+}
+
+export function getListingStatusBadgeClass(status: ListingJobStatus): string {
+  return LISTING_STATUS_BADGE_CLASS[status];
+}
+
+export function formatUrgencyLabel(job: JobListItem): string {
+  if (!job.job_urgency) return "—";
+  return job.job_urgency === "INSTANT" ? "Instant" : "Normal";
+}
+
+export function formatCityProvince(
+  city?: string | null,
+  province?: string | null,
+  provinceLabel?: string | null,
+): string {
+  const location = [city?.trim(), (provinceLabel || province)?.trim()].filter(Boolean).join(", ");
+  return location || "—";
+}
+
+export function formatLocationCityProvince(
+  job: JobListItem,
+  provinceLabel?: string | null,
+): string {
+  return formatCityProvince(job.city, job.province, provinceLabel);
+}
+
+export function formatDateRangeShort(job: JobListItem): string | null {
+  const start = job.start_date ? formatDate(job.start_date) : null;
+  const end = job.end_date ? formatDate(job.end_date) : null;
+  if (start && end) return `${start} → ${end}`;
+  return start ?? end;
 }
 
 export const formatDate = (date?: string | null) => {
@@ -273,11 +375,27 @@ export function getInterviewLabel(job: JobListItem): { label: string; cls: strin
   return { label: "No Interview Required", cls: "bg-[#FEF9C3] text-[#854D0E]" };
 }
 
-export function JobsLoadingSkeleton() {
+export function JobsTableBodySkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="flex flex-col gap-3 py-4">
-      {[...Array(4)].map((_, index) => (
-        <div key={index} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+    <>
+      {[...Array(rows)].map((_, index) => (
+        <tr key={index} className="border-b border-gray-50">
+          {JOB_TABLE_HEADERS.map((header) => (
+            <td key={`${index}-${header}`} className="px-4 py-3 align-middle">
+              <div className="h-4 max-w-[120px] bg-gray-100 rounded animate-pulse" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+export function JobsLoadingSkeleton({ cards = 6 }: { cards?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: cards }, (_, index) => (
+        <JobCardSkeleton key={index} />
       ))}
     </div>
   );

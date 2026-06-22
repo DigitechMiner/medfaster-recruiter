@@ -23,6 +23,8 @@ import type {
   JobDeleteResponse,
   JobDetailRecord,
   JobDetailResponse,
+  JobInfoResponse,
+  RecruiterJobInfo,
   JobDisputeItem,
   JobDisputesResponse,
   InstantJobFeePreviewPayload,
@@ -111,6 +113,17 @@ export async function getRecruiterJobsSummary(): Promise<JobsSummaryData> {
 export async function getRecruiterJob(id: string): Promise<JobDetailResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL(id));
   return extractRoot<JobDetailResponse>(res.data);
+}
+
+export async function getRecruiterJobInfo(id: string): Promise<RecruiterJobInfo> {
+  const res = await axiosInstance.get<JobInfoResponse>(ENDPOINTS.JOBS_INFO(id));
+  const data = extractData<RecruiterJobInfo>(res.data);
+  return {
+    ...data,
+    specializations: data.specializations ?? [],
+    qualifications: data.qualifications ?? [],
+    shift_templates: data.shift_templates ?? [],
+  };
 }
 
 export async function createRecruiterJob(

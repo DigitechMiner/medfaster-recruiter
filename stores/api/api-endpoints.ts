@@ -30,6 +30,7 @@ export const ENDPOINTS = {
   JOBS_LIST: "/recruiter/jobs",
   JOBS_CREATE: "/recruiter/jobs",
   JOBS_DETAIL: (id: string) => `/recruiter/jobs/${id}`,
+  JOBS_INFO: (id: string) => `/recruiter/jobs/${id}/info`,
   JOBS_UPDATE: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DELETE: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DETAIL_APPLICATIONS: (id: string) => `/recruiter/jobs/${id}/applications`,
