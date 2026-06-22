@@ -1127,3 +1127,71 @@ export interface ShiftScheduleDetail {
   break_duration_minutes?: number;
   no_of_candidates?: number;
 }
+
+// ============================================================================
+// TYPES — job fees summary (platform + recruiter overrides)
+// ============================================================================
+
+export type FeesSummaryScope = "all" | "default" | "instant";
+
+export interface FeeExperienceLevel {
+  id: number;
+  code: string;
+  name: string;
+  min_years: number;
+  max_years: number | null;
+}
+
+export interface FeeStructureInfo {
+  id: string;
+  is_default: boolean;
+  uses_platform_default?: boolean;
+  is_custom?: boolean;
+}
+
+export interface ExperienceTierRate {
+  experience_level_id: number;
+  experience_level: FeeExperienceLevel;
+  platform_recruiter_pay_per_hour: number;
+  platform_candidate_percentage: number;
+  recruiter_pay_per_hour: number;
+  candidate_percentage: number;
+  has_recruiter_discount: boolean;
+  discount_per_hour: number;
+}
+
+export interface ExperienceJobTitleFee {
+  job_title_id: number;
+  job_title_value: string;
+  job_title_label: string;
+  has_recruiter_specific_rates: boolean;
+  rates: ExperienceTierRate[];
+}
+
+export interface InstantJobTitleFee {
+  job_title_id: number;
+  job_title_value: string;
+  job_title_label?: string;
+  configured: boolean;
+  recruiter_pay_per_hour: number;
+  candidate_percentage: number;
+}
+
+export interface FeesDefaultSection {
+  fee_structure: FeeStructureInfo;
+  recruiter_fee_structure: FeeStructureInfo | null;
+  has_recruiter_specific_fees: boolean;
+  job_titles: ExperienceJobTitleFee[];
+}
+
+export interface FeesInstantSection {
+  fee_structure: FeeStructureInfo;
+  job_titles: InstantJobTitleFee[];
+}
+
+export interface FeesSummaryData {
+  scope: FeesSummaryScope;
+  experience_levels?: FeeExperienceLevel[];
+  default?: FeesDefaultSection;
+  instant?: FeesInstantSection;
+}

@@ -45,6 +45,7 @@ export const ENDPOINTS = {
   JOBS_CALENDAR: "/recruiter/jobs/calendar",
   JOBS_FEE_PREVIEW: "/recruiter/jobs/preview",
   JOBS_FEES: (jobTitle: string) => `/recruiter/jobs/fees/${jobTitle}`,
+  JOBS_FEES_SUMMARY: "/recruiter/jobs/fees/summary",
   JOB_REVIEW: (jobId: string) => `/recruiter/jobs/${jobId}/reviews`,
   GENERATE_JOB_DESCRIPTION: "/recruiter/jobs/generate-description",
   GENERATE_JOB_QUESTIONS: "/recruiter/jobs/generate-questions",

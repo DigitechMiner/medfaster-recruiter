@@ -42,6 +42,8 @@ import type {
   JobsSummaryData,
   JobsSummaryResponse,
   JobsListResponse,
+  FeesSummaryData,
+  FeesSummaryScope,
 } from "./types";
 
 function isRecord(value: unknown): value is JobDetailRecord {
@@ -121,6 +123,15 @@ export async function createRecruiterJob(
 export type JobFeesParams =
   | { feeType: "instant" }
   | { feeType: "normal"; yearsOfExperience: number };
+
+export async function getJobFeesSummary(
+  scope: Exclude<FeesSummaryScope, "all"> = "default",
+): Promise<FeesSummaryData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_FEES_SUMMARY, {
+    params: { scope },
+  });
+  return extractData<FeesSummaryData>(res.data);
+}
 
 export async function getJobFees(
   jobTitle: string,
