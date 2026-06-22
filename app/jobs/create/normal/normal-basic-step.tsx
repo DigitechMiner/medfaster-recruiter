@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,16 @@ export function NormalBasicStep({
     loading,
     provinceOptions,
     specializations,
+    specializationsForJobTitle,
   } = useMetadataStore();
+
+  const availableSpecializations = useMemo(
+    () => specializationsForJobTitle(formData.job_title ?? ""),
+    [formData.job_title, specializationsForJobTitle, specializations],
+  );
+  const hasJobTitle = Boolean(formData.job_title);
+  const hasSpecializationOptions = availableSpecializations.length > 0;
+  const specializationEmptyMessage = "No specialization for this role";
 
   // const isFullTime = formData.job_type === "full_time";
   const shouldSyncPayRate = shouldSyncPlatformPayRate(formData.job_type);
@@ -152,6 +161,21 @@ export function NormalBasicStep({
       department: value,
       job_title: "",
       backend_pay_rate: undefined,
+      specializations: [],
+    });
+  };
+
+  const handleJobTitleChange = (value: string) => {
+    const nextSpecializations = specializationsForJobTitle(value);
+    const allowedValues = new Set(nextSpecializations.map((spec) => spec.value));
+    const keptSpecializations = (formData.specializations ?? []).filter((spec) =>
+      allowedValues.has(spec),
+    );
+
+    updateFormData({
+      job_title: value,
+      backend_pay_rate: undefined,
+      specializations: keptSpecializations,
     });
   };
 
@@ -219,9 +243,7 @@ export function NormalBasicStep({
           id="job-title"
           label="Job Title"
           value={formData.job_title}
-          onValueChange={(value) =>
-            updateFormData({ job_title: value, backend_pay_rate: undefined })
-          }
+          onValueChange={handleJobTitleChange}
           options={departmentJobTitles.map(
             ({ uuid, label, value }, index) => ({
               key: `${uuid}-${value}-${index}`,
@@ -419,7 +441,7 @@ export function NormalBasicStep({
           label="Required Specialization"
           value=""
           onValueChange={handleSpecializationSelect}
-          options={specializations.map(({ uuid, label, value }, index) => {
+          options={availableSpecializations.map(({ uuid, label, value }, index) => {
             const alreadyAdded = formData.specializations.includes(value);
             return {
               key: `${uuid}-${value}-${index}`,
@@ -434,9 +456,17 @@ export function NormalBasicStep({
           })}
           contentClassName="max-h-60"
           triggerClassName="h-11 w-full"
+          disabled={!hasJobTitle || loading}
+          emptyOptionsMessage={specializationEmptyMessage}
           triggerContent={
             <div className="flex items-center gap-2 text-gray-500">
-              <span className="text-sm">Select specialization</span>
+              <span className="text-sm">
+                {!hasJobTitle
+                  ? "Select a job title first"
+                  : !hasSpecializationOptions
+                    ? specializationEmptyMessage
+                    : "Select specialization"}
+              </span>
             </div>
           }
           required
@@ -463,7 +493,11 @@ export function NormalBasicStep({
               ))
             ) : (
               <p className="text-xs text-gray-500">
-                No specializations added yet. Select from the dropdown.
+                {!hasJobTitle
+                  ? "Select a job title to see available specializations."
+                  : !hasSpecializationOptions
+                    ? specializationEmptyMessage
+                    : "No specializations added yet. Select from the dropdown."}
               </p>
             )}
           </div>

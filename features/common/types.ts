@@ -6,6 +6,10 @@ export interface MetadataOption {
   uuid: string;
   label: string;
   value: string;
+  /** Numeric id from the API (job titles, etc.). */
+  id?: number;
+  /** Job title ids this specialization applies to (from specializations API). */
+  job_title_ids?: number[];
 }
 
 export interface Department extends MetadataOption {

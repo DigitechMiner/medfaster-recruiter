@@ -60,6 +60,23 @@ const dedupeDepartments = (departments: Department[] = []): Department[] => {
     }));
 };
 
+const findJobTitleByValue = (
+  departments: Department[],
+  jobTitles: MetadataOption[],
+  jobTitleValue: string,
+): MetadataOption | undefined => {
+  if (!jobTitleValue) return undefined;
+
+  for (const department of departments) {
+    const match = department.jobTitles?.find(
+      (title) => title.value === jobTitleValue,
+    );
+    if (match) return match;
+  }
+
+  return jobTitles.find((title) => title.value === jobTitleValue);
+};
+
 interface MetadataStore {
   departments: Department[];
   jobTitles: MetadataOption[];
@@ -77,6 +94,7 @@ interface MetadataStore {
   loading: boolean;
   loadAll: () => Promise<void>;
   jobTitlesForDepartment: (departmentValue: string) => MetadataOption[];
+  specializationsForJobTitle: (jobTitleValue: string) => MetadataOption[];
 }
 
 export const useMetadataStore = create<MetadataStore>((set, get) => ({
@@ -142,5 +160,23 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
   jobTitlesForDepartment: (departmentValue: string) => {
     const dept = get().departments.find((d) => d.value === departmentValue);
     return dept?.jobTitles ?? get().jobTitles;
+  },
+
+  specializationsForJobTitle: (jobTitleValue: string) => {
+    if (!jobTitleValue) return [];
+
+    const { departments, jobTitles, specializations } = get();
+    const jobTitle = findJobTitleByValue(
+      departments,
+      jobTitles,
+      jobTitleValue,
+    );
+    const jobTitleId = jobTitle?.id;
+
+    if (jobTitleId == null) return [];
+
+    return specializations.filter((specialization) =>
+      (specialization.job_title_ids ?? []).includes(jobTitleId),
+    );
   },
 }));

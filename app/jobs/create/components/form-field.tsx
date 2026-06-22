@@ -91,6 +91,7 @@ interface JobFormSelectProps {
   triggerClassName?: string;
   contentClassName?: string;
   triggerContent?: ReactNode;
+  emptyOptionsMessage?: ReactNode;
 }
 
 export function JobFormSelect({
@@ -108,7 +109,10 @@ export function JobFormSelect({
   triggerClassName = "h-11",
   contentClassName,
   triggerContent,
+  emptyOptionsMessage = "No options available",
 }: JobFormSelectProps) {
+  const hasOptions = options.length > 0;
+
   return (
     <JobFormField
       id={id}
@@ -117,22 +121,32 @@ export function JobFormSelect({
       error={error}
       className={fieldClassName}
     >
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+      >
         <SelectTrigger id={id} className={triggerClassName}>
           {triggerContent ?? <SelectValue placeholder={placeholder} />}
         </SelectTrigger>
         <SelectContent className={contentClassName}>
-          {options.map((option) => (
-            <SelectItem
-              key={option.key ?? option.value}
-              value={option.value}
-              disabled={option.disabled}
-              className={option.className}
-            >
-              {option.label}
-              {option.suffix}
-            </SelectItem>
-          ))}
+          {hasOptions ? (
+            options.map((option) => (
+              <SelectItem
+                key={option.key ?? option.value}
+                value={option.value}
+                disabled={option.disabled}
+                className={option.className}
+              >
+                {option.label}
+                {option.suffix}
+              </SelectItem>
+            ))
+          ) : (
+            <p className="px-3 py-4 text-center text-sm text-gray-500">
+              {emptyOptionsMessage}
+            </p>
+          )}
         </SelectContent>
       </Select>
       {children}
