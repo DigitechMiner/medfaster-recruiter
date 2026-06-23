@@ -2,6 +2,7 @@ import type {
   InstantJobFeePreviewData,
   JobFeePreviewData,
   JobPreviewShift,
+  JobPreviewTaxComponent,
 } from "@/types";
 import {
   mapPreviewShiftsToRows,
@@ -11,6 +12,9 @@ import {
 export type InstantPreviewCostSummary = {
   hourlyRateCents: number;
   dueNowCents: number;
+  subtotalCents: number;
+  taxCents: number;
+  taxComponents: JobPreviewTaxComponent[];
   costPerShiftCents: number;
   hires: number;
   hoursPerShift: number;
@@ -32,22 +36,40 @@ export function mapInstantPreviewShiftsToRows(
   return mapPreviewShiftsToRows(shifts);
 }
 
+function resolveCostPerShiftCents(
+  recruiterPayCents: number,
+  shiftCount: number,
+  hires: number,
+): number {
+  const divisor = Math.max(1, shiftCount * Math.max(1, hires));
+  return Math.round(recruiterPayCents / divisor);
+}
+
 export function buildInstantPreviewCostSummary(
-  data: InstantJobFeePreviewData | null,
+  data: InstantJobFeePreviewData | null | undefined,
   fallbackHires: number,
 ): InstantPreviewCostSummary | null {
-  if (!data) return null;
+  const payment = data?.payment;
+  if (!payment) return null;
 
   const hires = data.no_of_hires ?? fallbackHires;
-  const shiftCount = data.shift_count ?? data.preview_shifts?.length ?? 0;
+  const shiftCount =
+    payment.no_of_shifts ?? data.shift_count ?? data.preview_shifts?.length ?? 0;
 
   return {
-    hourlyRateCents: data.recruiter_pay_per_hour_cents,
-    dueNowCents: data.total_recruiter_pay_cents,
-    costPerShiftCents: data.per_candidate_shift_recruiter_pay_cents,
+    hourlyRateCents: payment.per_hour_cents,
+    dueNowCents: payment.total_pay_cents,
+    subtotalCents: payment.recruiter_pay_cents,
+    taxCents: payment.tax.total_tax_cents,
+    taxComponents: payment.tax.components,
+    costPerShiftCents: resolveCostPerShiftCents(
+      payment.recruiter_pay_cents,
+      shiftCount,
+      hires,
+    ),
     hires,
-    hoursPerShift: data.total_working_hours,
-    hoursLabel: data.total_working_hours_label,
+    hoursPerShift: payment.total_working_hours,
+    hoursLabel: `${payment.total_working_hours} hrs`,
     shiftCount,
     isInstantPreview: true,
   };

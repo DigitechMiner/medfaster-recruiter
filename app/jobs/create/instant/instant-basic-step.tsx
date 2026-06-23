@@ -26,6 +26,7 @@ import {
   clampInstantBreakDurationMinutes,
   getInstantBreakDurationBounds,
 } from "./build-instant-payload";
+import { HourlyPayWithTaxes } from "../components/hourly-pay-with-taxes";
 
 interface InstantBasicStepProps {
   formData: InstantJobFormData;
@@ -112,9 +113,6 @@ export function InstantBasicStep({
       updateFormData({ neighborhood_type: "" });
     }
   }, [currentTypeValid, formData.neighborhood_type, updateFormData]);
-
-  const payRateDisplay =
-    payRateCents !== null ? `$${(payRateCents / 100).toFixed(2)} / hr` : "-";
 
   const breakBounds = useMemo(
     () =>
@@ -338,33 +336,6 @@ export function InstantBasicStep({
           error={fieldErrors.no_of_hires_required}
         />
 
-        <JobFormField id="hourly-pay" label="Hourly Pay per Hire">
-          <div
-            id="hourly-pay"
-            className="h-11 flex items-center px-3 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm select-none"
-          >
-            {payRateLoading && (
-              <span className="animate-pulse text-gray-400">Loading...</span>
-            )}
-            {payRateError && (
-              <span className="text-red-500 text-xs">{payRateError}</span>
-            )}
-            {!payRateLoading && !payRateError && (
-              <span
-                className={
-                  payRateCents !== null
-                    ? "font-semibold text-gray-800"
-                    : "text-gray-400"
-                }
-              >
-                {formData.job_title
-                  ? payRateDisplay
-                  : "Select a job title first"}
-              </span>
-            )}
-          </div>
-        </JobFormField>
-
         <JobFormInput
           id="neighborhood-name"
           label="Name of Neighborhood"
@@ -468,6 +439,15 @@ export function InstantBasicStep({
           disabled
           className="h-11 bg-gray-50 text-gray-500"
           required
+        />
+
+        <HourlyPayWithTaxes
+          className="md:col-span-2 border-t border-gray-100 pt-6"
+          payRateCents={payRateCents}
+          payRateLoading={payRateLoading}
+          payRateError={payRateError}
+          jobTitleSelected={Boolean(formData.job_title)}
+          province={formData.province}
         />
       </div>
 

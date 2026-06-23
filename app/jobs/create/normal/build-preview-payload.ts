@@ -85,6 +85,7 @@ export function buildNormalJobSchedulingPayload(
   source: NormalJobSchedulingSource,
 ): NormalJobSchedulingPayload | null {
   const jobTitle = source.job_title?.trim();
+  const province = source.province?.trim();
   const startDate = toPreviewIsoDate(source.start_date);
   const endDate = toPreviewIsoDate(source.end_date);
 
@@ -92,7 +93,7 @@ export function buildNormalJobSchedulingPayload(
     (source.selected_shift_types as ShiftType[] | undefined) ?? [],
   );
 
-  if (!jobTitle || !startDate || !endDate || selectedShifts.length === 0) {
+  if (!jobTitle || !province || !startDate || !endDate || selectedShifts.length === 0) {
     return null;
   }
 
@@ -184,6 +185,7 @@ export function buildNormalJobSchedulingPayload(
 
   return {
     job_title: jobTitle,
+    province,
     job_urgency: toPreviewJobUrgency(source.job_urgency),
     job_type: (source.job_type as JobType | undefined) ?? "part_time",
     shift_mode: shiftMode,

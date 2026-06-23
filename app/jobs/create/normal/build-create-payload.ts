@@ -68,7 +68,6 @@ export function buildNormalJobCreatePayload(
     employment_tenure: toEmploymentTenure(source.employment_type),
     street: source.street?.trim() || undefined,
     postal_code: source.postal_code?.trim() || undefined,
-    province: source.province?.trim() || undefined,
     city: source.city?.trim() || undefined,
     years_of_experience: source.years_of_experience,
     qualifications: source.qualifications,

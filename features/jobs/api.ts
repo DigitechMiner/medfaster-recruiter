@@ -46,6 +46,7 @@ import type {
   JobsListResponse,
   FeesSummaryData,
   FeesSummaryScope,
+  ProvinceTaxesData,
 } from "./types";
 
 function isRecord(value: unknown): value is JobDetailRecord {
@@ -144,6 +145,13 @@ export async function getJobFeesSummary(
     params: { scope },
   });
   return extractData<FeesSummaryData>(res.data);
+}
+
+export async function getProvinceTaxes(
+  province: string,
+): Promise<ProvinceTaxesData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_TAXES(province));
+  return extractData<ProvinceTaxesData>(res.data);
 }
 
 export async function getJobFees(

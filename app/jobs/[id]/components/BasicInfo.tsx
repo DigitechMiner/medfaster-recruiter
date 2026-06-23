@@ -35,7 +35,15 @@ interface JobDetailSummaryProps {
   job: JobBackendResponse;
 }
 
-function InfoItem({
+function DetailChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-800">
+      {children}
+    </span>
+  );
+}
+
+function MetaPill({
   icon,
   children,
 }: {
@@ -43,22 +51,36 @@ function InfoItem({
   children: React.ReactNode;
 }) {
   return (
-    <span className="flex items-center gap-1.5">
-      <span className="text-[#F4781B] flex-shrink-0">{icon}</span>
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
+      <span className="text-[#F4781B]">{icon}</span>
       {children}
     </span>
   );
 }
 
-function DetailChip({ children }: { children: React.ReactNode }) {
+function StatusBadge({
+  children,
+  variant = "status",
+}: {
+  children: React.ReactNode;
+  variant?: "status" | "type" | "shift";
+}) {
+  const styles = {
+    status: "text-blue-700 bg-blue-50 border-blue-100",
+    type: "text-[#F4781B] bg-orange-50 border-orange-100",
+    shift: "text-orange-700 bg-orange-50 border-orange-100",
+  };
+
   return (
-    <span className="px-3 py-1 rounded-md text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 whitespace-nowrap">
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap ${styles[variant]}`}
+    >
       {children}
     </span>
   );
 }
 
-function DetailRow({
+function RequirementField({
   label,
   isEmpty,
   children,
@@ -68,12 +90,12 @@ function DetailRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 min-w-0">
-      <span className="text-sm font-semibold text-[#F4781B] whitespace-nowrap flex-shrink-0">
-        {label} :
-      </span>
+    <div className="rounded-xl border border-gray-100 bg-gray-50/60 px-3.5 py-3 min-w-0">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
+        {label}
+      </p>
       {isEmpty ? (
-        <span className="text-sm text-gray-400">N/A</span>
+        <p className="text-sm text-gray-400">N/A</p>
       ) : (
         <div className="flex flex-wrap items-center gap-1.5">{children}</div>
       )}
@@ -81,32 +103,97 @@ function DetailRow({
   );
 }
 
-function SummaryItem({
+function StatCard({
   icon,
   label,
   value,
   subLabel,
-  className = "",
 }: {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
   subLabel?: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={`flex items-start gap-2 min-w-0 ${className}`}>
-      <span className="mt-0.5 text-[#F4781B] flex-shrink-0">{icon}</span>
+    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3.5 min-w-0">
+      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+        {icon}
+      </span>
       <div className="min-w-0 flex-1">
-        <span className="block text-xs font-medium text-gray-400 whitespace-nowrap">
-          {label}
-        </span>
-        <span className="block text-sm font-semibold text-gray-900 leading-snug">
+        <p className="text-xs font-medium text-gray-500">{label}</p>
+        <p className="mt-0.5 text-xl font-bold text-gray-900 leading-none">
           {value}
-        </span>
+        </p>
         {subLabel && (
-          <span className="block text-xs text-gray-400 mt-0.5">{subLabel}</span>
+          <p className="mt-1 text-xs text-gray-400 truncate">{subLabel}</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ScheduleCard({
+  dateRange,
+  dateDuration,
+  shiftLines,
+  timing,
+  subLabel,
+}: {
+  dateRange: string;
+  dateDuration: string | null;
+  shiftLines: string[];
+  timing: string;
+  subLabel: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-4 h-full">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#F4781B] mb-3">
+        Schedule
+      </p>
+
+      <div className="space-y-4">
+        <div className="flex items-start gap-2.5">
+          <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white text-[#F4781B] shadow-sm">
+            <CalendarDays size={14} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-gray-500">Date</p>
+            <p className="text-sm font-semibold text-gray-900 leading-snug">
+              {dateRange}
+            </p>
+            {dateDuration && (
+              <p className="text-xs text-gray-500 mt-0.5">{dateDuration}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="h-px bg-orange-100" />
+
+        <div className="flex items-start gap-2.5">
+          <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-white text-[#F4781B] shadow-sm">
+            <Clock size={14} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium text-gray-500">Shifts</p>
+            {shiftLines.length > 0 ? (
+              <ul className="mt-1 space-y-1">
+                {shiftLines.map((line) => (
+                  <li
+                    key={line}
+                    className="text-sm font-medium text-gray-900 leading-snug"
+                  >
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm font-semibold text-gray-900">{timing}</p>
+            )}
+            {subLabel && (
+              <p className="text-xs text-gray-500 mt-1.5">{subLabel}</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -191,124 +278,113 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
     ).size ||
     1;
 
+  const scheduleSubLabel =
+    rotationalSubLabel ??
+    (shiftDisplayLines.length > 0
+      ? `${shiftsPerDay} shift${shiftsPerDay === 1 ? "" : "s"} per day`
+      : formatTimeDuration(job.check_in_time, job.check_out_time));
+
   return (
     <div className="flex flex-col gap-4">
-      {/* ── Main card ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 px-4 sm:px-5 py-4">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {/* Header */}
+        <div className="border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-extrabold leading-tight text-gray-900 sm:text-2xl">
+                  {job.job_title}
+                </h1>
+                {job.department && (
+                  <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+                    {job.department} Department
+                  </span>
+                )}
+              </div>
 
-        {/* Title row */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
-              {job.job_title}
-            </h1>
-            {job.department && (
-              <span className="px-3 py-1 rounded-md text-xs font-medium text-gray-600 border border-gray-200 bg-gray-50 whitespace-nowrap">
-                {job.department} Department
-              </span>
-            )}
-          </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {location && (
+                  <MetaPill icon={<MapPin size={12} />}>
+                    {location}, Canada
+                  </MetaPill>
+                )}
+                {instantJob?.neighborhood_name && (
+                  <MetaPill icon={<Home size={12} />}>
+                    {instantJob.neighborhood_name}
+                  </MetaPill>
+                )}
+                {instantJob?.direct_number && (
+                  <MetaPill icon={<Phone size={12} />}>
+                    {instantJob.direct_number}
+                  </MetaPill>
+                )}
+                <MetaPill icon={<Clock size={12} />}>
+                  {formatLabel(job.job_type)}
+                </MetaPill>
+                <MetaPill icon={<DollarSign size={12} />}>
+                  <span className="font-semibold text-gray-900">
+                    {formatPay(job.pay_per_hour_cents)}
+                  </span>
+                  <span className="text-gray-500"> /hr</span>
+                </MetaPill>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0 sm:justify-end">
-            <span className="px-3 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 whitespace-nowrap">
-              {formatLabel(job.status)}
-            </span>
-            <span className="px-3 py-1 rounded-md text-xs font-semibold text-[#F4781B] bg-orange-50 border border-orange-100 whitespace-nowrap">
-              {formatLabel(job.job_type)}
-            </span>
-            {!isInstantJob && (
-              <span
-                className={`px-3 py-1 rounded-md text-xs font-semibold border whitespace-nowrap ${
-                  isRotational
-                    ? "text-orange-600 bg-orange-50 border-orange-100"
-                    : "text-blue-600 bg-blue-50 border-blue-100"
-                }`}
-              >
-                {isRotational ? "Rotational Shifts" : "Standard Shifts"}
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <StatusBadge variant="status">
+                {formatLabel(job.status)}
+              </StatusBadge>
+              <StatusBadge variant="type">
+                {formatLabel(job.job_type)}
+              </StatusBadge>
+              {!isInstantJob && (
+                <StatusBadge variant="shift">
+                  {isRotational ? "Rotational Shifts" : "Standard Shifts"}
+                </StatusBadge>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Meta info row */}
-        <div className="flex flex-wrap items-center gap-x-0 gap-y-2 text-sm text-gray-500 pb-3">
-          {location && (
-            <>
-              <InfoItem icon={<MapPin size={13} />}>
-                {location}, Canada
-              </InfoItem>
-              <span className="mx-3 text-gray-300 hidden xs:inline">|</span>
-            </>
-          )}
-          {instantJob?.neighborhood_name && (
-            <>
-              <InfoItem icon={<Home size={13} />}>
-                {instantJob.neighborhood_name}
-              </InfoItem>
-              <span className="mx-3 text-gray-300 hidden xs:inline">|</span>
-            </>
-          )}
-          {instantJob?.direct_number && (
-            <>
-              <InfoItem icon={<Phone size={13} />}>
-                {instantJob.direct_number}
-              </InfoItem>
-              <span className="mx-3 text-gray-300 hidden xs:inline">|</span>
-            </>
-          )}
-          <InfoItem icon={<Clock size={13} />}>
-            {formatLabel(job.job_type)}
-          </InfoItem>
-          <span className="mx-3 text-gray-300 hidden xs:inline">|</span>
-          <InfoItem icon={<DollarSign size={13} />}>
-            <strong className="text-gray-900 font-bold">
-              {formatPay(job.pay_per_hour_cents)}
-            </strong>
-            /hr
-          </InfoItem>
-        </div>
-
-        <div className="h-px bg-gray-100 mb-3" />
-
-        {/* ── Two-column layout: detail rows (left) + date/time (right) ── */}
-        <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6">
-
-          {/* LEFT — detail rows */}
-          <div className="flex flex-col gap-2 flex-1 min-w-0">
+        {/* Requirements + Schedule */}
+        <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_320px]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {isInstantJob ? (
               <>
-                <DetailRow
+                <RequirementField
                   label="Neighborhood Name"
                   isEmpty={!instantJob?.neighborhood_name}
                 >
                   <DetailChip>{instantJob?.neighborhood_name}</DetailChip>
-                </DetailRow>
-                <DetailRow
+                </RequirementField>
+                <RequirementField
                   label="Neighborhood Type"
                   isEmpty={!instantJob?.neighborhood_type}
                 >
                   <DetailChip>
                     {formatLabel(instantJob?.neighborhood_type)}
                   </DetailChip>
-                </DetailRow>
-                <DetailRow
+                </RequirementField>
+                <RequirementField
                   label="Direct Number"
                   isEmpty={!instantJob?.direct_number}
                 >
                   <DetailChip>{instantJob?.direct_number}</DetailChip>
-                </DetailRow>
+                </RequirementField>
               </>
             ) : (
               <>
-                <DetailRow
+                <RequirementField
                   label="Experience Required"
-                  isEmpty={!normalJob?.years_of_experience}
+                  isEmpty={normalJob?.years_of_experience == null}
                 >
                   <DetailChip>
-                    {formatLabel(normalJob?.years_of_experience)}
+                    {normalJob?.years_of_experience != null
+                      ? `${formatLabel(normalJob.years_of_experience)} years`
+                      : "N/A"}
                   </DetailChip>
-                </DetailRow>
-                <DetailRow
+                </RequirementField>
+                <RequirementField
                   label="Required Specialization"
                   isEmpty={!specializations.length}
                 >
@@ -320,8 +396,8 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
                       )}
                     </DetailChip>
                   ))}
-                </DetailRow>
-                <DetailRow
+                </RequirementField>
+                <RequirementField
                   label="Required Qualification"
                   isEmpty={!qualifications.length}
                 >
@@ -330,108 +406,74 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
                       {formatLabel(qualification)}
                     </DetailChip>
                   ))}
-                </DetailRow>
+                </RequirementField>
                 {job.employment_tenure && (
-                  <DetailRow label="Employment Tenure">
+                  <RequirementField label="Employment Tenure">
                     <DetailChip>{formatLabel(job.employment_tenure)}</DetailChip>
-                  </DetailRow>
+                  </RequirementField>
                 )}
-                <DetailRow label="AI Interview">
+                <RequirementField label="AI Interview">
                   <DetailChip>
                     {normalJob?.ai_interview ? "Enabled" : "Disabled"}
                   </DetailChip>
-                </DetailRow>
+                </RequirementField>
                 {isRotational && (
                   <>
-                    <DetailRow
+                    <RequirementField
                       label="Rotation Teams"
                       isEmpty={!rotationalTeams.length}
                     >
                       {rotationalTeams.map((team) => (
                         <DetailChip key={team.id}>{team.team_name}</DetailChip>
                       ))}
-                    </DetailRow>
-                    <DetailRow label="Rotation Cycle">
+                    </RequirementField>
+                    <RequirementField label="Rotation Cycle">
                       <DetailChip>
                         {job.rotation_cycle_days ?? 14} days
                         {job.cycle_start_day
                           ? ` · starts ${formatLabel(job.cycle_start_day)}`
                           : ""}
                       </DetailChip>
-                    </DetailRow>
+                    </RequirementField>
                   </>
                 )}
               </>
             )}
           </div>
 
-          {/* RIGHT — Date & Time, vertically stacked, visually separated */}
-          <div className="mt-3 lg:mt-0 lg:flex-shrink-0 lg:w-64 xl:w-72 flex flex-row lg:flex-col gap-4 sm:gap-6 lg:gap-3 flex-wrap rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
-            {/* Date */}
-            <SummaryItem
-              icon={<CalendarDays size={15} />}
-              label="Date"
-              value={formatDateRange(job.start_date, job.end_date)}
-              subLabel={formatDateDuration(job.start_date, job.end_date)}
-              className="flex-1 lg:flex-none min-w-[140px]"
-            />
-
-            {/* vertical divider on lg, horizontal on mobile */}
-            <div className="hidden lg:block h-px bg-gray-200 w-full" />
-            <div className="block lg:hidden w-px bg-gray-200 self-stretch" />
-
-            {/* Time */}
-            <SummaryItem
-              icon={<Clock size={15} />}
-              label="Time"
-              value={
-                shiftDisplayLines.length > 0 ? (
-                  <span className="flex flex-col gap-0.5">
-                    {shiftDisplayLines.map((line) => (
-                      <span key={line} className="text-sm font-semibold text-gray-900 leading-snug">
-                        {line}
-                      </span>
-                    ))}
-                  </span>
-                ) : (
-                  timing
-                )
-              }
-              subLabel={
-                rotationalSubLabel ??
-                (shiftDisplayLines.length > 0
-                  ? `${shiftsPerDay} shift${shiftsPerDay === 1 ? "" : "s"} per day`
-                  : formatTimeDuration(job.check_in_time, job.check_out_time))
-              }
-              className="flex-1 lg:flex-none min-w-[140px]"
-            />
-          </div>
+          <ScheduleCard
+            dateRange={formatDateRange(job.start_date, job.end_date)}
+            dateDuration={formatDateDuration(job.start_date, job.end_date)}
+            shiftLines={shiftDisplayLines}
+            timing={timing}
+            subLabel={scheduleSubLabel}
+          />
         </div>
 
-        {/* ── Stats bar ── */}
-        <div className="mt-4 rounded-xl bg-gray-50/70 border border-gray-100 p-3 sm:p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <SummaryItem
+        {/* Stats */}
+        <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-4 sm:px-6">
+          <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 xl:grid-cols-4">
+            <StatCard
               icon={<Users size={16} />}
               label="Applications"
               value={job.application_count}
               subLabel={
                 job.closed_reason
                   ? `Closed: ${formatLabel(job.closed_reason)}`
-                  : null
+                  : undefined
               }
             />
-            <SummaryItem
+            <StatCard
               icon={<Layers size={16} />}
               label="Requirements"
               value={job.no_of_hires_required}
             />
-            <SummaryItem
+            <StatCard
               icon={<UserCheck size={16} />}
               label="Hired"
               value={job.no_of_hires_hired}
             />
-            <SummaryItem
+            <StatCard
               icon={<CalendarCheck size={16} />}
               label="Number of Shifts"
               value={shiftCount}
@@ -440,52 +482,49 @@ export function JobDetailSummary({ job }: JobDetailSummaryProps) {
         </div>
       </div>
 
-      {/* ── Funding metric cards ── */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {funding && (
-          <>
-            <MetricCard
-              icon={<DollarSign size={18} />}
-              title="Total Contracted"
-              value={formatPay(
-                funding.total_contract_amount_cents ?? funding.total_amount_cents,
-              )}
-              subLabel={
-                funding.funding_type
-                  ? formatLabel(funding.funding_type)
-                  : formatLabel(funding.status)
-              }
-              className="border-gray-200"
-            />
-            <MetricCard
-              icon={<Wallet size={18} />}
-              title="Held Amount"
-              value={formatPay(
-                funding.total_held_amount_cents ?? funding.held_amount_cents,
-              )}
-              subLabel={formatLabel(funding.status)}
-              className="border-gray-200"
-            />
-            <MetricCard
-              icon={<CreditCard size={18} />}
-              title="Spent Amount"
-              value={formatPay(funding.total_spent_amount_cents)}
-              subLabel="Paid to candidates"
-              className="border-gray-200"
-            />
-            <MetricCard
-              icon={<RotateCcw size={18} />}
-              title="Refunded Amount"
-              value={formatPay(
-                funding.total_refunded_amount_cents ??
-                  funding.refunded_amount_cents,
-              )}
-              subLabel="Returned"
-              className="border-gray-200"
-            />
-          </>
-        )}
-      </div>
+      {funding && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+          <MetricCard
+            icon={<DollarSign size={18} />}
+            title="Total Contracted"
+            value={formatPay(
+              funding.total_contract_amount_cents ?? funding.total_amount_cents,
+            )}
+            subLabel={
+              funding.funding_type
+                ? formatLabel(funding.funding_type)
+                : formatLabel(funding.status)
+            }
+            className="border-gray-200"
+          />
+          <MetricCard
+            icon={<Wallet size={18} />}
+            title="Held Amount"
+            value={formatPay(
+              funding.total_held_amount_cents ?? funding.held_amount_cents,
+            )}
+            subLabel={formatLabel(funding.status)}
+            className="border-gray-200"
+          />
+          <MetricCard
+            icon={<CreditCard size={18} />}
+            title="Spent Amount"
+            value={formatPay(funding.total_spent_amount_cents)}
+            subLabel="Paid to candidates"
+            className="border-gray-200"
+          />
+          <MetricCard
+            icon={<RotateCcw size={18} />}
+            title="Refunded Amount"
+            value={formatPay(
+              funding.total_refunded_amount_cents ??
+                funding.refunded_amount_cents,
+            )}
+            subLabel="Returned"
+            className="border-gray-200"
+          />
+        </div>
+      )}
     </div>
   );
 }

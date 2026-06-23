@@ -413,6 +413,7 @@ export interface LegacyJobFeePreviewPayload {
 /** Instant job preview request (POST /recruiter/jobs/preview). */
 export interface InstantJobFeePreviewPayload {
   job_title: string;
+  province: string;
   no_of_hires_required: number;
   start_date: string;
   end_date: string;
@@ -446,6 +447,7 @@ export interface JobPreviewTeam {
 /** Shared scheduling block for normal job preview and create requests. */
 export interface NormalJobSchedulingPayload {
   job_title: string;
+  province: string;
   job_urgency: JobUrgency;
   job_type: JobType;
   shift_mode: PreviewShiftMode;
@@ -468,7 +470,6 @@ export interface NormalJobCreatePayload extends NormalJobSchedulingPayload {
   employment_tenure: EmploymentTenure;
   street?: string;
   postal_code?: string;
-  province?: string;
   city?: string;
   years_of_experience?: string;
   qualifications?: string[];
@@ -537,6 +538,77 @@ export interface JobPreviewShift {
   summary?: string;
 }
 
+export interface JobPreviewBillingCycle {
+  billing_start_date: string;
+  billing_end_date: string;
+  next_payment_due_date?: string;
+  rotation_cycle_days?: number;
+}
+
+export interface JobPreviewTaxComponent {
+  tax_name: string;
+  tax_percentage: number;
+  display_order: number;
+  tax_amount_cents: number;
+}
+
+export interface JobPreviewTaxSummary {
+  components: JobPreviewTaxComponent[];
+  total_tax_cents: number;
+  total_tax_percentage: number;
+}
+
+export interface JobPreviewPaymentPeriodSlice {
+  cycle:
+    | JobPreviewBillingCycle
+    | {
+        cycle: JobPreviewBillingCycle;
+      };
+  no_of_shifts: number;
+  total_working_hours?: number;
+  per_hour_cents?: number;
+  recruiter_pay_cents: number;
+  tax: JobPreviewTaxSummary;
+  total_pay_cents: number;
+  total_cycle_pay_cents: number;
+}
+
+export interface JobPreviewBillingMonthSlice {
+  month_index: number;
+  cycle: JobPreviewBillingCycle;
+  no_of_shifts: number;
+  total_working_hours?: number;
+  per_hour_cents?: number;
+  recruiter_pay_cents: number;
+  tax: JobPreviewTaxSummary;
+  total_pay_cents: number;
+  total_cycle_pay_cents: number;
+}
+
+export interface InstantJobPreviewPayment {
+  province: string;
+  per_hour_cents: number;
+  no_of_shifts: number;
+  total_working_hours: number;
+  recruiter_pay_cents: number;
+  tax: JobPreviewTaxSummary;
+  total_pay_cents: number;
+  total_cycle_pay_cents: number;
+}
+
+export interface NormalJobPreviewPayment {
+  province: string;
+  per_hour_cents: number;
+  max_months?: number;
+  cycle?: JobPreviewPaymentPeriodSlice;
+  months?: JobPreviewBillingMonthSlice[];
+  /** @deprecated Use `months` */
+  first_month?: JobPreviewPaymentPeriodSlice;
+  /** @deprecated Use `months` */
+  second_month?: JobPreviewPaymentPeriodSlice;
+}
+
+/** @deprecated Preview billing slices now live under `data.payment`. */
 export interface JobPreviewPaymentSlice {
   period: JobPreviewBillingPeriod;
   total_working_hours: number;
@@ -546,18 +618,15 @@ export interface JobPreviewPaymentSlice {
   rotation_cycle_days?: number;
 }
 
-/** Shared fields returned by POST /recruiter/jobs/preview (legacy + normal + instant). */
+/** Shared fields returned by POST /recruiter/jobs/preview. */
 export interface JobFeePreviewDataBase {
   job_title: string;
   job_title_label?: string;
   no_of_hires: number;
-  recruiter_pay_per_hour_cents: number;
-  is_night_shift: boolean;
+  is_night_shift?: boolean;
   shift_summaries?: string[];
-  total_working_hours_label: string;
-  total_working_hours: number;
-  per_candidate_shift_recruiter_pay_cents: number;
-  total_recruiter_pay_cents: number;
+  preview_shifts?: JobPreviewShift[];
+  shift_count?: number;
 }
 
 /** Instant job preview from POST /recruiter/jobs/preview. */
@@ -566,8 +635,7 @@ export interface InstantJobFeePreviewData extends JobFeePreviewDataBase {
   funding_type?: string;
   shift_templates?: JobPreviewShiftTemplate[];
   preview_window?: JobPreviewWindow;
-  preview_shifts?: JobPreviewShift[];
-  shift_count?: number;
+  payment: InstantJobPreviewPayment;
 }
 
 /** Normal / rotational preview from POST /recruiter/jobs/preview. */
@@ -575,13 +643,8 @@ export interface NormalJobFeePreviewData extends JobFeePreviewDataBase {
   job_urgency?: string;
   shift_mode?: PreviewShiftMode;
   funding_type?: string;
-  billing_period?: JobPreviewBillingPeriod;
   preview_window?: JobPreviewWindow;
-  preview_shifts?: JobPreviewShift[];
-  shift_count?: number;
-  one_cycle_payment?: JobPreviewPaymentSlice;
-  first_month_payment?: JobPreviewPaymentSlice;
-  second_month_payment?: JobPreviewPaymentSlice;
+  payment: NormalJobPreviewPayment;
 }
 
 export type JobFeePreviewData =
@@ -649,6 +712,17 @@ export type Province =
   | "quebec"
   | "saskatchewan"
   | "yukon";
+
+export interface ProvinceTaxComponent {
+  tax_name: string;
+  tax_percentage: number;
+  display_order: number;
+}
+
+export interface ProvinceTaxesData {
+  province: string;
+  components: ProvinceTaxComponent[];
+}
 
 export interface JobFormData {
   job_title: string;

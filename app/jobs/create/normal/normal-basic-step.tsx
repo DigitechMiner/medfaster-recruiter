@@ -8,14 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { getJobFees } from "@/features/jobs";
-import {
-  cacheJobPayRate,
-  canFetchJobFees,
-  getCachedPayRateCents,
-  parseJobFeesYears,
-  shouldSyncPlatformPayRate,
-} from "./use-platform-pay-rate";
+import { shouldSyncPlatformPayRate } from "./use-platform-pay-rate";
+import { usePlatformPayRate } from "@/hooks/usePlatformPayRate";
 import { useMetadataStore } from "@/stores/metadataStore";
 import type {
   EmploymentType,
@@ -30,6 +24,7 @@ import {
   JobFormSelect,
 } from "../components/form-field";
 import type { JobFormFieldErrors } from "../validation";
+import { HourlyPayWithTaxes } from "../components/hourly-pay-with-taxes";
 
 const EXPERIENCE_MIN = 0;
 const EXPERIENCE_MAX = 20;
@@ -83,78 +78,30 @@ export function NormalBasicStep({
     getMetadataLabel(specializations, value);
 
   const [qualificationDraft, setQualificationDraft] = useState("");
-  const [backendRate, setBackendRate] = useState<number | null>(() => {
-    const years = parseJobFeesYears(formData.years_of_experience);
-    if (!canFetchJobFees(formData.job_title, formData.years_of_experience) || years === null) {
-      return null;
-    }
-    const cachedRateCents = getCachedPayRateCents(formData.job_title, "normal", years);
-    return cachedRateCents === null ? null : cachedRateCents / 100;
+
+  const { payRateCents, payRateLoading, payRateError } = usePlatformPayRate({
+    feeType: "normal",
+    jobTitle: formData.job_title,
+    yearsOfExperience: formData.years_of_experience,
+    enabled: shouldSyncPayRate,
   });
-  const [rateLoading, setRateLoading] = useState(false);
-  const [rateError, setRateError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!shouldSyncPayRate || !canFetchJobFees(formData.job_title, formData.years_of_experience)) {
-      setBackendRate(null);
-      setRateError(null);
-      setRateLoading(false);
+    if (!shouldSyncPayRate) {
       if (formData.backend_pay_rate !== undefined) {
         updateFormData({ backend_pay_rate: undefined });
       }
       return;
     }
 
-    const experienceYears = parseJobFeesYears(formData.years_of_experience) as number;
-    const cachedRateCents = getCachedPayRateCents(
-      formData.job_title,
-      "normal",
-      experienceYears,
-    );
-    if (cachedRateCents !== null) {
-      const dollars = cachedRateCents / 100;
-      setBackendRate(dollars);
-      setRateError(null);
-      setRateLoading(false);
-      if (formData.backend_pay_rate !== dollars) {
-        updateFormData({ backend_pay_rate: dollars });
-      }
-      return;
+    if (payRateCents === null) return;
+
+    const dollars = payRateCents / 100;
+    if (formData.backend_pay_rate !== dollars) {
+      updateFormData({ backend_pay_rate: dollars });
     }
-
-    let didCancel = false;
-    setRateLoading(true);
-    setRateError(null);
-
-    getJobFees(formData.job_title, {
-      feeType: "normal",
-      yearsOfExperience: experienceYears,
-    })
-      .then((data) => {
-        if (didCancel) return;
-        const dollars = Number(data.recruiter_pay_per_hour ?? 0);
-        const cents = Math.round(dollars * 100);
-        const rateDollars = cents / 100;
-        setBackendRate(rateDollars);
-        updateFormData({ backend_pay_rate: rateDollars });
-        cacheJobPayRate(formData.job_title, "normal", cents, experienceYears);
-      })
-      .catch(() => {
-        if (!didCancel) {
-          setRateError("Could not load pay rate for this role");
-        }
-      })
-      .finally(() => {
-        if (!didCancel) {
-          setRateLoading(false);
-        }
-      });
-
-    return () => {
-      didCancel = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- updateFormData is unstable; guarded above
-  }, [formData.job_title, formData.years_of_experience, shouldSyncPayRate]);
+  }, [shouldSyncPayRate, payRateCents, formData.backend_pay_rate]);
 
   const handleDepartmentChange = (value: string) => {
     updateFormData({
@@ -593,27 +540,20 @@ export function NormalBasicStep({
           required
         />
 
+        {shouldSyncPayRate && (
+          <HourlyPayWithTaxes
+            className="md:col-span-2 border-t border-gray-100 pt-6"
+            payRateCents={payRateCents}
+            payRateLoading={payRateLoading}
+            payRateError={payRateError}
+            jobTitleSelected={hasJobTitle}
+            province={formData.province}
+            emptyJobTitleMessage="Select a job title and experience first"
+          />
+        )}
+
         
       </div>
-
-      {/* Optional: backend rate info (not shown in Figma, but kept for later use) */}
-      {shouldSyncPayRate && (
-        <div className="mt-4">
-          {rateLoading && (
-            <p className="animate-pulse text-xs text-gray-400">
-              Fetching pay rate...
-            </p>
-          )}
-          {rateError && (
-            <p className="text-xs text-red-500">{rateError}</p>
-          )}
-          {!rateLoading && !rateError && backendRate !== null && (
-            <p className="text-xs text-gray-400">
-              Suggested hourly rate from platform: ${backendRate}/hr
-            </p>
-          )}
-        </div>
-      )}
     </>
   );
 }

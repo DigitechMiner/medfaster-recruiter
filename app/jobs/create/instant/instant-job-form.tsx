@@ -4,14 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { SuccessModal } from "@/components/modal";
-import { getJobFees } from "@/features/jobs";
+import { usePlatformPayRate } from "@/hooks/usePlatformPayRate";
 import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
 import type { InstantJobFormData, JobCreatePayload, Province } from "@/types";
-import {
-  cacheJobPayRate,
-  canFetchInstantJobFees,
-  getCachedPayRateCents,
-} from "../normal/use-platform-pay-rate";
 import {
   filterValidationErrorsForStep,
   toFormFieldErrors,
@@ -161,59 +156,11 @@ export function InstantJobForm({
   const [formData, setFormData] = useState<InstantJobFormData>(() =>
     buildInitialInstantForm(formSnapshot),
   );
-  const [payRateCents, setPayRateCents] = useState<number | null>(() => {
-    if (!canFetchInstantJobFees(formData.job_title)) return null;
-    return getCachedPayRateCents(formData.job_title, "instant");
+
+  const { payRateCents, payRateLoading, payRateError } = usePlatformPayRate({
+    feeType: "instant",
+    jobTitle: formData.job_title,
   });
-  const [payRateLoading, setPayRateLoading] = useState(false);
-  const [payRateError, setPayRateError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!canFetchInstantJobFees(formData.job_title)) {
-      setPayRateCents(null);
-      setPayRateError(null);
-      setPayRateLoading(false);
-      return;
-    }
-
-    const cachedRateCents = getCachedPayRateCents(formData.job_title, "instant");
-    if (cachedRateCents !== null) {
-      setPayRateCents(cachedRateCents);
-      setPayRateError(null);
-      setPayRateLoading(false);
-      return;
-    }
-
-    let didCancel = false;
-
-    setPayRateLoading(true);
-    setPayRateError(null);
-
-    getJobFees(formData.job_title, { feeType: "instant" })
-      .then((data) => {
-        if (didCancel) return;
-
-        const dollars = Number(data.recruiter_pay_per_hour ?? 0);
-        const cents = Math.round(dollars * 100);
-
-        setPayRateCents(cents);
-        cacheJobPayRate(formData.job_title, "instant", cents);
-      })
-      .catch(() => {
-        if (!didCancel) {
-          setPayRateError("Could not load pay rate for this role");
-        }
-      })
-      .finally(() => {
-        if (!didCancel) {
-          setPayRateLoading(false);
-        }
-      });
-
-    return () => {
-      didCancel = true;
-    };
-  }, [formData.job_title]);
 
   const updateFormData = (updates: Partial<InstantJobFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));

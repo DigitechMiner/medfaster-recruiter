@@ -1,6 +1,9 @@
 import type {
-  JobPreviewPaymentSlice,
+  JobPreviewBillingCycle,
+  JobPreviewBillingMonthSlice,
+  JobPreviewPaymentPeriodSlice,
   JobPreviewShift,
+  JobPreviewTaxComponent,
   NormalJobFeePreviewData,
 } from "@/types";
 import {
@@ -23,24 +26,35 @@ export type ShiftPreviewRow = {
 };
 
 export type MonthlyPaymentPreview = {
+  monthIndex: number;
   label: string;
   periodLabel: string;
   nextPaymentDueLabel: string | null;
   shiftCount: number;
-  totalWorkingHours: number;
-  costPerShiftCents: number;
+  totalWorkingHours: number | null;
+  subtotalCents: number;
+  taxCents: number;
+  taxComponents: JobPreviewTaxComponent[];
   totalCents: number;
+  cyclePayCents: number;
 };
 
 export type NormalPreviewCostSummary = {
   hourlyRateCents: number;
-  /** Amount due at publish (first billing month). */
+  /** Amount due at publish (first billing month, tax included). */
   dueNowCents: number;
+  subtotalCents: number;
+  taxCents: number;
+  taxComponents: JobPreviewTaxComponent[];
   costPerShiftCents: number;
   hires: number;
+  maxMonths: number;
   monthlyPayments: MonthlyPaymentPreview[];
   oneCyclePayment: {
     label: string;
+    subtotalCents: number;
+    taxCents: number;
+    taxComponents: JobPreviewTaxComponent[];
     totalCents: number;
     shiftCount: number;
     hours: number;
@@ -86,28 +100,135 @@ function formatClockForDisplay(time?: string | null): string {
   });
 }
 
-function formatBillingPeriodLabel(
-  period?: { billingStartDate: string; billingEndDate: string },
+export function resolvePreviewBillingCycle(
+  slice: JobPreviewPaymentPeriodSlice,
+): JobPreviewBillingCycle {
+  const cycle = slice.cycle;
+  if (cycle && typeof cycle === "object" && "cycle" in cycle && cycle.cycle) {
+    return cycle.cycle;
+  }
+  return cycle as JobPreviewBillingCycle;
+}
+
+function formatBillingPeriodFromCycle(
+  cycle?: JobPreviewBillingCycle,
 ): string | null {
-  if (!period?.billingStartDate || !period?.billingEndDate) return null;
-  return `${formatDisplayDateFromIso(period.billingStartDate)} – ${formatDisplayDateFromIso(period.billingEndDate)}`;
+  if (!cycle?.billing_start_date || !cycle?.billing_end_date) return null;
+  return `${formatDisplayDateFromIso(cycle.billing_start_date)} – ${formatDisplayDateFromIso(cycle.billing_end_date)}`;
+}
+
+function formatBillingPeriodLabel(
+  slice?: JobPreviewPaymentPeriodSlice,
+): string | null {
+  const period = slice ? resolvePreviewBillingCycle(slice) : undefined;
+  return formatBillingPeriodFromCycle(period);
+}
+
+function mapBillingMonthSlice(
+  slice: JobPreviewBillingMonthSlice,
+): MonthlyPaymentPreview {
+  return {
+    monthIndex: slice.month_index,
+    label: `Month ${slice.month_index}`,
+    periodLabel: formatBillingPeriodFromCycle(slice.cycle) ?? "",
+    nextPaymentDueLabel: slice.cycle.next_payment_due_date
+      ? formatDisplayDateFromIso(slice.cycle.next_payment_due_date)
+      : null,
+    shiftCount: slice.no_of_shifts,
+    totalWorkingHours: slice.total_working_hours ?? null,
+    subtotalCents: slice.recruiter_pay_cents,
+    taxCents: slice.tax.total_tax_cents,
+    taxComponents: slice.tax.components,
+    totalCents: slice.total_pay_cents,
+    cyclePayCents: slice.total_cycle_pay_cents,
+  };
 }
 
 function mapMonthlyPaymentSlice(
-  slice: JobPreviewPaymentSlice,
+  slice: JobPreviewPaymentPeriodSlice,
   label: string,
+  monthIndex = 0,
 ): MonthlyPaymentPreview {
+  const billingCycle = resolvePreviewBillingCycle(slice);
+
   return {
+    monthIndex,
     label,
-    periodLabel: formatBillingPeriodLabel(slice.period) ?? "",
-    nextPaymentDueLabel: slice.period?.nextPaymentDueDate
-      ? formatDisplayDateFromIso(slice.period.nextPaymentDueDate)
+    periodLabel: formatBillingPeriodLabel(slice) ?? "",
+    nextPaymentDueLabel: billingCycle?.next_payment_due_date
+      ? formatDisplayDateFromIso(billingCycle.next_payment_due_date)
       : null,
-    shiftCount: slice.shift_count,
-    totalWorkingHours: slice.total_working_hours,
-    costPerShiftCents: slice.per_shift_recruiter_pay_cents,
-    totalCents: slice.total_recruiter_pay_cents,
+    shiftCount: slice.no_of_shifts,
+    totalWorkingHours: slice.total_working_hours ?? null,
+    subtotalCents: slice.recruiter_pay_cents,
+    taxCents: slice.tax.total_tax_cents,
+    taxComponents: slice.tax.components,
+    totalCents: slice.total_pay_cents,
+    cyclePayCents: slice.total_cycle_pay_cents,
   };
+}
+
+function resolveMonthlyPayments(
+  payment: NonNullable<NormalJobFeePreviewData["payment"]>,
+): MonthlyPaymentPreview[] {
+  if (payment.months?.length) {
+    return [...payment.months]
+      .sort((a, b) => a.month_index - b.month_index)
+      .map(mapBillingMonthSlice);
+  }
+
+  const legacyMonths: MonthlyPaymentPreview[] = [];
+  if (payment.first_month) {
+    legacyMonths.push(mapMonthlyPaymentSlice(payment.first_month, "Month 1", 1));
+  }
+  if (payment.second_month) {
+    legacyMonths.push(
+      mapMonthlyPaymentSlice(payment.second_month, "Month 2", 2),
+    );
+  }
+  return legacyMonths;
+}
+
+function resolvePrimaryMonthSlice(
+  payment: NonNullable<NormalJobFeePreviewData["payment"]>,
+): JobPreviewPaymentPeriodSlice | JobPreviewBillingMonthSlice | null {
+  if (payment.months?.length) {
+    return [...payment.months].sort((a, b) => a.month_index - b.month_index)[0];
+  }
+  return payment.first_month ?? payment.cycle ?? null;
+}
+
+function getSliceShiftCount(
+  slice: JobPreviewPaymentPeriodSlice | JobPreviewBillingMonthSlice,
+): number {
+  return slice.no_of_shifts;
+}
+
+function getSliceSubtotalCents(
+  slice: JobPreviewPaymentPeriodSlice | JobPreviewBillingMonthSlice,
+): number {
+  return slice.recruiter_pay_cents;
+}
+
+function getSliceTax(
+  slice: JobPreviewPaymentPeriodSlice | JobPreviewBillingMonthSlice,
+) {
+  return slice.tax;
+}
+
+function getSliceTotalPayCents(
+  slice: JobPreviewPaymentPeriodSlice | JobPreviewBillingMonthSlice,
+): number {
+  return slice.total_pay_cents;
+}
+
+function resolveCostPerShiftCents(
+  recruiterPayCents: number,
+  shiftCount: number,
+  hires: number,
+): number {
+  const divisor = Math.max(1, shiftCount * Math.max(1, hires));
+  return Math.round(recruiterPayCents / divisor);
 }
 
 export function hasNormalPreviewShifts(
@@ -172,53 +293,53 @@ export function mapPreviewShiftsToRows(
 }
 
 export function buildNormalPreviewCostSummary(
-  data: NormalJobFeePreviewData | null,
+  data: NormalJobFeePreviewData | null | undefined,
   fallbackHires: number,
 ): NormalPreviewCostSummary | null {
-  if (!data) return null;
+  const payment = data?.payment;
+  if (!payment) return null;
 
-  const firstMonth = data.first_month_payment;
-  const secondMonth = data.second_month_payment;
+  const hires = data.no_of_hires ?? fallbackHires;
   const isRotationalPreview = data.shift_mode === "ROTATIONAL";
-
-  const monthlyPayments: MonthlyPaymentPreview[] = [];
-  if (firstMonth) {
-    monthlyPayments.push(mapMonthlyPaymentSlice(firstMonth, "First month"));
-  }
-  if (secondMonth) {
-    monthlyPayments.push(mapMonthlyPaymentSlice(secondMonth, "Second month"));
-  }
+  const cycleSlice = payment.cycle;
+  const monthlyPayments = resolveMonthlyPayments(payment);
+  const primarySlice = resolvePrimaryMonthSlice(payment);
 
   const hasMonthlyBreakdown = monthlyPayments.length > 0;
+  if (!primarySlice) return null;
 
-  const fallbackSlice = {
-    period: data.billing_period,
-    total_working_hours: data.total_working_hours,
-    total_recruiter_pay_cents: data.total_recruiter_pay_cents,
-    per_shift_recruiter_pay_cents: data.per_candidate_shift_recruiter_pay_cents,
-    shift_count: data.shift_count ?? data.shift_summaries?.length ?? 0,
-  };
-
-  const primarySlice = firstMonth ?? fallbackSlice;
-  const dueNowCents = primarySlice.total_recruiter_pay_cents;
-
-  const oneCycle = data.one_cycle_payment;
+  const dueNowCents = getSliceTotalPayCents(primarySlice);
+  const primaryTax = getSliceTax(primarySlice);
+  const oneCycleBilling = cycleSlice
+    ? resolvePreviewBillingCycle(cycleSlice)
+    : undefined;
   const oneCyclePayment =
-    isRotationalPreview && oneCycle
+    isRotationalPreview && cycleSlice
       ? {
-          label: `${oneCycle.rotation_cycle_days ?? 14}-day rotation cycle`,
-          totalCents: oneCycle.total_recruiter_pay_cents,
-          shiftCount: oneCycle.shift_count,
-          hours: oneCycle.total_working_hours,
-          cycleDays: oneCycle.rotation_cycle_days ?? 14,
+          label: `${oneCycleBilling?.rotation_cycle_days ?? 14}-day rotation cycle`,
+          subtotalCents: cycleSlice.recruiter_pay_cents,
+          taxCents: cycleSlice.tax.total_tax_cents,
+          taxComponents: cycleSlice.tax.components,
+          totalCents: cycleSlice.total_pay_cents,
+          shiftCount: cycleSlice.no_of_shifts,
+          hours: cycleSlice.total_working_hours ?? 0,
+          cycleDays: oneCycleBilling?.rotation_cycle_days ?? 14,
         }
       : null;
 
   return {
-    hourlyRateCents: data.recruiter_pay_per_hour_cents,
+    hourlyRateCents: payment.per_hour_cents,
     dueNowCents,
-    costPerShiftCents: primarySlice.per_shift_recruiter_pay_cents,
-    hires: data.no_of_hires ?? fallbackHires,
+    subtotalCents: getSliceSubtotalCents(primarySlice),
+    taxCents: primaryTax.total_tax_cents,
+    taxComponents: primaryTax.components,
+    costPerShiftCents: resolveCostPerShiftCents(
+      getSliceSubtotalCents(primarySlice),
+      getSliceShiftCount(primarySlice),
+      hires,
+    ),
+    hires,
+    maxMonths: payment.max_months ?? monthlyPayments.length,
     monthlyPayments,
     oneCyclePayment,
     isRotationalPreview,

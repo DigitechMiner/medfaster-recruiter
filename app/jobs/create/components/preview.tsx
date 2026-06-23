@@ -21,14 +21,20 @@ import {
   mapPreviewShiftsToRows,
   type ShiftPreviewRow,
 } from "../normal/map-preview-response";
+import {
+  PaymentBreakdownTable,
+  type PaymentBreakdownColumn,
+} from "./payment-breakdown-table";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { useWalletStore } from "@/stores/walletStore";
 import type {
+  InstantJobFeePreviewData,
   InstantJobFeePreviewPayload,
   JobCreatePayload,
   JobFeePreviewResponse,
   JobStatus,
   LegacyJobFeePreviewPayload,
+  NormalJobFeePreviewData,
   NormalJobFeePreviewPayload,
   RecruiterJobCreateBody,
 } from "@/types";
@@ -226,6 +232,48 @@ function formatCurrency(cents: number): string {
   })}`;
 }
 
+function toPaymentBreakdownColumns(
+  months: NonNullable<ReturnType<typeof buildNormalPreviewCostSummary>>["monthlyPayments"],
+): PaymentBreakdownColumn[] {
+  return months.map((month) => ({
+    id: `month-${month.monthIndex}`,
+    title: month.label,
+    subtitle: month.periodLabel || undefined,
+    shiftCount: month.shiftCount,
+    totalWorkingHours: month.totalWorkingHours ?? undefined,
+    subtotalCents: month.subtotalCents,
+    taxComponents: month.taxComponents,
+    totalCents: month.totalCents,
+    footerNote:
+      month.monthIndex === 1 && month.nextPaymentDueLabel
+        ? `Next payment due: ${month.nextPaymentDueLabel}`
+        : null,
+  }));
+}
+
+function formatUpcomingMonthsNote(
+  months: NonNullable<ReturnType<typeof buildNormalPreviewCostSummary>>["monthlyPayments"],
+  maxMonths: number,
+): string | null {
+  if (months.length <= 1) return null;
+
+  const futureMonths = months.slice(1);
+  const cappedNote =
+    maxMonths > months.length
+      ? ` Preview shows ${months.length} billing month${months.length === 1 ? "" : "s"} (up to ${maxMonths} from job start).`
+      : months.length >= maxMonths
+        ? ` Preview capped at ${maxMonths} billing months from job start.`
+        : "";
+
+  if (futureMonths.length === 1) {
+    const month = futureMonths[0];
+    return `Month ${month.monthIndex} (${month.periodLabel}): estimated ${formatCurrency(month.totalCents)} incl. tax — charged on the next billing cycle, not included in the publish amount.${cappedNote}`;
+  }
+
+  const lastMonth = futureMonths[futureMonths.length - 1];
+  return `Months 2–${lastMonth.monthIndex} (${futureMonths.length} future billing periods) will be charged on subsequent cycles and are not included in the publish amount.${cappedNote}`;
+}
+
 type LabelOption = { label: string; value: string };
 
 const SHIFT_PER_PAGE_OPTIONS = [5, 10, 25, 50] as const;
@@ -359,7 +407,7 @@ export function JobReview({
     () =>
       isUrgent
         ? buildInstantPreviewCostSummary(
-            feePreview,
+            feePreview as InstantJobFeePreviewData | null,
             payload.no_of_hires_required ?? 1,
           )
         : null,
@@ -371,7 +419,7 @@ export function JobReview({
       isUrgent
         ? null
         : buildNormalPreviewCostSummary(
-            feePreview,
+            feePreview as NormalJobFeePreviewData | null,
             payload.no_of_hires_required ?? 1,
           ),
     [isUrgent, feePreview, payload.no_of_hires_required],
@@ -379,24 +427,24 @@ export function JobReview({
 
   const hourlyRateCents =
     previewCost?.hourlyRateCents ??
-    feePreview?.recruiter_pay_per_hour_cents ??
+    instantPreviewCost?.hourlyRateCents ??
     payload.pay_per_hour_cents ??
     0;
   const hourlyRate = hourlyRateCents / 100;
   const hoursPerCandidate =
-    instantPreviewCost?.hoursPerShift ?? feePreview?.total_working_hours ?? 0;
+    instantPreviewCost?.hoursPerShift ??
+    previewCost?.monthlyPayments[0]?.totalWorkingHours ??
+    0;
   const costPerShiftCents =
-    instantPreviewCost?.costPerShiftCents ??
-    previewCost?.costPerShiftCents ??
-    feePreview?.per_candidate_shift_recruiter_pay_cents ??
-    Math.round(hourlyRate * hoursPerCandidate * 100);
+    instantPreviewCost?.costPerShiftCents ?? previewCost?.costPerShiftCents ?? 0;
   const costPerShift = costPerShiftCents / 100;
   const totalFeeCents = isFullTime
     ? 0
-    : (instantPreviewCost?.dueNowCents ??
-      previewCost?.dueNowCents ??
-      feePreview?.total_recruiter_pay_cents ??
-      costPerShiftCents * requiredCandidates);
+    : (instantPreviewCost?.dueNowCents ?? previewCost?.dueNowCents ?? 0);
+  const subtotalCents =
+    instantPreviewCost?.subtotalCents ?? previewCost?.subtotalCents ?? 0;
+  const taxComponents =
+    instantPreviewCost?.taxComponents ?? previewCost?.taxComponents ?? [];
   const firstMonthPayment = previewCost?.monthlyPayments[0];
   const useApiShiftTable = isUrgent
     ? hasInstantPreviewShifts(feePreview)
@@ -901,6 +949,19 @@ export function JobReview({
                             </span>
                           </div>
                         )}
+
+                        <PaymentBreakdownTable
+                          showShiftMetrics={false}
+                          columns={[
+                            {
+                              id: "instant-total",
+                              title: "Upfront total",
+                              subtotalCents: instantPreviewCost.subtotalCents,
+                              taxComponents: instantPreviewCost.taxComponents,
+                              totalCents: instantPreviewCost.dueNowCents,
+                            },
+                          ]}
+                        />
                       </>
                     ) : previewCost?.hasMonthlyBreakdown ? (
                       <>
@@ -926,65 +987,45 @@ export function JobReview({
                           </span>
                         </div>
 
-                        {previewCost.monthlyPayments.map((month, index) => (
-                          <div
-                            key={`${month.label}-${month.periodLabel}`}
-                            className={
-                              index > 0
-                                ? "border-t border-dashed border-gray-200 pt-1"
-                                : undefined
-                            }
-                          >
-                            <p className="py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                              {month.label}
-                              {month.periodLabel
-                                ? ` · ${month.periodLabel}`
-                                : ""}
+                        <div className="py-3">
+                          {previewCost.monthlyPayments.length > 1 && (
+                            <p className="mb-2 text-xs text-gray-500">
+                              Billing schedule — {previewCost.monthlyPayments.length}{" "}
+                              month{previewCost.monthlyPayments.length === 1 ? "" : "s"}
+                              {previewCost.maxMonths > previewCost.monthlyPayments.length
+                                ? ` (job may bill up to ${previewCost.maxMonths})`
+                                : previewCost.monthlyPayments.length >= previewCost.maxMonths
+                                  ? ` (capped at ${previewCost.maxMonths} months from start)`
+                                  : ""}
                             </p>
-                            <div className="flex justify-between py-2 text-sm">
-                              <span className="text-gray-600">Shifts</span>
-                              <span className="font-medium text-gray-900">
-                                {month.shiftCount}
-                              </span>
-                            </div>
-                            <div className="flex justify-between py-2 text-sm">
-                              <span className="text-gray-600">
-                                Total working hours
-                              </span>
-                              <span className="font-medium text-gray-900">
-                                {month.totalWorkingHours} hrs
-                              </span>
-                            </div>
-                            <div className="flex justify-between py-2 pb-3 text-sm">
-                              <span className="text-gray-600 font-medium">
-                                {index === 0
-                                  ? "First month total"
-                                  : "Second month total"}
-                              </span>
-                              <span className="font-semibold text-gray-900">
-                                {formatCurrency(month.totalCents)}
-                              </span>
-                            </div>
-                            {month.nextPaymentDueLabel && index === 0 && (
-                              <p className="pb-3 text-xs text-gray-500">
-                                Next payment due: {month.nextPaymentDueLabel}
-                              </p>
+                          )}
+                          <PaymentBreakdownTable
+                            columns={toPaymentBreakdownColumns(
+                              previewCost.monthlyPayments,
                             )}
-                          </div>
-                        ))}
+                          />
+                        </div>
 
                         {previewCost.oneCyclePayment && (
-                          <div className="flex justify-between py-3 text-sm border-t border-gray-100">
-                            <span className="text-gray-700 font-medium">
-                              {previewCost.oneCyclePayment.label} (
-                              {previewCost.oneCyclePayment.shiftCount} shifts ·{" "}
-                              {previewCost.oneCyclePayment.hours} hrs)
-                            </span>
-                            <span className="font-medium text-gray-900">
-                              {formatCurrency(
-                                previewCost.oneCyclePayment.totalCents,
-                              )}
-                            </span>
+                          <div className="border-t border-gray-100 pt-3">
+                            <p className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              Rotation cycle
+                            </p>
+                            <PaymentBreakdownTable
+                              columns={[
+                                {
+                                  id: "rotation-cycle",
+                                  title: previewCost.oneCyclePayment.label,
+                                  shiftCount: previewCost.oneCyclePayment.shiftCount,
+                                  totalWorkingHours: previewCost.oneCyclePayment.hours,
+                                  subtotalCents:
+                                    previewCost.oneCyclePayment.subtotalCents,
+                                  taxComponents:
+                                    previewCost.oneCyclePayment.taxComponents,
+                                  totalCents: previewCost.oneCyclePayment.totalCents,
+                                },
+                              ]}
+                            />
                           </div>
                         )}
                       </>
@@ -1013,17 +1054,22 @@ export function JobReview({
                         </div>
 
                         {previewCost.oneCyclePayment && (
-                          <div className="flex justify-between py-3 text-sm">
-                            <span className="text-gray-700 font-medium">
-                              {previewCost.oneCyclePayment.label} (
-                              {previewCost.oneCyclePayment.shiftCount} shifts ·{" "}
-                              {previewCost.oneCyclePayment.hours} hrs)
-                            </span>
-                            <span className="font-medium text-gray-900">
-                              {formatCurrency(
-                                previewCost.oneCyclePayment.totalCents,
-                              )}
-                            </span>
+                          <div className="py-1">
+                            <PaymentBreakdownTable
+                              columns={[
+                                {
+                                  id: "rotational-cycle",
+                                  title: previewCost.oneCyclePayment.label,
+                                  shiftCount: previewCost.oneCyclePayment.shiftCount,
+                                  totalWorkingHours: previewCost.oneCyclePayment.hours,
+                                  subtotalCents:
+                                    previewCost.oneCyclePayment.subtotalCents,
+                                  taxComponents:
+                                    previewCost.oneCyclePayment.taxComponents,
+                                  totalCents: previewCost.oneCyclePayment.totalCents,
+                                },
+                              ]}
+                            />
                           </div>
                         )}
                       </>
@@ -1065,14 +1111,26 @@ export function JobReview({
                             Total Cost per Required Candidates per Day
                           </span>
                           <span className="font-medium text-gray-900">
-                            $
-                            {(
-                              costPerShift * requiredCandidates
-                            ).toLocaleString("en-CA", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            {formatCurrency(
+                              Math.round(costPerShift * requiredCandidates * 100),
+                            )}
                           </span>
+                        </div>
+
+                        <div className="py-1">
+                          <PaymentBreakdownTable
+                            columns={[
+                              {
+                                id: "standard-period",
+                                title: "Billing period",
+                                shiftCount: previewCost?.monthlyPayments[0]?.shiftCount,
+                                totalWorkingHours: hoursPerCandidate,
+                                subtotalCents,
+                                taxComponents,
+                                totalCents: totalFeeCents,
+                              },
+                            ]}
+                          />
                         </div>
                       </>
                     )}
@@ -1082,10 +1140,10 @@ export function JobReview({
                     <div>
                       <span className="font-bold text-gray-900 block">
                         {instantPreviewCost
-                          ? "Total payable"
+                          ? "Total payable (incl. tax)"
                           : previewCost?.hasMonthlyBreakdown
-                            ? "Amount due now (first month)"
-                            : "Recurring Monthly Payable"}
+                            ? "Amount due now (incl. tax)"
+                            : "Recurring monthly payable (incl. tax)"}
                       </span>
                       {firstMonthPayment?.periodLabel && (
                         <span className="text-xs text-gray-600 mt-0.5 block">
@@ -1097,13 +1155,12 @@ export function JobReview({
                       {formatCurrency(totalFeeCents)}
                     </span>
                   </div>
-                  {previewCost?.monthlyPayments[1] && (
+                  {previewCost && previewCost.monthlyPayments.length > 1 && (
                     <p className="px-6 pb-4 text-xs text-gray-500 bg-orange-50/40">
-                      Second month billing ({previewCost.monthlyPayments[1].periodLabel}
-                      ): estimated{" "}
-                      {formatCurrency(previewCost.monthlyPayments[1].totalCents)}{" "}
-                      — charged on next billing cycle, not included in publish
-                      amount.
+                      {formatUpcomingMonthsNote(
+                        previewCost.monthlyPayments,
+                        previewCost.maxMonths,
+                      )}
                     </p>
                   )}
                 </>

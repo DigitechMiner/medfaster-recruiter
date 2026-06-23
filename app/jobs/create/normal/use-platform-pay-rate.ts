@@ -22,7 +22,8 @@ export function canFetchNormalJobFees(
   yearsOfExperience?: string,
 ): boolean {
   return (
-    Boolean(jobTitle?.trim()) && parseJobFeesYears(yearsOfExperience) !== null
+    Boolean(jobTitle?.trim()) &&
+    parseJobFeesYears(yearsOfExperience) !== null
   );
 }
 

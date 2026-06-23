@@ -126,6 +126,7 @@ export function buildInstantJobFeePreviewPayload(
   source: JobCreatePayload,
 ): InstantJobFeePreviewPayload | null {
   const jobTitle = source.job_title?.trim();
+  const province = source.province?.trim();
   const startDate = source.start_date?.trim();
   const endDate = source.end_date?.trim();
   const shiftTemplate = buildInstantShiftTemplate(
@@ -134,12 +135,13 @@ export function buildInstantJobFeePreviewPayload(
     source.break_duration_minutes,
   );
 
-  if (!jobTitle || !startDate || !endDate || !shiftTemplate) {
+  if (!jobTitle || !province || !startDate || !endDate || !shiftTemplate) {
     return null;
   }
 
   return {
     job_title: jobTitle,
+    province,
     no_of_hires_required: resolveNoOfHires(source),
     start_date: startDate,
     end_date: endDate,
