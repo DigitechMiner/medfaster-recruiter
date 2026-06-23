@@ -1,4 +1,8 @@
-import { DESCRIPTION_STEP_FIELDS } from "./constants";
+import {
+  DESCRIPTION_STEP_FIELDS,
+  YEARS_OF_EXPERIENCE_MAX,
+  YEARS_OF_EXPERIENCE_MIN,
+} from "./constants";
 import type { CreateFormStep, JobValidationError } from "./types";
 
 // START SECTION: Empty Value Helpers
@@ -145,6 +149,21 @@ export const isStringArrayBetween = (
   return { ok: true };
 };
 // END SECTION: Array Helpers
+
+// START SECTION: Experience Helpers
+/** Parses and clamps years of experience for form UI and submit payloads. */
+export function getExperienceYearsValue(experience?: string): number {
+  const rawValue = experience?.split("-")[0] ?? "";
+  const parsed = Number.parseInt(rawValue, 10);
+
+  if (!Number.isFinite(parsed)) return YEARS_OF_EXPERIENCE_MIN;
+
+  return Math.min(
+    YEARS_OF_EXPERIENCE_MAX,
+    Math.max(YEARS_OF_EXPERIENCE_MIN, parsed),
+  );
+}
+// END SECTION: Experience Helpers
 
 // START SECTION: Step Error Helpers
 export function filterValidationErrorsForStep(

@@ -35,6 +35,8 @@ interface InstantBasicStepProps {
   payRateCents?: number | null;
   payRateLoading?: boolean;
   payRateError?: string | null;
+  onRefreshPayRate?: () => void;
+  canRefreshPayRate?: boolean;
 }
 
 export function InstantBasicStep({
@@ -44,6 +46,8 @@ export function InstantBasicStep({
   payRateCents = null,
   payRateLoading = false,
   payRateError = null,
+  onRefreshPayRate,
+  canRefreshPayRate = false,
 }: InstantBasicStepProps) {
   const {
     departments,
@@ -448,6 +452,8 @@ export function InstantBasicStep({
           payRateError={payRateError}
           jobTitleSelected={Boolean(formData.job_title)}
           province={formData.province}
+          onRefreshPayRate={onRefreshPayRate}
+          canRefreshPayRate={canRefreshPayRate}
         />
       </div>
 

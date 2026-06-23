@@ -52,6 +52,9 @@ import {
   getCandidatesPerTeam,
   getCandidateWeeklyHoursViolations,
   formatCandidateWeeklyHoursViolations,
+  getChainedShiftAnchor,
+  isShiftEndTimeEditable,
+  isShiftStartTimeEditable,
   MAX_CANDIDATE_WEEKLY_WORKING_HOURS,
   usesFifoShiftSelection,
   type ShiftTimesState,
@@ -267,11 +270,12 @@ export function NormalSchedulingStep({
   const buildShiftTimesRecalcPatch = (
     duration: ShiftDurationType,
     selected: ShiftType[] = selectedShiftTypes,
+    durationPerDay: "24" | "12" | "8" = jobDurationPerDay,
   ): Partial<JobFormData> =>
     rebuildShiftTimeChain({
       selectedShifts: selected,
       shiftDuration: duration,
-      jobDurationPerDay,
+      jobDurationPerDay: durationPerDay,
       existing: getExistingShiftTimes(),
     });
 
@@ -405,7 +409,7 @@ export function NormalSchedulingStep({
         shiftDetails,
         nextShiftDuration,
       ),
-      ...buildShiftTimesRecalcPatch(nextShiftDuration, trimmed),
+      ...buildShiftTimesRecalcPatch(nextShiftDuration, trimmed, value),
     });
   };
 
@@ -586,6 +590,21 @@ export function NormalSchedulingStep({
   const applyShiftTime = (key: ShiftKey, part: TimePart, time: string) => {
     const shiftType = key as ShiftType;
 
+    if (
+      part === "start" &&
+      !isShiftStartTimeEditable({
+        jobDurationPerDay,
+        selectedShifts: selectedShiftTypes,
+        shift: shiftType,
+      })
+    ) {
+      return;
+    }
+
+    if (part === "end" && !isShiftEndTimeEditable()) {
+      return;
+    }
+
     if (part === "end") {
       const timesPatch = shouldChainShiftTimes(
         jobDurationPerDay,
@@ -610,7 +629,8 @@ export function NormalSchedulingStep({
       ? buildChainedShiftTimes({
           selectedShifts: selectedShiftTypes,
           shiftDuration,
-          anchorShift: shiftType,
+          anchorShift:
+            getChainedShiftAnchor(selectedShiftTypes) ?? shiftType,
           anchorStartTime: time,
         })
       : buildSingleShiftTimes(shiftType, time, shiftDuration);
@@ -635,6 +655,20 @@ export function NormalSchedulingStep({
     time ? to12(time) : "Select time";
 
   const openTimePickerForShift = (key: ShiftKey, part: TimePart) => {
+    const shiftType = key as ShiftType;
+    if (
+      part === "start" &&
+      !isShiftStartTimeEditable({
+        jobDurationPerDay,
+        selectedShifts: selectedShiftTypes,
+        shift: shiftType,
+      })
+    ) {
+      return;
+    }
+    if (part === "end" && !isShiftEndTimeEditable()) {
+      return;
+    }
     setActiveShiftForTime(key);
     setActiveTimePart(part);
   };
@@ -882,9 +916,10 @@ export function NormalSchedulingStep({
           {shouldChainShiftTimes(jobDurationPerDay, selectedShiftTypes) && (
             <>
               {" "}
-              For 24 hr coverage, consecutive shifts overlap by 15 min at
-              handoff (e.g. 9:00 AM–5:15 PM, then 5:00 PM–1:15 AM, then 1:00
-              AM–9:15 AM for 8 hr shifts).
+              Set the first shift start time only; later shifts are calculated
+              automatically. Consecutive shifts overlap by 15 min at handoff
+              (e.g. 9:00 AM–5:15 PM, then 5:00 PM–1:15 AM, then 1:00 AM–9:15
+              AM for 8 hr shifts).
             </>
           )}
         </p>
@@ -930,6 +965,12 @@ export function NormalSchedulingStep({
                     (detail.break_duration_minutes !== undefined
                       ? String(detail.break_duration_minutes)
                       : "");
+                  const canEditStart = isShiftStartTimeEditable({
+                    jobDurationPerDay,
+                    selectedShifts: selectedShiftTypes,
+                    shift: shiftType,
+                  });
+                  const canEditEnd = isShiftEndTimeEditable();
 
                   return (
                     <div key={key} className={shiftRowGridClass}>
@@ -939,24 +980,46 @@ export function NormalSchedulingStep({
 
                       <button
                         type="button"
+                        disabled={!canEditStart}
                         onClick={() => openTimePickerForShift(key, "start")}
-                        className="flex h-11 items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700"
+                        className={cn(
+                          "flex h-11 items-center justify-between rounded-md border px-3 text-sm",
+                          canEditStart
+                            ? "border-gray-300 bg-white text-gray-700"
+                            : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500",
+                        )}
                       >
                         <span className="truncate">
                           {formatTimeDisplay(getShiftStart(key))}
                         </span>
-                        <Clock className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                        <Clock
+                          className={cn(
+                            "ml-2 h-4 w-4 shrink-0",
+                            canEditStart ? "text-gray-400" : "text-gray-300",
+                          )}
+                        />
                       </button>
 
                       <button
                         type="button"
+                        disabled={!canEditEnd}
                         onClick={() => openTimePickerForShift(key, "end")}
-                        className="flex h-11 items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700"
+                        className={cn(
+                          "flex h-11 items-center justify-between rounded-md border px-3 text-sm",
+                          canEditEnd
+                            ? "border-gray-300 bg-white text-gray-700"
+                            : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500",
+                        )}
                       >
                         <span className="truncate">
                           {formatTimeDisplay(getShiftEnd(key))}
                         </span>
-                        <Clock className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                        <Clock
+                          className={cn(
+                            "ml-2 h-4 w-4 shrink-0",
+                            canEditEnd ? "text-gray-400" : "text-gray-300",
+                          )}
+                        />
                       </button>
 
                       <Input

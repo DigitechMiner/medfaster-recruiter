@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getJobFees } from "@/features/jobs";
 import {
   cacheJobPayRate,
   canFetchInstantJobFees,
   canFetchNormalJobFees,
+  clearCachedPayRate,
   getCachedPayRateCents,
   parseJobFeesYears,
 } from "@/app/jobs/create/normal/use-platform-pay-rate";
@@ -46,6 +47,16 @@ export function usePlatformPayRate({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const forceRefreshRef = useRef(false);
+
+  const refresh = useCallback(() => {
+    if (!canFetch) return;
+
+    clearCachedPayRate();
+    forceRefreshRef.current = true;
+    setRefreshNonce((nonce) => nonce + 1);
+  }, [canFetch]);
 
   useEffect(() => {
     if (!enabled || !canFetch) {
@@ -55,25 +66,30 @@ export function usePlatformPayRate({
       return;
     }
 
-    if (feeType === "instant") {
-      const cachedRateCents = getCachedPayRateCents(trimmedTitle, "instant");
-      if (cachedRateCents !== null) {
-        setPayRateCents(cachedRateCents);
-        setError(null);
-        setLoading(false);
-        return;
-      }
-    } else {
-      const cachedRateCents = getCachedPayRateCents(
-        trimmedTitle,
-        "normal",
-        experienceYears as number,
-      );
-      if (cachedRateCents !== null) {
-        setPayRateCents(cachedRateCents);
-        setError(null);
-        setLoading(false);
-        return;
+    const forceRefresh = forceRefreshRef.current;
+    forceRefreshRef.current = false;
+
+    if (!forceRefresh) {
+      if (feeType === "instant") {
+        const cachedRateCents = getCachedPayRateCents(trimmedTitle, "instant");
+        if (cachedRateCents !== null) {
+          setPayRateCents(cachedRateCents);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+      } else {
+        const cachedRateCents = getCachedPayRateCents(
+          trimmedTitle,
+          "normal",
+          experienceYears as number,
+        );
+        if (cachedRateCents !== null) {
+          setPayRateCents(cachedRateCents);
+          setError(null);
+          setLoading(false);
+          return;
+        }
       }
     }
 
@@ -123,11 +139,21 @@ export function usePlatformPayRate({
     return () => {
       didCancel = true;
     };
-  }, [canFetch, enabled, experienceYears, feeType, trimmedTitle, yearsOfExperience]);
+  }, [
+    canFetch,
+    enabled,
+    experienceYears,
+    feeType,
+    refreshNonce,
+    trimmedTitle,
+    yearsOfExperience,
+  ]);
 
   return {
     payRateCents,
     payRateLoading: loading,
     payRateError: error,
+    refreshPayRate: refresh,
+    canRefreshPayRate: canFetch,
   };
 }

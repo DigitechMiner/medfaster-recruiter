@@ -157,7 +157,13 @@ export function InstantJobForm({
     buildInitialInstantForm(formSnapshot),
   );
 
-  const { payRateCents, payRateLoading, payRateError } = usePlatformPayRate({
+  const {
+    payRateCents,
+    payRateLoading,
+    payRateError,
+    refreshPayRate,
+    canRefreshPayRate,
+  } = usePlatformPayRate({
     feeType: "instant",
     jobTitle: formData.job_title,
   });
@@ -327,6 +333,8 @@ export function InstantJobForm({
               payRateCents={payRateCents}
               payRateLoading={payRateLoading}
               payRateError={payRateError}
+              onRefreshPayRate={refreshPayRate}
+              canRefreshPayRate={canRefreshPayRate}
             />
           ) : (
             <DescriptionForm

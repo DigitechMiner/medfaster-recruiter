@@ -37,23 +37,12 @@ import {
 } from "../form/utils";
 import { DescriptionForm } from "../form/description-form";
 import { NormalBasicStep } from "./normal-basic-step";
-
-const EXPERIENCE_MIN = 0;
-const EXPERIENCE_MAX = 20;
+import { getExperienceYearsValue } from "../validation/helpers";
 
 type JobTypeOption = { label: string; value: string };
 
 const toJobUrgency = (mode: "normal" | "instant"): JobUrgency =>
   mode === "instant" ? "INSTANT" : "NORMAL";
-
-const getExperienceYearsValue = (experience?: string): number => {
-  const rawValue = experience?.split("-")[0] ?? "";
-  const parsed = Number.parseInt(rawValue, 10);
-
-  if (!Number.isFinite(parsed)) return EXPERIENCE_MIN;
-
-  return Math.min(EXPERIENCE_MAX, Math.max(EXPERIENCE_MIN, parsed));
-};
 
 const getJobTypeValue = (
   jobType: string,

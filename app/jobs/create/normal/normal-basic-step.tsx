@@ -25,16 +25,11 @@ import {
 } from "../components/form-field";
 import type { JobFormFieldErrors } from "../validation";
 import { HourlyPayWithTaxes } from "../components/hourly-pay-with-taxes";
-
-const EXPERIENCE_MIN = 0;
-const EXPERIENCE_MAX = 20;
-
-const getExperienceYearsValue = (experience?: string): number => {
-  const rawValue = experience?.split("-")[0] ?? "";
-  const parsed = Number.parseInt(rawValue, 10);
-  if (!Number.isFinite(parsed)) return EXPERIENCE_MIN;
-  return Math.min(EXPERIENCE_MAX, Math.max(EXPERIENCE_MIN, parsed));
-};
+import {
+  YEARS_OF_EXPERIENCE_MAX,
+  YEARS_OF_EXPERIENCE_MIN,
+} from "../validation/constants";
+import { getExperienceYearsValue } from "../validation/helpers";
 
 interface NormalBasicStepProps {
   formData: JobFormData;
@@ -79,7 +74,13 @@ export function NormalBasicStep({
 
   const [qualificationDraft, setQualificationDraft] = useState("");
 
-  const { payRateCents, payRateLoading, payRateError } = usePlatformPayRate({
+  const {
+    payRateCents,
+    payRateLoading,
+    payRateError,
+    refreshPayRate,
+    canRefreshPayRate,
+  } = usePlatformPayRate({
     feeType: "normal",
     jobTitle: formData.job_title,
     yearsOfExperience: formData.years_of_experience,
@@ -458,12 +459,12 @@ export function NormalBasicStep({
           className="space-y-3"
         >
           <div className="space-y-4 pt-2">
-            <div className="flex justify-between text-sm font-medium text-gray-600">
-              <span>{experienceValue} Years</span>
+            <div className="text-sm font-medium text-gray-600">
+              <span>{experienceValue}+</span>
             </div>
             <Slider
-              min={EXPERIENCE_MIN}
-              max={EXPERIENCE_MAX}
+              min={YEARS_OF_EXPERIENCE_MIN}
+              max={YEARS_OF_EXPERIENCE_MAX}
               step={1}
               value={[experienceValue]}
               onValueChange={(value) =>
@@ -472,7 +473,7 @@ export function NormalBasicStep({
                   backend_pay_rate: undefined,
                 })
               }
-              className="w-full"
+              className="w-full cursor-pointer"
             />
           </div>
         </JobFormField>
@@ -549,6 +550,8 @@ export function NormalBasicStep({
             jobTitleSelected={hasJobTitle}
             province={formData.province}
             emptyJobTitleMessage="Select a job title and experience first"
+            onRefreshPayRate={refreshPayRate}
+            canRefreshPayRate={canRefreshPayRate}
           />
         )}
 

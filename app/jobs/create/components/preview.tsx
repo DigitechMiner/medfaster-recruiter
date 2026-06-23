@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Mail, MapPin, Phone, Users } from "lucide-react";
+import { AlertCircle, Clock, Mail, MapPin, Phone, RefreshCw, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import SuccessModal from "@/components/modal";
 import { DataTable } from "@/components/table/DataTable";
@@ -37,6 +37,7 @@ import type {
   NormalJobFeePreviewData,
   NormalJobFeePreviewPayload,
   RecruiterJobCreateBody,
+  ShiftType,
 } from "@/types";
 import {
   getShiftDurationHours,
@@ -44,7 +45,11 @@ import {
   shiftSpansMidnight,
 } from "../validation/helpers";
 import { getMetadataLabel } from "@/utils/constant/metadata";
-import { getTeamForTemplateDay } from "../normal/scheduling-utils";
+import {
+  calculateTotalCandidatesRequired,
+  getTeamForTemplateDay,
+} from "../normal/scheduling-utils";
+import { cn } from "@/lib/utils";
 
 interface JobReviewProps {
   mode: "normal" | "urgent";
@@ -131,6 +136,32 @@ function getTeamForDay(payload: JobCreatePayload, dayIndex: number): string {
   return getTeamForTemplateDay(payload.schedule_template, dayIndex);
 }
 
+function resolveRequiredHires(
+  payload: JobCreatePayload,
+  feePreviewHires?: number,
+): number {
+  const selectedShifts = (payload.selected_shift_types ?? []) as ShiftType[];
+  if (selectedShifts.length > 0 && payload.shift_schedule_details) {
+    const teamCount = Number(payload.number_of_teams) || 1;
+    const computed = calculateTotalCandidatesRequired(
+      selectedShifts,
+      payload.shift_schedule_details,
+      teamCount,
+    );
+    if (computed > 0) return computed;
+  }
+
+  if (
+    typeof payload.no_of_hires_required === "number" &&
+    payload.no_of_hires_required > 0
+  ) {
+    return payload.no_of_hires_required;
+  }
+
+  if (feePreviewHires && feePreviewHires > 0) return feePreviewHires;
+  return 1;
+}
+
 function buildShiftRows(payload: JobCreatePayload): ShiftPreviewRow[] {
   const start = parsePayloadDate(payload.start_date);
   const end = parsePayloadDate(payload.end_date);
@@ -161,7 +192,7 @@ function buildShiftRows(payload: JobCreatePayload): ShiftPreviewRow[] {
       totalWorkingHours:
         hoursPerDay != null ? `${hoursPerDay} hrs` : "-",
       team: getTeamForDay(payload, day - 1),
-      workers: payload.no_of_hires_required ?? 1,
+      workers: resolveRequiredHires(payload),
     });
 
     cursor.setDate(cursor.getDate() + 1);
@@ -308,6 +339,7 @@ export function JobReview({
     useState<JobFeePreviewResponse["data"] | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
   const [feeError, setFeeError] = useState<string | null>(null);
+  const [feeRefreshNonce, setFeeRefreshNonce] = useState(0);
   const [shiftPage, setShiftPage] = useState(1);
   const [shiftPerPage, setShiftPerPage] = useState(DEFAULT_SHIFT_PER_PAGE);
 
@@ -347,8 +379,6 @@ export function JobReview({
 
   /** Stable string key so fee preview only refetches when request data actually changes. */
   const feePreviewRequestKey = useMemo(() => {
-    if (isFullTime) return null;
-
     if (mode === "normal") {
       const body = buildNormalJobFeePreviewPayload(payload);
       return body ? `normal:${JSON.stringify(body)}` : null;
@@ -356,7 +386,14 @@ export function JobReview({
 
     const instantBody = buildInstantJobFeePreviewPayload(payload);
     return instantBody ? `instant:${JSON.stringify(instantBody)}` : null;
-  }, [isFullTime, mode, payload]);
+  }, [mode, payload]);
+
+  const canRefreshFeePreview = Boolean(feePreviewRequestKey);
+
+  const refreshFeePreview = useCallback(() => {
+    if (!feePreviewRequestKey) return;
+    setFeeRefreshNonce((nonce) => nonce + 1);
+  }, [feePreviewRequestKey]);
 
   useEffect(() => {
     if (!feePreviewRequestKey) return;
@@ -386,9 +423,7 @@ export function JobReview({
       })
       .catch(() => {
         if (!cancelled) {
-          setFeeError(
-            "Could not load cost estimate. Please go back and try again.",
-          );
+          setFeeError("Could not load cost estimate.");
         }
       })
       .finally(() => {
@@ -398,20 +433,22 @@ export function JobReview({
     return () => {
       cancelled = true;
     };
-  }, [feePreviewRequestKey]);
+  }, [feePreviewRequestKey, feeRefreshNonce]);
 
-  const requiredCandidates =
-    feePreview?.no_of_hires ?? payload.no_of_hires_required ?? 1;
+  const requiredCandidates = useMemo(
+    () => resolveRequiredHires(payload, feePreview?.no_of_hires),
+    [payload, feePreview?.no_of_hires],
+  );
 
   const instantPreviewCost = useMemo(
     () =>
       isUrgent
         ? buildInstantPreviewCostSummary(
             feePreview as InstantJobFeePreviewData | null,
-            payload.no_of_hires_required ?? 1,
+            requiredCandidates,
           )
         : null,
-    [isUrgent, feePreview, payload.no_of_hires_required],
+    [isUrgent, feePreview, requiredCandidates],
   );
 
   const previewCost = useMemo(
@@ -420,9 +457,9 @@ export function JobReview({
         ? null
         : buildNormalPreviewCostSummary(
             feePreview as NormalJobFeePreviewData | null,
-            payload.no_of_hires_required ?? 1,
+            requiredCandidates,
           ),
-    [isUrgent, feePreview, payload.no_of_hires_required],
+    [isUrgent, feePreview, requiredCandidates],
   );
 
   const hourlyRateCents =
@@ -438,9 +475,8 @@ export function JobReview({
   const costPerShiftCents =
     instantPreviewCost?.costPerShiftCents ?? previewCost?.costPerShiftCents ?? 0;
   const costPerShift = costPerShiftCents / 100;
-  const totalFeeCents = isFullTime
-    ? 0
-    : (instantPreviewCost?.dueNowCents ?? previewCost?.dueNowCents ?? 0);
+  const totalFeeCents =
+    instantPreviewCost?.dueNowCents ?? previewCost?.dueNowCents ?? 0;
   const subtotalCents =
     instantPreviewCost?.subtotalCents ?? previewCost?.subtotalCents ?? 0;
   const taxComponents =
@@ -451,7 +487,7 @@ export function JobReview({
     : hasNormalPreviewShifts(feePreview);
 
   const isSubmitDisabled =
-    isProcessing || (!isFullTime && (feeLoading || !!feeError || !feePreview));
+    isProcessing || feeLoading || !!feeError || !feePreview;
 
   useEffect(() => {
     onActionStateChange?.({ isProcessing, isSubmitDisabled });
@@ -460,8 +496,8 @@ export function JobReview({
   const handlePublishJob = async () => {
     if (isProcessing) return;
 
-    if (!isFullTime && !feePreview) {
-      setError("Cost estimate not loaded. Please wait or go back and retry.");
+    if (!feePreview) {
+      setError("Cost estimate not loaded. Please wait or refresh and try again.");
       return;
     }
 
@@ -482,8 +518,8 @@ export function JobReview({
     try {
       const requiredCents = totalFeeCents;
 
-      if (!isFullTime && (!Number.isFinite(requiredCents) || requiredCents <= 0)) {
-        setError("Invalid cost estimate. Please go back and try again.");
+      if (!Number.isFinite(requiredCents) || requiredCents < 0) {
+        setError("Invalid cost estimate. Please refresh and try again.");
         return;
       }
 
@@ -767,7 +803,7 @@ export function JobReview({
           </div>
 
           {/* Job Details table */}
-          {!isFullTime && shifts.length > 0 && (
+          {shifts.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <div className="mb-4">
                 <h3 className="text-base font-semibold text-gray-900">
@@ -870,12 +906,30 @@ export function JobReview({
           )}
 
           {/* Cost Breakdown */}
-          {!isFullTime && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex items-start justify-between gap-4 p-6 pb-2">
+                <h3 className="text-base font-semibold text-gray-900">
                   Cost Breakdown
                 </h3>
+                {canRefreshFeePreview && (
+                  <button
+                    type="button"
+                    onClick={refreshFeePreview}
+                    disabled={feeLoading}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors",
+                      "hover:bg-gray-100 hover:text-gray-900",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
+                      feeError && "text-[#F4781B] hover:text-[#d96814]",
+                    )}
+                    aria-label="Refresh cost estimate"
+                  >
+                    <RefreshCw
+                      className={cn("h-3.5 w-3.5", feeLoading && "animate-spin")}
+                    />
+                    Refresh
+                  </button>
+                )}
               </div>
 
               {feeLoading && (
@@ -884,7 +938,10 @@ export function JobReview({
                 </p>
               )}
               {feeError && (
-                <p className="px-6 pb-4 text-sm text-red-600">{feeError}</p>
+                <p className="flex items-center gap-1.5 px-6 pb-4 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {feeError}
+                </p>
               )}
 
               {!feeLoading && !feeError && (
@@ -1166,7 +1223,6 @@ export function JobReview({
                 </>
               )}
             </div>
-          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">

@@ -4,6 +4,9 @@ export const MIN_START_LEAD_TIME_HOURS = 1;
 export const SHIFT_MIN_HOURS = 3;
 export const SHIFT_MAX_HOURS = 12;
 
+export const YEARS_OF_EXPERIENCE_MIN = 0;
+export const YEARS_OF_EXPERIENCE_MAX = 10;
+
 export const MAX_QUESTIONS = 10;
 export const MAX_ARRAY_ITEMS = 20;
 

@@ -510,6 +510,28 @@ export function shouldChainShiftTimes(
   return canSelectMultipleShifts(jobDurationPerDay) && selectedShifts.length > 1;
 }
 
+/** First shift in day order — anchor for chained 24 h coverage. */
+export function getChainedShiftAnchor(
+  selectedShifts: ShiftType[],
+): ShiftType | undefined {
+  return sortShiftsInDayOrder(selectedShifts)[0];
+}
+
+/** Only the first selected shift's start time is user-editable when shifts chain. */
+export function isShiftStartTimeEditable(params: {
+  jobDurationPerDay: "24" | "12" | "8";
+  selectedShifts: ShiftType[];
+  shift: ShiftType;
+}): boolean {
+  const anchor = getChainedShiftAnchor(params.selectedShifts);
+  return anchor != null && params.shift === anchor;
+}
+
+/** End times are always derived from start time (or the chain), never edited directly. */
+export function isShiftEndTimeEditable(): boolean {
+  return false;
+}
+
 /** Rebuild chain from the first selected shift that already has a start time. */
 /**
  * Fills missing shift start/end from chained 24h coverage or shift duration rules.
@@ -581,14 +603,10 @@ export function rebuildShiftTimeChain(params: {
     return buildSingleShiftTimes(first, start, params.shiftDuration);
   }
 
-  const anchorShift = ordered.find(
-    (shift) => getShiftStartFromState(shift, params.existing),
-  );
-  const anchorStart = anchorShift
-    ? getShiftStartFromState(anchorShift, params.existing)
-    : undefined;
+  const anchorShift = ordered[0];
+  const anchorStart = getShiftStartFromState(anchorShift, params.existing);
 
-  if (!anchorShift || !anchorStart) return {};
+  if (!anchorStart) return {};
 
   return buildChainedShiftTimes({
     selectedShifts: params.selectedShifts,

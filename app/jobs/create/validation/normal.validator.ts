@@ -20,8 +20,7 @@ import {
   sortShiftsInDayOrder,
   type ShiftTimesState,
 } from "../normal/scheduling-utils";
-
-const MAX_YEARS_OF_EXPERIENCE = 20;
+import { YEARS_OF_EXPERIENCE_MAX } from "./constants";
 
 // START SECTION: Normal Job Validator
 export function validateNormalJob(payload: JobCreatePayload, push: PushError) {
@@ -46,10 +45,10 @@ function validateExperience(payload: JobCreatePayload, push: PushError) {
       "years_of_experience",
       "Years of experience must be a whole number.",
     );
-  } else if (Number(payload.years_of_experience) > MAX_YEARS_OF_EXPERIENCE) {
+  } else if (Number(payload.years_of_experience) > YEARS_OF_EXPERIENCE_MAX) {
     push(
       "years_of_experience",
-      `Years of experience cannot exceed ${MAX_YEARS_OF_EXPERIENCE}.`,
+      `Years of experience cannot exceed ${YEARS_OF_EXPERIENCE_MAX}.`,
     );
   }
 }
@@ -173,7 +172,7 @@ function isSnapshotDateMissing(value: unknown): boolean {
 
 /** Returns a user-facing message when scheduling step dates are missing. */
 export function formatSchedulingStepDateErrors(
-  snapshot: Pick<JobFormSnapshot, "start_date" | "end_date">,
+  snapshot: Pick<JobFormSnapshot, "start_date" | "end_date" | "job_type">,
 ): string | null {
   const messages: string[] = [];
 
@@ -181,7 +180,10 @@ export function formatSchedulingStepDateErrors(
     messages.push("Job start date is required.");
   }
 
-  if (isSnapshotDateMissing(snapshot.end_date)) {
+  const isFullTime =
+    (snapshot.job_type ?? "").toString().toLowerCase() === "full_time";
+
+  if (!isFullTime && isSnapshotDateMissing(snapshot.end_date)) {
     messages.push("Job end date is required.");
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProvinceTaxComponent } from "@/types";
 import { useProvinceTaxes } from "@/hooks/useProvinceTaxes";
@@ -38,6 +38,8 @@ interface HourlyPayWithTaxesProps {
   payRateError: string | null;
   jobTitleSelected: boolean;
   province?: string;
+  onRefreshPayRate?: () => void;
+  canRefreshPayRate?: boolean;
   id?: string;
   label?: string;
   emptyJobTitleMessage?: string;
@@ -50,6 +52,8 @@ export function HourlyPayWithTaxes({
   payRateError,
   jobTitleSelected,
   province,
+  onRefreshPayRate,
+  canRefreshPayRate = false,
   id = "hourly-pay",
   label = "Hourly Pay per Hire",
   emptyJobTitleMessage = "Select a job title first",
@@ -60,6 +64,7 @@ export function HourlyPayWithTaxes({
     data: taxes,
     loading: taxesLoading,
     error: taxesError,
+    refresh: refreshTaxes,
   } = useProvinceTaxes(province, hasProvince);
 
   const breakdown =
@@ -72,8 +77,44 @@ export function HourlyPayWithTaxes({
     payRateCents !== null &&
     (taxesLoading || taxesError || breakdown);
 
+  const canRefreshFees = canRefreshPayRate && Boolean(onRefreshPayRate);
+  const canRefreshProvinceTaxes = hasProvince;
+  const showRefreshButton = canRefreshFees || canRefreshProvinceTaxes;
+  const isRefreshing = payRateLoading || taxesLoading;
+
+  const handleRefresh = () => {
+    if (canRefreshFees) {
+      onRefreshPayRate?.();
+    }
+    if (canRefreshProvinceTaxes) {
+      refreshTaxes();
+    }
+  };
+
   return (
     <JobFormField id={id} label={label} className={cn("space-y-2", className)}>
+      {showRefreshButton && (
+        <div className="-mt-1 flex justify-end">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors",
+              "hover:bg-gray-100 hover:text-gray-900",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              (payRateError || taxesError) && "text-[#F4781B] hover:text-[#d96814]",
+            )}
+            aria-label="Refresh pay rate and tax information"
+          >
+            <RefreshCw
+              className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
+            />
+            Refresh
+          </button>
+        </div>
+      )}
+
       <div
         id={id}
         className="flex h-11 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500 select-none"

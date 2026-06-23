@@ -116,6 +116,9 @@ function mergeSnapshotIntoJobPayload(
       snapshot.shift_schedule_details ?? base.shift_schedule_details,
     schedule_template:
       snapshot.schedule_template ?? base.schedule_template,
+    no_of_hires_required: snapshot.no_of_hires_required
+      ? parseInt(String(snapshot.no_of_hires_required), 10)
+      : base.no_of_hires_required,
     pay_per_hour_cents:
       snapshot.backend_pay_rate != null
         ? Math.round(snapshot.backend_pay_rate * 100)

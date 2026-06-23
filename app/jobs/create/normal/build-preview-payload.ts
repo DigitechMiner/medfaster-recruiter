@@ -76,6 +76,28 @@ function orderShiftsForPreview(selected: ShiftType[]): ShiftType[] {
   return SHIFT_TEMPLATE_ORDER.filter((shift) => selected.includes(shift));
 }
 
+function isFullTimeJobType(jobType?: string): boolean {
+  const normalized = (jobType ?? "").toString().toLowerCase();
+  return normalized === "full_time";
+}
+
+/** Full-time posts may omit end date; preview uses one month from start. */
+function resolvePreviewEndDate(
+  source: NormalJobSchedulingSource,
+  startDateIso: string,
+): string | undefined {
+  const explicitEnd = toPreviewIsoDate(source.end_date);
+  if (explicitEnd) return explicitEnd;
+  if (!isFullTimeJobType(source.job_type)) return undefined;
+
+  const start = new Date(startDateIso);
+  if (Number.isNaN(start.getTime())) return undefined;
+
+  const previewEnd = new Date(start);
+  previewEnd.setMonth(previewEnd.getMonth() + 1);
+  return previewEnd.toISOString();
+}
+
 export type NormalJobSchedulingSource = JobCreatePayload | JobFormData;
 
 /**
@@ -87,7 +109,9 @@ export function buildNormalJobSchedulingPayload(
   const jobTitle = source.job_title?.trim();
   const province = source.province?.trim();
   const startDate = toPreviewIsoDate(source.start_date);
-  const endDate = toPreviewIsoDate(source.end_date);
+  const endDate = startDate
+    ? resolvePreviewEndDate(source, startDate)
+    : undefined;
 
   const selectedShifts = orderShiftsForPreview(
     (source.selected_shift_types as ShiftType[] | undefined) ?? [],

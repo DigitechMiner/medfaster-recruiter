@@ -67,6 +67,14 @@ export function cacheJobPayRate(
   } as JobFormSnapshot);
 }
 
+export function clearCachedPayRate(): void {
+  const currentSnapshot = useJobsStore.getState().formSnapshot;
+  if (!currentSnapshot?.cachedPayRate) return;
+
+  const { cachedPayRate: _removed, ...rest } = currentSnapshot;
+  useJobsStore.getState().setFormSnapshot(rest as JobFormSnapshot);
+}
+
 export function shouldSyncPlatformPayRate(jobType?: string): boolean {
   return jobType === "part_time" || jobType === "full_time";
 }

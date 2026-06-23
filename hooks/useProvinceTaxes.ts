@@ -1,15 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getProvinceTaxes } from "@/features/jobs";
 import type { ProvinceTaxesData } from "@/types";
 
 const provinceTaxCache = new Map<string, ProvinceTaxesData>();
 
+export function clearProvinceTaxCache(province?: string): void {
+  const trimmed = province?.trim();
+  if (trimmed) {
+    provinceTaxCache.delete(trimmed);
+    return;
+  }
+
+  provinceTaxCache.clear();
+}
+
 export function useProvinceTaxes(province?: string, enabled = true) {
   const [data, setData] = useState<ProvinceTaxesData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const forceRefreshRef = useRef(false);
+
+  const refresh = useCallback(() => {
+    const trimmed = province?.trim();
+    if (!enabled || !trimmed) return;
+
+    clearProvinceTaxCache(trimmed);
+    forceRefreshRef.current = true;
+    setRefreshNonce((nonce) => nonce + 1);
+  }, [enabled, province]);
 
   useEffect(() => {
     if (!enabled) {
@@ -27,12 +48,17 @@ export function useProvinceTaxes(province?: string, enabled = true) {
       return;
     }
 
-    const cached = provinceTaxCache.get(trimmed);
-    if (cached) {
-      setData(cached);
-      setError(null);
-      setLoading(false);
-      return;
+    const forceRefresh = forceRefreshRef.current;
+    forceRefreshRef.current = false;
+
+    if (!forceRefresh) {
+      const cached = provinceTaxCache.get(trimmed);
+      if (cached) {
+        setData(cached);
+        setError(null);
+        setLoading(false);
+        return;
+      }
     }
 
     let didCancel = false;
@@ -60,7 +86,7 @@ export function useProvinceTaxes(province?: string, enabled = true) {
     return () => {
       didCancel = true;
     };
-  }, [enabled, province]);
+  }, [enabled, province, refreshNonce]);
 
-  return { data, loading, error };
+  return { data, loading, error, refresh };
 }
