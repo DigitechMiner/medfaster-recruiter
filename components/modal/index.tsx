@@ -140,7 +140,7 @@ const Modal: React.FC<ModalProps> = (props) => {
           {message && (
             <ResponsiveParagraph
               size="sm"
-              className="text-center text-gray-600 mb-4 sm:mb-6"
+              className="text-center text-gray-600 mb-4 sm:mb-6 whitespace-pre-line"
             >
               {message}
             </ResponsiveParagraph>

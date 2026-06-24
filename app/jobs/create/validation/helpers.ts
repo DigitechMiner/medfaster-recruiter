@@ -59,6 +59,20 @@ export const getShiftDurationHours = (
 
   return diff / 60;
 };
+
+/** Wall-clock span minus handoff overlap (work duration when end time includes handover). */
+export const getShiftWorkDurationHours = (
+  checkIn?: string,
+  checkOut?: string,
+  handoffOverlapMinutes = 0,
+): number | null => {
+  const wallClockHours = getShiftDurationHours(checkIn, checkOut);
+  if (wallClockHours === null) return null;
+  if (handoffOverlapMinutes <= 0) return wallClockHours;
+
+  const workHours = wallClockHours - handoffOverlapMinutes / 60;
+  return workHours > 0 ? workHours : wallClockHours;
+};
 // END SECTION: Time Helpers
 
 // START SECTION: Date Helpers

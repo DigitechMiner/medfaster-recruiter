@@ -39,11 +39,9 @@ import type {
   RecruiterJobCreateBody,
   ShiftType,
 } from "@/types";
-import {
-  getShiftDurationHours,
-  parseLocalDate,
-  shiftSpansMidnight,
-} from "../validation/helpers";
+import { getShiftDurationHours, parseLocalDate, shiftSpansMidnight } from "../validation/helpers";
+import { INSTANT_JOB_MIN_DURATION_HOURS, SHIFT_MAX_HOURS } from "../validation/constants";
+import { validatePayloadShiftDurations } from "../validation/shift-duration";
 import { getMetadataLabel } from "@/utils/constant/metadata";
 import {
   calculateTotalCandidatesRequired,
@@ -129,6 +127,36 @@ function resolveShiftTimes(payload: JobCreatePayload): {
       payload.morning_shift_end ??
       undefined,
   };
+}
+
+function buildJobCreatedSuccessMessage(
+  jobTitle: string,
+  payload: JobCreatePayload,
+): string {
+  const lines = [`${jobTitle} is now live and ready for applicants.`];
+
+  const start = parsePayloadDate(payload.start_date);
+  const end = parsePayloadDate(payload.end_date);
+
+  if (start && end) {
+    lines.push(`${formatDisplayDate(start)} – ${formatDisplayDate(end)}`);
+  } else if (start) {
+    lines.push(`Starts ${formatDisplayDate(start)}`);
+  }
+
+  const { checkIn, checkOut } = resolveShiftTimes(payload);
+  const formattedCheckIn = formatTime(checkIn);
+  const formattedCheckOut = formatTime(checkOut);
+
+  if (formattedCheckIn !== "-" && formattedCheckOut !== "-") {
+    lines.push(`${formattedCheckIn} – ${formattedCheckOut}`);
+  } else if (formattedCheckIn !== "-") {
+    lines.push(`Starts at ${formattedCheckIn}`);
+  } else if (formattedCheckOut !== "-") {
+    lines.push(`Ends at ${formattedCheckOut}`);
+  }
+
+  return lines.join("\n\n");
 }
 
 /** Matches schedule template in normal-scheduling-step. */
@@ -227,19 +255,13 @@ const MERGED_TABLE_CELL_CLASS =
   "px-4 py-3 whitespace-nowrap align-middle bg-white border-r border-gray-100";
 
 function validateShiftDuration(
-  checkIn?: string | null,
-  checkOut?: string | null,
+  payload: JobCreatePayload,
+  isInstant: boolean,
 ): string | null {
-  const hours = getShiftDurationHours(checkIn ?? undefined, checkOut ?? undefined);
-  if (hours == null) return null;
-
-  if (hours < 4) {
-    return "Shift duration must be at least 4 hours. Please go back and adjust the shift times.";
-  }
-  if (hours > 12) {
-    return "Shift duration cannot exceed 12 hours. Please go back and adjust the shift times.";
-  }
-  return null;
+  return validatePayloadShiftDurations(payload, {
+    minHours: isInstant ? INSTANT_JOB_MIN_DURATION_HOURS : 4,
+    maxHours: SHIFT_MAX_HOURS,
+  });
 }
 
 function isInsufficientBalanceError(msg: string): boolean {
@@ -334,7 +356,6 @@ export function JobReview({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successJobId, setSuccessJobId] = useState("");
   const [feePreview, setFeePreview] =
     useState<JobFeePreviewResponse["data"] | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
@@ -502,10 +523,7 @@ export function JobReview({
     }
 
     if (!isFullTime) {
-      const shiftError = validateShiftDuration(
-        payload.check_in_time,
-        payload.check_out_time,
-      );
+      const shiftError = validateShiftDuration(payload, isUrgent);
       if (shiftError) {
         setError(shiftError);
         return;
@@ -580,7 +598,6 @@ export function JobReview({
 
       if (res?.success) {
         await refreshWallet();
-        setSuccessJobId(res.jobId ?? "");
         setShowSuccess(true);
       } else {
         const msg = res?.message ?? "";
@@ -695,6 +712,19 @@ export function JobReview({
     if (!start || !end) return null;
     return `${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
   }, [payload.start_date, payload.end_date]);
+
+  const successMessage = useMemo(
+    () => buildJobCreatedSuccessMessage(displayJobTitle, payload),
+    [
+      displayJobTitle,
+      payload.start_date,
+      payload.end_date,
+      payload.check_in_time,
+      payload.check_out_time,
+      payload.morning_shift_start,
+      payload.morning_shift_end,
+    ],
+  );
 
   const previewDaysNote = useMemo(() => {
     const previewWindow = feePreview?.preview_window;
@@ -1241,7 +1271,7 @@ export function JobReview({
           router.push("/jobs");
         }}
         title="New Job Post Created"
-        message={`${payload.job_title} - Job ID: ${successJobId} is now live and ready for applicants.`}
+        message={successMessage}
         buttonText="Go to Dashboard"
       />
     </>

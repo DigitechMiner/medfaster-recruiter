@@ -510,6 +510,19 @@ export function shouldChainShiftTimes(
   return canSelectMultipleShifts(jobDurationPerDay) && selectedShifts.length > 1;
 }
 
+/** Handoff overlap included in chained shift end times (not actual work time). */
+export function getShiftHandoffOverlapMinutes(
+  jobDurationPerDay?: string,
+  selectedShifts?: ShiftType[],
+): number {
+  if (!selectedShifts?.length) return 0;
+
+  const duration = (jobDurationPerDay ?? "8") as "24" | "12" | "8";
+  return shouldChainShiftTimes(duration, selectedShifts)
+    ? SHIFT_HANDOFF_OVERLAP_MINUTES
+    : 0;
+}
+
 /** First shift in day order — anchor for chained 24 h coverage. */
 export function getChainedShiftAnchor(
   selectedShifts: ShiftType[],

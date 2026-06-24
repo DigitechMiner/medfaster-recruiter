@@ -1,7 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -102,7 +102,7 @@ export function CreateJobStepActions({
       >
         {nextLoading ? (
           <span className="flex items-center gap-2">
-            <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin"></span>
+            <Loader2 className="w-4 h-4 animate-spin" />
             {loadingLabel}
           </span>
         ) : (

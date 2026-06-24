@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
 import type {
   ApplicationStatus,
   JobBackendResponse,
+  JobDetailActivityData,
+  JobDetailDescriptionData,
+  JobDetailPaymentsData,
+  JobDetailSummaryData,
+  JobScheduleData,
+  JobWorkersResponse,
   JobDisputesResponse,
   JobShiftDetailsResponse,
   JobShiftsParams,
@@ -19,9 +25,15 @@ import type { JobListItem } from "@/types";
 import {
   getJobApplications,
   getRecruiterJobDisputes,
+  getRecruiterJobActivity,
+  getRecruiterJobDescription,
+  getRecruiterJobPayments,
+  getRecruiterJobSchedule,
   getRecruiterJobShiftDetails,
   getRecruiterJobShiftPayments,
   getRecruiterJobShifts,
+  getRecruiterJobSummary,
+  getRecruiterJobWorkers,
   getRecruiterJobWalletTransactions,
   JobApplicationListResponse,
 } from "@/features/jobs";
@@ -83,10 +95,9 @@ export function useJobs(params?: {
   return { jobs, pagination, isLoading, error };
 }
 
-// ─── useJob (single job by ID) ────────────────────────────────────────────────
-export function useJob(jobId: string | null) {
-  const getJob = useJobsStore(useCallback((state) => state.getJob, []));
-  const [job, setJob] = useState<JobBackendResponse | null>(null);
+// ─── useJobSummary (initial job detail screen) ───────────────────────────────
+export function useJobSummary(jobId: string | null) {
+  const [summary, setSummary] = useState<JobDetailSummaryData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,15 +111,17 @@ export function useJob(jobId: string | null) {
     setIsLoading(true);
     setError(null);
 
-    getJob(jobId)
-      .then((res) => {
-        if (cancelled) return;
-        if (res.success) setJob(res.data.job);
-        else setError(res.message);
+    getRecruiterJobSummary(jobId)
+      .then((data) => {
+        if (!cancelled) setSummary(data);
       })
       .catch((err) => {
         if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to fetch job");
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to fetch job",
+          );
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -117,10 +130,225 @@ export function useJob(jobId: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [jobId, getJob]);
+  }, [jobId]);
 
-  return { job, isLoading, error };
+  return { summary, isLoading, error };
 }
+
+/** @deprecated Use useJobSummary — kept for compatibility. */
+export function useJob(jobId: string | null) {
+  const { summary, isLoading, error } = useJobSummary(jobId);
+  return {
+    job: null as JobBackendResponse | null,
+    summary,
+    isLoading,
+    error,
+  };
+}
+
+// ─── useJobDescription (lazy-loaded overview tab) ────────────────────────────
+export function useJobDescription(jobId?: string | null, enabled = true) {
+  const [description, setDescription] =
+    useState<JobDetailDescriptionData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobDescription(jobId)
+      .then((data) => {
+        if (!cancelled) setDescription(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load description",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled]);
+
+  return { description, isLoading, error };
+}
+
+// ─── useJobActivity (activity timeline tab) ──────────────────────────────────
+export function useJobActivity(jobId?: string | null, enabled = true) {
+  const [activity, setActivity] = useState<JobDetailActivityData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobActivity(jobId)
+      .then((data) => {
+        if (!cancelled) setActivity(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load activity",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled]);
+
+  return { activity, isLoading, error };
+}
+
+// ─── useJobPayments (funding tab) ────────────────────────────────────────────
+export function useJobPayments(jobId?: string | null, enabled = true) {
+  const [payments, setPayments] = useState<JobDetailPaymentsData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobPayments(jobId)
+      .then((data) => {
+        if (!cancelled) setPayments(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load payments",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled]);
+
+  return { payments, isLoading, error };
+}
+
+// ─── useJobSchedule (rotation plan + templates) ──────────────────────────────
+export function useJobSchedule(jobId?: string | null, enabled = true) {
+  const [schedule, setSchedule] = useState<JobScheduleData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobSchedule(jobId)
+      .then((data) => {
+        if (!cancelled) setSchedule(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load schedule plan",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled]);
+
+  return { schedule, isLoading, error };
+}
+
+// ─── useJobWorkers (hired workforce) ─────────────────────────────────────────
+export function useJobWorkers(jobId?: string | null, enabled = true) {
+  const [workers, setWorkers] = useState<JobWorkersResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobWorkers(jobId)
+      .then((data) => {
+        if (!cancelled) setWorkers(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load workers",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled]);
+
+  return { workers, isLoading, error };
+}
+
+// ─── useJob (legacy full job — unused on detail page) ────────────────────────
+// Removed monolithic fetch; detail page uses useJobSummary + tab endpoints.
 
 // ─── useJobApplications ───────────────────────────────────────────────────────
 export function useJobApplications(params?: {

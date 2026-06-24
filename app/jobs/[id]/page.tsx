@@ -1,26 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
-import { useJob, useJobId } from "@/hooks/useJobData";
+import { useJobSummary, useJobId } from "@/hooks/useJobData";
 import { JobDetailTabs } from "./components/Tabs";
 import { JobDetailSummary } from "./components/BasicInfo";
-import { mapJobDetail, type JobDetailPayload } from "./components/job-detail-helpers";
+import { ScheduleSection } from "./components/ScheduleSection";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();
   const jobId = useJobId();
-  const { job, isLoading, error } = useJob(jobId);
-  const mappedJob = useMemo(
-    () => (job ? mapJobDetail(job as unknown as JobDetailPayload) : null),
-    [job],
-  );
+  const { summary, isLoading, error } = useJobSummary(jobId);
 
   useEffect(() => {
-    if (!isLoading && !job && jobId) router.replace("/jobs");
-  }, [isLoading, job, jobId, router]);
+    if (!isLoading && !summary && jobId) router.replace("/jobs");
+  }, [isLoading, summary, jobId, router]);
 
   if (isLoading) {
     return (
@@ -35,34 +31,34 @@ export default function JobDetailPageRoute() {
                 <div className="h-7 w-24 animate-pulse rounded-full bg-gray-100" />
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 p-6 lg:grid-cols-[1fr_300px]">
-              <div className="grid grid-cols-2 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
+            <div className="border-b border-gray-100 bg-gray-50/50 p-6">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
                   <div
                     key={i}
                     className="h-16 animate-pulse rounded-xl bg-gray-100"
                   />
                 ))}
               </div>
-              <div className="h-48 animate-pulse rounded-xl bg-orange-50" />
             </div>
-            <div className="border-t border-gray-100 bg-gray-50/50 p-6">
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-20 animate-pulse rounded-xl bg-white"
-                  />
-                ))}
-              </div>
+            <div className="p-6">
+              <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
             </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-20 animate-pulse rounded-xl bg-white border border-gray-200"
+              />
+            ))}
           </div>
         </div>
       </AppLayout>
     );
   }
 
-  if (error || !mappedJob) {
+  if (error || !summary) {
     return (
       <AppLayout padding="none">
         <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full">
@@ -80,13 +76,18 @@ export default function JobDetailPageRoute() {
         <BreadcrumbNav
           breadcrumbs={[
             { label: "Jobs", path: "/jobs" },
-            { label: jobId ?? "", path: `/job/${jobId}` },
+            { label: summary.title, path: `/jobs/${jobId}` },
           ]}
         />
 
-        <JobDetailSummary job={mappedJob} />
+        <JobDetailSummary summary={summary} />
+
         <Suspense fallback={null}>
-          <JobDetailTabs job={mappedJob} jobId={jobId!} />
+          <ScheduleSection summary={summary} jobId={jobId!} />
+        </Suspense>
+
+        <Suspense fallback={null}>
+          <JobDetailTabs summary={summary} jobId={jobId!} />
         </Suspense>
       </div>
     </AppLayout>

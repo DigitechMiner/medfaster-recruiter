@@ -195,7 +195,7 @@ function buildInstantJob(
   };
 }
 
-function formatShiftTemplateLine(shift: JobListShiftTemplate): string {
+export function formatShiftTemplateLine(shift: JobListShiftTemplate): string {
   const start = shift.start_time?.slice(0, 5);
   const end = shift.end_time?.slice(0, 5);
   const parts: string[] = [];
@@ -434,6 +434,15 @@ export function formatDate(value?: string | null) {
     month: "long",
     year: "numeric",
   });
+}
+
+export function formatDateRange(
+  startDate?: string | null,
+  endDate?: string | null,
+) {
+  if (!startDate && !endDate) return "N/A";
+  if (!endDate) return formatDate(startDate);
+  return `${formatDate(startDate)} – ${formatDate(endDate)}`;
 }
 
 export function formatDateTime(value?: string | null) {

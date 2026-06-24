@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { createRecruiterShiftDispute } from "@/features/jobs";
 import { useJobShifts } from "@/hooks/useJobData";
-import type { JobBackendResponse, JobShiftAssignment, JobShiftItem } from "@/types";
+import type { JobShiftAssignment, JobShiftItem, JobShiftStaffingGap } from "@/types";
 import {
   EmptyState,
   LoadingRows,
@@ -56,6 +56,7 @@ type ShiftCard = {
   duration?: number | string | null;
   status?: string | null;
   assignmentsCount: number;
+  staffingGap?: JobShiftStaffingGap | null;
   candidates: ShiftCandidate[];
 };
 
@@ -85,11 +86,22 @@ type ShiftCandidate = {
 };
 
 type JobShiftsTabProps = {
-  job: JobBackendResponse;
   jobId: string;
+  enabled?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
 };
 
-export function JobShiftsTab({ job, jobId }: JobShiftsTabProps) {
+export function JobShiftsTab({
+  jobId,
+  enabled = true,
+  startDate: jobStartDateProp,
+  endDate: jobEndDateProp,
+  checkInTime,
+  checkOutTime,
+}: JobShiftsTabProps) {
   const [status, setStatus] = useState<ShiftStatusFilter>("ALL");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -97,13 +109,16 @@ export function JobShiftsTab({ job, jobId }: JobShiftsTabProps) {
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeDescription, setDisputeDescription] = useState("");
   const [isCreatingDispute, setIsCreatingDispute] = useState(false);
-  const jobStartDate = toDateInputValue(job.start_date);
-  const jobEndDate = toDateInputValue(job.end_date);
-  const { shifts, isLoading, error } = useJobShifts(jobId, {
-    status: status === "ALL" ? undefined : status,
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-  });
+  const jobStartDate = toDateInputValue(jobStartDateProp);
+  const jobEndDate = toDateInputValue(jobEndDateProp);
+  const { shifts, isLoading, error } = useJobShifts(
+    enabled ? jobId : null,
+    {
+      status: status === "ALL" ? undefined : status,
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+    },
+  );
   const apiShifts = useMemo(() => shifts?.shifts ?? [], [shifts?.shifts]);
   const shiftCards = useMemo(
     () => apiShifts.map((shift, index) => mapJobShift(shift, index)),
@@ -161,12 +176,13 @@ export function JobShiftsTab({ job, jobId }: JobShiftsTabProps) {
   };
 
   return (
-
       <>
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Job Shifts</h3>
-            <p className="text-xs text-gray-400">Filter shifts by status or date range.</p>
+            <h3 className="text-sm font-semibold text-gray-900">Shifts</h3>
+            <p className="text-xs text-gray-400">
+              Live shift instances with assignments and staffing gaps.
+            </p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
@@ -247,7 +263,7 @@ export function JobShiftsTab({ job, jobId }: JobShiftsTabProps) {
                               <ShiftStatusPill value={shift.status} />
                             </div>
                             <p className="mt-1 text-xs font-medium text-gray-500">
-                              {formatDate(shift.date ?? job.start_date)} schedule and assignment details
+                              {formatDate(shift.date ?? jobStartDateProp)} schedule and assignment details
                             </p>
                           </div>
                         </div>
@@ -256,19 +272,19 @@ export function JobShiftsTab({ job, jobId }: JobShiftsTabProps) {
                             Planned Time
                           </p>
                           <p className="text-sm font-bold text-gray-900">
-                            {formatTime(shift.startTime ?? job.check_in_time)} -{" "}
-                            {formatTime(shift.endTime ?? job.check_out_time)}
+                            {formatTime(shift.startTime ?? checkInTime)} -{" "}
+                            {formatTime(shift.endTime ?? checkOutTime)}
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <div className="p-4">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <ShiftMetricCard
                           icon={<Clock size={16} />}
                           label="Start"
-                          value={formatTime(shift.startTime ?? job.check_in_time)}
+                          value={formatTime(shift.startTime ?? checkInTime)}
                         />
                         <ShiftMetricCard
                           icon={<Timer size={16} />}
@@ -279,6 +295,11 @@ export function JobShiftsTab({ job, jobId }: JobShiftsTabProps) {
                           icon={<Users size={16} />}
                           label="Assignments"
                           value={`${shift.assignmentsCount} ${shift.assignmentsCount === 1 ? "candidate" : "candidates"}`}
+                        />
+                        <ShiftMetricCard
+                          icon={<Users size={16} />}
+                          label="Staffing Gap"
+                          value={formatStaffingGap(shift.staffingGap)}
                         />
                       </div>
 
@@ -584,6 +605,18 @@ function CandidateBadge({
   );
 }
 
+function formatStaffingGap(gap?: JobShiftStaffingGap | null) {
+  if (!gap) return "N/A";
+  if (gap.gap != null) {
+    return gap.gap > 0 ? `${gap.gap} open` : "Filled";
+  }
+  if (gap.required != null && gap.assigned != null) {
+    const open = Math.max(gap.required - gap.assigned, 0);
+    return open > 0 ? `${open} open` : "Filled";
+  }
+  return "N/A";
+}
+
 function mapJobShift(shift: JobShiftItem, index: number): ShiftCard {
   const assignments = shift.assignments ?? [];
   const candidates = assignments.map(mapShiftCandidate);
@@ -596,6 +629,7 @@ function mapJobShift(shift: JobShiftItem, index: number): ShiftCard {
     duration: shift.planned_minutes ?? null,
     status: shift.status ?? shift.shift_status ?? null,
     assignmentsCount: assignments.length,
+    staffingGap: shift.staffing_gap ?? null,
     candidates,
   };
 }

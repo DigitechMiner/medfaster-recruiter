@@ -17,6 +17,7 @@ import {
   getDefaultBreakDurationMinutes,
   getDefaultTeamCount,
   getShiftEndFromState,
+  getShiftHandoffOverlapMinutes,
   getShiftStartFromState,
   getShiftLengthHours,
   MIN_CANDIDATES_PER_SHIFT,
@@ -25,7 +26,7 @@ import {
   type ShiftTimesState,
 } from "./scheduling-utils";
 import { DEFAULT_CYCLE_START_DAY } from "./constant";
-import { getShiftDurationHours } from "../validation/helpers";
+import { getShiftWorkDurationHours } from "../validation/helpers";
 
 export type { NormalJobFeePreviewPayload };
 
@@ -66,8 +67,13 @@ function resolveDurationHours(
   startTime: string,
   endTime: string,
   shiftDuration: ShiftDurationType,
+  handoffOverlapMinutes = 0,
 ): number {
-  const fromTimes = getShiftDurationHours(startTime, endTime);
+  const fromTimes = getShiftWorkDurationHours(
+    startTime,
+    endTime,
+    handoffOverlapMinutes,
+  );
   if (fromTimes != null && fromTimes > 0) return fromTimes;
   return getShiftLengthHours(shiftDuration);
 }
@@ -135,6 +141,10 @@ export function buildNormalJobSchedulingPayload(
     staffingType,
   );
   const teamLabels = buildTeamLabels(teamCount);
+  const handoffOverlapMinutes = getShiftHandoffOverlapMinutes(
+    source.job_duration_per_day,
+    selectedShifts,
+  );
 
   const existingTimes: ShiftTimesState = {
     morning_shift_start: source.morning_shift_start,
@@ -171,6 +181,7 @@ export function buildNormalJobSchedulingPayload(
           startTime,
           endTime,
           shiftDuration,
+          handoffOverlapMinutes,
         ),
         break_minutes: breakMinutes,
       },

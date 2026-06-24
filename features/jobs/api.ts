@@ -23,6 +23,13 @@ import type {
   JobDeleteResponse,
   JobDetailRecord,
   JobDetailResponse,
+  JobDetailActivityData,
+  JobDetailActivityEvent,
+  JobDetailDescriptionData,
+  JobDetailPaymentsData,
+  JobDetailSummaryData,
+  JobScheduleData,
+  JobWorkersResponse,
   JobInfoResponse,
   RecruiterJobInfo,
   JobDisputeItem,
@@ -114,6 +121,159 @@ export async function getRecruiterJobsSummary(): Promise<JobsSummaryData> {
 export async function getRecruiterJob(id: string): Promise<JobDetailResponse> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL(id));
   return extractRoot<JobDetailResponse>(res.data);
+}
+
+export async function getRecruiterJobSummary(
+  id: string,
+): Promise<JobDetailSummaryData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SUMMARY(id));
+  return extractData<JobDetailSummaryData>(res.data);
+}
+
+export async function getRecruiterJobDescription(
+  id: string,
+): Promise<JobDetailDescriptionData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_DESCRIPTION(id));
+  return extractData<JobDetailDescriptionData>(res.data);
+}
+
+function normalizeJobActivity(data: unknown): JobDetailActivityData {
+  if (!isRecord(data)) {
+    return { events: [] };
+  }
+
+  const events = Array.isArray(data.events)
+    ? (data.events as JobDetailActivityEvent[])
+    : Array.isArray(data.activity)
+      ? (data.activity as JobDetailActivityEvent[])
+      : Array.isArray(data)
+        ? (data as JobDetailActivityEvent[])
+        : [];
+
+  const sortedEvents = [...events].sort((a, b) => {
+    const aTime = new Date(
+      a.occurred_at ?? a.timestamp ?? a.created_at ?? 0,
+    ).getTime();
+    const bTime = new Date(
+      b.occurred_at ?? b.timestamp ?? b.created_at ?? 0,
+    ).getTime();
+    return bTime - aTime;
+  });
+
+  return {
+    job_id: typeof data.job_id === "string" ? data.job_id : undefined,
+    events: sortedEvents,
+  };
+}
+
+export async function getRecruiterJobActivity(
+  id: string,
+): Promise<JobDetailActivityData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_ACTIVITY(id));
+  const data = extractData<unknown>(res.data);
+  return normalizeJobActivity(data);
+}
+
+function normalizeJobPayments(data: unknown): JobDetailPaymentsData {
+  if (!isRecord(data)) return { cycles: [], ledger: [] };
+
+  const funding = isRecord(data.funding) ? data.funding : null;
+
+  let ledger: JobWalletTransactionItem[] = [];
+  if (Array.isArray(data.ledger)) {
+    ledger = data.ledger as JobWalletTransactionItem[];
+  } else if (Array.isArray(data.transactions)) {
+    ledger = data.transactions as JobWalletTransactionItem[];
+  } else if (Array.isArray(data.wallet_transactions)) {
+    ledger = data.wallet_transactions as JobWalletTransactionItem[];
+  } else if (funding && Array.isArray(funding.ledger)) {
+    ledger = funding.ledger as JobWalletTransactionItem[];
+  }
+
+  const cycles = Array.isArray(data.cycles)
+    ? data.cycles
+    : funding && Array.isArray(funding.cycles)
+      ? funding.cycles
+      : [];
+
+  const fundingStatus =
+    typeof data.funding_status === "string"
+      ? data.funding_status
+      : funding && typeof funding.status === "string"
+        ? funding.status
+        : undefined;
+
+  return {
+    ...(data as JobDetailPaymentsData),
+    funding_status: fundingStatus,
+    cycles: cycles as JobDetailPaymentsData["cycles"],
+    ledger,
+    transactions: ledger,
+    funding: funding as JobDetailPaymentsData["funding"],
+    fee_breakdown: isRecord(data.fee_breakdown)
+      ? (data.fee_breakdown as unknown as JobDetailPaymentsData["fee_breakdown"])
+      : null,
+  };
+}
+
+export async function getRecruiterJobPayments(
+  id: string,
+): Promise<JobDetailPaymentsData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_PAYMENTS(id));
+  return normalizeJobPayments(extractData(res.data));
+}
+
+function normalizeJobSchedule(data: unknown): JobScheduleData {
+  if (!isRecord(data)) {
+    return {
+      job_id: "",
+      job_urgency: "NORMAL",
+      shift_templates: [],
+      rotational_teams: [],
+      team_candidate_rotations: [],
+    };
+  }
+
+  return {
+    job_id: typeof data.job_id === "string" ? data.job_id : "",
+    job_urgency:
+      String(data.job_urgency ?? "NORMAL").toUpperCase() === "INSTANT"
+        ? "INSTANT"
+        : "NORMAL",
+    shift_mode: typeof data.shift_mode === "string" ? data.shift_mode : null,
+    rotation_cycle_days:
+      typeof data.rotation_cycle_days === "number"
+        ? data.rotation_cycle_days
+        : null,
+    cycle_start_day:
+      typeof data.cycle_start_day === "string" ? data.cycle_start_day : null,
+    shift_templates: Array.isArray(data.shift_templates)
+      ? (data.shift_templates as JobScheduleData["shift_templates"])
+      : [],
+    rotational_teams: Array.isArray(data.rotational_teams)
+      ? (data.rotational_teams as JobScheduleData["rotational_teams"])
+      : [],
+    team_candidate_rotations: Array.isArray(data.team_candidate_rotations)
+      ? (data.team_candidate_rotations as JobScheduleData["team_candidate_rotations"])
+      : [],
+  };
+}
+
+export async function getRecruiterJobSchedule(
+  id: string,
+): Promise<JobScheduleData> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SCHEDULE(id));
+  return normalizeJobSchedule(extractData(res.data));
+}
+
+export async function getRecruiterJobWorkers(
+  id: string,
+): Promise<JobWorkersResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_WORKERS(id));
+  const data = extractData<JobWorkersResponse | JobWorkersResponse["workers"]>(
+    res.data,
+  );
+  return Array.isArray(data) ? { workers: data } : { workers: data.workers ?? [] };
 }
 
 export async function getRecruiterJobInfo(id: string): Promise<RecruiterJobInfo> {

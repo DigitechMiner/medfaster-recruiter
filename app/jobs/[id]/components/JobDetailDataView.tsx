@@ -12,11 +12,13 @@ export function LoadingRows({ count = 4 }: { count?: number }) {
   );
 }
 
-export function EmptyState({ title, description }: { title: string; description: string }) {
+export function EmptyState({ title, description }: { title: string; description?: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 py-12 px-6 text-center">
       <p className="text-sm font-semibold text-gray-700 mb-1">{title}</p>
-      <p className="text-xs text-gray-400 max-w-sm leading-relaxed">{description}</p>
+      {description && (
+        <p className="text-xs text-gray-400 max-w-sm leading-relaxed">{description}</p>
+      )}
     </div>
   );
 }

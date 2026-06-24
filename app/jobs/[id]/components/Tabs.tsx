@@ -2,38 +2,61 @@
 
 import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, FileText, TriangleAlert, Users, WalletCards } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  FileText,
+  LayoutDashboard,
+  Users,
+  WalletCards,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { JobBackendResponse } from "@/types";
+import type { JobDetailSummaryData } from "@/types";
+import { ActivityTab } from "./ActivityTab";
 import { ApplicationsTab } from "./ApplicationsTab";
 import { DescriptionTab } from "./DescriptionTab";
-import { DisputesTab } from "./DisputesTab";
 import { JobShiftsTab } from "./JobShiftsTab";
+import { OverviewTab } from "./OverviewTab";
+import { ScheduleTab } from "./ScheduleTab";
 import { TransitionTab } from "./TransitionTab";
 
-type JobDetailTab = "overview" | "applications" | "shifts" | "payments" | "dispute";
+type JobDetailTab =
+  | "overview"
+  | "candidates"
+  | "schedule"
+  | "funding"
+  | "activity"
+  | "details";
 
 const tabTriggerClass =
   "gap-1.5 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-md border border-transparent transition-colors data-[state=active]:border-gray-200 data-[state=active]:bg-white data-[state=active]:text-[#f47b20] data-[state=active]:shadow-sm hover:text-gray-900";
 
-const JOB_DETAIL_TABS = [
-  { key: "overview", label: "Overview", icon: FileText },
-  { key: "applications", label: "Applications", icon: Users },
-  { key: "shifts", label: "Shifts", icon: CalendarDays },
-  { key: "payments", label: "Payments", icon: WalletCards },
-  { key: "dispute", label: "Dispute", icon: TriangleAlert },
-] satisfies { key: JobDetailTab; label: string; icon: typeof FileText }[];
-
 const DEFAULT_JOB_DETAIL_TAB: JobDetailTab = "overview";
-const JOB_DETAIL_TAB_KEYS = new Set<JobDetailTab>(
-  JOB_DETAIL_TABS.map((tab) => tab.key),
-);
+const JOB_DETAIL_TAB_KEYS = new Set<JobDetailTab>([
+  "overview",
+  "candidates",
+  "schedule",
+  "funding",
+  "activity",
+  "details",
+]);
 
 function getValidJobDetailTab(tab: string | null): JobDetailTab {
-  if (tab === "description") return "overview";
-  if (tab === "job_shifts") return "shifts";
-  if (tab === "transition" || tab === "fund_details") return "payments";
+  if (tab === "description" || tab === "details") return "details";
+  if (tab === "applications" || tab === "candidates") return "candidates";
+  if (tab === "schedule" || tab === "job_shifts" || tab === "shifts") {
+    return "schedule";
+  }
+  if (
+    tab === "transition" ||
+    tab === "fund_details" ||
+    tab === "funding" ||
+    tab === "payments"
+  ) {
+    return "funding";
+  }
+  if (tab === "workforce") return "overview";
 
   return JOB_DETAIL_TAB_KEYS.has(tab as JobDetailTab)
     ? (tab as JobDetailTab)
@@ -41,14 +64,15 @@ function getValidJobDetailTab(tab: string | null): JobDetailTab {
 }
 
 type JobDetailTabsProps = {
-  job: JobBackendResponse;
+  summary: JobDetailSummaryData;
   jobId: string;
 };
 
-export function JobDetailTabs({ job, jobId }: JobDetailTabsProps) {
+export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isInstant = summary.job_urgency === "INSTANT";
 
   const activeTab = getValidJobDetailTab(searchParams.get("tab"));
 
@@ -60,6 +84,19 @@ export function JobDetailTabs({ job, jobId }: JobDetailTabsProps) {
     },
     [pathname, router, searchParams],
   );
+
+  const jobDetailTabs = [
+    { key: "overview" as const, label: "Overview", icon: LayoutDashboard },
+    {
+      key: "candidates" as const,
+      label: isInstant ? "Responses" : "Candidates",
+      icon: Users,
+    },
+    { key: "schedule" as const, label: "Schedule", icon: CalendarDays },
+    { key: "funding" as const, label: "Funding", icon: WalletCards },
+    { key: "activity" as const, label: "Activity", icon: Activity },
+    { key: "details" as const, label: "Details", icon: FileText },
+  ];
 
   return (
     <Tabs
@@ -73,7 +110,7 @@ export function JobDetailTabs({ job, jobId }: JobDetailTabsProps) {
             "inline-flex h-auto min-h-10 w-max min-w-full flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 sm:flex-nowrap sm:justify-start",
           )}
         >
-          {JOB_DETAIL_TABS.map((tab) => {
+          {jobDetailTabs.map((tab) => {
             const Icon = tab.icon;
 
             return (
@@ -93,19 +130,58 @@ export function JobDetailTabs({ job, jobId }: JobDetailTabsProps) {
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
         <div className="p-4 sm:p-5">
           <TabsContent value="overview" className="m-0">
-            <DescriptionTab job={job} />
+            <OverviewTab
+              jobId={jobId}
+              summary={summary}
+              enabled={activeTab === "overview"}
+            />
           </TabsContent>
-          <TabsContent value="applications" className="m-0">
+
+          <TabsContent value="candidates" className="m-0">
             <ApplicationsTab jobId={jobId} />
           </TabsContent>
-          <TabsContent value="shifts" className="m-0">
-            <JobShiftsTab job={job} jobId={jobId} />
+
+          <TabsContent value="schedule" className="m-0">
+            <div className="flex flex-col gap-8">
+              <ScheduleTab
+                jobId={jobId}
+                enabled={activeTab === "schedule"}
+              />
+              <section>
+                <h3 className="mb-4 text-sm font-semibold text-gray-900">
+                  {isInstant ? "Broadcast shifts" : "Live shifts"}
+                </h3>
+                <JobShiftsTab
+                  jobId={jobId}
+                  enabled={activeTab === "schedule"}
+                  startDate={summary.start_date}
+                  endDate={summary.end_date}
+                  checkInTime={summary.next_shift?.start_time}
+                  checkOutTime={summary.next_shift?.end_time}
+                />
+              </section>
+            </div>
           </TabsContent>
-          <TabsContent value="payments" className="m-0">
-            <TransitionTab jobId={jobId} />
+
+          <TabsContent value="funding" className="m-0">
+            <TransitionTab
+              jobId={jobId}
+              enabled={activeTab === "funding"}
+            />
           </TabsContent>
-          <TabsContent value="dispute" className="m-0">
-            <DisputesTab jobId={jobId} />
+
+          <TabsContent value="activity" className="m-0">
+            <ActivityTab
+              jobId={jobId}
+              enabled={activeTab === "activity"}
+            />
+          </TabsContent>
+
+          <TabsContent value="details" className="m-0">
+            <DescriptionTab
+              jobId={jobId}
+              enabled={activeTab === "details"}
+            />
           </TabsContent>
         </div>
       </div>

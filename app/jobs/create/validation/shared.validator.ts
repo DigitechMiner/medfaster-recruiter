@@ -9,7 +9,7 @@ import {
 } from "./constants";
 import {
   combineDateAndClockTime,
-  getShiftDurationHours,
+  getShiftWorkDurationHours,
   isEmpty,
   isPastDate,
   isStringArrayBetween,
@@ -17,6 +17,10 @@ import {
   shiftSpansMidnight,
 } from "./helpers";
 import type { PushError } from "./types";
+import {
+  collectPayloadShiftTimePairs,
+  getPayloadShiftHandoffMinutes,
+} from "./shift-duration";
 
 // START SECTION: Shared Validator
 export function validateSharedFields(
@@ -170,19 +174,24 @@ function validateShift(payload: JobCreatePayload, push: PushError) {
     );
   }
 
-  const duration = getShiftDurationHours(
-    payload.check_in_time,
-    payload.check_out_time,
-  );
-
-  if (
-    duration !== null &&
-    (duration < SHIFT_MIN_HOURS || duration > SHIFT_MAX_HOURS)
-  ) {
-    push(
-      "check_out_time",
-      `Shift duration must be between ${SHIFT_MIN_HOURS} and ${SHIFT_MAX_HOURS} hours.`,
+  const handoff = getPayloadShiftHandoffMinutes(payload);
+  for (const pair of collectPayloadShiftTimePairs(payload)) {
+    const shiftDuration = getShiftWorkDurationHours(
+      pair.checkIn,
+      pair.checkOut,
+      handoff,
     );
+
+    if (
+      shiftDuration !== null &&
+      (shiftDuration < SHIFT_MIN_HOURS || shiftDuration > SHIFT_MAX_HOURS)
+    ) {
+      push(
+        "check_out_time",
+        `Shift duration must be between ${SHIFT_MIN_HOURS} and ${SHIFT_MAX_HOURS} hours.`,
+      );
+      break;
+    }
   }
 }
 // END SECTION: Shift Validation

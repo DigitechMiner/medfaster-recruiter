@@ -137,6 +137,194 @@ export interface JobDetailResponse {
   data: { job: JobBackendResponse };
 }
 
+export interface JobDetailInstantHiringProgress {
+  kind: "instant";
+  stage: number;
+  total_stages: number;
+  stage_label: string;
+  broadcasts_sent: number;
+  responses: number;
+  accepted: number;
+  required: number;
+  fill_percent: number;
+}
+
+export interface JobDetailNormalHiringProgress {
+  kind: "normal";
+  applications: number;
+  shortlisted: number;
+  interviewing: number;
+  interviewed: number;
+  hired: number;
+  rejected: number;
+  withdrawn: number;
+  required: number;
+  fill_percent: number;
+  current_stage_label: string;
+}
+
+export type JobDetailHiringProgress =
+  | JobDetailInstantHiringProgress
+  | JobDetailNormalHiringProgress;
+
+export function isInstantHiringProgress(
+  progress: JobDetailHiringProgress,
+): progress is JobDetailInstantHiringProgress {
+  return progress.kind === "instant";
+}
+
+export function isNormalHiringProgress(
+  progress: JobDetailHiringProgress,
+): progress is JobDetailNormalHiringProgress {
+  return progress.kind === "normal";
+}
+
+export interface JobDetailNextShift {
+  id: string;
+  shift_name: string;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  required_workers: number;
+}
+
+/** Initial job detail screen — KPIs, hiring progress, next shift. */
+export interface JobDetailSummaryData {
+  id: string;
+  title: string;
+  department: string;
+  status: JobStatus;
+  job_urgency: JobUrgency;
+  job_type: JobType;
+  start_date: string;
+  end_date: string;
+  required_workers: number;
+  applications: number;
+  accepted: number;
+  remaining: number;
+  total_shifts: number;
+  completed_shifts: number;
+  funding_status: string;
+  contract_amount_cents: string;
+  escrow_held_cents: string;
+  spent_cents: string;
+  refunded_cents: string;
+  current_visibility_stage: number | null;
+  total_visibility_stages: number | null;
+  location: string;
+  /** Normal jobs only — STANDARD or ROTATIONAL. */
+  shift_mode?: string | null;
+  /** Normal jobs only. */
+  ai_interview?: boolean | null;
+  hiring_progress: JobDetailHiringProgress;
+  next_shift: JobDetailNextShift | null;
+}
+
+export interface JobDetailSummaryResponse {
+  success: boolean;
+  message: string;
+  data: JobDetailSummaryData;
+}
+
+/** Lazy-loaded job description sections. */
+export interface JobDetailDescriptionData {
+  description?: string | null;
+  responsibilities?: string[];
+  requirements?: string[];
+  skills?: string[];
+  /** Legacy alias — prefer `skills`. */
+  required_skills?: string[];
+  experience?: string[];
+  working_conditions?: string[];
+  why_join?: string[];
+}
+
+export interface JobDetailActivityEvent {
+  type: string;
+  label: string;
+  occurred_at: string;
+  amount_cents?: string | number;
+  candidate_id?: string;
+  /** Legacy / optional fields */
+  id?: string;
+  title?: string;
+  description?: string;
+  timestamp?: string;
+  created_at?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface JobDetailActivityData {
+  job_id?: string;
+  events: JobDetailActivityEvent[];
+}
+
+export interface JobDetailPaymentCycle {
+  id?: string;
+  label?: string;
+  period_start?: string;
+  period_end?: string;
+  amount_cents?: string | number;
+  status?: string;
+  shift_count?: number;
+}
+
+export interface JobFeeBreakdownPerHour {
+  recruiter_pay_per_hour_cents: number;
+  candidate_receive_per_hour_cents: number;
+  platform_fee_per_hour_cents: number;
+}
+
+export interface JobFeeBreakdownComponent {
+  payee: string;
+  code: string;
+  name: string;
+  value_type: string;
+  percentage: number;
+  amount_per_hour_cents: number;
+  display_order: number;
+}
+
+export interface JobFeeBreakdownContract {
+  recruiter_pay_cents?: string | number | null;
+  candidate_share_cents?: string | number | null;
+  platform_share_cents?: string | number | null;
+  tax?: JobPreviewTaxSummary | null;
+  total_tax_cents?: number | null;
+  total_pay_cents?: string | number | null;
+}
+
+export interface JobFeeBreakdown {
+  province?: string | null;
+  candidate_percentage?: number | null;
+  platform_percentage?: number | null;
+  per_hour?: JobFeeBreakdownPerHour | null;
+  components?: JobFeeBreakdownComponent[] | null;
+  contract?: JobFeeBreakdownContract | null;
+}
+
+export interface JobDetailFundingInfo {
+  status?: string | null;
+  total_candidate_payout_cents?: string | number | null;
+  total_platform_fee_cents?: string | number | null;
+  ledger?: JobWalletTransactionItem[] | Record<string, unknown>;
+}
+
+/** Funding tab — contract, escrow, fee breakdown, cycles, and ledger. */
+export interface JobDetailPaymentsData {
+  job_id?: string;
+  contract_amount_cents?: string | number;
+  escrow_held_cents?: string | number;
+  spent_cents?: string | number;
+  refunded_cents?: string | number;
+  funding_status?: string;
+  fee_breakdown?: JobFeeBreakdown | null;
+  funding?: JobDetailFundingInfo | null;
+  cycles?: JobDetailPaymentCycle[];
+  ledger?: JobWalletTransactionItem[];
+  transactions?: JobWalletTransactionItem[];
+}
+
 export interface JobInfoShiftTemplate {
   id: string;
   shift_name: string;
@@ -199,6 +387,78 @@ export interface JobListShiftTemplate {
   end_time: string;
   duration_hours?: number;
   break_minutes?: number;
+}
+
+/** One scheduled shift slot for a team on a rotation cycle day (job detail API). */
+export interface JobShiftStaffingGap {
+  required?: number;
+  assigned?: number;
+  gap?: number;
+}
+
+export interface JobScheduleTeamCycle {
+  id?: string;
+  cycle_day: number;
+  shift_template_id?: string;
+  shift_template_index?: number;
+  required_workers?: number;
+  is_working: boolean;
+  shift_name?: string;
+  shift_type?: string;
+  start_time?: string;
+  end_time?: string;
+  duration_hours?: number;
+  break_minutes?: number;
+}
+
+export interface JobScheduleRotationalTeam {
+  id: string;
+  team_name: string;
+  display_order: number;
+  is_active?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+  cycles: JobScheduleTeamCycle[];
+}
+
+export interface JobTeamCandidateRotation {
+  team_id: string;
+  team_name?: string;
+  candidate_user_id: string;
+  rotation_order: number;
+  is_active: boolean;
+}
+
+/** Rotation plan + shift templates (lazy-loaded on Schedule tab). */
+export interface JobScheduleData {
+  job_id: string;
+  job_urgency: JobUrgency;
+  shift_mode?: string | null;
+  rotation_cycle_days?: number | null;
+  cycle_start_day?: string | null;
+  shift_templates: JobListShiftTemplate[];
+  rotational_teams: JobScheduleRotationalTeam[];
+  team_candidate_rotations: JobTeamCandidateRotation[];
+}
+
+export interface JobWorkerCandidate {
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  profile_image_url?: string | null;
+}
+
+export interface JobWorkerItem {
+  id: string;
+  candidate_id: string;
+  status: string;
+  start_date?: string | null;
+  candidate?: JobWorkerCandidate | null;
+  leaves?: unknown[];
+}
+
+export interface JobWorkersResponse {
+  workers: JobWorkerItem[];
 }
 
 /** One scheduled shift slot for a team on a rotation cycle day (job detail API). */
@@ -978,6 +1238,7 @@ export interface JobShiftItem extends JobDetailRecord {
   total_hours?: number | string | null;
   total_amount_cents?: number | string | null;
   assignments?: JobShiftAssignment[];
+  staffing_gap?: JobShiftStaffingGap | null;
 }
 
 export interface JobShiftsResponse extends JobDetailRecord {
