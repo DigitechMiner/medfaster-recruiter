@@ -10,6 +10,8 @@ import { CreateJobProgressHeader } from "../components/progressBar";
 import { JobReview, type JobReviewActionState } from "../components/preview";
 import { CreateJobStepActions, CreateJobStepCard } from "../components/step-shell";
 import { InstantJobForm } from "./instant-job-form";
+import { useJobCreateDraft } from "../use-job-create-draft";
+import type { JobCreateDraftSession } from "../job-create-draft-storage";
 
 const INSTANT_BASIC_FORM_ID = "instant-job-basic-form";
 const INSTANT_DESCRIPTION_FORM_ID = "instant-job-description-form";
@@ -44,6 +46,22 @@ function InstantJobStepForm() {
       isProcessing: false,
       isSubmitDisabled: false,
     });
+
+  const handleDraftRestore = useCallback((draft: JobCreateDraftSession) => {
+    if (draft.step >= 1 && draft.step <= 3) {
+      setStep(draft.step as 1 | 2 | 3);
+    }
+    if (draft.pendingPayload) {
+      setPendingPayload(draft.pendingPayload);
+    }
+  }, []);
+
+  const { isHydrated } = useJobCreateDraft({
+    mode: "instant",
+    step,
+    pendingPayload,
+    onRestore: handleDraftRestore,
+  });
 
   const handleBackToJobs = () => {
     clearDraft();
@@ -123,6 +141,10 @@ function InstantJobStepForm() {
     },
     [],
   );
+
+  if (!isHydrated) {
+    return <CreateJobLoadingFallback />;
+  }
 
   return (
     <AppLayout>

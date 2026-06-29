@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { clearJobCreateDraft } from '@/app/jobs/create/job-create-draft-storage';
 import {
   getRecruiterJobs,
   getRecruiterJob,
@@ -125,8 +126,11 @@ export const useJobsStore = create<JobsStore>()(
 
         setFormSnapshot: (snapshot) => set({ formSnapshot: snapshot }),
 
-        // ✅ Wipe both draft and snapshot only after successful job post + payment
-        clearDraft: () => set({ draftPayload: null, formSnapshot: null }),
+        // Wipe draft, snapshot, and session storage after publish or explicit exit.
+        clearDraft: () => {
+          clearJobCreateDraft();
+          set({ draftPayload: null, formSnapshot: null });
+        },
 
         getJobs: async (params) =>
           runWithLoading(async () => {

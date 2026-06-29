@@ -33,6 +33,8 @@ import { formatDateForBackend } from "../form/utils";
 import { formatSchedulingStepErrors } from "../validation/normal.validator";
 import type { ShiftDurationType, ShiftType, StaffingType } from "@/types";
 import { toast } from "react-toastify";
+import { useJobCreateDraft } from "../use-job-create-draft";
+import type { JobCreateDraftSession } from "../job-create-draft-storage";
 
 const uid = () => crypto.randomUUID();
 
@@ -157,6 +159,30 @@ function NormalJobStepForm() {
       isProcessing: false,
       isSubmitDisabled: false,
     });
+
+  const handleDraftRestore = useCallback((draft: JobCreateDraftSession) => {
+    if (draft.step >= 1 && draft.step <= 4) {
+      setStep(draft.step as 1 | 2 | 3 | 4);
+    }
+    if (draft.pendingPayload) {
+      setPendingPayload(draft.pendingPayload);
+    }
+    if (draft.wantsInterview !== undefined) {
+      setWantsInterview(draft.wantsInterview);
+    }
+    if (draft.aiQuestions?.length) {
+      setAiQuestions(draft.aiQuestions);
+    }
+  }, []);
+
+  const { isHydrated } = useJobCreateDraft({
+    mode: "normal",
+    step,
+    pendingPayload,
+    wantsInterview,
+    aiQuestions,
+    onRestore: handleDraftRestore,
+  });
 
   const steps = wantsInterview
     ? NORMAL_JOB_STEPS
@@ -287,6 +313,10 @@ function NormalJobStepForm() {
     if (!pendingPayload) return null;
     return mergeSnapshotIntoJobPayload(pendingPayload, formSnapshot);
   }, [pendingPayload, formSnapshot]);
+
+  if (!isHydrated) {
+    return <CreateJobLoadingFallback />;
+  }
 
   return (
     <AppLayout>
