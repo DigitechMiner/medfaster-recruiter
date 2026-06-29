@@ -20,6 +20,8 @@ export interface MetadataValueOption {
   id: number | string;
   label: string;
   value: string;
+  abvName?: string;
+  cities?: { id: number; label: string; value: string }[];
   [key: string]: unknown;
 }
 

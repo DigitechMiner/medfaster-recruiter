@@ -19,19 +19,25 @@ export type JobUrgencyFilter = "all" | "instant" | "normal";
 export type JobStatusFilter = "all" | "UPCOMING" | "OPEN" | "CLOSED" | "COMPLETED";
 
 export const JOB_TABLE_HEADERS = [
-  "Job Title",
-  "Shift",
-  "Start Date",
-  "End Date",
-  "Location",
+  "Job",
+  "Schedule",
   "Hires",
   "Applications",
   "Status",
-  "Created",
-  "Actions",
+  "",
 ];
 
 export type ListingJobStatus = "Open" | "Closed" | "Expired";
+
+const LISTING_STATUS_DOT_CLASS: Record<ListingJobStatus, string> = {
+  Open: "bg-emerald-500",
+  Closed: "bg-red-500",
+  Expired: "bg-amber-500",
+};
+
+export function getListingStatusDotClass(status: ListingJobStatus): string {
+  return LISTING_STATUS_DOT_CLASS[status];
+}
 
 const LISTING_STATUS_BADGE_CLASS: Record<ListingJobStatus, string> = {
   Open: "bg-[#D1FAE5] text-[#059669]",
@@ -297,8 +303,10 @@ export function formatCityProvince(
 export function formatLocationCityProvince(
   job: JobListItem,
   provinceLabel?: string | null,
+  cityLabel?: string | null,
 ): string {
-  return formatCityProvince(job.city, job.province, provinceLabel);
+  const resolvedCity = cityLabel?.trim() || job.city;
+  return formatCityProvince(resolvedCity, job.province, provinceLabel);
 }
 
 export function formatDateRangeShort(job: JobListItem): string | null {
@@ -380,11 +388,28 @@ export function JobsTableBodySkeleton({ rows = 5 }: { rows?: number }) {
     <>
       {[...Array(rows)].map((_, index) => (
         <tr key={index} className="border-b border-gray-50">
-          {JOB_TABLE_HEADERS.map((header) => (
-            <td key={`${index}-${header}`} className="px-4 py-3 align-middle">
-              <div className="h-4 max-w-[120px] bg-gray-100 rounded animate-pulse" />
-            </td>
-          ))}
+          <td className="px-4 py-2.5 align-middle">
+            <div className="space-y-2">
+              <div className="h-4 w-48 max-w-full bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+              <div className="h-5 w-40 bg-gray-100 rounded animate-pulse" />
+            </div>
+          </td>
+          <td className="px-4 py-2.5 align-middle">
+            <div className="h-4 w-28 bg-gray-100 rounded animate-pulse" />
+          </td>
+          <td className="px-4 py-2.5 align-middle">
+            <div className="h-4 w-12 bg-gray-100 rounded animate-pulse" />
+          </td>
+          <td className="px-4 py-2.5 align-middle">
+            <div className="h-4 w-8 bg-gray-100 rounded animate-pulse" />
+          </td>
+          <td className="px-4 py-2.5 align-middle">
+            <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
+          </td>
+          <td className="px-4 py-2.5 align-middle">
+            <div className="h-4 w-4 bg-gray-100 rounded animate-pulse ml-auto" />
+          </td>
         </tr>
       ))}
     </>

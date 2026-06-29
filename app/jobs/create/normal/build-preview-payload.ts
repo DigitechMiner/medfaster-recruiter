@@ -27,6 +27,7 @@ import {
 } from "./scheduling-utils";
 import { DEFAULT_CYCLE_START_DAY } from "./constant";
 import { getShiftWorkDurationHours } from "../validation/helpers";
+import { inferShiftTypeFromStartTime } from "../shift-windows";
 
 export type { NormalJobFeePreviewPayload };
 
@@ -37,18 +38,11 @@ const SHIFT_TEMPLATE_ORDER: ShiftType[] = [
   "night",
 ];
 
-const SHIFT_TYPE_TO_PREVIEW: Record<ShiftType, PreviewShiftTemplateType> = {
-  morning: "MORNING",
-  day: "DAY",
-  evening: "EVENING",
-  night: "NIGHT",
-};
-
-const SHIFT_DISPLAY_NAME: Record<ShiftType, string> = {
-  morning: "Morning Shift",
-  day: "Day Shift",
-  evening: "Evening Shift",
-  night: "Night Shift",
+const PREVIEW_SHIFT_DISPLAY_NAME: Record<PreviewShiftTemplateType, string> = {
+  MORNING: "Morning Shift",
+  DAY: "Day Shift",
+  EVENING: "Evening Shift",
+  NIGHT: "Night Shift",
 };
 
 function toPreviewIsoDate(value?: string | Date | null): string | undefined {
@@ -171,10 +165,12 @@ export function buildNormalJobSchedulingPayload(
       shiftDetails[shift]?.break_duration_minutes ??
       getDefaultBreakDurationMinutes(shiftDuration);
 
+    const shift_type = inferShiftTypeFromStartTime(startTime);
+
     return [
       {
-        shift_name: SHIFT_DISPLAY_NAME[shift],
-        shift_type: SHIFT_TYPE_TO_PREVIEW[shift],
+        shift_name: PREVIEW_SHIFT_DISPLAY_NAME[shift_type],
+        shift_type,
         start_time: startTime,
         end_time: endTime,
         duration_hours: resolveDurationHours(

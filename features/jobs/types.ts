@@ -793,6 +793,7 @@ export interface JobPreviewShift {
   planned_check_out: string;
   /** Net workable minutes (after break) for this shift. */
   planned_minutes?: number;
+  break_minutes?: number;
   required_workers: number;
   team_name?: string;
   summary?: string;

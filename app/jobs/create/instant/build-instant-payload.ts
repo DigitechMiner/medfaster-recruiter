@@ -8,8 +8,8 @@ import type {
 } from "@/types";
 import {
   getShiftDurationHours,
-  parseClockTimeToMinutes,
 } from "../validation/helpers";
+import { inferShiftTypeFromStartTime } from "../shift-windows";
 
 const SHIFT_DISPLAY_NAME: Record<PreviewShiftTemplateType, string> = {
   MORNING: "Morning Shift",
@@ -28,19 +28,6 @@ function normalizeClockTime(time?: string | null): string | undefined {
   const trimmed = time?.trim();
   if (!trimmed) return undefined;
   return trimmed.slice(0, 5);
-}
-
-function inferShiftTypeFromStartTime(
-  startTime: string,
-): PreviewShiftTemplateType {
-  const minutes = parseClockTimeToMinutes(startTime);
-  if (minutes === null) return "DAY";
-
-  const hour = Math.floor(minutes / 60);
-  if (hour >= 5 && hour < 12) return "MORNING";
-  if (hour >= 12 && hour < 17) return "DAY";
-  if (hour >= 17 && hour < 22) return "EVENING";
-  return "NIGHT";
 }
 
 /** Break bounds for instant jobs based on computed shift length. */

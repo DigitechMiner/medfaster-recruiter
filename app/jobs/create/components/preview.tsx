@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, Clock, Mail, MapPin, Phone, RefreshCw, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import SuccessModal from "@/components/modal";
-import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { getJobFeePreview } from "@/features/jobs";
 import { buildNormalJobCreatePayload } from "../normal/build-create-payload";
@@ -17,10 +16,18 @@ import {
 } from "../instant/map-instant-preview-response";
 import {
   buildNormalPreviewCostSummary,
+  formatDurationMinutes,
+  formatPreviewDateLabel,
+  formatPreviewTime12h,
   hasNormalPreviewShifts,
   mapPreviewShiftsToRows,
+  resolveGrossDurationMinutes,
+  resolveShiftPreviewPayParts,
+  resolveTeamInitial,
+  type ShiftPreviewPayContext,
   type ShiftPreviewRow,
 } from "../normal/map-preview-response";
+import { PreviewShiftTable } from "./preview-shift-table";
 import {
   PaymentBreakdownTable,
   type PaymentBreakdownColumn,
@@ -39,7 +46,7 @@ import type {
   RecruiterJobCreateBody,
   ShiftType,
 } from "@/types";
-import { getShiftDurationHours, parseLocalDate, shiftSpansMidnight } from "../validation/helpers";
+import { getShiftDurationHours, parseClockTimeToMinutes, parseLocalDate, shiftSpansMidnight } from "../validation/helpers";
 import { INSTANT_JOB_MIN_DURATION_HOURS, SHIFT_MAX_HOURS } from "../validation/constants";
 import { validatePayloadShiftDurations } from "../validation/shift-duration";
 import { getMetadataLabel } from "@/utils/constant/metadata";
@@ -190,14 +197,27 @@ function resolveRequiredHires(
   return 1;
 }
 
-function buildShiftRows(payload: JobCreatePayload): ShiftPreviewRow[] {
+function buildShiftRows(
+  payload: JobCreatePayload,
+  payContext?: ShiftPreviewPayContext,
+): ShiftPreviewRow[] {
   const start = parsePayloadDate(payload.start_date);
   const end = parsePayloadDate(payload.end_date);
   if (!start || !end || start > end) return [];
 
   const { checkIn, checkOut } = resolveShiftTimes(payload);
-  const hoursPerDay = getShiftDurationHours(checkIn, checkOut);
   const overnight = shiftSpansMidnight(checkIn, checkOut);
+  const grossMinutes = resolveGrossDurationMinutes(checkIn, checkOut);
+  const breakMinutes =
+    grossMinutes != null
+      ? grossMinutes > 8 * 60 + 30
+        ? 90
+        : 45
+      : null;
+  const payableMinutes =
+    grossMinutes != null && breakMinutes != null
+      ? Math.max(0, grossMinutes - breakMinutes)
+      : null;
   const rows: ShiftPreviewRow[] = [];
   const cursor = new Date(start);
   let day = 1;
@@ -209,18 +229,42 @@ function buildShiftRows(payload: JobCreatePayload): ShiftPreviewRow[] {
       rowEnd.setDate(rowEnd.getDate() + 1);
     }
 
+    const startIso = `${rowStart.getFullYear()}-${String(rowStart.getMonth() + 1).padStart(2, "0")}-${String(rowStart.getDate()).padStart(2, "0")}`;
+    const endIso = `${rowEnd.getFullYear()}-${String(rowEnd.getMonth() + 1).padStart(2, "0")}-${String(rowEnd.getDate()).padStart(2, "0")}`;
+    const weekday = rowStart.toLocaleDateString("en-GB", { weekday: "long" });
+    const workers = resolveRequiredHires(payload);
+    const payParts =
+      payContext && payableMinutes != null
+        ? resolveShiftPreviewPayParts(payableMinutes, workers, payContext)
+        : null;
+    const team = getTeamForDay(payload, day - 1);
+    const startMinutes = parseClockTimeToMinutes(checkIn ?? "") ?? 0;
+    const endMinutes = parseClockTimeToMinutes(checkOut ?? "") ?? 0;
+
     rows.push({
       id: `legacy-day-${day}`,
-      day: `Day ${day}`,
-      shiftName: "-",
-      startDate: formatDisplayDate(rowStart),
-      endDate: formatDisplayDate(rowEnd),
-      checkIn: formatTime(checkIn),
-      checkOut: formatTime(checkOut),
-      totalWorkingHours:
-        hoursPerDay != null ? `${hoursPerDay} hrs` : "-",
-      team: getTeamForDay(payload, day - 1),
-      workers: resolveRequiredHires(payload),
+      shiftType: "DAY",
+      shiftLabel: "Shift",
+      rotationDay: `${weekday} · Day ${day}`,
+      team,
+      teamInitial: resolveTeamInitial(team),
+      startDateLabel: formatPreviewDateLabel(startIso),
+      startTimeLabel: formatPreviewTime12h(checkIn),
+      endDateLabel: formatPreviewDateLabel(endIso),
+      endTimeLabel: formatPreviewTime12h(checkOut),
+      timelineStartMinutes: startMinutes,
+      timelineEndMinutes: endMinutes,
+      spansMidnight: overnight,
+      grossDurationLabel:
+        grossMinutes != null ? formatDurationMinutes(grossMinutes) : "-",
+      breakMinutes,
+      payableLabel:
+        payableMinutes != null ? formatDurationMinutes(payableMinutes) : "-",
+      paySubtotalCents: payParts?.subtotalCents ?? null,
+      payTaxCents: payParts?.taxCents ?? null,
+      payTotalCents: payParts?.totalCents ?? null,
+      payTaxComponents: payParts?.taxComponents ?? [],
+      workers,
     });
 
     cursor.setDate(cursor.getDate() + 1);
@@ -229,30 +273,6 @@ function buildShiftRows(payload: JobCreatePayload): ShiftPreviewRow[] {
 
   return rows;
 }
-
-/** Row span per index: number = render merged cell; null = skip (same date as row above). */
-function computeConsecutiveCellSpans(
-  rows: ShiftPreviewRow[],
-  getValue: (row: ShiftPreviewRow) => string,
-): (number | null)[] {
-  const spans: (number | null)[] = new Array(rows.length).fill(null);
-  let index = 0;
-
-  while (index < rows.length) {
-    const value = getValue(rows[index]);
-    let end = index + 1;
-    while (end < rows.length && getValue(rows[end]) === value) {
-      end += 1;
-    }
-    spans[index] = end - index;
-    index = end;
-  }
-
-  return spans;
-}
-
-const MERGED_TABLE_CELL_CLASS =
-  "px-4 py-3 whitespace-nowrap align-middle bg-white border-r border-gray-100";
 
 function validateShiftDuration(
   payload: JobCreatePayload,
@@ -507,6 +527,47 @@ export function JobReview({
     ? hasInstantPreviewShifts(feePreview)
     : hasNormalPreviewShifts(feePreview);
 
+  const shiftPayContext = useMemo<ShiftPreviewPayContext | undefined>(() => {
+    if (hourlyRateCents <= 0) return undefined;
+    return { hourlyRateCents, taxComponents };
+  }, [hourlyRateCents, taxComponents]);
+
+  const previewShiftTemplates = useMemo(() => {
+    if (isUrgent) {
+      return buildInstantJobFeePreviewPayload(payload)?.shift_templates;
+    }
+    return buildNormalJobFeePreviewPayload(payload)?.shift_templates;
+  }, [isUrgent, payload]);
+
+  const shifts = useMemo((): ShiftPreviewRow[] => {
+    if (useApiShiftTable && feePreview?.preview_shifts) {
+      return mapPreviewShiftsToRows(
+        feePreview.preview_shifts,
+        previewShiftTemplates,
+        shiftPayContext,
+      );
+    }
+    return buildShiftRows(payload, shiftPayContext);
+  }, [
+    useApiShiftTable,
+    feePreview?.preview_shifts,
+    previewShiftTemplates,
+    shiftPayContext,
+    payload,
+  ]);
+
+  const totalShiftPages = Math.max(1, Math.ceil(shifts.length / shiftPerPage));
+  const currentShiftPage = Math.min(shiftPage, totalShiftPages);
+
+  const paginatedShifts = useMemo(() => {
+    const start = (currentShiftPage - 1) * shiftPerPage;
+    return shifts.slice(start, start + shiftPerPage);
+  }, [shifts, currentShiftPage, shiftPerPage]);
+
+  useEffect(() => {
+    setShiftPage(1);
+  }, [shifts.length, shiftPerPage, isUrgent]);
+
   const isSubmitDisabled =
     isProcessing || feeLoading || !!feeError || !feePreview;
 
@@ -637,70 +698,6 @@ export function JobReview({
       setIsProcessing(false);
     }
   };
-
-  const shifts = useMemo((): ShiftPreviewRow[] => {
-    if (useApiShiftTable && feePreview?.preview_shifts) {
-      return mapPreviewShiftsToRows(feePreview.preview_shifts);
-    }
-    return buildShiftRows(payload);
-  }, [useApiShiftTable, feePreview?.preview_shifts, payload]);
-
-  const shiftHeaders = useMemo(() => {
-    const headers = ["Start Date", "End Date", "Day"];
-    if (useApiShiftTable) {
-      headers.push("Shift");
-      if (!isUrgent) {
-        headers.push("Team");
-      }
-    }
-    headers.push(
-      "Check-In Time",
-      "Check-Out Time",
-      "Total Working Hours",
-    );
-    if (useApiShiftTable) headers.push("Workers");
-    return headers;
-  }, [useApiShiftTable, isUrgent]);
-
-  const totalShiftPages = Math.max(1, Math.ceil(shifts.length / shiftPerPage));
-  const currentShiftPage = Math.min(shiftPage, totalShiftPages);
-
-  const paginatedShifts = useMemo(() => {
-    const start = (currentShiftPage - 1) * shiftPerPage;
-    return shifts.slice(start, start + shiftPerPage);
-  }, [shifts, currentShiftPage, shiftPerPage]);
-
-  const startDateSpans = useMemo(
-    () =>
-      computeConsecutiveCellSpans(
-        paginatedShifts,
-        (row) => row.startDate,
-      ),
-    [paginatedShifts],
-  );
-
-  const endDateSpans = useMemo(
-    () =>
-      computeConsecutiveCellSpans(paginatedShifts, (row) => row.endDate),
-    [paginatedShifts],
-  );
-
-  const daySpans = useMemo(
-    () => computeConsecutiveCellSpans(paginatedShifts, (row) => row.day),
-    [paginatedShifts],
-  );
-
-  const teamSpans = useMemo(
-    () =>
-      useApiShiftTable && !isUrgent
-        ? computeConsecutiveCellSpans(paginatedShifts, (row) => row.team)
-        : [],
-    [paginatedShifts, useApiShiftTable, isUrgent],
-  );
-
-  useEffect(() => {
-    setShiftPage(1);
-  }, [shifts.length, shiftPerPage, isUrgent]);
 
   const location = [payload.city, displayProvince].filter(Boolean).join(", ");
   const summaryTitle = "Job Summary";
@@ -844,6 +841,25 @@ export function JobReview({
                     {jobDateRangeLabel}
                   </p>
                 )}
+                {hourlyRateCents > 0 && (
+                  <p className="mt-1 text-sm text-gray-600">
+                    Hourly rate{" "}
+                    <span className="font-semibold text-gray-900">
+                      $
+                      {hourlyRate.toLocaleString("en-CA", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                      /hr
+                    </span>
+                    {taxComponents.length > 0 ? (
+                      <span className="text-gray-400">
+                        {" "}
+                        · Tax shown per shift below
+                      </span>
+                    ) : null}
+                  </p>
+                )}
                 {previewDaysNote && (
                   <p className="mt-0.5 text-xs text-gray-400">
                     {previewDaysNote}
@@ -852,71 +868,12 @@ export function JobReview({
               </div>
 
               <div className="rounded-xl border border-orange-100 overflow-hidden">
-                <DataTable
-                  headers={shiftHeaders}
-                  minWidthClassName="min-w-[800px]"
-                  headerRowClassName="bg-orange-50 border-b border-orange-100"
-                  tableClassName="text-gray-700"
-                >
-                  {paginatedShifts.map((row, rowIndex) => (
-                    <tr
-                      key={row.id}
-                      className="border-b border-gray-100 last:border-b-0 text-gray-700"
-                    >
-                      {startDateSpans[rowIndex] != null && (
-                        <td
-                          rowSpan={startDateSpans[rowIndex] ?? 1}
-                          className={MERGED_TABLE_CELL_CLASS}
-                        >
-                          {row.startDate}
-                        </td>
-                      )}
-                      {endDateSpans[rowIndex] != null && (
-                        <td
-                          rowSpan={endDateSpans[rowIndex] ?? 1}
-                          className={MERGED_TABLE_CELL_CLASS}
-                        >
-                          {row.endDate}
-                        </td>
-                      )}
-                      {daySpans[rowIndex] != null && (
-                        <td
-                          rowSpan={daySpans[rowIndex] ?? 1}
-                          className={MERGED_TABLE_CELL_CLASS}
-                        >
-                          {row.day}
-                        </td>
-                      )}
-                      {useApiShiftTable && (
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {row.shiftName}
-                        </td>
-                      )}
-                      {useApiShiftTable && !isUrgent && teamSpans[rowIndex] != null && (
-                        <td
-                          rowSpan={teamSpans[rowIndex] ?? 1}
-                          className={MERGED_TABLE_CELL_CLASS}
-                        >
-                          {row.team}
-                        </td>
-                      )}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {row.checkIn}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {row.checkOut}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {row.totalWorkingHours}
-                      </td>
-                      {useApiShiftTable && (
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {row.workers}
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </DataTable>
+                <PreviewShiftTable
+                  rows={paginatedShifts}
+                  showTeam={useApiShiftTable && !isUrgent}
+                  showPay={Boolean(shiftPayContext)}
+                  formatCurrency={formatCurrency}
+                />
 
                 <PaginationFooter
                   page={currentShiftPage}

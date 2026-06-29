@@ -6,6 +6,7 @@ import type {
   StaffingType,
 } from "@/types";
 import { SHIFT_HANDOFF_OVERLAP_MINUTES } from "./constant";
+import { inferFormShiftTypeFromStartTime } from "../shift-windows";
 
 export const TEMPLATE_DAY_COUNT = 14;
 export const SCHEDULE_EMPTY_VALUE = "__none__";
@@ -293,6 +294,108 @@ export type ShiftTimesState = {
 /** Morning → evening → night for 24 h chained coverage. */
 export function sortShiftsInDayOrder(selected: ShiftType[]): ShiftType[] {
   return SHIFT_DAY_ORDER.filter((shift) => selected.includes(shift));
+}
+
+const SHIFT_DISPLAY_LABEL: Record<ShiftType, string> = {
+  morning: "Morning",
+  day: "Day",
+  evening: "Evening",
+  night: "Night",
+};
+
+export type ShiftTimingDisplay = {
+  shift: ShiftType;
+  /** Inferred from start time via SHIFT_WINDOWS; falls back to `shift` slot. */
+  inferredShift: ShiftType;
+  label: string;
+  startTime: string;
+  endTime: string;
+  startDayOffset: number;
+  endDayOffset: number;
+};
+
+/** Calendar label for a shift time relative to job start (e.g. "Jun 30"). */
+export function formatShiftDayLabel(
+  jobStartDate: Date | string | undefined,
+  dayOffset: number,
+): string {
+  if (dayOffset < 0) return "";
+
+  const anchor = parseScheduleAnchorDate(jobStartDate);
+  if (!anchor) {
+    return dayOffset === 0 ? "Day 1" : `Day ${dayOffset + 1}`;
+  }
+
+  const date = addCalendarDays(anchor, dayOffset);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function compareShiftTimingChronologically(
+  a: ShiftTimingDisplay,
+  b: ShiftTimingDisplay,
+): number {
+  if (a.startDayOffset !== b.startDayOffset) {
+    return a.startDayOffset - b.startDayOffset;
+  }
+
+  const aStart = parseTimeToMinutes(a.startTime) ?? 0;
+  const bStart = parseTimeToMinutes(b.startTime) ?? 0;
+  return aStart - bStart;
+}
+
+/**
+ * Builds per-shift calendar day offsets and sorts chronologically when multiple
+ * shifts cover the same rotation day (24 h chained coverage).
+ */
+export function buildShiftTimingDisplays(params: {
+  selectedShifts: ShiftType[];
+  times: ShiftTimesState;
+  chainShifts: boolean;
+}): ShiftTimingDisplay[] {
+  const ordered = sortShiftsInDayOrder(params.selectedShifts);
+  const displays: ShiftTimingDisplay[] = [];
+  let currentDay = 0;
+
+  for (const shift of ordered) {
+    const startTime = getShiftStartFromState(shift, params.times)?.trim();
+    const endTime = getShiftEndFromState(shift, params.times)?.trim();
+    if (!startTime || !endTime) continue;
+
+    const startMinutes = parseTimeToMinutes(startTime);
+    const endMinutes = parseTimeToMinutes(endTime);
+    if (startMinutes === null || endMinutes === null) continue;
+
+    const startDayOffset = params.chainShifts ? currentDay : 0;
+    let endDayOffset = params.chainShifts ? currentDay : 0;
+
+    if (endMinutes <= startMinutes) {
+      endDayOffset = startDayOffset + 1;
+    }
+
+    if (params.chainShifts) {
+      currentDay = endDayOffset;
+    }
+
+    const inferredShift =
+      inferFormShiftTypeFromStartTime(startTime) ?? shift;
+
+    displays.push({
+      shift,
+      inferredShift,
+      label: SHIFT_DISPLAY_LABEL[inferredShift],
+      startTime,
+      endTime,
+      startDayOffset,
+      endDayOffset,
+    });
+  }
+
+  if (displays.length <= 1) return displays;
+
+  return [...displays].sort(compareShiftTimingChronologically);
 }
 
 function parseTimeToMinutes(time: string): number | null {

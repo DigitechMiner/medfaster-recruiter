@@ -3,26 +3,52 @@ import type {
   JobPreviewBillingMonthSlice,
   JobPreviewPaymentPeriodSlice,
   JobPreviewShift,
+  JobPreviewShiftTemplate,
   JobPreviewTaxComponent,
   NormalJobFeePreviewData,
+  PreviewShiftTemplateType,
 } from "@/types";
 import {
   getShiftDurationHours,
+  parseClockTimeToMinutes,
   parseLocalDate,
   shiftSpansMidnight,
 } from "../validation/helpers";
 
 export type ShiftPreviewRow = {
   id: string;
-  day: string;
-  shiftName: string;
-  startDate: string;
-  endDate: string;
-  checkIn: string;
-  checkOut: string;
-  totalWorkingHours: string;
+  shiftType: string;
+  shiftLabel: string;
+  rotationDay: string;
   team: string;
+  teamInitial: string;
+  startDateLabel: string;
+  startTimeLabel: string;
+  endDateLabel: string;
+  endTimeLabel: string;
+  timelineStartMinutes: number;
+  timelineEndMinutes: number;
+  spansMidnight: boolean;
+  grossDurationLabel: string;
+  breakMinutes: number | null;
+  payableLabel: string;
+  paySubtotalCents: number | null;
+  payTaxCents: number | null;
+  payTotalCents: number | null;
+  payTaxComponents: JobPreviewTaxComponent[];
   workers: number;
+};
+
+export type ShiftPreviewPayContext = {
+  hourlyRateCents: number;
+  taxComponents: JobPreviewTaxComponent[];
+};
+
+export type ShiftPreviewPayParts = {
+  subtotalCents: number;
+  taxCents: number;
+  totalCents: number;
+  taxComponents: JobPreviewTaxComponent[];
 };
 
 export type MonthlyPaymentPreview = {
@@ -74,6 +100,17 @@ function formatDisplayDateFromIso(isoDate: string): string {
   });
 }
 
+export function formatCompactPreviewDate(isoDate: string): string {
+  const parsed = parseLocalDate(isoDate);
+  if (!parsed) return isoDate;
+  return parsed.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function addCalendarDays(isoDate: string, days: number): string {
   const parsed = parseLocalDate(isoDate);
   if (!parsed) return isoDate;
@@ -85,19 +122,252 @@ function addCalendarDays(isoDate: string, days: number): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatClockForDisplay(time?: string | null): string {
-  if (!time) return "-";
-  const [h, m] = time.split(":");
-  const hours = Number(h);
-  const minutes = Number(m);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return time;
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  if (Number.isNaN(date.getTime())) return time;
-  return date.toLocaleTimeString("en-CA", {
-    hour: "2-digit",
-    minute: "2-digit",
+export function formatPreviewDateLabel(isoDate: string): string {
+  const parsed = parseLocalDate(isoDate);
+  if (!parsed) return isoDate;
+  return parsed.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
+}
+
+export function formatPreviewTime12h(time?: string | null): string {
+  if (!time) return "-";
+  const minutes = parseClockTimeToMinutes(time);
+  if (minutes === null) return time.trim().slice(0, 5);
+  const hours24 = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  const period = hours24 >= 12 ? "PM" : "AM";
+  const hours12 = hours24 % 12 || 12;
+  return `${hours12}:${String(mins).padStart(2, "0")} ${period}`;
+}
+
+export function resolveTeamInitial(teamName: string): string {
+  const match = /team\s+([a-z0-9])/i.exec(teamName);
+  if (match?.[1]) return match[1].toUpperCase();
+  return teamName.trim().charAt(0).toUpperCase() || "?";
+}
+
+export function formatPreviewScheduleTime(time?: string | null): string {
+  if (!time) return "--:--";
+  const minutes = parseClockTimeToMinutes(time);
+  if (minutes === null) return time.trim().slice(0, 5);
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+function formatShortWeekday(isoDate: string): string {
+  const parsed = parseLocalDate(isoDate);
+  if (!parsed) return "";
+  return parsed.toLocaleDateString("en-GB", { weekday: "short" });
+}
+
+export function buildPreviewScheduleLabel(params: {
+  startDateIso: string;
+  endDateIso: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+}): string {
+  const startDay = formatShortWeekday(params.startDateIso);
+  const endDay = formatShortWeekday(params.endDateIso);
+  const startTime = formatPreviewScheduleTime(params.checkIn);
+  const endTime = formatPreviewScheduleTime(params.checkOut);
+  const overnightSuffix =
+    params.endDateIso !== params.startDateIso ? " (+1)" : "";
+  return `${startDay} ${startTime} → ${endDay} ${endTime}${overnightSuffix}`;
+}
+
+function normalizeTemplateTime(time: string): string {
+  return time.trim().slice(0, 5);
+}
+
+function buildBreakMinutesLookup(
+  templates: JobPreviewShiftTemplate[] | undefined,
+): Map<string, number> {
+  const lookup = new Map<string, number>();
+  if (!templates?.length) return lookup;
+
+  for (const template of templates) {
+    const key = `${template.shift_type}:${normalizeTemplateTime(template.start_time)}`;
+    lookup.set(key, template.break_minutes);
+  }
+
+  return lookup;
+}
+
+function enrichPreviewShiftBreakMinutes(
+  shift: JobPreviewShift,
+  breakLookup: Map<string, number>,
+): JobPreviewShift {
+  if (shift.break_minutes != null || breakLookup.size === 0) return shift;
+
+  const key = `${shift.shift_type}:${normalizeTemplateTime(shift.planned_check_in)}`;
+  const breakMinutes = breakLookup.get(key);
+  if (breakMinutes == null) return shift;
+
+  return { ...shift, break_minutes: breakMinutes };
+}
+
+export function formatShiftTypeLabel(
+  shiftType: PreviewShiftTemplateType | string,
+): string {
+  const labels: Record<string, string> = {
+    MORNING: "Morning",
+    DAY: "Day",
+    EVENING: "Evening",
+    NIGHT: "Night",
+  };
+  return labels[shiftType.toString().toUpperCase()] ?? shiftType.toString();
+}
+
+export function formatDurationMinutes(minutes: number): string {
+  const safe = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(safe / 60);
+  const mins = safe % 60;
+  if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h`;
+  return `${mins}m`;
+}
+
+export function resolveGrossDurationMinutes(
+  checkIn?: string,
+  checkOut?: string,
+): number | null {
+  if (!checkIn || !checkOut) return null;
+
+  const inM = parseClockTimeToMinutes(checkIn);
+  const outM = parseClockTimeToMinutes(checkOut);
+  if (inM === null || outM === null) return null;
+
+  if (shiftSpansMidnight(checkIn, checkOut)) {
+    return 24 * 60 - inM + outM;
+  }
+
+  return outM - inM;
+}
+
+function inferDefaultBreakMinutes(grossMinutes: number): number {
+  return grossMinutes > 8 * 60 + 30 ? 90 : 45;
+}
+
+function resolvePreviewBreakMinutes(
+  shift: JobPreviewShift,
+  grossMinutes: number,
+): number {
+  if (shift.break_minutes != null && shift.break_minutes >= 0) {
+    return shift.break_minutes;
+  }
+  return inferDefaultBreakMinutes(grossMinutes);
+}
+
+function resolvePreviewPayableMinutes(
+  shift: JobPreviewShift,
+  grossMinutes: number,
+  breakMinutes: number,
+): number {
+  if (shift.planned_minutes != null && shift.planned_minutes > 0) {
+    return shift.planned_minutes;
+  }
+  return Math.max(0, grossMinutes - breakMinutes);
+}
+
+export function resolvePreviewRotationDay(shift: JobPreviewShift): string {
+  const parsed = parseLocalDate(shift.shift_date);
+  const fullWeekday = parsed
+    ? parsed.toLocaleDateString("en-GB", { weekday: "long" })
+    : "-";
+
+  if (shift.cycle_day != null) {
+    return `${fullWeekday} · Day ${shift.cycle_day}`;
+  }
+  if (shift.shift_index != null) {
+    return `${fullWeekday} · Shift ${shift.shift_index}`;
+  }
+  return fullWeekday;
+}
+
+export function resolvePreviewWorkingTimeParts(
+  shift: JobPreviewShift,
+): {
+  payableLabel: string;
+  payableMinutes: number | null;
+  grossDurationLabel: string;
+  breakMinutes: number | null;
+} {
+  const grossMinutes = resolveGrossDurationMinutes(
+    shift.planned_check_in,
+    shift.planned_check_out,
+  );
+
+  if (grossMinutes == null) {
+    const hours = getShiftDurationHours(
+      shift.planned_check_in,
+      shift.planned_check_out,
+    );
+    if (hours == null) {
+      return {
+        payableLabel: "-",
+        payableMinutes: null,
+        grossDurationLabel: "-",
+        breakMinutes: null,
+      };
+    }
+    const payableMinutes = Math.round(hours * 60);
+    return {
+      payableLabel: `${hours}h`,
+      payableMinutes,
+      grossDurationLabel: `${hours}h`,
+      breakMinutes: null,
+    };
+  }
+
+  const breakMinutes = resolvePreviewBreakMinutes(shift, grossMinutes);
+  const payableMinutes = resolvePreviewPayableMinutes(
+    shift,
+    grossMinutes,
+    breakMinutes,
+  );
+
+  return {
+    payableLabel: formatDurationMinutes(payableMinutes),
+    payableMinutes,
+    grossDurationLabel: formatDurationMinutes(grossMinutes),
+    breakMinutes,
+  };
+}
+
+export function resolveShiftPreviewPayParts(
+  payableMinutes: number,
+  workers: number,
+  context: ShiftPreviewPayContext,
+): ShiftPreviewPayParts | null {
+  if (payableMinutes <= 0 || context.hourlyRateCents <= 0) return null;
+
+  const subtotalCents = Math.round(
+    (context.hourlyRateCents * payableMinutes * Math.max(1, workers)) / 60,
+  );
+
+  const taxComponents = context.taxComponents.map((component) => ({
+    ...component,
+    tax_amount_cents: Math.round(
+      (subtotalCents * component.tax_percentage) / 100,
+    ),
+  }));
+
+  const taxCents = taxComponents.reduce(
+    (sum, component) => sum + component.tax_amount_cents,
+    0,
+  );
+
+  return {
+    subtotalCents,
+    taxCents,
+    totalCents: subtotalCents + taxCents,
+    taxComponents,
+  };
 }
 
 export function resolvePreviewBillingCycle(
@@ -237,59 +507,94 @@ export function hasNormalPreviewShifts(
   return Boolean(data?.preview_shifts?.length);
 }
 
-function formatMinutesAsHoursLabel(minutes: number): string {
-  if (minutes % 60 === 0) return `${minutes / 60} hrs`;
-  return `${(minutes / 60).toFixed(1)} hrs`;
-}
-
-function resolvePreviewDayLabel(shift: JobPreviewShift): string {
-  if (shift.cycle_day != null) return `Day ${shift.cycle_day}`;
-  if (shift.shift_index != null) return `Day ${shift.shift_index}`;
-  return "Day 1";
-}
-
 function resolvePreviewRowId(shift: JobPreviewShift): string {
   const dayKey = shift.cycle_day ?? shift.shift_index ?? 0;
-  return `${shift.shift_date}-${shift.shift_type}-${dayKey}`;
+  return `${shift.shift_date}-${shift.shift_type}-${dayKey}-${shift.team_name ?? ""}`;
 }
 
-function resolvePreviewWorkingHoursLabel(shift: JobPreviewShift): string {
-  if (shift.planned_minutes != null && shift.planned_minutes > 0) {
-    return formatMinutesAsHoursLabel(shift.planned_minutes);
-  }
-  const hours = getShiftDurationHours(
-    shift.planned_check_in,
-    shift.planned_check_out,
-  );
-  return hours != null ? `${hours} hrs` : "-";
-}
-
-export function mapPreviewShiftToRow(shift: JobPreviewShift): ShiftPreviewRow {
+export function mapPreviewShiftToRow(
+  shift: JobPreviewShift,
+  payContext?: ShiftPreviewPayContext,
+): ShiftPreviewRow {
   const checkIn = shift.planned_check_in;
   const checkOut = shift.planned_check_out;
-  const overnight = shift.is_night_shift || shiftSpansMidnight(checkIn, checkOut);
-  const endDateIso = overnight
+  const spansMidnight = shiftSpansMidnight(checkIn, checkOut);
+  const endDateIso = spansMidnight
     ? addCalendarDays(shift.shift_date, 1)
     : shift.shift_date;
+  const startMinutes = parseClockTimeToMinutes(checkIn) ?? 0;
+  const endMinutes = parseClockTimeToMinutes(checkOut) ?? 0;
+  const workingTime = resolvePreviewWorkingTimeParts(shift);
+  const payParts =
+    payContext && workingTime.payableMinutes != null
+      ? resolveShiftPreviewPayParts(
+          workingTime.payableMinutes,
+          shift.required_workers,
+          payContext,
+        )
+      : null;
+  const team = shift.team_name ?? "-";
 
   return {
     id: resolvePreviewRowId(shift),
-    day: resolvePreviewDayLabel(shift),
-    shiftName: shift.shift_name,
-    startDate: formatDisplayDateFromIso(shift.shift_date),
-    endDate: formatDisplayDateFromIso(endDateIso),
-    checkIn: formatClockForDisplay(checkIn),
-    checkOut: formatClockForDisplay(checkOut),
-    totalWorkingHours: resolvePreviewWorkingHoursLabel(shift),
-    team: shift.team_name ?? "-",
+    shiftType: shift.shift_type,
+    shiftLabel: formatShiftTypeLabel(shift.shift_type),
+    rotationDay: resolvePreviewRotationDay(shift),
+    team,
+    teamInitial: resolveTeamInitial(team),
+    startDateLabel: formatPreviewDateLabel(shift.shift_date),
+    startTimeLabel: formatPreviewTime12h(checkIn),
+    endDateLabel: formatPreviewDateLabel(endDateIso),
+    endTimeLabel: formatPreviewTime12h(checkOut),
+    timelineStartMinutes: startMinutes,
+    timelineEndMinutes: endMinutes,
+    spansMidnight,
+    grossDurationLabel: workingTime.grossDurationLabel,
+    breakMinutes: workingTime.breakMinutes,
+    payableLabel: workingTime.payableLabel,
+    paySubtotalCents: payParts?.subtotalCents ?? null,
+    payTaxCents: payParts?.taxCents ?? null,
+    payTotalCents: payParts?.totalCents ?? null,
+    payTaxComponents: payParts?.taxComponents ?? [],
     workers: shift.required_workers,
   };
 }
 
+function comparePreviewShiftsChronologically(
+  a: JobPreviewShift,
+  b: JobPreviewShift,
+): number {
+  const dateCompare = a.shift_date.localeCompare(b.shift_date);
+  if (dateCompare !== 0) return dateCompare;
+
+  const aCheckIn = parseClockTimeToMinutes(a.planned_check_in) ?? 0;
+  const bCheckIn = parseClockTimeToMinutes(b.planned_check_in) ?? 0;
+  if (aCheckIn !== bCheckIn) return aCheckIn - bCheckIn;
+
+  const cycleCompare = (a.cycle_day ?? 0) - (b.cycle_day ?? 0);
+  if (cycleCompare !== 0) return cycleCompare;
+
+  const teamCompare = (a.team_name ?? "").localeCompare(b.team_name ?? "");
+  if (teamCompare !== 0) return teamCompare;
+
+  return a.shift_type.localeCompare(b.shift_type);
+}
+
 export function mapPreviewShiftsToRows(
   shifts: JobPreviewShift[],
+  shiftTemplates?: JobPreviewShiftTemplate[],
+  payContext?: ShiftPreviewPayContext,
 ): ShiftPreviewRow[] {
-  return shifts.map(mapPreviewShiftToRow);
+  const breakLookup = buildBreakMinutesLookup(shiftTemplates);
+
+  return [...shifts]
+    .sort(comparePreviewShiftsChronologically)
+    .map((shift) =>
+      mapPreviewShiftToRow(
+        enrichPreviewShiftBreakMinutes(shift, breakLookup),
+        payContext,
+      ),
+    );
 }
 
 export function buildNormalPreviewCostSummary(

@@ -8,6 +8,7 @@ import {
   CDSW_NEIGHBORHOOD_TYPES,
   DEFAULT_NEIGHBORHOOD_TYPES,
 } from "@/utils/constant/metadata";
+import { useCanadianCitySelectOptions } from "@/hooks/useCanadianCityOptions";
 import { DateRangePicker } from "../components/date-picker";
 import {
   JobFormField,
@@ -56,6 +57,7 @@ export function InstantBasicStep({
     loading,
     provinceOptions,
   } = useMetadataStore();
+  const cityOptions = useCanadianCitySelectOptions(formData.province);
   const departmentJobTitles = jobTitlesForDepartment(formData.department ?? "");
 
   const today = new Date();
@@ -397,23 +399,12 @@ export function InstantBasicStep({
           error={fieldErrors.street}
         />
 
-        <JobFormInput
-          id="city"
-          label="City"
-          type="text"
-          value={formData.city || ""}
-          onChange={(e) => updateFormData({ city: e.target.value })}
-          placeholder="Toronto"
-          required
-          error={fieldErrors.city}
-        />
-
         <JobFormSelect
           id="province"
           label="Province"
           value={formData.province || ""}
           onValueChange={(value) =>
-            updateFormData({ province: value as Province })
+            updateFormData({ province: value as Province, city: "" })
           }
           options={provinceOptions.map((p) => ({
             label: p.label,
@@ -423,6 +414,22 @@ export function InstantBasicStep({
           triggerClassName="h-11"
           required
           error={fieldErrors.province}
+        />
+
+        <JobFormSelect
+          id="city"
+          label="City"
+          value={formData.city || ""}
+          onValueChange={(value) => updateFormData({ city: value })}
+          options={cityOptions}
+          placeholder={
+            formData.province ? "Select City" : "Select province first"
+          }
+          emptyOptionsMessage="No cities available for this province"
+          disabled={!formData.province}
+          triggerClassName="h-11"
+          required
+          error={fieldErrors.city}
         />
 
         <JobFormInput

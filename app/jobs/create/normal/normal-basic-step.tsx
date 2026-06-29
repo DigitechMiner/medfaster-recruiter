@@ -18,6 +18,7 @@ import type {
   StaffingType,
 } from "@/types";
 import { getMetadataLabel } from "@/utils/constant/metadata";
+import { useCanadianCitySelectOptions } from "@/hooks/useCanadianCityOptions";
 import {
   JobFormField,
   JobFormInput,
@@ -51,6 +52,7 @@ export function NormalBasicStep({
     specializations,
     specializationsForJobTitle,
   } = useMetadataStore();
+  const cityOptions = useCanadianCitySelectOptions(formData.province);
 
   const availableSpecializations = useMemo(
     () => specializationsForJobTitle(formData.job_title ?? ""),
@@ -489,25 +491,13 @@ export function NormalBasicStep({
           error={fieldErrors.street}
         />
 
-          {/* City */}
-          <JobFormInput
-          id="city"
-          label="City"
-          type="text"
-          value={formData.city || ""}
-          onChange={(e) => updateFormData({ city: e.target.value })}
-          placeholder="Ontario"
-          required
-          error={fieldErrors.city}
-        />
-
         {/* Province */}
         <JobFormSelect
           id="province"
           label="Province"
           value={formData.province || ""}
           onValueChange={(value) =>
-            updateFormData({ province: value as Province })
+            updateFormData({ province: value as Province, city: "" })
           }
           options={provinceOptions.map((province) => ({
             label: province.label,
@@ -515,7 +505,25 @@ export function NormalBasicStep({
           }))}
           placeholder="Select Province"
           triggerClassName="h-11"
+          required
           error={fieldErrors.province}
+        />
+
+        {/* City */}
+        <JobFormSelect
+          id="city"
+          label="City"
+          value={formData.city || ""}
+          onValueChange={(value) => updateFormData({ city: value })}
+          options={cityOptions}
+          placeholder={
+            formData.province ? "Select City" : "Select province first"
+          }
+          emptyOptionsMessage="No cities available for this province"
+          disabled={!formData.province}
+          triggerClassName="h-11"
+          required
+          error={fieldErrors.city}
         />
 
         {/* Postal Code */}

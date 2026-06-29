@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MapPin } from 'lucide-react';
-import { resolveCanadianProvinceLabel, useMetadataStore } from '@/stores/metadataStore';
+import { resolveCanadianProvinceLabel, resolveCanadianCityLabel, useMetadataStore } from '@/stores/metadataStore';
 import type { JobListItem } from '@/types';
 import {
   formatDateRangeShort,
@@ -54,7 +54,8 @@ export const JobCard: React.FC<{
 }> = ({ job, onPreview, onViewDetails }) => {
   const provinceOptions = useMetadataStore((state) => state.provinceOptions);
   const provinceLabel = resolveCanadianProvinceLabel(provinceOptions, job.province);
-  const location = formatLocationCityProvince(job, provinceLabel);
+  const cityLabel = resolveCanadianCityLabel(provinceOptions, job.province, job.city);
+  const location = formatLocationCityProvince(job, provinceLabel, cityLabel);
   const listingStatus = formatListingStatus(job);
   const statusClass = getListingStatusBadgeClass(listingStatus);
   const hiresRequired = getRequiredPositions(job);

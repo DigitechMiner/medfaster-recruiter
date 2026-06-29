@@ -2,13 +2,17 @@
 
 import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
+import { useEffect } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import { FormProvider } from "react-hook-form";
+import { FormProvider, useFormContext, useWatch } from "react-hook-form";
 import { Pencil } from "lucide-react";
 
 import { FormInput, FormSelect } from "@/components/forms";
 import type { OrgDetailsType } from "@/components/forms";
 import { Button } from "@/components/ui/button";
+import { useCanadianCitySelectOptions } from "@/hooks/useCanadianCityOptions";
+import { useMetadataStore } from "@/stores/metadataStore";
+import { getCitiesForProvince, type CanadianProvinceOption } from "@/utils/constant/metadata";
 
 type ProfileOrganizationTabProps = {
   methods: UseFormReturn<OrgDetailsType>;
@@ -21,6 +25,63 @@ type ProfileOrganizationTabProps = {
   onLogoFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   fieldClassName: string;
 };
+
+function OrganizationLocationFields({
+  provinceSelectOptions,
+  fieldClassName,
+}: {
+  provinceSelectOptions: Array<{ label: string; value: string }>;
+  fieldClassName: string;
+}) {
+  const { setValue, getValues } = useFormContext<OrgDetailsType>();
+  const provinceOptions = useMetadataStore((state) => state.provinceOptions);
+  const selectedProvince = useWatch({ name: "province" });
+  const citySelectOptions = useCanadianCitySelectOptions(selectedProvince);
+
+  useEffect(() => {
+    const currentCity = getValues("city");
+    if (!selectedProvince) {
+      if (currentCity) {
+        setValue("city", "", { shouldValidate: true });
+      }
+      return;
+    }
+
+    const cities = getCitiesForProvince(
+      provinceOptions as CanadianProvinceOption[],
+      selectedProvince,
+    );
+    if (currentCity && !cities.some((city) => city.value === currentCity)) {
+      setValue("city", "", { shouldValidate: true });
+    }
+  }, [selectedProvince, provinceOptions, setValue, getValues]);
+
+  return (
+    <>
+      <FormSelect
+        name="province"
+        label="Province"
+        options={provinceSelectOptions}
+        required
+        className={fieldClassName}
+        placeholder="Select Province"
+      />
+      <FormSelect
+        name="city"
+        label="City"
+        options={citySelectOptions}
+        required
+        className={fieldClassName}
+        placeholder={selectedProvince ? "Select City" : "Select province first"}
+        disabled={!selectedProvince}
+        emptyMessage="No cities available for this province"
+      />
+      <div className="md:col-start-2">
+        <FormInput name="country" label="Country" required className={fieldClassName} />
+      </div>
+    </>
+  );
+}
 
 export function ProfileOrganizationTab({
   methods,
@@ -106,17 +167,10 @@ export function ProfileOrganizationTab({
             <FormInput name="gstNo" label="GST No" className={fieldClassName} />
             <FormInput name="address" label="Street Address" required className={fieldClassName} />
             <FormInput name="postalCode" label="Postal Code" required className={fieldClassName} />
-            <FormSelect
-              name="province"
-              label="Province"
-              options={provinceSelectOptions}
-              required
-              className={fieldClassName}
+            <OrganizationLocationFields
+              provinceSelectOptions={provinceSelectOptions}
+              fieldClassName={fieldClassName}
             />
-            <FormInput name="city" label="City" required className={fieldClassName} />
-            <div className="md:col-start-2">
-              <FormInput name="country" label="Country" required className={fieldClassName} />
-            </div>
           </div>
 
           <div className="flex justify-end mt-8 border-t border-gray-100 pt-6">

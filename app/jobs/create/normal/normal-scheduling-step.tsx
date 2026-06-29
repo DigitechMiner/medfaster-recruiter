@@ -55,11 +55,15 @@ import {
   getChainedShiftAnchor,
   isShiftEndTimeEditable,
   isShiftStartTimeEditable,
+  buildShiftTimingDisplays,
+  formatShiftDayLabel,
+  sortShiftsInDayOrder,
   MAX_CANDIDATE_WEEKLY_WORKING_HOURS,
   usesFifoShiftSelection,
   type ShiftTimesState,
 } from "./scheduling-utils";
 import { DEFAULT_CYCLE_START_DAY } from "./constant";
+import { inferFormShiftTypeFromStartTime } from "../shift-windows";
 import { useSyncBackendPayRate } from "./use-platform-pay-rate";
 
 interface NormalSchedulingStepProps {
@@ -674,13 +678,86 @@ export function NormalSchedulingStep({
   };
 
   const shiftRowGridClass =
-    "grid min-w-[720px] grid-cols-[minmax(88px,0.9fr)_minmax(130px,1.1fr)_minmax(130px,1.1fr)_minmax(120px,1fr)_minmax(100px,0.9fr)] items-center gap-3";
+    "grid min-w-[720px] grid-cols-[minmax(88px,0.9fr)_minmax(130px,1.1fr)_minmax(130px,1.1fr)_minmax(120px,1fr)_minmax(100px,0.9fr)] items-start gap-3";
 
   const shiftAtMax =
     multipleShiftsAllowed &&
     selectedShiftTypes.length >= maxSelectableShifts;
 
   const breakBounds = getBreakDurationBounds(shiftDuration);
+
+  const isChainedMultiShift = shouldChainShiftTimes(
+    jobDurationPerDay,
+    selectedShiftTypes,
+  );
+
+  const shiftTimingDisplays = useMemo(
+    () =>
+      buildShiftTimingDisplays({
+        selectedShifts: selectedShiftTypes,
+        times: {
+          morning_shift_start: formData.morning_shift_start,
+          morning_shift_end: formData.morning_shift_end,
+          evening_shift_start: formData.evening_shift_start,
+          evening_shift_end: formData.evening_shift_end,
+          night_shift_start: formData.night_shift_start,
+          night_shift_end: formData.night_shift_end,
+        },
+        chainShifts: isChainedMultiShift,
+      }),
+    [
+      selectedShiftTypes,
+      isChainedMultiShift,
+      formData.morning_shift_start,
+      formData.morning_shift_end,
+      formData.evening_shift_start,
+      formData.evening_shift_end,
+      formData.night_shift_start,
+      formData.night_shift_end,
+    ],
+  );
+
+  const shiftTableRows = useMemo(() => {
+    const ordered = sortShiftsInDayOrder(selectedShiftTypes);
+    const timingByShift = new Map(
+      shiftTimingDisplays.map((timing) => [timing.shift, timing]),
+    );
+
+    return ordered.map((shift) => {
+      const timing = timingByShift.get(shift);
+      const key = shift as ShiftKey;
+      const startTime =
+        key === "morning"
+          ? formData.morning_shift_start || ""
+          : key === "evening"
+            ? formData.evening_shift_start || ""
+            : formData.night_shift_start || "";
+
+      const inferred = startTime
+        ? inferFormShiftTypeFromStartTime(startTime)
+        : null;
+      const inferredLabel = inferred
+        ? (SHIFT_TYPES.find((opt) => opt.value === inferred)?.label ?? inferred)
+        : null;
+
+      return {
+        shift,
+        shiftLabel:
+          timing?.label ??
+          inferredLabel ??
+          SHIFT_TYPES.find((opt) => opt.value === shift)?.label ??
+          shift,
+        startDayOffset: timing?.startDayOffset ?? 0,
+        endDayOffset: timing?.endDayOffset ?? 0,
+      };
+    });
+  }, [
+    selectedShiftTypes,
+    shiftTimingDisplays,
+    formData.morning_shift_start,
+    formData.evening_shift_start,
+    formData.night_shift_start,
+  ]);
 
   const jobDurationHint =
     jobDurationPerDay === "24"
@@ -923,6 +1000,41 @@ export function NormalSchedulingStep({
             </>
           )}
         </p>
+        {isChainedMultiShift && shiftTimingDisplays.length >= 2 && (
+          <div className="mb-3 rounded-lg border border-orange-100 bg-orange-50/40 px-3 py-2.5 text-xs text-gray-600">
+            <p className="mb-1.5 font-medium text-gray-800">
+              24-hour timeline
+              {formData.start_date ? (
+                <span className="font-normal text-gray-500">
+                  {" "}
+                  (job starts {formatDate(formData.start_date)})
+                </span>
+              ) : null}
+            </p>
+            <ul className="space-y-1">
+              {shiftTimingDisplays.map((timing) => (
+                <li key={timing.shift}>
+                  <span className="font-medium text-gray-700">
+                    {timing.label}
+                  </span>
+                  {": "}
+                  <span>
+                    {formatShiftDayLabel(
+                      formData.start_date,
+                      timing.startDayOffset,
+                    )}{" "}
+                    {formatTimeDisplay(timing.startTime)}
+                    {" – "}
+                    {timing.endDayOffset !== timing.startDayOffset
+                      ? `${formatShiftDayLabel(formData.start_date, timing.endDayOffset)} `
+                      : ""}
+                    {formatTimeDisplay(timing.endTime)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="overflow-x-auto">
           {selectedShiftTypes.length > 0 && (
             <div className="space-y-3">
@@ -933,11 +1045,16 @@ export function NormalSchedulingStep({
                 )}
               >
                 <span>Shift Type</span>
-                <span>Start Time</span>
+                <span>
+                  Start Time
+                  <span className="mt-0.5 block font-normal text-gray-400">
+                    (date below)
+                  </span>
+                </span>
                 <span>
                   End Time
                   <span className="mt-0.5 block font-normal text-gray-400">
-                    (auto from start)
+                    (auto · date below)
                   </span>
                 </span>
                 <span>
@@ -949,16 +1066,10 @@ export function NormalSchedulingStep({
                 <span>No. of Candidate per Shift</span>
               </div>
 
-              {(["morning", "evening", "night"] as ShiftKey[])
-                .filter((key) => selectedShiftTypes.includes(key as ShiftType))
-                .map((key) => {
-                  const shiftType = key as ShiftType;
-                  const shiftLabel =
-                    key === "morning"
-                      ? "Morning"
-                      : key === "evening"
-                        ? "Evening"
-                        : "Night";
+              {shiftTableRows.map((row) => {
+                  const key = row.shift as ShiftKey;
+                  const shiftType = row.shift;
+                  const shiftLabel = row.shiftLabel;
                   const detail = shiftDetails[shiftType] ?? {};
                   const breakValue =
                     breakDurationDrafts[shiftType] ??
@@ -971,56 +1082,81 @@ export function NormalSchedulingStep({
                     shift: shiftType,
                   });
                   const canEditEnd = isShiftEndTimeEditable();
+                  const startTime = getShiftStart(key);
+                  const endTime = getShiftEnd(key);
 
                   return (
                     <div key={key} className={shiftRowGridClass}>
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="pt-2.5 text-sm font-medium text-gray-700">
                         {shiftLabel}
                       </span>
 
-                      <button
-                        type="button"
-                        disabled={!canEditStart}
-                        onClick={() => openTimePickerForShift(key, "start")}
-                        className={cn(
-                          "flex h-11 items-center justify-between rounded-md border px-3 text-sm",
-                          canEditStart
-                            ? "border-gray-300 bg-white text-gray-700"
-                            : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500",
-                        )}
-                      >
-                        <span className="truncate">
-                          {formatTimeDisplay(getShiftStart(key))}
-                        </span>
-                        <Clock
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          disabled={!canEditStart}
+                          onClick={() => openTimePickerForShift(key, "start")}
                           className={cn(
-                            "ml-2 h-4 w-4 shrink-0",
-                            canEditStart ? "text-gray-400" : "text-gray-300",
+                            "flex h-11 items-center justify-between rounded-md border px-3 text-sm",
+                            canEditStart
+                              ? "border-gray-300 bg-white text-gray-700"
+                              : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500",
                           )}
-                        />
-                      </button>
+                        >
+                          <span className="truncate">
+                            {formatTimeDisplay(startTime)}
+                          </span>
+                          <Clock
+                            className={cn(
+                              "ml-2 h-4 w-4 shrink-0",
+                              canEditStart ? "text-gray-400" : "text-gray-300",
+                            )}
+                          />
+                        </button>
+                        {startTime ? (
+                          <span className="px-1 text-[10px] leading-tight text-gray-400">
+                            {formatShiftDayLabel(
+                              formData.start_date,
+                              row.startDayOffset,
+                            )}
+                          </span>
+                        ) : null}
+                      </div>
 
-                      <button
-                        type="button"
-                        disabled={!canEditEnd}
-                        onClick={() => openTimePickerForShift(key, "end")}
-                        className={cn(
-                          "flex h-11 items-center justify-between rounded-md border px-3 text-sm",
-                          canEditEnd
-                            ? "border-gray-300 bg-white text-gray-700"
-                            : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500",
-                        )}
-                      >
-                        <span className="truncate">
-                          {formatTimeDisplay(getShiftEnd(key))}
-                        </span>
-                        <Clock
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          disabled={!canEditEnd}
+                          onClick={() => openTimePickerForShift(key, "end")}
                           className={cn(
-                            "ml-2 h-4 w-4 shrink-0",
-                            canEditEnd ? "text-gray-400" : "text-gray-300",
+                            "flex h-11 items-center justify-between rounded-md border px-3 text-sm",
+                            canEditEnd
+                              ? "border-gray-300 bg-white text-gray-700"
+                              : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500",
                           )}
-                        />
-                      </button>
+                        >
+                          <span className="truncate">
+                            {formatTimeDisplay(endTime)}
+                          </span>
+                          <Clock
+                            className={cn(
+                              "ml-2 h-4 w-4 shrink-0",
+                              canEditEnd ? "text-gray-400" : "text-gray-300",
+                            )}
+                          />
+                        </button>
+                        {endTime ? (
+                          <span className="px-1 text-[10px] leading-tight text-gray-400">
+                            {formatShiftDayLabel(
+                              formData.start_date,
+                              row.endDayOffset,
+                            )}
+                            {row.endDayOffset !== row.startDayOffset
+                              ? " (next day)"
+                              : ""}
+                          </span>
+                        ) : null}
+                      </div>
 
                       <Input
                         className="h-11"

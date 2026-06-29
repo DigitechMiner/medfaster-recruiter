@@ -29,6 +29,8 @@ interface FormSelectProps {
   placeholder?: string;
   className?: string;
   wrapperClassName?: string;
+  disabled?: boolean;
+  emptyMessage?: string;
 }
 
 export default function FormSelect({
@@ -39,6 +41,8 @@ export default function FormSelect({
   placeholder = "Select...",
   className = "",
   wrapperClassName = "",
+  disabled = false,
+  emptyMessage = "No options available",
 }: FormSelectProps) {
   const methods = useFormContext();
 
@@ -52,16 +56,26 @@ export default function FormSelect({
             {label} {required && <span className="text-[#F4781B]">*</span>}
           </FormLabel>
           <FormControl>
-            <Select onValueChange={field.onChange} value={field.value ?? ""}>
+            <Select
+              onValueChange={field.onChange}
+              value={field.value ?? ""}
+              disabled={disabled}
+            >
               <SelectTrigger className={`mt-1 ${className}`}>
                 <SelectValue placeholder={placeholder} />
               </SelectTrigger>
               <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+                {options.length > 0 ? (
+                  options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <p className="px-3 py-4 text-center text-sm text-gray-500">
+                    {emptyMessage}
+                  </p>
+                )}
               </SelectContent>
             </Select>
           </FormControl>

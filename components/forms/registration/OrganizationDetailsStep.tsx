@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 import { FileUpload, FormInput, FormSelect } from "@/components/forms";
+import { useCanadianCitySelectOptions } from "@/hooks/useCanadianCityOptions";
 import { useMetadataStore } from "@/stores/metadataStore";
+import { getCitiesForProvince, type CanadianProvinceOption } from "@/utils/constant/metadata";
 
 const DEFAULT_ROW_CLASS = "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4";
 const FIRST_ROW_CLASS = "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5";
@@ -62,6 +64,8 @@ export default function OrganizationDetailsStep() {
   const { setValue, getValues } = useFormContext();
   const organizationTypeOptions = useMetadataStore((state) => state.organizationTypeOptions);
   const provinceOptions = useMetadataStore((state) => state.provinceOptions);
+  const selectedProvince = useWatch({ name: "province" });
+  const citySelectOptions = useCanadianCitySelectOptions(selectedProvince);
 
   const orgTypeSelectOptions = organizationTypeOptions.map((item) => ({
     label: item.label,
@@ -77,6 +81,24 @@ export default function OrganizationDetailsStep() {
       setValue("country", "Canada", { shouldDirty: false, shouldValidate: false });
     }
   }, [getValues, setValue]);
+
+  useEffect(() => {
+    const currentCity = getValues("city");
+    if (!selectedProvince) {
+      if (currentCity) {
+        setValue("city", "", { shouldValidate: true });
+      }
+      return;
+    }
+
+    const cities = getCitiesForProvince(
+      provinceOptions as CanadianProvinceOption[],
+      selectedProvince,
+    );
+    if (currentCity && !cities.some((city) => city.value === currentCity)) {
+      setValue("city", "", { shouldValidate: true });
+    }
+  }, [selectedProvince, provinceOptions, setValue, getValues]);
 
   return (
     <>
@@ -125,14 +147,19 @@ export default function OrganizationDetailsStep() {
           options={provinceSelectOptions}
           required
           placeholder="Select Province"
-          wrapperClassName="sm:col-span-6"
+          wrapperClassName="sm:col-span-4"
         />
-        <FormInput
+        <FormSelect
           name="city"
           label="City"
-          placeholder="Enter City"
+          options={citySelectOptions}
           required
-          wrapperClassName="sm:col-span-3"
+          placeholder={
+            selectedProvince ? "Select City" : "Select province first"
+          }
+          disabled={!selectedProvince}
+          emptyMessage="No cities available for this province"
+          wrapperClassName="sm:col-span-5"
         />
         <FormInput
           name="country"

@@ -9,7 +9,7 @@ import {
   AppMetadata,
   MetadataValueOption,
 } from "@/features/common";
-import { metaData as initialMetaData } from "@/utils/constant/metadata";
+import { metaData as initialMetaData, getCityLabel, type CanadianProvinceOption } from "@/utils/constant/metadata";
 
 /** Map province value, label, or abbreviation to display label using store/API province options. */
 export function resolveCanadianProvinceLabel(
@@ -33,7 +33,42 @@ export function resolveCanadianProvinceLabel(
   return match?.label ?? v;
 }
 
+/** Map city value or label to display label using province-scoped metadata options. */
+export function resolveCanadianCityLabel(
+  provinces: readonly MetadataValueOption[],
+  province: string | null | undefined,
+  city: string | null | undefined,
+): string {
+  if (!city?.trim()) return "";
+  return getCityLabel(
+    provinces as CanadianProvinceOption[],
+    province,
+    city,
+  );
+}
+
 const initialData = initialMetaData.data as AppMetadata;
+
+const mergeProvinceOptionsWithCities = (
+  apiProvinces: MetadataValueOption[] = [],
+  localProvinces: MetadataValueOption[] = [],
+): MetadataValueOption[] => {
+  if (!apiProvinces.length) return localProvinces;
+
+  return apiProvinces.map((apiProvince) => {
+    const localMatch = localProvinces.find(
+      (province) =>
+        province.value === apiProvince.value ||
+        province.label === apiProvince.label,
+    );
+    const cities =
+      apiProvince.cities && apiProvince.cities.length > 0
+        ? apiProvince.cities
+        : localMatch?.cities;
+
+    return cities ? { ...apiProvince, cities } : apiProvince;
+  });
+};
 
 const dedupeMetadataOptions = (options: MetadataOption[] = []): MetadataOption[] => {
   const seen = new Set<string>();
@@ -146,7 +181,10 @@ export const useMetadataStore = create<MetadataStore>((set, get) => ({
         workEligibilityOptions: meta.work_eligibility ?? [],
         shiftTypeOptions: meta.shift_types ?? meta.shiftTypes ?? [],
         organizationTypeOptions: meta.organisation_type ?? [],
-        provinceOptions: meta.canadian_provinces ?? [],
+        provinceOptions: mergeProvinceOptionsWithCities(
+          meta.canadian_provinces,
+          initialData.canadian_provinces,
+        ),
         countryOptions: meta.countryList ?? [],
         loaded: true,
       });
