@@ -4,9 +4,9 @@ import { useState } from "react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { useJobPayments } from "@/hooks/useJobData";
-import { EmptyState, LoadingRows } from "./JobDetailDataView";
+import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { FeeBreakdownSection } from "./FeeBreakdownSection";
-import { formatDate, formatDateTime, formatLabel, formatPay } from "./job-detail-helpers";
+import { formatDate, formatDateTime, formatLabel, formatPay } from "../shared/job-detail-helpers";
 
 type TransitionTabProps = {
   jobId: string;

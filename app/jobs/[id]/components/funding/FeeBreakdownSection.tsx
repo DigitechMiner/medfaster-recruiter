@@ -2,7 +2,7 @@
 
 import { Building2, Percent, Receipt, User } from "lucide-react";
 import type { JobDetailPaymentsData, JobFeeBreakdown } from "@/types";
-import { formatLabel, formatPay } from "./job-detail-helpers";
+import { formatLabel, formatPay } from "../shared/job-detail-helpers";
 
 function formatPerHour(cents?: number | null) {
   if (cents == null) return "N/A";

@@ -18,7 +18,7 @@ import {
   formatDateRange,
   formatLabel,
   formatTime,
-} from "./job-detail-helpers";
+} from "../shared/job-detail-helpers";
 
 type ScheduleSectionProps = {
   summary: JobDetailSummaryData;

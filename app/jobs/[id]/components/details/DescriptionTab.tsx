@@ -1,7 +1,7 @@
 "use client";
 
 import { useJobDescription } from "@/hooks/useJobData";
-import { EmptyState, LoadingRows } from "./JobDetailDataView";
+import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 
 type DescriptionTabProps = {
   jobId: string;

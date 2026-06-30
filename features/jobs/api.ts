@@ -16,6 +16,7 @@ import type {
   InterviewPagination,
   InterviewRequest,
   InterviewRequestStatus,
+  ApplicationStatus,
   JobApplicationListResponse,
   JobCreatePayload,
   RecruiterJobCreateBody,
@@ -54,6 +55,7 @@ import type {
   FeesSummaryData,
   FeesSummaryScope,
   ProvinceTaxesData,
+  UpdateApplicationStatusPayload,
 } from "./types";
 
 function isRecord(value: unknown): value is JobDetailRecord {
@@ -432,15 +434,7 @@ export async function getJobFeePreview(
 
 export async function getJobApplications(params: {
   job_id?: string;
-  status?:
-    | "APPLIED"
-    | "SHORTLISTED"
-    | "INTERVIEWING"
-    | "INTERVIEWED"
-    | "HIRE"
-    | "REJECTED"
-    | "ACCEPTED"
-    | "CANCELLED";
+  status?: ApplicationStatus;
   page?: number;
   limit?: number;
   offset?: number;
@@ -501,18 +495,14 @@ export async function getRecruiterJobShiftDetails(
 }
 
 export async function updateApplicationStatus(
+  jobId: string,
   applicationId: string,
-  status:
-    | "APPLIED"
-    | "SHORTLISTED"
-    | "INTERVIEWING"
-    | "INTERVIEWED"
-    | "HIRE"
-    | "REJECTED",
+  payload: UpdateApplicationStatusPayload,
 ) {
-  const res = await axiosInstance.patch(ENDPOINTS.JOB_APPLICATION_STATUS(applicationId), {
-    status,
-  });
+  const res = await axiosInstance.patch(
+    ENDPOINTS.JOB_DETAIL_APPLICATION_STATUS(jobId, applicationId),
+    payload,
+  );
   return extractRoot(res.data);
 }
 

@@ -13,13 +13,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { JobDetailSummaryData } from "@/types";
-import { ActivityTab } from "./ActivityTab";
-import { ApplicationsTab } from "./ApplicationsTab";
-import { DescriptionTab } from "./DescriptionTab";
-import { JobShiftsTab } from "./JobShiftsTab";
-import { OverviewTab } from "./OverviewTab";
-import { ScheduleTab } from "./ScheduleTab";
-import { TransitionTab } from "./TransitionTab";
+import { ActivityTab } from "./activity/ActivityTab";
+import { ApplicationsTab } from "./candidates/ApplicationsTab";
+import { DescriptionTab } from "./details/DescriptionTab";
+import { JobShiftsTab } from "./schedule/JobShiftsTab";
+import { OverviewTab } from "./overview/OverviewTab";
+import { ScheduleTab } from "./schedule/ScheduleTab";
+import { TransitionTab } from "./funding/TransitionTab";
 
 type JobDetailTab =
   | "overview"
@@ -138,7 +138,10 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
           </TabsContent>
 
           <TabsContent value="candidates" className="m-0">
-            <ApplicationsTab jobId={jobId} />
+            <ApplicationsTab
+              jobId={jobId}
+              aiInterviewEnabled={summary.ai_interview === true}
+            />
           </TabsContent>
 
           <TabsContent value="schedule" className="m-0">

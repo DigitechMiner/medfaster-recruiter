@@ -8,8 +8,8 @@ import type {
   JobScheduleTeamCycle,
 } from "@/types";
 import { cn } from "@/lib/utils";
-import { EmptyState, LoadingRows } from "./JobDetailDataView";
-import { formatLabel, formatShiftTemplateLine, formatTime } from "./job-detail-helpers";
+import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
+import { formatLabel, formatShiftTemplateLine, formatTime } from "../shared/job-detail-helpers";
 
 type SchedulePlanPanelProps = {
   schedule: JobScheduleData | null;

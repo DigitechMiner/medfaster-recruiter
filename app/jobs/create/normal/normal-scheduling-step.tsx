@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarIcon, Check, Clock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -165,8 +165,10 @@ export function NormalSchedulingStep({
   const shiftDuration: ShiftDurationType =
     (formData.shift_duration_type as ShiftDurationType) ?? "8_hrs";
 
-  const selectedShiftTypes: ShiftType[] =
-    (formData.selected_shift_types as ShiftType[]) ?? [];
+  const selectedShiftTypes = useMemo(
+    () => (formData.selected_shift_types as ShiftType[]) ?? [],
+    [formData.selected_shift_types],
+  );
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [dateEditMode, setDateEditMode] = useState<DateEditMode>("start");
@@ -234,7 +236,10 @@ export function NormalSchedulingStep({
     weeklyHoursViolations,
   );
 
-  const shiftDetails = formData.shift_schedule_details ?? {};
+  const shiftDetails = useMemo(
+    () => formData.shift_schedule_details ?? {},
+    [formData.shift_schedule_details],
+  );
   const candidatesPerTeam = getCandidatesPerTeam(
     selectedShiftTypes,
     shiftDetails,
@@ -262,14 +267,24 @@ export function NormalSchedulingStep({
   const templateFirstDate = firstDatedTemplateColumn?.dateLabel;
   const templateLastDate = lastDatedTemplateColumn?.dateLabel;
 
-  const getExistingShiftTimes = (): ShiftTimesState => ({
-    morning_shift_start: formData.morning_shift_start,
-    morning_shift_end: formData.morning_shift_end,
-    evening_shift_start: formData.evening_shift_start,
-    evening_shift_end: formData.evening_shift_end,
-    night_shift_start: formData.night_shift_start,
-    night_shift_end: formData.night_shift_end,
-  });
+  const getExistingShiftTimes = useCallback(
+    (): ShiftTimesState => ({
+      morning_shift_start: formData.morning_shift_start,
+      morning_shift_end: formData.morning_shift_end,
+      evening_shift_start: formData.evening_shift_start,
+      evening_shift_end: formData.evening_shift_end,
+      night_shift_start: formData.night_shift_start,
+      night_shift_end: formData.night_shift_end,
+    }),
+    [
+      formData.morning_shift_start,
+      formData.morning_shift_end,
+      formData.evening_shift_start,
+      formData.evening_shift_end,
+      formData.night_shift_start,
+      formData.night_shift_end,
+    ],
+  );
 
   const buildShiftTimesRecalcPatch = (
     duration: ShiftDurationType,
@@ -361,6 +376,7 @@ export function NormalSchedulingStep({
     selectedShiftTypes,
     shiftDetails,
     updateFormData,
+    getExistingShiftTimes,
   ]);
 
   useEffect(() => {
@@ -527,7 +543,6 @@ export function NormalSchedulingStep({
     );
   };
 
-  const shiftHoursLabel = shiftDuration === "12_hrs" ? "12" : "8";
   const cycleStartLabel = getCycleStartDayLabel(cycleStartDay);
   const templateDateRangeNote =
     templateFirstDate &&

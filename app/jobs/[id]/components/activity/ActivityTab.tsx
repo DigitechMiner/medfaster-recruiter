@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { useJobActivity } from "@/hooks/useJobData";
 import type { JobDetailActivityEvent } from "@/types";
-import { EmptyState, LoadingRows } from "./JobDetailDataView";
-import { formatDateTime, formatLabel, formatPay } from "./job-detail-helpers";
+import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
+import { formatDateTime, formatLabel, formatPay } from "../shared/job-detail-helpers";
 
 type ActivityTabProps = {
   jobId: string;

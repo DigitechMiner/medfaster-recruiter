@@ -18,7 +18,7 @@ import {
   formatDateRange,
   formatLabel,
   formatPay,
-} from "./job-detail-helpers";
+} from "../shared/job-detail-helpers";
 
 interface JobDetailSummaryProps {
   summary: JobDetailSummaryData;

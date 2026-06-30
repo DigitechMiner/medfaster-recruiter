@@ -361,6 +361,7 @@ export function useJobApplications(params?: {
     useState<JobApplicationListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const jobId = params?.job_id;
   const status = params?.status;
   const page = params?.page;
@@ -390,9 +391,11 @@ export function useJobApplications(params?: {
     return () => {
       cancelled = true;
     };
-  }, [jobId, status, page, limit]);
+  }, [jobId, status, page, limit, refreshKey]);
 
-  return { applications, isLoading, error };
+  const refetch = () => setRefreshKey((key) => key + 1);
+
+  return { applications, isLoading, error, refetch };
 }
 
 // ─── useJobShifts ─────────────────────────────────────────────────────────────

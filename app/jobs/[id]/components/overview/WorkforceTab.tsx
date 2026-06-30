@@ -2,8 +2,8 @@
 
 import { CalendarDays, UserCheck, Users } from "lucide-react";
 import { useJobWorkers } from "@/hooks/useJobData";
-import { EmptyState, LoadingRows } from "./JobDetailDataView";
-import { formatDate, formatLabel } from "./job-detail-helpers";
+import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
+import { formatDate, formatLabel } from "../shared/job-detail-helpers";
 
 type WorkforceTabProps = {
   jobId: string;

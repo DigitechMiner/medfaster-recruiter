@@ -8,8 +8,8 @@ import {
   EmptyState,
   LoadingRows,
   StatusBadge,
-} from "./JobDetailDataView";
-import { formatDate, formatDateTime, formatLabel, formatPay, formatTime } from "./job-detail-helpers";
+} from "../shared/JobDetailDataView";
+import { formatDate, formatDateTime, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
 
 type DisputesTabProps = {
   jobId: string;

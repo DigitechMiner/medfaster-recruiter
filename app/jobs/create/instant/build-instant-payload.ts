@@ -146,12 +146,10 @@ export function buildInstantJobCreatePayload(
   );
   if (!shiftTemplate) return null;
 
-  const {
-    check_in_time: _checkIn,
-    check_out_time: _checkOut,
-    break_duration_minutes: _breakMinutes,
-    ...rest
-  } = source;
+  const rest = { ...source };
+  delete rest.check_in_time;
+  delete rest.check_out_time;
+  delete rest.break_duration_minutes;
 
   return {
     ...rest,

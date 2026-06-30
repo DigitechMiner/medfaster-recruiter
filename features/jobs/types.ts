@@ -1057,13 +1057,33 @@ export type ApplicationStatus =
   | "REJECTED"
   | "HIRE"
   | "ACCEPTED"
+  | "WITHDRAWN"
   | "CANCELLED";
+
+export interface ApplicationTeamPreference {
+  team_id: string;
+  team_name: string;
+  shift_types: string[];
+}
+
+export type HireShiftBand = "MORNING" | "EVENING" | "NIGHT";
+
+export interface HirePlacement {
+  team_id: string;
+  shift_type: HireShiftBand;
+}
+
+export interface UpdateApplicationStatusPayload {
+  status: ApplicationStatus;
+  hire_placement?: HirePlacement;
+}
 
 export interface JobApplicationItem {
   id: string;
   job_id: string;
   candidate_id: string;
   status: ApplicationStatus;
+  team_preferences?: ApplicationTeamPreference[];
   created_at: string;
   updated_at: string;
   job: {
@@ -1126,7 +1146,9 @@ export interface JobApplicationListResponse {
       | "HIRE"
       | "REJECTED"
       | "ACCEPTED"
+      | "WITHDRAWN"
       | "CANCELLED";
+    team_preferences?: ApplicationTeamPreference[];
     created_at: string;
     updated_at: string;
     job: {

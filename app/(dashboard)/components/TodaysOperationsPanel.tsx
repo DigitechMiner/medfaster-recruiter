@@ -4,14 +4,9 @@ import Image from "next/image";
 import { MessageSquare, MoreVertical, Phone } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
-import { EmptyState } from "@/app/jobs/[id]/components/JobDetailDataView";
+import { EmptyState } from "@/app/jobs/[id]/components/shared/JobDetailDataView";
 import { useTodayShifts } from "@/hooks/useDashboard";
 import type { DashboardShiftRange, TodayShift } from "@/features/dashboard";
-import type { MetadataValueOption } from "@/features/common";
-import {
-  resolveCanadianProvinceLabel,
-  useMetadataStore,
-} from "@/stores/metadataStore";
 import { getBackendImageUrl } from "@/stores/api/api-client";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -52,7 +47,7 @@ type ShiftRow = {
   candidateId: string;
 };
 
-function mapRow(shift: TodayShift, provinces: readonly MetadataValueOption[]): ShiftRow {
+function mapRow(shift: TodayShift): ShiftRow {
   const c = shift.candidate_profile;
   return {
     id: shift.shift_id,
@@ -78,8 +73,7 @@ export function TodaysOperationsPanel({ range }: TodaysOperationsPanelProps) {
 
   const { shifts, total, isLoading, isError, error, refetch } =
     useTodayShifts(range, page, perPage);
-  const provinceOptions = useMetadataStore((s) => s.provinceOptions);
-  const rows = shifts.map((s) => mapRow(s, provinceOptions));
+  const rows = shifts.map((s) => mapRow(s));
 
   const handleMessage = useCallback(
     (id: string) => router.push(`/messages?candidateId=${encodeURIComponent(id)}`),

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { MapPin, MessageSquare, MoreVertical, Phone } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
-import { EmptyState } from "@/app/jobs/[id]/components/JobDetailDataView";
+import { EmptyState } from "@/app/jobs/[id]/components/shared/JobDetailDataView";
 import { useTodayShifts } from "@/hooks/useDashboard";
 import type { DashboardShiftRange, TodayShift } from "@/features/dashboard";
 import type { MetadataValueOption } from "@/features/common";

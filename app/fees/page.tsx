@@ -108,7 +108,10 @@ export default function FeesPage() {
 
   const defaultSection = getDefaultSection(currentData);
   const instantSection = getInstantSection(currentData);
-  const defaultJobTitles = defaultSection?.job_titles ?? [];
+  const defaultJobTitles = useMemo(
+    () => defaultSection?.job_titles ?? [],
+    [defaultSection?.job_titles],
+  );
 
   const experienceLevels = useMemo(() => {
     const fromResponse = sortExperienceLevels(currentData?.experience_levels);

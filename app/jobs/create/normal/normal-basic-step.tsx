@@ -56,7 +56,7 @@ export function NormalBasicStep({
 
   const availableSpecializations = useMemo(
     () => specializationsForJobTitle(formData.job_title ?? ""),
-    [formData.job_title, specializationsForJobTitle, specializations],
+    [formData.job_title, specializationsForJobTitle],
   );
   const hasJobTitle = Boolean(formData.job_title);
   const hasSpecializationOptions = availableSpecializations.length > 0;

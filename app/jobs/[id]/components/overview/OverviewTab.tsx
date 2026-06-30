@@ -4,14 +4,14 @@ import Link from "next/link";
 import { Clock, UserCheck } from "lucide-react";
 import { useJobWorkers } from "@/hooks/useJobData";
 import type { JobDetailSummaryData } from "@/types";
-import { ActivityTab } from "./ActivityTab";
-import { EmptyState, LoadingRows } from "./JobDetailDataView";
+import { ActivityTab } from "../activity/ActivityTab";
+import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import {
   formatDate,
   formatDateRange,
   formatLabel,
   formatTime,
-} from "./job-detail-helpers";
+} from "../shared/job-detail-helpers";
 
 type OverviewTabProps = {
   jobId: string;

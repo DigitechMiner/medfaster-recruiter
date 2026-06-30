@@ -8,7 +8,7 @@ import { PaginationFooter } from "@/components/table/PaginationFooter";
 import {
   EmptyState,
   StatusBadge,
-} from "@/app/jobs/[id]/components/JobDetailDataView";
+} from "@/app/jobs/[id]/components/shared/JobDetailDataView";
 import { useDashboardUnderfilledJobs } from "@/hooks/useDashboard";
 import type { UnderfilledJob } from "@/features/dashboard";
 import type { MetadataValueOption } from "@/features/common";

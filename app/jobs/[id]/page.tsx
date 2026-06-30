@@ -6,8 +6,8 @@ import { AppLayout } from "@/components/global/app-layout";
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 import { useJobSummary, useJobId } from "@/hooks/useJobData";
 import { JobDetailTabs } from "./components/Tabs";
-import { JobDetailSummary } from "./components/BasicInfo";
-import { ScheduleSection } from "./components/ScheduleSection";
+import { JobDetailSummary } from "./components/summary/BasicInfo";
+import { ScheduleSection } from "./components/schedule/ScheduleSection";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();

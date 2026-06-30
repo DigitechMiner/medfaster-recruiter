@@ -65,6 +65,8 @@ export const ENDPOINTS = {
   // ── Job applications ──────────────────────────────────────────────────────
   JOB_APPLICATIONS: "/recruiter/job-applications",
   JOB_APPLICATION_STATUS: (id: string) => `/recruiter/job-applications/${id}/status`,
+  JOB_DETAIL_APPLICATION_STATUS: (jobId: string, applicationId: string) =>
+    `/recruiter/jobs/${jobId}/applications/${applicationId}/status`,
   // ── Interviews (requests, sessions, candidate/booking listings) ───────────
   INTERVIEW_REQUESTS: "/recruiter/interview-requests",
   INTERVIEW_REQUEST_CANCEL: (id: string) => `/recruiter/interview-requests/${id}/cancel`,

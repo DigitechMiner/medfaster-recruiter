@@ -71,7 +71,8 @@ export function clearCachedPayRate(): void {
   const currentSnapshot = useJobsStore.getState().formSnapshot;
   if (!currentSnapshot?.cachedPayRate) return;
 
-  const { cachedPayRate: _removed, ...rest } = currentSnapshot;
+  const { cachedPayRate, ...rest } = currentSnapshot;
+  void cachedPayRate;
   useJobsStore.getState().setFormSnapshot(rest as JobFormSnapshot);
 }
 

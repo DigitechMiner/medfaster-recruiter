@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Clock, Mail, MapPin, Phone, RefreshCw, Users } from "lucide-react";
+import { AlertCircle, Clock, MapPin, Phone, RefreshCw, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import SuccessModal from "@/components/modal";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
@@ -46,7 +46,7 @@ import type {
   RecruiterJobCreateBody,
   ShiftType,
 } from "@/types";
-import { getShiftDurationHours, parseClockTimeToMinutes, parseLocalDate, shiftSpansMidnight } from "../validation/helpers";
+import { parseClockTimeToMinutes, parseLocalDate, shiftSpansMidnight } from "../validation/helpers";
 import { INSTANT_JOB_MIN_DURATION_HOURS, SHIFT_MAX_HOURS } from "../validation/constants";
 import { validatePayloadShiftDurations } from "../validation/shift-duration";
 import { getMetadataLabel } from "@/utils/constant/metadata";
@@ -520,8 +520,10 @@ export function JobReview({
     instantPreviewCost?.dueNowCents ?? previewCost?.dueNowCents ?? 0;
   const subtotalCents =
     instantPreviewCost?.subtotalCents ?? previewCost?.subtotalCents ?? 0;
-  const taxComponents =
-    instantPreviewCost?.taxComponents ?? previewCost?.taxComponents ?? [];
+  const taxComponents = useMemo(
+    () => instantPreviewCost?.taxComponents ?? previewCost?.taxComponents ?? [],
+    [instantPreviewCost?.taxComponents, previewCost?.taxComponents],
+  );
   const firstMonthPayment = previewCost?.monthlyPayments[0];
   const useApiShiftTable = isUrgent
     ? hasInstantPreviewShifts(feePreview)
@@ -712,15 +714,7 @@ export function JobReview({
 
   const successMessage = useMemo(
     () => buildJobCreatedSuccessMessage(displayJobTitle, payload),
-    [
-      displayJobTitle,
-      payload.start_date,
-      payload.end_date,
-      payload.check_in_time,
-      payload.check_out_time,
-      payload.morning_shift_start,
-      payload.morning_shift_end,
-    ],
+    [displayJobTitle, payload],
   );
 
   const previewDaysNote = useMemo(() => {

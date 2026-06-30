@@ -18,8 +18,8 @@ import type { JobShiftAssignment, JobShiftItem, JobShiftStaffingGap } from "@/ty
 import {
   EmptyState,
   LoadingRows,
-} from "./JobDetailDataView";
-import { formatDate, formatLabel, formatPay, formatTime } from "./job-detail-helpers";
+} from "../shared/JobDetailDataView";
+import { formatDate, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
 
 type ShiftStatus = "UPCOMING" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "MISSED";
 type ShiftStatusFilter = ShiftStatus | "ALL";

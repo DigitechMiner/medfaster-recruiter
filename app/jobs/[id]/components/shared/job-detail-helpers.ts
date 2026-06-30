@@ -427,11 +427,25 @@ export function formatLabel(value?: string | null) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+export function formatTeamPreferenceShifts(shiftTypes?: string[] | null) {
+  if (!shiftTypes?.length) return "N/A";
+  return shiftTypes.map((shift) => formatLabel(shift)).join(", ");
+}
+
 export function formatDate(value?: string | null) {
   if (!value) return "N/A";
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
+    year: "numeric",
+  });
+}
+
+export function formatDateShort(value?: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
     year: "numeric",
   });
 }
