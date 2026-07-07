@@ -5,7 +5,11 @@ import { Clock, UserCheck } from "lucide-react";
 import { useJobWorkers } from "@/hooks/useJobData";
 import type { JobDetailSummaryData } from "@/types";
 import { ActivityTab } from "../activity/ActivityTab";
-import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
+import {
+  EmptyState,
+  LoadingRows,
+} from "../shared/JobDetailDataView";
+import { ChildJobsSection } from "../shared/ChildJobsSection";
 import {
   formatDate,
   formatDateRange,
@@ -142,6 +146,12 @@ export function OverviewTab({
         enabled={enabled}
         accepted={summary.accepted}
         required={summary.required_workers}
+      />
+
+      <ChildJobsSection
+        jobId={jobId}
+        jobUrgency={summary.job_urgency}
+        enabled={enabled}
       />
 
       <section className="rounded-xl border border-gray-200 p-4">

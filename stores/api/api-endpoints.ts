@@ -31,6 +31,7 @@ export const ENDPOINTS = {
   JOBS_CREATE: "/recruiter/jobs",
   JOBS_DETAIL: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DETAIL_SUMMARY: (id: string) => `/recruiter/jobs/${id}/summary`,
+  JOBS_DETAIL_CHILDREN: (id: string) => `/recruiter/jobs/${id}/children`,
   JOBS_DETAIL_DESCRIPTION: (id: string) => `/recruiter/jobs/${id}/description`,
   JOBS_DETAIL_ACTIVITY: (id: string) => `/recruiter/jobs/${id}/activity`,
   JOBS_DETAIL_PAYMENTS: (id: string) => `/recruiter/jobs/${id}/payments`,
@@ -44,6 +45,7 @@ export const ENDPOINTS = {
   JOBS_INFO: (id: string) => `/recruiter/jobs/${id}/info`,
   JOBS_UPDATE: (id: string) => `/recruiter/jobs/${id}`,
   JOBS_DELETE: (id: string) => `/recruiter/jobs/${id}`,
+  JOBS_CLOSE: (id: string) => `/recruiter/jobs/${id}/close`,
   JOBS_DETAIL_APPLICATIONS: (id: string) => `/recruiter/jobs/${id}/applications`,
   JOBS_DETAIL_SHIFTS: (id: string) => `/recruiter/jobs/${id}/shifts`,
   JOBS_DETAIL_WALLET_TRANSACTIONS: (id: string) =>

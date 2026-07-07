@@ -226,6 +226,35 @@ export interface JobDetailSummaryResponse {
   data: JobDetailSummaryData;
 }
 
+export interface JobChildListItem {
+  id: string;
+  parent_job_id?: string | null;
+  job_title: string;
+  department?: string | null;
+  job_type?: JobType | null;
+  job_urgency?: JobUrgency | null;
+  status?: JobStatus | string | null;
+  city?: string | null;
+  province?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  required_workers?: number | null;
+  workforce_count?: number | null;
+  no_of_hires_required?: number | null;
+  no_of_hires_hired?: number | null;
+  application_count?: number | null;
+  shift_count?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface JobChildrenResponse {
+  children: JobChildListItem[];
+  pagination?: PaginationData | null;
+}
+
 /** Lazy-loaded job description sections. */
 export interface JobDetailDescriptionData {
   description?: string | null;
@@ -658,6 +687,27 @@ export interface JobUpdateResponse {
 export interface JobDeleteResponse {
   success: boolean;
   message: string;
+}
+
+export interface CloseJobPayload {
+  recruiter_close_note?: string;
+}
+
+export interface JobCloseSummary {
+  refunded: boolean;
+  refund_amount_cents: string;
+  interviews_cancelled: number;
+  applications_cancelled: number;
+  notified_candidate_count: number;
+}
+
+export interface CloseJobResponse {
+  success: boolean;
+  message: string;
+  data: {
+    job: JobBackendResponse;
+    close_summary: JobCloseSummary;
+  };
 }
 
 /** Legacy instant / simple shift preview request. */

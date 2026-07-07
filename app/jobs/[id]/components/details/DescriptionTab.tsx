@@ -1,6 +1,7 @@
 "use client";
 
 import { useJobDescription } from "@/hooks/useJobData";
+import { ChildJobsSection } from "../shared/ChildJobsSection";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 
 type DescriptionTabProps = {
@@ -38,6 +39,11 @@ export function DescriptionTab({ jobId, enabled = true }: DescriptionTabProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      <ChildJobsSection
+        jobId={jobId}
+        enabled={enabled}
+        title="Child jobs / instant shifts"
+      />
       <section className="rounded-xl border border-gray-200 p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-2">
           Job Description

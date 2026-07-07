@@ -2,6 +2,7 @@ import type {
   InstantJobFeePreviewData,
   JobFeePreviewData,
   JobPreviewShift,
+  JobPreviewShiftTemplate,
   JobPreviewTaxComponent,
 } from "@/types";
 import {
@@ -32,8 +33,9 @@ export function hasInstantPreviewShifts(
 /** Same row shape and column layout as normal job preview (`mapPreviewShiftsToRows`). */
 export function mapInstantPreviewShiftsToRows(
   shifts: JobPreviewShift[],
+  shiftTemplates?: JobPreviewShiftTemplate[],
 ): ShiftPreviewRow[] {
-  return mapPreviewShiftsToRows(shifts);
+  return mapPreviewShiftsToRows(shifts, shiftTemplates);
 }
 
 function resolveCostPerShiftCents(

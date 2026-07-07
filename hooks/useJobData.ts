@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
 import type {
   ApplicationStatus,
+  JobChildrenResponse,
   JobBackendResponse,
   JobDetailActivityData,
   JobDetailDescriptionData,
@@ -26,6 +27,7 @@ import {
   getJobApplications,
   getRecruiterJobDisputes,
   getRecruiterJobActivity,
+  getRecruiterJobChildren,
   getRecruiterJobDescription,
   getRecruiterJobPayments,
   getRecruiterJobSchedule,
@@ -100,6 +102,7 @@ export function useJobSummary(jobId: string | null) {
   const [summary, setSummary] = useState<JobDetailSummaryData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!jobId) {
@@ -130,9 +133,69 @@ export function useJobSummary(jobId: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, refreshKey]);
 
-  return { summary, isLoading, error };
+  const refetch = () => setRefreshKey((key) => key + 1);
+
+  return { summary, isLoading, error, refetch };
+}
+
+export function useJobChildren(
+  jobId?: string | null,
+  params?: {
+    page?: number;
+    limit?: number;
+    job_urgency?: string;
+    status?: string;
+  },
+  enabled = true,
+) {
+  const [children, setChildren] = useState<JobChildrenResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const page = params?.page;
+  const limit = params?.limit;
+  const jobUrgency = params?.job_urgency;
+  const status = params?.status;
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobChildren(jobId, {
+      page,
+      limit,
+      job_urgency: jobUrgency,
+      status,
+    })
+      .then((data) => {
+        if (!cancelled) setChildren(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load child jobs",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled, page, limit, jobUrgency, status]);
+
+  return { children, isLoading, error };
 }
 
 /** @deprecated Use useJobSummary — kept for compatibility. */

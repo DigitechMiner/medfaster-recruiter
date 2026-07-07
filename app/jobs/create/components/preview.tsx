@@ -21,6 +21,7 @@ import {
   formatPreviewTime12h,
   hasNormalPreviewShifts,
   mapPreviewShiftsToRows,
+  resolveBreakMinutesFromPayload,
   resolveGrossDurationMinutes,
   resolveShiftPreviewPayParts,
   resolveTeamInitial,
@@ -209,11 +210,7 @@ function buildShiftRows(
   const overnight = shiftSpansMidnight(checkIn, checkOut);
   const grossMinutes = resolveGrossDurationMinutes(checkIn, checkOut);
   const breakMinutes =
-    grossMinutes != null
-      ? grossMinutes > 8 * 60 + 30
-        ? 90
-        : 45
-      : null;
+    grossMinutes != null ? resolveBreakMinutesFromPayload(payload) : null;
   const payableMinutes =
     grossMinutes != null && breakMinutes != null
       ? Math.max(0, grossMinutes - breakMinutes)

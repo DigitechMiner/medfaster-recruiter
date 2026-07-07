@@ -1,4 +1,5 @@
 import type {
+  JobCreatePayload,
   JobPreviewBillingCycle,
   JobPreviewBillingMonthSlice,
   JobPreviewPaymentPeriodSlice,
@@ -7,7 +8,10 @@ import type {
   JobPreviewTaxComponent,
   NormalJobFeePreviewData,
   PreviewShiftTemplateType,
+  ShiftDurationType,
+  ShiftType,
 } from "@/types";
+import { getDefaultBreakDurationMinutes } from "./scheduling-utils";
 import {
   getShiftDurationHours,
   parseClockTimeToMinutes,
@@ -135,8 +139,9 @@ export function formatPreviewDateLabel(isoDate: string): string {
 
 export function formatPreviewTime12h(time?: string | null): string {
   if (!time) return "-";
-  const minutes = parseClockTimeToMinutes(time);
-  if (minutes === null) return time.trim().slice(0, 5);
+  const clockTime = resolveClockTimeString(time) ?? time;
+  const minutes = parseClockTimeToMinutes(clockTime);
+  if (minutes === null) return clockTime.trim().slice(0, 5);
   const hours24 = Math.floor(minutes / 60);
   const mins = minutes % 60;
   const period = hours24 >= 12 ? "PM" : "AM";
@@ -180,35 +185,79 @@ export function buildPreviewScheduleLabel(params: {
   return `${startDay} ${startTime} → ${endDay} ${endTime}${overnightSuffix}`;
 }
 
-function normalizeTemplateTime(time: string): string {
-  return time.trim().slice(0, 5);
+function extractClockTimeForLookup(time?: string | null): string | null {
+  if (!time) return null;
+  const trimmed = time.trim();
+
+  const isoMatch = /T(\d{2}:\d{2})(?::\d{2})?/.exec(trimmed);
+  if (isoMatch) return isoMatch[1];
+
+  const clockMatch = /^(\d{1,2}:\d{2})/.exec(trimmed);
+  if (clockMatch) {
+    const minutes = parseClockTimeToMinutes(clockMatch[1]);
+    if (minutes !== null) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+    }
+  }
+
+  return trimmed.length >= 5 ? trimmed.slice(0, 5) : null;
 }
+
+function resolveClockTimeString(time?: string | null): string | null {
+  return extractClockTimeForLookup(time);
+}
+
+function normalizeTemplateTime(time: string): string {
+  return extractClockTimeForLookup(time) ?? time.trim().slice(0, 5);
+}
+
+type BreakMinutesLookup = {
+  byTypeAndTime: Map<string, number>;
+  byType: Map<string, number>;
+};
 
 function buildBreakMinutesLookup(
   templates: JobPreviewShiftTemplate[] | undefined,
-): Map<string, number> {
-  const lookup = new Map<string, number>();
-  if (!templates?.length) return lookup;
+): BreakMinutesLookup {
+  const byTypeAndTime = new Map<string, number>();
+  const byType = new Map<string, number>();
+  if (!templates?.length) return { byTypeAndTime, byType };
 
   for (const template of templates) {
-    const key = `${template.shift_type}:${normalizeTemplateTime(template.start_time)}`;
-    lookup.set(key, template.break_minutes);
+    const type = template.shift_type.toUpperCase();
+    const key = `${type}:${normalizeTemplateTime(template.start_time)}`;
+    byTypeAndTime.set(key, template.break_minutes);
+    byType.set(type, template.break_minutes);
   }
 
-  return lookup;
+  return { byTypeAndTime, byType };
+}
+
+function resolveBreakMinutesFromLookup(
+  shift: JobPreviewShift,
+  lookup: BreakMinutesLookup,
+): number | null {
+  if (lookup.byTypeAndTime.size === 0 && lookup.byType.size === 0) {
+    return null;
+  }
+
+  const type = shift.shift_type.toUpperCase();
+  const timeKey = `${type}:${normalizeTemplateTime(shift.planned_check_in)}`;
+  return lookup.byTypeAndTime.get(timeKey) ?? lookup.byType.get(type) ?? null;
 }
 
 function enrichPreviewShiftBreakMinutes(
   shift: JobPreviewShift,
-  breakLookup: Map<string, number>,
+  breakLookup: BreakMinutesLookup,
 ): JobPreviewShift {
-  if (shift.break_minutes != null || breakLookup.size === 0) return shift;
+  const fromTemplate = resolveBreakMinutesFromLookup(shift, breakLookup);
+  if (fromTemplate != null) {
+    return { ...shift, break_minutes: fromTemplate };
+  }
 
-  const key = `${shift.shift_type}:${normalizeTemplateTime(shift.planned_check_in)}`;
-  const breakMinutes = breakLookup.get(key);
-  if (breakMinutes == null) return shift;
-
-  return { ...shift, break_minutes: breakMinutes };
+  return shift;
 }
 
 export function formatShiftTypeLabel(
@@ -236,17 +285,54 @@ export function resolveGrossDurationMinutes(
   checkIn?: string,
   checkOut?: string,
 ): number | null {
-  if (!checkIn || !checkOut) return null;
+  const inTime = resolveClockTimeString(checkIn) ?? checkIn;
+  const outTime = resolveClockTimeString(checkOut) ?? checkOut;
+  if (!inTime || !outTime) return null;
 
-  const inM = parseClockTimeToMinutes(checkIn);
-  const outM = parseClockTimeToMinutes(checkOut);
+  const inM = parseClockTimeToMinutes(inTime);
+  const outM = parseClockTimeToMinutes(outTime);
   if (inM === null || outM === null) return null;
 
-  if (shiftSpansMidnight(checkIn, checkOut)) {
+  if (shiftSpansMidnight(inTime, outTime)) {
     return 24 * 60 - inM + outM;
   }
 
   return outM - inM;
+}
+
+/** Resolve break minutes from form input (instant or per-shift scheduling). */
+export function resolveBreakMinutesFromPayload(
+  payload: JobCreatePayload,
+  shiftType?: PreviewShiftTemplateType | string,
+): number | null {
+  if (
+    payload.break_duration_minutes != null &&
+    Number.isFinite(payload.break_duration_minutes) &&
+    payload.break_duration_minutes >= 0
+  ) {
+    return payload.break_duration_minutes;
+  }
+
+  const details = payload.shift_schedule_details ?? {};
+  if (shiftType) {
+    const normalizedShift = shiftType.toString().toLowerCase() as ShiftType;
+    const fromShift = details[normalizedShift]?.break_duration_minutes;
+    if (fromShift != null && Number.isFinite(fromShift)) {
+      return fromShift;
+    }
+  }
+
+  const selectedShifts = (payload.selected_shift_types ?? []) as ShiftType[];
+  for (const shift of selectedShifts) {
+    const breakMinutes = details[shift]?.break_duration_minutes;
+    if (breakMinutes != null && Number.isFinite(breakMinutes)) {
+      return breakMinutes;
+    }
+  }
+
+  const shiftDuration =
+    (payload.shift_duration_type as ShiftDurationType | undefined) ?? "8_hrs";
+  return getDefaultBreakDurationMinutes(shiftDuration);
 }
 
 function inferDefaultBreakMinutes(grossMinutes: number): number {
@@ -256,7 +342,11 @@ function inferDefaultBreakMinutes(grossMinutes: number): number {
 function resolvePreviewBreakMinutes(
   shift: JobPreviewShift,
   grossMinutes: number,
+  templateBreakMinutes?: number | null,
 ): number {
+  if (templateBreakMinutes != null && templateBreakMinutes >= 0) {
+    return templateBreakMinutes;
+  }
   if (shift.break_minutes != null && shift.break_minutes >= 0) {
     return shift.break_minutes;
   }
@@ -291,6 +381,7 @@ export function resolvePreviewRotationDay(shift: JobPreviewShift): string {
 
 export function resolvePreviewWorkingTimeParts(
   shift: JobPreviewShift,
+  breakLookup?: BreakMinutesLookup,
 ): {
   payableLabel: string;
   payableMinutes: number | null;
@@ -303,10 +394,10 @@ export function resolvePreviewWorkingTimeParts(
   );
 
   if (grossMinutes == null) {
-    const hours = getShiftDurationHours(
-      shift.planned_check_in,
-      shift.planned_check_out,
-    );
+    const checkIn = resolveClockTimeString(shift.planned_check_in) ?? shift.planned_check_in;
+    const checkOut =
+      resolveClockTimeString(shift.planned_check_out) ?? shift.planned_check_out;
+    const hours = getShiftDurationHours(checkIn, checkOut);
     if (hours == null) {
       return {
         payableLabel: "-",
@@ -324,7 +415,14 @@ export function resolvePreviewWorkingTimeParts(
     };
   }
 
-  const breakMinutes = resolvePreviewBreakMinutes(shift, grossMinutes);
+  const templateBreakMinutes = breakLookup
+    ? resolveBreakMinutesFromLookup(shift, breakLookup)
+    : null;
+  const breakMinutes = resolvePreviewBreakMinutes(
+    shift,
+    grossMinutes,
+    templateBreakMinutes,
+  );
   const payableMinutes = resolvePreviewPayableMinutes(
     shift,
     grossMinutes,
@@ -515,16 +613,18 @@ function resolvePreviewRowId(shift: JobPreviewShift): string {
 export function mapPreviewShiftToRow(
   shift: JobPreviewShift,
   payContext?: ShiftPreviewPayContext,
+  breakLookup?: BreakMinutesLookup,
 ): ShiftPreviewRow {
-  const checkIn = shift.planned_check_in;
-  const checkOut = shift.planned_check_out;
+  const checkIn = resolveClockTimeString(shift.planned_check_in) ?? shift.planned_check_in;
+  const checkOut =
+    resolveClockTimeString(shift.planned_check_out) ?? shift.planned_check_out;
   const spansMidnight = shiftSpansMidnight(checkIn, checkOut);
   const endDateIso = spansMidnight
     ? addCalendarDays(shift.shift_date, 1)
     : shift.shift_date;
   const startMinutes = parseClockTimeToMinutes(checkIn) ?? 0;
   const endMinutes = parseClockTimeToMinutes(checkOut) ?? 0;
-  const workingTime = resolvePreviewWorkingTimeParts(shift);
+  const workingTime = resolvePreviewWorkingTimeParts(shift, breakLookup);
   const payParts =
     payContext && workingTime.payableMinutes != null
       ? resolveShiftPreviewPayParts(
@@ -567,8 +667,14 @@ function comparePreviewShiftsChronologically(
   const dateCompare = a.shift_date.localeCompare(b.shift_date);
   if (dateCompare !== 0) return dateCompare;
 
-  const aCheckIn = parseClockTimeToMinutes(a.planned_check_in) ?? 0;
-  const bCheckIn = parseClockTimeToMinutes(b.planned_check_in) ?? 0;
+  const aCheckIn =
+    parseClockTimeToMinutes(
+      resolveClockTimeString(a.planned_check_in) ?? a.planned_check_in,
+    ) ?? 0;
+  const bCheckIn =
+    parseClockTimeToMinutes(
+      resolveClockTimeString(b.planned_check_in) ?? b.planned_check_in,
+    ) ?? 0;
   if (aCheckIn !== bCheckIn) return aCheckIn - bCheckIn;
 
   const cycleCompare = (a.cycle_day ?? 0) - (b.cycle_day ?? 0);
@@ -593,6 +699,7 @@ export function mapPreviewShiftsToRows(
       mapPreviewShiftToRow(
         enrichPreviewShiftBreakMinutes(shift, breakLookup),
         payContext,
+        breakLookup,
       ),
     );
 }

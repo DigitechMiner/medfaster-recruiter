@@ -7,12 +7,13 @@ import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 import { useJobSummary, useJobId } from "@/hooks/useJobData";
 import { JobDetailTabs } from "./components/Tabs";
 import { JobDetailSummary } from "./components/summary/BasicInfo";
+import { CloseJobButton, CLOSE_JOB_ACTION_SLOT_CLASS } from "./components/shared/CloseJobButton";
 import { ScheduleSection } from "./components/schedule/ScheduleSection";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();
   const jobId = useJobId();
-  const { summary, isLoading, error } = useJobSummary(jobId);
+  const { summary, isLoading, error, refetch } = useJobSummary(jobId);
 
   useEffect(() => {
     if (!isLoading && !summary && jobId) router.replace("/jobs");
@@ -22,7 +23,10 @@ export default function JobDetailPageRoute() {
     return (
       <AppLayout padding="none">
         <div className="mx-auto w-full p-3 sm:p-4 md:p-5 xl:p-6">
-          <div className="mb-4 h-4 w-40 animate-pulse rounded bg-gray-200" />
+          <div className="mb-4 flex items-center justify-between gap-3 min-w-0">
+            <div className="h-4 w-40 animate-pulse rounded bg-gray-200" />
+            <div className={CLOSE_JOB_ACTION_SLOT_CLASS} />
+          </div>
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-100 px-6 py-5 space-y-3">
               <div className="h-7 w-64 animate-pulse rounded bg-gray-200" />
@@ -73,12 +77,21 @@ export default function JobDetailPageRoute() {
   return (
     <AppLayout padding="none">
       <div className="p-3 sm:p-4 md:p-5 xl:p-6 mx-auto w-full flex flex-col gap-4">
-        <BreadcrumbNav
-          breadcrumbs={[
-            { label: "Jobs", path: "/jobs" },
-            { label: summary.title, path: `/jobs/${jobId}` },
-          ]}
-        />
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <BreadcrumbNav
+              breadcrumbs={[
+                { label: "Jobs", path: "/jobs" },
+                { label: summary.title, path: `/jobs/${jobId}` },
+              ]}
+            />
+          </div>
+          <CloseJobButton
+            jobId={jobId!}
+            summary={summary}
+            onClosed={refetch}
+          />
+        </div>
 
         <JobDetailSummary summary={summary} />
 

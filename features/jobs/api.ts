@@ -18,9 +18,13 @@ import type {
   InterviewRequestStatus,
   ApplicationStatus,
   JobApplicationListResponse,
+  JobChildrenResponse,
+  JobChildListItem,
   JobCreatePayload,
   RecruiterJobCreateBody,
   JobCreateResponse,
+  CloseJobPayload,
+  CloseJobResponse,
   JobDeleteResponse,
   JobDetailRecord,
   JobDetailResponse,
@@ -80,6 +84,34 @@ function normalizeCollectionResponse<TItem, TResponse extends JobDetailRecord>(
   } as TResponse;
 }
 
+function normalizeJobChildren(data: unknown): JobChildrenResponse {
+  if (Array.isArray(data)) {
+    return { children: data as JobChildListItem[], pagination: null };
+  }
+
+  if (!isRecord(data)) {
+    return { children: [], pagination: null };
+  }
+
+  const children = Array.isArray(data.children)
+    ? (data.children as JobChildListItem[])
+    : Array.isArray(data.jobs)
+      ? (data.jobs as JobChildListItem[])
+      : Array.isArray(data.child_jobs)
+        ? (data.child_jobs as JobChildListItem[])
+        : Array.isArray(data.instant_shifts)
+          ? (data.instant_shifts as JobChildListItem[])
+          : Array.isArray(data.items)
+            ? (data.items as JobChildListItem[])
+            : [];
+
+  const pagination = isRecord(data.pagination)
+    ? (data.pagination as unknown as NonNullable<JobChildrenResponse["pagination"]>)
+    : null;
+
+  return { ...data, children, pagination } as JobChildrenResponse;
+}
+
 function normalizeJobWalletTransactions(data: unknown): JobWalletTransactionsResponse {
   if (Array.isArray(data)) {
     return { transactions: data as JobWalletTransactionItem[] };
@@ -130,6 +162,21 @@ export async function getRecruiterJobSummary(
 ): Promise<JobDetailSummaryData> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SUMMARY(id));
   return extractData<JobDetailSummaryData>(res.data);
+}
+
+export async function getRecruiterJobChildren(
+  id: string,
+  params?: {
+    page?: number;
+    limit?: number;
+    job_urgency?: string;
+    status?: string;
+  },
+): Promise<JobChildrenResponse> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_CHILDREN(id), {
+    params,
+  });
+  return normalizeJobChildren(extractData<unknown>(res.data));
 }
 
 export async function getRecruiterJobDescription(
@@ -345,6 +392,20 @@ export async function updateRecruiterJob(
 export async function deleteRecruiterJob(id: string): Promise<JobDeleteResponse> {
   const res = await axiosInstance.delete(ENDPOINTS.JOBS_DELETE(id));
   return extractRoot<JobDeleteResponse>(res.data);
+}
+
+export async function closeRecruiterJob(
+  id: string,
+  payload?: CloseJobPayload,
+): Promise<CloseJobResponse> {
+  const body: CloseJobPayload = {};
+  const note = payload?.recruiter_close_note?.trim();
+  if (note) {
+    body.recruiter_close_note = note;
+  }
+
+  const res = await axiosInstance.post(ENDPOINTS.JOBS_CLOSE(id), body);
+  return extractRoot<CloseJobResponse>(res.data);
 }
 
 export async function generateJobDescription(
