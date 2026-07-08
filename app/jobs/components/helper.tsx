@@ -228,10 +228,10 @@ export function getJobShiftPopoverLines(job: JobListItem): string[] {
 export function formatShiftPopoverLine(shift: JobListShiftTemplate): string {
   const start = formatTime(shift.start_time);
   const end = formatTime(shift.end_time);
-  const shortName = shift.shift_name?.split(/\s+/)[0] ?? shift.shift_name;
+  const label = formatShiftTypeLabel(shift.shift_type);
 
-  if (start && end) return `${shortName} (${start} - ${end})`;
-  return shift.shift_name;
+  if (start && end) return `${label} (${start} - ${end})`;
+  return label;
 }
 
 export function formatJobTypeLabel(
@@ -335,7 +335,7 @@ export function getJobShiftDisplayLines(job: JobListItem): string[] {
       const start = formatTime(shift.start_time);
       const end = formatTime(shift.end_time);
       const times = start && end ? ` (${start} – ${end})` : "";
-      return `${shift.shift_name}${times}`;
+      return `${formatShiftTypeLabel(shift.shift_type)}${times}`;
     });
   }
 

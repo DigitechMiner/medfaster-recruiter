@@ -10,6 +10,7 @@ import type {
 import { cn } from "@/lib/utils";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { formatLabel, formatShiftTemplateLine, formatTime } from "../shared/job-detail-helpers";
+import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
 
 type SchedulePlanPanelProps = {
   schedule: JobScheduleData | null;
@@ -41,8 +42,8 @@ function resolveCycleShift(
       ? templates[cycle.shift_template_index]
       : undefined);
 
-  const shiftName = cycle.shift_name ?? template?.shift_name ?? "Shift";
   const shiftType = (cycle.shift_type ?? template?.shift_type ?? "").toUpperCase();
+  const shiftName = shiftType ? formatShiftTypeLabel(shiftType) : "Shift";
   const startTime = cycle.start_time ?? template?.start_time;
   const endTime = cycle.end_time ?? template?.end_time;
 
@@ -298,11 +299,11 @@ export function SchedulePlanPanel({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {templates.map((template, index) => (
               <div
-                key={template.id ?? `${template.shift_name}-${index}`}
+                key={template.id ?? `${template.shift_type}-${index}`}
                 className="rounded-xl border border-gray-200 bg-white p-4"
               >
                 <p className="text-sm font-semibold text-gray-900">
-                  {template.shift_name}
+                  {formatShiftTypeLabel(template.shift_type)}
                 </p>
                 <p className="mt-1 text-xs font-medium text-gray-500">
                   {formatLabel(template.shift_type)}
@@ -310,9 +311,9 @@ export function SchedulePlanPanel({
                 <p className="mt-2 text-sm text-gray-700">
                   {formatShiftTemplateLine(template)}
                 </p>
-                {template.duration_hours != null && (
+                {template.payable_hours != null && (
                   <p className="mt-1.5 text-xs text-gray-400">
-                    {template.duration_hours}h per shift
+                    {template.payable_hours}h per shift
                   </p>
                 )}
               </div>

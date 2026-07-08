@@ -19,6 +19,7 @@ import {
   formatLabel,
   formatTime,
 } from "../shared/job-detail-helpers";
+import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
 
 type ScheduleSectionProps = {
   summary: JobDetailSummaryData;
@@ -107,7 +108,7 @@ export function ScheduleSection({
                       Next shift
                     </p>
                     <p className="mt-0.5 text-sm font-semibold text-gray-900">
-                      {nextShift.shift_name}
+                      {formatShiftTypeLabel(nextShift.shift_type)}
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
                       {formatDate(nextShift.shift_date)} ·{" "}
@@ -151,10 +152,10 @@ export function ScheduleSection({
                 <div className="flex flex-wrap gap-2">
                   {templates.map((template, index) => (
                     <span
-                      key={template.id ?? `${template.shift_name}-${index}`}
+                      key={template.id ?? `${template.shift_type}-${index}`}
                       className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600"
                     >
-                      {template.shift_name}
+                      {formatShiftTypeLabel(template.shift_type)}
                     </span>
                   ))}
                 </div>

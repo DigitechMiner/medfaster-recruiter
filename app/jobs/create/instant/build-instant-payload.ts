@@ -4,19 +4,11 @@ import type {
   JobCreatePayload,
   JobPreviewShiftTemplate,
   JobUrgency,
-  PreviewShiftTemplateType,
 } from "@/types";
 import {
   getShiftDurationHours,
 } from "../validation/helpers";
 import { inferShiftTypeFromStartTime } from "../shift-windows";
-
-const SHIFT_DISPLAY_NAME: Record<PreviewShiftTemplateType, string> = {
-  MORNING: "Morning Shift",
-  DAY: "Day Shift",
-  EVENING: "Evening Shift",
-  NIGHT: "Night Shift",
-};
 
 export type InstantBreakDurationBounds = {
   min: number;
@@ -74,8 +66,8 @@ export function buildInstantShiftTemplate(
   const end_time = normalizeClockTime(checkOut);
   if (!start_time || !end_time) return null;
 
-  const duration_hours = getShiftDurationHours(start_time, end_time);
-  if (duration_hours === null || duration_hours <= 0) return null;
+  const payable_hours = getShiftDurationHours(start_time, end_time);
+  if (payable_hours === null || payable_hours <= 0) return null;
 
   const bounds = getInstantBreakDurationBounds(start_time, end_time);
   const shift_type = inferShiftTypeFromStartTime(start_time);
@@ -87,11 +79,10 @@ export function buildInstantShiftTemplate(
     ) ?? bounds.default;
 
   return {
-    shift_name: SHIFT_DISPLAY_NAME[shift_type],
     shift_type,
     start_time,
     end_time,
-    duration_hours,
+    payable_hours,
     break_minutes,
   };
 }

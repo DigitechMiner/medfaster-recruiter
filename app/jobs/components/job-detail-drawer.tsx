@@ -365,7 +365,9 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
                       className="rounded-xl border border-gray-100 bg-gray-50/60 px-3.5 py-3"
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">{shift.shift_name}</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatShiftTypeLabel(shift.shift_type)}
+                        </span>
                         <span
                           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getShiftTypeBadgeClass(formatShiftTypeLabel(shift.shift_type))}`}
                         >
@@ -374,8 +376,8 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
                       </div>
                       <p className="mt-1.5 text-sm text-gray-600">{formatShiftPopoverLine(shift)}</p>
                       <div className="mt-2 grid grid-cols-2 gap-3 text-xs text-gray-500">
-                        {shift.duration_hours != null && (
-                          <span>Duration: {shift.duration_hours}h</span>
+                        {shift.payable_hours != null && (
+                          <span>Duration: {shift.payable_hours}h</span>
                         )}
                         {shift.break_minutes != null && (
                           <span>Break: {shift.break_minutes} min</span>

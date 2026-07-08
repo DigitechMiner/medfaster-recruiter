@@ -16,6 +16,7 @@ import {
   formatLabel,
   formatTime,
 } from "../shared/job-detail-helpers";
+import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
 
 type OverviewTabProps = {
   jobId: string;
@@ -117,7 +118,7 @@ export function OverviewTab({
             <div>
               <p className="text-xs font-medium text-gray-500">Next shift</p>
               <p className="mt-0.5 text-sm font-semibold text-gray-900">
-                {nextShift.shift_name}
+                {formatShiftTypeLabel(nextShift.shift_type)}
               </p>
               <p className="mt-1 text-xs text-gray-500">
                 {formatDate(nextShift.shift_date)} ·{" "}

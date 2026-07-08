@@ -6,7 +6,6 @@ import type {
   NormalJobFeePreviewPayload,
   NormalJobSchedulingPayload,
   PreviewShiftMode,
-  PreviewShiftTemplateType,
   ShiftDurationType,
   ShiftType,
 } from "@/types";
@@ -37,13 +36,6 @@ const SHIFT_TEMPLATE_ORDER: ShiftType[] = [
   "evening",
   "night",
 ];
-
-const PREVIEW_SHIFT_DISPLAY_NAME: Record<PreviewShiftTemplateType, string> = {
-  MORNING: "Morning Shift",
-  DAY: "Day Shift",
-  EVENING: "Evening Shift",
-  NIGHT: "Night Shift",
-};
 
 function toPreviewIsoDate(value?: string | Date | null): string | undefined {
   if (value == null || value === "") return undefined;
@@ -169,11 +161,10 @@ export function buildNormalJobSchedulingPayload(
 
     return [
       {
-        shift_name: PREVIEW_SHIFT_DISPLAY_NAME[shift_type],
         shift_type,
         start_time: startTime,
         end_time: endTime,
-        duration_hours: resolveDurationHours(
+        payable_hours: resolveDurationHours(
           startTime,
           endTime,
           shiftDuration,

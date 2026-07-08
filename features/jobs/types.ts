@@ -181,7 +181,7 @@ export function isNormalHiringProgress(
 
 export interface JobDetailNextShift {
   id: string;
-  shift_name: string;
+  shift_type: string;
   shift_date: string;
   start_time: string;
   end_time: string;
@@ -356,11 +356,10 @@ export interface JobDetailPaymentsData {
 
 export interface JobInfoShiftTemplate {
   id: string;
-  shift_name: string;
   shift_type: string;
   start_time: string;
   end_time: string;
-  duration_hours: number;
+  payable_hours: number;
   break_minutes: number;
 }
 
@@ -410,11 +409,10 @@ export interface JobInfoResponse {
 
 export interface JobListShiftTemplate {
   id?: string;
-  shift_name: string;
   shift_type: string;
   start_time: string;
   end_time: string;
-  duration_hours?: number;
+  payable_hours?: number;
   break_minutes?: number;
 }
 
@@ -432,11 +430,10 @@ export interface JobScheduleTeamCycle {
   shift_template_index?: number;
   required_workers?: number;
   is_working: boolean;
-  shift_name?: string;
   shift_type?: string;
   start_time?: string;
   end_time?: string;
-  duration_hours?: number;
+  payable_hours?: number;
   break_minutes?: number;
 }
 
@@ -498,11 +495,10 @@ export interface JobRotationalTeamCycle {
   shift_template_id?: string;
   required_workers: number;
   is_working: boolean;
-  shift_name: string;
   shift_type: string;
   start_time: string;
   end_time: string;
-  duration_hours?: number;
+  payable_hours?: number;
   break_minutes?: number;
 }
 
@@ -735,11 +731,10 @@ export type PreviewShiftMode = "STANDARD" | "ROTATIONAL";
 export type PreviewShiftTemplateType = "MORNING" | "DAY" | "EVENING" | "NIGHT";
 
 export interface JobPreviewShiftTemplate {
-  shift_name: string;
   shift_type: PreviewShiftTemplateType;
   start_time: string;
   end_time: string;
-  duration_hours: number;
+  payable_hours: number;
   break_minutes: number;
 }
 
@@ -837,7 +832,6 @@ export interface JobPreviewShift {
   /** Instant preview: sequential shift in the preview window. */
   shift_index?: number;
   shift_type: PreviewShiftTemplateType;
-  shift_name: string;
   is_night_shift: boolean;
   planned_check_in: string;
   planned_check_out: string;

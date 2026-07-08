@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProvinceTaxComponent } from "@/types";
@@ -8,6 +9,39 @@ import { JobFormField } from "./form-field";
 
 function formatHourlyRate(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+const rowLabelClass = "text-xs text-gray-600";
+const rowAmountClass =
+  "shrink-0 min-w-[5.25rem] text-right text-xs font-medium tabular-nums text-gray-800";
+const totalLabelClass = "text-xs font-semibold text-gray-800";
+const totalAmountClass =
+  "shrink-0 min-w-[5.25rem] text-right text-xs font-bold tabular-nums text-[#F4781B]";
+
+function PayBreakdownRow({
+  label,
+  amount,
+  amountClassName = rowAmountClass,
+  labelClassName = rowLabelClass,
+  className,
+}: {
+  label: ReactNode;
+  amount: ReactNode;
+  amountClassName?: string;
+  labelClassName?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 px-3 py-2",
+        className,
+      )}
+    >
+      <span className={labelClassName}>{label}</span>
+      <span className={amountClassName}>{amount}</span>
+    </div>
+  );
 }
 
 function computeTaxBreakdown(
@@ -117,102 +151,106 @@ export function HourlyPayWithTaxes({
 
       <div
         id={id}
-        className="flex h-11 items-center rounded-md border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500 select-none"
+        className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50/60"
       >
         {payRateLoading && (
-          <span className="animate-pulse text-gray-400">Loading rate...</span>
+          <div className="space-y-2 px-3 py-2.5">
+            <div className="h-3.5 w-full animate-pulse rounded bg-gray-200/70" />
+            <div className="h-3.5 w-3/5 animate-pulse rounded bg-gray-200/70" />
+          </div>
         )}
+
         {payRateError && (
-          <span className="flex items-center gap-1.5 text-xs text-red-600">
+          <p className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-red-600">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {payRateError}
-          </span>
+          </p>
         )}
+
         {!payRateLoading && !payRateError && (
-          <span
-            className={cn(
-              payRateCents !== null
-                ? "font-semibold text-gray-800"
-                : "text-gray-400",
-            )}
-          >
-            {jobTitleSelected ? (
-              payRateCents !== null ? (
-                <>
-                  {formatHourlyRate(payRateCents)}
-                  <span className="font-normal text-gray-500"> / hr</span>
-                </>
+          <PayBreakdownRow
+            label="Base Pay"
+            amount={
+              jobTitleSelected ? (
+                payRateCents !== null ? (
+                  `${formatHourlyRate(payRateCents)}/hr`
+                ) : (
+                  "—"
+                )
               ) : (
-                "—"
+                <span className="font-normal text-gray-400">
+                  {emptyJobTitleMessage}
+                </span>
               )
-            ) : (
-              emptyJobTitleMessage
+            }
+            amountClassName={cn(
+              rowAmountClass,
+              payRateCents === null && "font-normal text-gray-400",
             )}
-          </span>
+            className={showTaxBreakdown ? "border-b border-gray-100" : undefined}
+          />
         )}
-      </div>
 
-      {payRateCents !== null && !hasProvince && !payRateLoading && (
-        <p className="text-xs text-gray-400">
-          Select a province above to see applicable taxes.
-        </p>
-      )}
+        {payRateCents !== null && !hasProvince && !payRateLoading && !payRateError && (
+          <p className="border-t border-gray-100 px-3 py-2 text-xs text-gray-400">
+            Select a province above to see applicable taxes.
+          </p>
+        )}
 
-      {showTaxBreakdown && (
-        <div className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50/60">
-          {taxesLoading && (
-            <div className="space-y-2 px-3 py-2.5">
-              <div className="h-3.5 w-full animate-pulse rounded bg-gray-200/70" />
-              <div className="h-3.5 w-3/5 animate-pulse rounded bg-gray-200/70" />
-            </div>
-          )}
-
-          {taxesError && (
-            <p className="flex items-center gap-1.5 px-3 py-2.5 text-xs text-red-600">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {taxesError}
-            </p>
-          )}
-
-          {breakdown && !taxesLoading && !taxesError && (
-            <>
-              {breakdown.lines.map((line) => (
-                <div
-                  key={`${line.tax_name}-${line.display_order}`}
-                  className="flex items-center justify-between gap-4 border-b border-gray-100 px-3 py-2 text-xs text-gray-600 last:border-b-0"
-                >
-                  <span>
-                    {line.tax_name}
-                    <span className="ml-1 text-gray-400">
-                      ({line.tax_percentage}%)
-                    </span>
-                  </span>
-                  <span className="shrink-0 font-medium text-gray-700">
-                    +{formatHourlyRate(line.amountCents)}/hr
-                  </span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between gap-4 border-t border-gray-200 bg-white px-3 py-2.5">
-                <span className="text-sm font-semibold text-gray-800">
-                  Total with tax
-                </span>
-                <span className="text-sm font-bold text-[#F4781B]">
-                  {formatHourlyRate(breakdown.totalCents)}/hr
-                </span>
+        {showTaxBreakdown && (
+          <>
+            {taxesLoading && (
+              <div className="space-y-2 border-t border-gray-100 px-3 py-2.5">
+                <div className="h-3.5 w-full animate-pulse rounded bg-gray-200/70" />
+                <div className="h-3.5 w-3/5 animate-pulse rounded bg-gray-200/70" />
               </div>
-            </>
-          )}
+            )}
 
-          {!taxesLoading &&
-            !taxesError &&
-            taxes &&
-            taxes.components.length === 0 && (
-              <p className="px-3 py-2.5 text-xs text-gray-500">
-                No applicable taxes for this province.
+            {taxesError && (
+              <p className="flex items-center gap-1.5 border-t border-gray-100 px-3 py-2.5 text-xs text-red-600">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {taxesError}
               </p>
             )}
-        </div>
-      )}
+
+            {breakdown && !taxesLoading && !taxesError && (
+              <>
+                {breakdown.lines.map((line) => (
+                  <PayBreakdownRow
+                    key={`${line.tax_name}-${line.display_order}`}
+                    className="border-b border-gray-100"
+                    label={
+                      <>
+                        {line.tax_name}
+                        <span className="ml-1 text-gray-400">
+                          ({line.tax_percentage}%)
+                        </span>
+                      </>
+                    }
+                    amount={`${formatHourlyRate(line.amountCents)}/hr`}
+                  />
+                ))}
+                <PayBreakdownRow
+                  label="Total with tax"
+                  amount={`${formatHourlyRate(breakdown.totalCents)}/hr`}
+                  labelClassName={totalLabelClass}
+                  amountClassName={totalAmountClass}
+                  className="border-t border-gray-200 bg-white py-2.5"
+                />
+              </>
+            )}
+
+            {!taxesLoading &&
+              !taxesError &&
+              taxes &&
+              taxes.components.length === 0 && (
+                <p className="border-t border-gray-100 px-3 py-2.5 text-xs text-gray-500">
+                  No applicable taxes for this province.
+                </p>
+              )}
+          </>
+        )}
+      </div>
     </JobFormField>
   );
 }

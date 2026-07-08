@@ -9,6 +9,7 @@ import type {
   NormalJobDetails,
   PreviewShiftMode,
 } from "@/types";
+import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
 
 export type JobDetailPayload = Omit<
   Partial<JobBackendResponse>,
@@ -206,7 +207,7 @@ export function formatShiftTemplateLine(shift: JobListShiftTemplate): string {
   }
 
   const details = parts.length > 0 ? ` (${parts.join(", ")})` : "";
-  return `${shift.shift_name}${details}`;
+  return `${formatShiftTypeLabel(shift.shift_type)}${details}`;
 }
 
 function buildShiftSnapshot(
@@ -219,8 +220,8 @@ function buildShiftSnapshot(
   return {
     shift_summaries: shiftTemplates.map(formatShiftTemplateLine),
     is_night_shift: shiftTemplates.some((shift) => shift.shift_type === "NIGHT"),
-    total_working_hours_label: shiftTemplates[0]?.duration_hours
-      ? `${shiftTemplates[0].duration_hours}h per shift`
+    total_working_hours_label: shiftTemplates[0]?.payable_hours
+      ? `${shiftTemplates[0].payable_hours}h per shift`
       : null,
   };
 }
@@ -395,11 +396,10 @@ export function getJobShiftDisplayLines(job: {
         if (!cycle.is_working) continue;
         if (byTemplateIndex.has(cycle.shift_template_index)) continue;
         byTemplateIndex.set(cycle.shift_template_index, {
-          shift_name: cycle.shift_name,
-          shift_type: cycle.shift_type,
+          shift_type: cycle.shift_type ?? "",
           start_time: cycle.start_time,
           end_time: cycle.end_time,
-          duration_hours: cycle.duration_hours,
+          payable_hours: cycle.payable_hours,
           break_minutes: cycle.break_minutes,
         });
       }
