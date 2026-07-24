@@ -8,7 +8,6 @@ import { useJobSummary, useJobId } from "@/hooks/useJobData";
 import { JobDetailTabs } from "./components/Tabs";
 import { JobDetailSummary } from "./components/summary/BasicInfo";
 import { CloseJobButton, CLOSE_JOB_ACTION_SLOT_CLASS } from "./components/shared/CloseJobButton";
-import { ScheduleSection } from "./components/schedule/ScheduleSection";
 
 export default function JobDetailPageRoute() {
   const router = useRouter();
@@ -93,10 +92,8 @@ export default function JobDetailPageRoute() {
           />
         </div>
 
-        <JobDetailSummary summary={summary} />
-
         <Suspense fallback={null}>
-          <ScheduleSection summary={summary} jobId={jobId!} />
+          <JobDetailSummary summary={summary} jobId={jobId!} />
         </Suspense>
 
         <Suspense fallback={null}>

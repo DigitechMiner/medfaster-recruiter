@@ -13,6 +13,8 @@ import type {
   JobDetailSummaryData,
   JobScheduleData,
   JobWorkersResponse,
+  JobTeamParams,
+  JobTeamResponse,
   JobDisputesResponse,
   JobShiftDetailsResponse,
   JobShiftsParams,
@@ -35,6 +37,7 @@ import {
   getRecruiterJobShiftPayments,
   getRecruiterJobShifts,
   getRecruiterJobSummary,
+  getRecruiterJobTeam,
   getRecruiterJobWorkers,
   getRecruiterJobWalletTransactions,
   JobApplicationListResponse,
@@ -408,6 +411,81 @@ export function useJobWorkers(jobId?: string | null, enabled = true) {
   }, [jobId, enabled]);
 
   return { workers, isLoading, error };
+}
+
+export function useJobTeam(
+  jobId?: string | null,
+  params?: JobTeamParams,
+  enabled = true,
+) {
+  const [team, setTeam] = useState<JobTeamResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const teamId = params?.team_id;
+  const status = params?.status;
+  const includeShifts = params?.include_shifts;
+  const shiftLimit = params?.shift_limit;
+  const shiftFrom = params?.shift_from;
+  const shiftTo = params?.shift_to;
+  const page = params?.page;
+  const limit = params?.limit;
+  const offset = params?.offset;
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobTeam(jobId, {
+      team_id: teamId,
+      status,
+      include_shifts: includeShifts,
+      shift_limit: shiftLimit,
+      shift_from: shiftFrom,
+      shift_to: shiftTo,
+      page,
+      limit,
+      offset,
+    })
+      .then((data) => {
+        if (!cancelled) setTeam(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load team",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    jobId,
+    enabled,
+    teamId,
+    status,
+    includeShifts,
+    shiftLimit,
+    shiftFrom,
+    shiftTo,
+    page,
+    limit,
+    offset,
+  ]);
+
+  return { team, isLoading, error };
 }
 
 // ─── useJob (legacy full job — unused on detail page) ────────────────────────

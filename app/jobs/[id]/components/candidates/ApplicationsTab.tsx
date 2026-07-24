@@ -12,13 +12,14 @@ import { formatLabel } from "../shared/job-detail-helpers";
 import { ApplicationStatusActionModal } from "./ApplicationStatusActionModal";
 import {
   EMPTY_DISPLAY,
+  SHIFT_LEGEND_ITEMS,
   formatAppliedDate,
   formatCandidateLocation,
   formatEligibilityLabel,
   formatExperienceCompact,
   formatScoreDisplay,
   getApplicationStatusBadgeClass,
-  getShiftBadgeClass,
+  getShiftDotClass,
   getShiftMeta,
 } from "./applications-table-helpers";
 import {
@@ -27,30 +28,53 @@ import {
 } from "./application-status-transitions";
 
 const APPLICATION_LIMIT = 10;
-const APPLICATION_TABLE_HEADERS = [
-  "Candidate",
-  "Experience",
-  "Score",
-  "Preferences",
-  "Status",
-  "Applied",
-  "⋮",
-];
 
 const TABLE_COLUMN_CLASS_NAMES = [
-  "min-w-[280px] w-[38%] !text-left !text-xs !font-medium !text-gray-500",
-  "w-[10%] !text-center !text-xs !font-medium !text-gray-500",
+  "min-w-[200px] w-[26%] !text-left !text-xs !font-medium !text-gray-500",
+  "w-[9%] !text-center !text-xs !font-medium !text-gray-500",
   "w-[8%] !text-center !text-xs !font-medium !text-gray-500",
-  "min-w-[160px] w-[24%] !text-left !text-xs !font-medium !text-gray-500",
-  "w-[10%] !text-center !text-xs !font-medium !text-gray-500",
-  "w-[8%] !text-center !text-xs !font-medium !text-gray-500",
-  "w-[2%] !text-right !text-xs !font-medium !text-gray-500",
+  "min-w-[260px] w-[34%] !text-left !text-xs !font-medium !text-gray-500 !whitespace-normal",
+  "w-[11%] !text-center !text-xs !font-medium !text-gray-500",
+  "w-[9%] !text-center !text-xs !font-medium !text-gray-500",
+  "w-[3%] !text-right !text-xs !font-medium !text-gray-500",
 ];
 
 type ApplicationsTabProps = {
   jobId: string;
   aiInterviewEnabled?: boolean;
 };
+
+function PreferencesHeader() {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span>Preferences</span>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        {SHIFT_LEGEND_ITEMS.map((item) => (
+          <span
+            key={item.key}
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400"
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${getShiftDotClass(item.key)}`}
+              aria-hidden
+            />
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const APPLICATION_TABLE_HEADERS = [
+  "Candidate",
+  "Experience",
+  "Score",
+  <PreferencesHeader key="preferences" />,
+  "Status",
+  "Applied",
+  "⋮",
+];
 
 function ApplicationStatusBadge({ status }: { status: string }) {
   return (
@@ -79,10 +103,14 @@ function CandidatePrimaryCell({
 }) {
   const citizenship = formatEligibilityLabel(eligibility);
   const location = formatCandidateLocation(city, state);
+  const metaParts = [citizenship, location].filter(
+    (part) => part && part !== EMPTY_DISPLAY,
+  );
+  const meta = metaParts.join(" · ");
 
   return (
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-orange-50 ring-2 ring-orange-100">
+    <div className="flex min-w-0 items-center gap-2.5">
+      <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-orange-50 ring-1 ring-orange-100">
         {profileImageUrl ? (
           <Image
             src={profileImageUrl}
@@ -92,21 +120,20 @@ function CandidatePrimaryCell({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-[#F4781B]">
+          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-[#F4781B]">
             {initials}
           </div>
         )}
       </div>
-      <div className="min-w-0 space-y-0.5">
-        <p className="truncate text-sm font-medium text-gray-900">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-gray-900">
           {candidateName}
         </p>
-        <p className="truncate text-xs text-gray-500" title={citizenship}>
-          {citizenship}
-        </p>
-        <p className="truncate text-xs text-gray-400" title={location}>
-          {location}
-        </p>
+        {meta ? (
+          <p className="truncate text-[11px] text-gray-400" title={meta}>
+            {meta}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -114,42 +141,99 @@ function CandidatePrimaryCell({
 
 function TeamShiftPreferencesCell({
   preferences,
+  compact = false,
 }: {
   preferences?: ApplicationTeamPreference[];
+  compact?: boolean;
 }) {
   if (!preferences?.length) {
     return <span className="text-xs text-gray-400">{EMPTY_DISPLAY}</span>;
   }
 
+  if (compact) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {preferences.map((preference) => {
+          const shifts = preference.shift_types ?? [];
+          const shiftLabels = shifts
+            .map((shift) => getShiftMeta(shift).label)
+            .join(", ");
+          const title = [
+            preference.team_name || "Team",
+            shiftLabels || null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+
+          return (
+            <div
+              key={preference.team_id}
+              title={title}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-gray-200 bg-white py-1 pl-2 pr-1.5"
+            >
+              <span className="truncate text-[11px] font-semibold text-slate-700">
+                {preference.team_name || EMPTY_DISPLAY}
+              </span>
+              {shifts.length > 0 ? (
+                <span className="flex shrink-0 items-center gap-1">
+                  {shifts.map((shift) => (
+                    <span
+                      key={`${preference.team_id}-${shift}`}
+                      title={getShiftMeta(shift).label}
+                      className={`h-2 w-2 rounded-full ${getShiftDotClass(shift)}`}
+                      aria-label={getShiftMeta(shift).label}
+                    />
+                  ))}
+                </span>
+              ) : (
+                <span className="pr-0.5 text-[10px] text-gray-400">
+                  {EMPTY_DISPLAY}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      {preferences.map((preference) => (
-        <div
-          key={preference.team_id}
-          className="flex min-w-0 flex-wrap items-center gap-2"
-        >
-          <span className="inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700">
-            {preference.team_name || EMPTY_DISPLAY}
-          </span>
-          {preference.shift_types?.length ? (
-            <div className="flex min-w-0 flex-wrap gap-1">
-              {preference.shift_types.map((shift) => {
-                const meta = getShiftMeta(shift);
-                return (
+    <div className="flex flex-col gap-1.5">
+      {preferences.map((preference) => {
+        const shifts = preference.shift_types ?? [];
+        const title = [
+          preference.team_name || "Team",
+          shifts.map((shift) => getShiftMeta(shift).label).join(", ") || null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+        return (
+          <div
+            key={preference.team_id}
+            title={title}
+            className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-lg border border-gray-200 bg-white py-1 pl-2 pr-1.5"
+          >
+            <span className="truncate text-xs font-medium text-slate-700">
+              {preference.team_name || EMPTY_DISPLAY}
+            </span>
+            {shifts.length > 0 ? (
+              <span className="flex shrink-0 items-center gap-1">
+                {shifts.map((shift) => (
                   <span
                     key={`${preference.team_id}-${shift}`}
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${getShiftBadgeClass(shift)}`}
-                  >
-                    {meta.label}
-                  </span>
-                );
-              })}
-            </div>
-          ) : (
-            <span className="text-xs text-gray-400">{EMPTY_DISPLAY}</span>
-          )}
-        </div>
-      ))}
+                    title={getShiftMeta(shift).label}
+                    className={`h-2 w-2 rounded-full ${getShiftDotClass(shift)}`}
+                    aria-label={getShiftMeta(shift).label}
+                  />
+                ))}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400">{EMPTY_DISPLAY}</span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -170,13 +254,7 @@ function ApplicationActionsCell({
   const hasActions =
     getApplicationStatusTransitions(status, aiInterviewEnabled).length > 0;
   if (!hasActions) {
-    if (variant === "card") {
-      return (
-        <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-gray-200 py-2.5 text-sm text-gray-300">
-          {EMPTY_DISPLAY}
-        </div>
-      );
-    }
+    if (variant === "card") return null;
     return <span className="text-sm text-gray-300">{EMPTY_DISPLAY}</span>;
   }
 
@@ -189,7 +267,7 @@ function ApplicationActionsCell({
           event.stopPropagation();
           onOpen();
         }}
-        className="w-full rounded-xl bg-[#F4781B] py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#e56f18] disabled:opacity-50"
+        className="w-full rounded-lg bg-[#F4781B] py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e56f18] disabled:opacity-50"
       >
         Actions
       </button>
@@ -205,7 +283,7 @@ function ApplicationActionsCell({
         onOpen();
       }}
       aria-label="Application actions"
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#F4781B] hover:text-white disabled:opacity-50"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:border-[#F4781B] hover:bg-[#F4781B] hover:text-white disabled:opacity-50"
     >
       <MoreVertical size={16} />
     </button>
@@ -278,61 +356,96 @@ function ApplicationGridCard({
   const score =
     candidate?.job_interview_score ?? candidate?.best_ai_interview_score;
   const appliedDate = formatAppliedDate(application.created_at);
+  const metaParts = [citizenship, location].filter(
+    (part) => part && part !== EMPTY_DISPLAY,
+  );
+  const meta = metaParts.join(" · ");
+  const hasActions =
+    getApplicationStatusTransitions(application.status, aiInterviewEnabled)
+      .length > 0;
+  const hasPreferences = Boolean(application.team_preferences?.length);
 
   return (
-    <div className="flex min-w-[300px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:border-gray-200 hover:shadow-md">
-      <div className="flex items-center justify-between gap-2 px-4 pt-4">
-        <ApplicationStatusBadge status={application.status} />
-        <span
-          className="text-xs text-gray-400"
-          title={appliedDate.full || undefined}
-        >
-          Applied {appliedDate.short}
-        </span>
+    <div className="flex min-w-[300px] flex-col gap-3 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm transition-all hover:border-gray-200 hover:shadow-md">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-orange-50 ring-1 ring-orange-100">
+            {candidate?.profile_image_url ? (
+              <Image
+                src={candidate.profile_image_url}
+                alt={candidateName}
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-[#F4781B]">
+                {initials}
+              </div>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-gray-900">
+              {candidateName}
+            </p>
+            {meta ? (
+              <p className="truncate text-[11px] text-gray-400" title={meta}>
+                {meta}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <ApplicationStatusBadge status={application.status} />
+          <span
+            className="text-[10px] text-gray-400"
+            title={appliedDate.full || undefined}
+          >
+            {appliedDate.short}
+          </span>
+        </div>
       </div>
 
-      <div className="flex gap-3 px-4 pt-4">
-        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-orange-50 ring-2 ring-orange-100">
-          {candidate?.profile_image_url ? (
-            <Image
-              src={candidate.profile_image_url}
-              alt={candidateName}
-              width={44}
-              height={44}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-[#F4781B]">
-              {initials}
-            </div>
-          )}
+      <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1">
+          <span className="text-slate-400">Exp</span>
+          <span className="font-semibold text-slate-800">{experience}</span>
         </div>
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="truncate text-sm font-medium text-gray-900">{candidateName}</p>
-          <p className="truncate text-xs text-gray-500">{citizenship}</p>
-          <p className="truncate text-xs text-gray-400">{location}</p>
-        </div>
-      </div>
-
-      <div className="mx-4 mt-4 grid grid-cols-2 gap-3 border-y border-gray-100 py-3">
-        <div className="rounded-lg bg-slate-50 px-3 py-2">
-          <p className="text-xs text-slate-500">Experience</p>
-          <p className="mt-0.5 text-sm font-semibold text-slate-800">{experience}</p>
-        </div>
-        <div className="rounded-lg bg-orange-50 px-3 py-2">
-          <p className="text-xs text-orange-600/80">Score</p>
-          <p className="mt-0.5 text-sm font-semibold text-orange-800">
+        <div className="flex items-center gap-1.5 rounded-md bg-orange-50 px-2 py-1">
+          <span className="text-orange-500/80">Score</span>
+          <span className="font-semibold text-orange-800">
             {formatScoreDisplay(score, application.status)}
-          </p>
+          </span>
         </div>
       </div>
 
-      <div className="px-4 py-3">
-        <p className="mb-2 text-xs text-gray-400">Preferences</p>
-        <TeamShiftPreferencesCell preferences={application.team_preferences} />
-      </div>
+      {hasPreferences ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span className="text-[11px] font-medium text-gray-400">
+              Preferences
+            </span>
+            {SHIFT_LEGEND_ITEMS.map((item) => (
+              <span
+                key={item.key}
+                className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400"
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${getShiftDotClass(item.key)}`}
+                  aria-hidden
+                />
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <TeamShiftPreferencesCell
+            preferences={application.team_preferences}
+            compact
+          />
+        </div>
+      ) : null}
 
-      <div className="px-4 pb-4">
+      {hasActions ? (
         <ApplicationActionsCell
           variant="card"
           status={application.status}
@@ -340,7 +453,7 @@ function ApplicationGridCard({
           isUpdating={isUpdating}
           onOpen={onOpenActions}
         />
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -483,7 +596,7 @@ export function ApplicationsTab({
         />
       ) : view === "grid" ? (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
             {applicationItems.map((application) => (
               <ApplicationGridCard
                 key={application.id}
@@ -518,7 +631,7 @@ export function ApplicationsTab({
                   key={application.id}
                   className="group border-b border-gray-50 last:border-b-0 transition-colors hover:bg-gray-50/60"
                 >
-                  <td className="px-4 py-4 align-middle min-w-[280px] w-[38%]">
+                  <td className="px-4 py-3 align-middle min-w-[200px] w-[26%]">
                     <CandidatePrimaryCell
                       candidateName={candidateName}
                       initials={initials}
@@ -528,28 +641,31 @@ export function ApplicationsTab({
                       eligibility={candidate?.work_eligibility}
                     />
                   </td>
-                  <td className="px-4 py-4 align-middle text-center text-sm text-gray-600 whitespace-nowrap">
+                  <td className="px-4 py-3 align-middle text-center text-sm font-medium text-gray-700 whitespace-nowrap">
                     {formatExperienceCompact(
                       candidate?.experience,
                       candidate?.experience_months,
                     )}
                   </td>
-                  <td className="px-4 py-4 align-middle text-center text-sm text-gray-600 tabular-nums whitespace-nowrap">
+                  <td className="px-4 py-3 align-middle text-center text-sm text-gray-600 tabular-nums whitespace-nowrap">
                     {formatScoreDisplay(score, application.status)}
                   </td>
-                  <td className="px-4 py-4 align-middle min-w-[160px] w-[24%]">
-                    <TeamShiftPreferencesCell preferences={application.team_preferences} />
+                  <td className="px-4 py-3 align-middle min-w-[260px] w-[34%]">
+                    <TeamShiftPreferencesCell
+                      preferences={application.team_preferences}
+                      compact
+                    />
                   </td>
-                  <td className="px-4 py-4 align-middle text-center">
+                  <td className="px-4 py-3 align-middle text-center">
                     <ApplicationStatusBadge status={application.status} />
                   </td>
                   <td
-                    className="px-4 py-4 align-middle text-center text-sm text-gray-500 whitespace-nowrap tabular-nums"
+                    className="px-4 py-3 align-middle text-center text-sm text-gray-500 whitespace-nowrap tabular-nums"
                     title={appliedDate.full || undefined}
                   >
                     {appliedDate.short}
                   </td>
-                  <td className="px-3 py-4 align-middle text-right">
+                  <td className="px-3 py-3 align-middle text-right">
                     <ApplicationActionsCell
                       status={application.status}
                       aiInterviewEnabled={aiInterviewEnabled}

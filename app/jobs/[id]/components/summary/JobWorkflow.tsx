@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import type {
   JobDetailHiringProgress,
   JobDetailInstantHiringProgress,
@@ -160,66 +161,80 @@ export function JobWorkflow({
   if (!workflow) return null;
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          {workflow.title}
-        </p>
-        <span className="text-xs font-semibold text-[#F4781B]">
+    <div className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {workflow.title}
+          </p>
+          <p className="mt-0.5 text-[11px] text-gray-400">
+            Candidate pipeline
+          </p>
+        </div>
+        <span className="rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1 text-xs font-bold text-[#F4781B]">
           {workflow.fillPercent}% filled
         </span>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-1">
+      <div className="px-4 py-3.5">
+        <div className="flex items-start">
           {workflow.stages.map((stage, index) => {
             const isActive = index === workflow.currentStageIndex;
             const isPast = index < workflow.currentStageIndex;
+            const isFirst = index === 0;
+            const isLast = index === workflow.stages.length - 1;
 
             return (
               <div
                 key={stage.key}
                 className="flex min-w-0 flex-1 flex-col items-center text-center"
               >
-                <div className="flex w-full items-center">
-                  {index > 0 && (
+                <div className="relative flex h-7 w-full items-center justify-center">
+                  {!isFirst && (
                     <div
                       className={cn(
-                        "h-px flex-1",
+                        "absolute left-0 top-1/2 h-0.5 w-1/2 -translate-y-1/2",
                         isPast || isActive ? "bg-[#F4781B]" : "bg-gray-200",
+                      )}
+                    />
+                  )}
+                  {!isLast && (
+                    <div
+                      className={cn(
+                        "absolute right-0 top-1/2 h-0.5 w-1/2 -translate-y-1/2",
+                        isPast ? "bg-[#F4781B]" : "bg-gray-200",
                       )}
                     />
                   )}
                   <span
                     className={cn(
-                      "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                      "relative z-10 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold",
                       isActive
-                        ? "bg-[#F4781B] text-white"
+                        ? "border-[#F4781B] bg-[#F4781B] text-white ring-4 ring-orange-50"
                         : isPast
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-gray-200 text-gray-500",
+                          ? "border-orange-200 bg-orange-50 text-[#F4781B]"
+                          : "border-gray-200 bg-white text-gray-400",
                     )}
                   >
-                    {index + 1}
+                    {isPast ? <Check className="h-3.5 w-3.5" /> : index + 1}
                   </span>
-                  {index < workflow.stages.length - 1 && (
-                    <div
-                      className={cn(
-                        "h-px flex-1",
-                        isPast ? "bg-[#F4781B]" : "bg-gray-200",
-                      )}
-                    />
-                  )}
                 </div>
                 <p
                   className={cn(
-                    "mt-2 text-[10px] font-medium leading-tight sm:text-xs",
-                    isActive ? "text-[#F4781B]" : "text-gray-500",
+                    "mt-2 truncate px-1 text-[10px] font-medium leading-tight sm:text-xs",
+                    isActive
+                      ? "font-semibold text-[#F4781B]"
+                      : "text-gray-500",
                   )}
                 >
                   {stage.label}
                 </p>
-                <p className="mt-1 text-sm font-bold text-gray-900">
+                <p
+                  className={cn(
+                    "mt-0.5 text-sm font-bold",
+                    isActive ? "text-[#F4781B]" : "text-gray-900",
+                  )}
+                >
                   {stage.count}
                 </p>
               </div>
@@ -227,7 +242,7 @@ export function JobWorkflow({
           })}
         </div>
 
-        <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-gray-100">
           <div
             className="h-full rounded-full bg-[#F4781B] transition-all"
             style={{ width: `${Math.min(workflow.fillPercent, 100)}%` }}

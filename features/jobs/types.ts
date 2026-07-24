@@ -487,6 +487,118 @@ export interface JobWorkersResponse {
   workers: JobWorkerItem[];
 }
 
+/** Worker status filter for GET /recruiter/jobs/{id}/team (excludes SHIFT_COVERAGE). */
+export type JobTeamMemberStatus =
+  | "FUTURE"
+  | "ACTIVE"
+  | "LEAVE"
+  | "TERMINATION_PENDING"
+  | "TERMINATED";
+
+export type JobTeamMemberSource = "HIRED" | "SHIFT_COVERAGE";
+
+export interface JobTeamRosterJob {
+  id: string;
+  job_urgency?: string | null;
+  shift_mode?: string | null;
+  status?: string | null;
+  no_of_hires_required?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  hired_count?: number | null;
+}
+
+export interface JobTeamRosterTeam {
+  id: string;
+  team_name: string;
+  display_order: number;
+  is_active?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+  member_count: number;
+  open_vacancy_count: number;
+}
+
+export interface JobTeamMemberCandidate {
+  id: string;
+  user_id?: string;
+  first_name?: string;
+  last_name?: string;
+  profile_image_url?: string | null;
+}
+
+export interface JobTeamMemberTeam {
+  rotation_id?: string;
+  team_id: string;
+  team_name: string;
+  display_order?: number;
+  shift_types: string[];
+  rotation_order?: number;
+  is_active?: boolean;
+  joined_at?: string | null;
+  removed_at?: string | null;
+}
+
+export interface JobTeamShiftSummary {
+  total: number;
+  upcoming: number;
+  worked: number;
+  total_planned_minutes?: number;
+  by_assignment_status?: Record<string, number>;
+}
+
+export interface JobTeamMemberShift {
+  assignment_id: string;
+  assignment_status?: string | null;
+  assigned_shift_type?: string | null;
+  shift_id: string;
+  shift_date: string;
+  shift_type: string;
+  shift_status?: string | null;
+  planned_check_in?: string | null;
+  planned_check_out?: string | null;
+  planned_minutes?: number | null;
+  team_id?: string | null;
+  team_name?: string | null;
+  attendance?: unknown;
+}
+
+export interface JobTeamMember {
+  source: JobTeamMemberSource;
+  worker_id?: string | null;
+  candidate_id: string;
+  application_id?: string | null;
+  status?: JobTeamMemberStatus | string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  termination_reason?: string | null;
+  hired_at?: string | null;
+  candidate: JobTeamMemberCandidate;
+  teams: JobTeamMemberTeam[];
+  shift_summary?: JobTeamShiftSummary | null;
+  next_shift?: JobTeamMemberShift | null;
+  shifts?: JobTeamMemberShift[];
+}
+
+export interface JobTeamResponse {
+  job: JobTeamRosterJob;
+  teams: JobTeamRosterTeam[];
+  members: JobTeamMember[];
+  pagination: PaginationData & { count?: number };
+}
+
+export type JobTeamParams = {
+  team_id?: string;
+  status?: JobTeamMemberStatus;
+  include_shifts?: boolean;
+  shift_limit?: number;
+  shift_from?: string;
+  shift_to?: string;
+  page?: number;
+  limit?: number;
+  offset?: number;
+};
+
 /** One scheduled shift slot for a team on a rotation cycle day (job detail API). */
 export interface JobRotationalTeamCycle {
   id: string;

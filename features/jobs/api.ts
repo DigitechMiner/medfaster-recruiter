@@ -35,6 +35,8 @@ import type {
   JobDetailSummaryData,
   JobScheduleData,
   JobWorkersResponse,
+  JobTeamParams,
+  JobTeamResponse,
   JobInfoResponse,
   RecruiterJobInfo,
   JobDisputeItem,
@@ -323,6 +325,42 @@ export async function getRecruiterJobWorkers(
     res.data,
   );
   return Array.isArray(data) ? { workers: data } : { workers: data.workers ?? [] };
+}
+
+export async function getRecruiterJobTeam(
+  id: string,
+  params?: JobTeamParams,
+): Promise<JobTeamResponse> {
+  const query: Record<string, string | number> = {};
+
+  if (params?.team_id) query.team_id = params.team_id;
+  if (params?.status) query.status = params.status;
+  if (params?.include_shifts === false) query.include_shifts = "false";
+  if (params?.shift_limit != null) query.shift_limit = params.shift_limit;
+  if (params?.shift_from) query.shift_from = params.shift_from;
+  if (params?.shift_to) query.shift_to = params.shift_to;
+  if (params?.page != null) query.page = params.page;
+  if (params?.limit != null) query.limit = params.limit;
+  if (params?.offset != null) query.offset = params.offset;
+
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_TEAM(id), {
+    params: query,
+  });
+  const data = extractData<JobTeamResponse>(res.data);
+
+  return {
+    job: data.job,
+    teams: Array.isArray(data.teams) ? data.teams : [],
+    members: Array.isArray(data.members) ? data.members : [],
+    pagination: data.pagination ?? {
+      total: data.members?.length ?? 0,
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 20,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  };
 }
 
 export async function getRecruiterJobInfo(id: string): Promise<RecruiterJobInfo> {

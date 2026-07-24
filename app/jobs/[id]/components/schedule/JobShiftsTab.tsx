@@ -88,6 +88,7 @@ type ShiftCandidate = {
 type JobShiftsTabProps = {
   jobId: string;
   enabled?: boolean;
+  title?: string;
   startDate?: string | null;
   endDate?: string | null;
   checkInTime?: string | null;
@@ -97,6 +98,7 @@ type JobShiftsTabProps = {
 export function JobShiftsTab({
   jobId,
   enabled = true,
+  title = "Live shifts",
   startDate: jobStartDateProp,
   endDate: jobEndDateProp,
   checkInTime,
@@ -177,168 +179,157 @@ export function JobShiftsTab({
 
   return (
       <>
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Shifts</h3>
-            <p className="text-xs text-gray-400">
-              Live shift instances with assignments and staffing gaps.
-            </p>
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="flex flex-col gap-4 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+              <p className="mt-0.5 text-xs text-gray-400">
+                Shift instances with assignments and staffing gaps.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex flex-col gap-1 text-[11px] font-medium text-gray-500">
+                Start
+                <input
+                  type="date"
+                  value={startDate}
+                  min={jobStartDate || undefined}
+                  max={endDate || jobEndDate || undefined}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 outline-none focus:border-[#F4781B]"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-[11px] font-medium text-gray-500">
+                End
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || jobStartDate || undefined}
+                  max={jobEndDate || undefined}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 outline-none focus:border-[#F4781B]"
+                />
+              </label>
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-500 transition hover:border-orange-200 hover:text-[#F4781B]"
+                >
+                  Clear
+                </button>
+              )}
+              <label className="flex flex-col gap-1 text-[11px] font-medium text-gray-500">
+                Status
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(event.target.value as ShiftStatusFilter)
+                  }
+                  className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 outline-none focus:border-[#F4781B]"
+                >
+                  <option value="ALL">All</option>
+                  {SHIFT_STATUSES.map((shiftStatus) => (
+                    <option key={shiftStatus} value={shiftStatus}>
+                      {SHIFT_STATUS_LABELS[shiftStatus]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
-              Start Date
-              <input
-                type="date"
-                value={startDate}
-                min={jobStartDate || undefined}
-                max={endDate || jobEndDate || undefined}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#F4781B]"
+
+          <div className="px-4 py-4 sm:px-5">
+            {isLoading ? (
+              <LoadingRows />
+            ) : error ? (
+              <EmptyState title="Unable to load shifts" description={error} />
+            ) : apiShifts.length === 0 ? (
+              <EmptyState
+                title="No shifts available"
+                description="Shift records will appear here once available."
               />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
-              End Date
-              <input
-                type="date"
-                value={endDate}
-                min={startDate || jobStartDate || undefined}
-                max={jobEndDate || undefined}
-                onChange={(event) => setEndDate(event.target.value)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#F4781B]"
+            ) : filteredShifts.length === 0 ? (
+              <EmptyState
+                title="No shifts found"
+                description="No shifts match the selected status."
               />
-            </label>
-            {(startDate || endDate) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStartDate("");
-                  setEndDate("");
-                }}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-500 transition hover:border-orange-200 hover:text-[#F4781B]"
-              >
-                Clear Dates
-              </button>
-            )}
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value as ShiftStatusFilter)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#F4781B]"
-            >
-              <option value="ALL">All Status</option>
-              {SHIFT_STATUSES.map((shiftStatus) => (
-                <option key={shiftStatus} value={shiftStatus}>
-                  {SHIFT_STATUS_LABELS[shiftStatus]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {isLoading ? (
-          <LoadingRows />
-        ) : error ? (
-          <EmptyState title="Unable to load shifts" description={error} />
-        ) : apiShifts.length === 0 ? (
-          <EmptyState title="No shifts available" description="Shift records will appear here once available." />
-        ) : filteredShifts.length === 0 ? (
-          <EmptyState title="No shifts found" description="No shifts match the selected status." />
-        ) : (
-          <div className="flex flex-col gap-5">
-            {groupedShifts.map((group) => (
-              <div key={group.key} className="flex flex-col gap-3">
-                <h4 className="text-sm font-semibold text-gray-900">{group.label}</h4>
-                {group.shifts.map((shift, index) => (
-                  <article
-                    key={shift.id}
-                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-                  >
-                    <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-white px-4 py-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#F4781B] shadow-sm ring-1 ring-orange-100">
-                            <CalendarDays size={19} />
-                          </span>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h5 className="text-base font-bold text-gray-900">Shift {index + 1}</h5>
-                              <ShiftStatusPill value={shift.status} />
-                            </div>
-                            <p className="mt-1 text-xs font-medium text-gray-500">
-                              {formatDate(shift.date ?? jobStartDateProp)} schedule and assignment details
-                            </p>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {groupedShifts.map((group) => (
+                  <div key={group.key} className="flex flex-col gap-3">
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      {group.label}
+                    </h4>
+                    {group.shifts.map((shift, index) => (
+                      <article
+                        key={shift.id}
+                        className="overflow-hidden rounded-xl border border-gray-100 bg-white"
+                      >
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 bg-gray-50/60 px-3 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-[#F4781B] ring-1 ring-orange-100">
+                              <CalendarDays size={15} />
+                            </span>
+                            <h5 className="text-sm font-bold text-gray-900">
+                              Shift {index + 1}
+                            </h5>
+                            <ShiftStatusPill value={shift.status} />
+                          </div>
+
+                          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                            <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
+                              <Clock size={13} className="text-gray-400" />
+                              {formatTime(shift.startTime ?? checkInTime)} -{" "}
+                              {formatTime(shift.endTime ?? checkOutTime)}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 text-gray-500">
+                              <Timer size={13} className="text-gray-400" />
+                              {formatDuration(shift.duration)}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 text-gray-500">
+                              <Users size={13} className="text-gray-400" />
+                              {shift.assignmentsCount}{" "}
+                              {shift.assignmentsCount === 1
+                                ? "candidate"
+                                : "candidates"}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 font-medium text-gray-500">
+                              {formatStaffingGap(shift.staffingGap)}
+                            </span>
                           </div>
                         </div>
-                        <div className="rounded-xl border border-orange-100 bg-white px-3 py-2 text-left sm:text-right">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                            Planned Time
-                          </p>
-                          <p className="text-sm font-bold text-gray-900">
-                            {formatTime(shift.startTime ?? checkInTime)} -{" "}
-                            {formatTime(shift.endTime ?? checkOutTime)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="p-4">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <ShiftMetricCard
-                          icon={<Clock size={16} />}
-                          label="Start"
-                          value={formatTime(shift.startTime ?? checkInTime)}
-                        />
-                        <ShiftMetricCard
-                          icon={<Timer size={16} />}
-                          label="Duration"
-                          value={formatDuration(shift.duration)}
-                        />
-                        <ShiftMetricCard
-                          icon={<Users size={16} />}
-                          label="Assignments"
-                          value={`${shift.assignmentsCount} ${shift.assignmentsCount === 1 ? "candidate" : "candidates"}`}
-                        />
-                        <ShiftMetricCard
-                          icon={<Users size={16} />}
-                          label="Staffing Gap"
-                          value={formatStaffingGap(shift.staffingGap)}
-                        />
-                      </div>
-
-                      <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/70">
-                        <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5">
-                          <div>
-                            <p className="text-xs font-bold text-gray-900">Assigned Candidates</p>
-                            <p className="text-[11px] text-gray-400">
-                              Attendance and payment progress for this shift
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-500 ring-1 ring-gray-200">
-                            {shift.candidates.length}
-                          </span>
-                        </div>
                         {shift.candidates.length > 0 ? (
-                          <div className="flex flex-col gap-2 p-2.5">
+                          <div className="flex flex-col gap-1.5 p-2">
                             {shift.candidates.map((candidate) => (
                               <ShiftCandidateRow
                                 key={candidate.id}
                                 candidate={candidate}
                                 totalMinutes={shift.duration}
-                                onDisputeClick={() => handleDisputeClick(candidate)}
+                                onDisputeClick={() =>
+                                  handleDisputeClick(candidate)
+                                }
                               />
                             ))}
                           </div>
                         ) : (
-                          <p className="px-3 py-4 text-center text-xs font-medium text-gray-400">
+                          <p className="px-3 py-3 text-center text-xs font-medium text-gray-400">
                             No candidates assigned to this shift yet.
                           </p>
                         )}
-                      </div>
-                    </div>
-                  </article>
+                      </article>
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </div>
+
         <Dialog
           open={Boolean(disputeCandidate)}
           onOpenChange={(open) => {
@@ -416,164 +407,110 @@ function ShiftCandidateRow({
   totalMinutes?: number | string | null;
   onDisputeClick: () => void;
 }) {
+  const metrics = [
+    {
+      label: "Shift fees",
+      value: formatPay(candidate.payment?.plannedAmountCents),
+    },
+    {
+      label: "Released",
+      value: formatPay(candidate.payment?.releasedAmountCents),
+    },
+    {
+      label: "Refund",
+      value: formatPay(candidate.payment?.refundAmountCents),
+    },
+    {
+      label: "Shift min",
+      value: formatDuration(totalMinutes),
+    },
+    {
+      label: "Early out",
+      value: formatDuration(candidate.attendance?.earlyLeaveMinutes),
+    },
+    {
+      label: "Late in",
+      value: formatDuration(candidate.attendance?.lateMinutes),
+    },
+    {
+      label: "Worked",
+      value: formatDuration(candidate.attendance?.workedMinutes),
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
-      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-orange-100 text-[#F4781B] ring-2 ring-orange-50">
-            {candidate.image ? (
-              <Image
-                src={candidate.image}
-                alt={candidate.name}
-                width={40}
-                height={40}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-sm font-bold">
-                {getInitials(candidate.name)}
+    <div className="rounded-xl border border-gray-100 bg-white px-3 py-2.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-orange-100 text-[#F4781B] ring-1 ring-orange-50">
+          {candidate.image ? (
+            <Image
+              src={candidate.image}
+              alt={candidate.name}
+              width={32}
+              height={32}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-[11px] font-bold">
+              {getInitials(candidate.name)}
+            </span>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="truncate text-sm font-semibold text-gray-900">
+              {candidate.name}
+            </p>
+            {candidate.assignmentStatus && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                {formatLabel(candidate.assignmentStatus)}
+              </span>
+            )}
+            {candidate.payment?.status && (
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                {formatLabel(candidate.payment.status)}
               </span>
             )}
           </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-xs font-semibold text-gray-900">{candidate.name}</p>
-              {candidate.assignmentStatus && (
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
-                  {formatLabel(candidate.assignmentStatus)}
-                </span>
-              )}
-            </div>
-            {candidate.attendance ? (
-              <p className="mt-1 break-words text-[11px] font-medium leading-5 text-gray-500">
-                {candidate.attendance.checkInTime
-                  ? `Checked in ${formatCandidateAttendanceTime(candidate.attendance.checkInTime)}`
-                  : "Not checked in"}
-                {" · "}
-                {candidate.attendance.checkOutTime
-                  ? `Checked out ${formatCandidateAttendanceTime(candidate.attendance.checkOutTime)}`
-                  : "Not checked out"}
-              </p>
-            ) : (
-              <p className="mt-1 text-[11px] font-medium text-gray-400">No attendance yet</p>
-            )}
-            {candidate.hourlyRateCents != null && (
-              <p className="mt-1 text-[11px] text-gray-400">Rate {formatPay(candidate.hourlyRateCents)}/hr</p>
-            )}
-          </div>
+          <p className="mt-0.5 truncate text-[11px] text-gray-400">
+            {candidate.attendance?.checkInTime
+              ? `In ${formatCandidateAttendanceTime(candidate.attendance.checkInTime)}`
+              : "No check-in"}
+            {" · "}
+            {candidate.attendance?.checkOutTime
+              ? `Out ${formatCandidateAttendanceTime(candidate.attendance.checkOutTime)}`
+              : "No check-out"}
+            {candidate.hourlyRateCents != null &&
+              ` · ${formatPay(candidate.hourlyRateCents)}/hr`}
+          </p>
         </div>
+
         <button
           type="button"
           onClick={onDisputeClick}
           disabled={!candidate.assignmentId}
-          title={candidate.assignmentId ? "Create dispute" : "Assignment ID missing"}
-          className="shrink-0 rounded-full border border-red-200 bg-red-50 px-4 py-1.5 text-xs font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
+          title={
+            candidate.assignmentId ? "Create dispute" : "Assignment ID missing"
+          }
+          className="shrink-0 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
         >
           Dispute
         </button>
       </div>
 
-      <div className="flex min-w-0 flex-wrap justify-start gap-1.5">
-        {candidate.attendance && (
-          <>
-            {candidate.attendance.lateMinutes > 0 && (
-              <CandidateBadge className="bg-red-50 text-red-600">
-                Late {candidate.attendance.lateMinutes}m
-              </CandidateBadge>
-            )}
-            {candidate.attendance.earlyLeaveMinutes > 0 && (
-              <CandidateBadge className="bg-yellow-50 text-yellow-700">
-                Early leave {candidate.attendance.earlyLeaveMinutes}m
-              </CandidateBadge>
-            )}
-            {candidate.attendance.workedMinutes != null && (
-              <CandidateBadge className="bg-gray-100 text-gray-600">
-                Worked {formatDuration(candidate.attendance.workedMinutes)}
-              </CandidateBadge>
-            )}
-          </>
-        )}
-        {candidate.payment?.status && (
-          <CandidateBadge className="bg-green-50 text-green-700">
-            Payment {formatLabel(candidate.payment.status)}
-          </CandidateBadge>
-        )}
-        {candidate.payment?.amountCents != null && (
-          <CandidateBadge className="bg-orange-50 text-[#F4781B]">
-            Earned {formatPay(candidate.payment.amountCents)}
-          </CandidateBadge>
-        )}
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-gray-50 pt-2 sm:grid-cols-4 lg:grid-cols-7">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="min-w-0">
+            <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-400">
+              {metric.label}
+            </p>
+            <p className="truncate text-xs font-semibold text-gray-900">
+              {metric.value}
+            </p>
+          </div>
+        ))}
       </div>
-
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <SummaryMetricCard
-          label="Total Shift Fees"
-          value={formatPay(candidate.payment?.plannedAmountCents)}
-        />
-        <SummaryMetricCard
-          label="Amount Release"
-          value={formatPay(candidate.payment?.releasedAmountCents)}
-        />
-        <SummaryMetricCard
-          label="Amount Refund"
-          value={formatPay(candidate.payment?.refundAmountCents)}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <SummaryMetricCard label="Total Min" value={formatDuration(totalMinutes)} />
-        <SummaryMetricCard
-          label="Early Logout Min"
-          value={formatDuration(candidate.attendance?.earlyLeaveMinutes)}
-        />
-        <SummaryMetricCard
-          label="Late Check-in"
-          value={formatDuration(candidate.attendance?.lateMinutes)}
-        />
-        <SummaryMetricCard
-          label="Total Work Min"
-          value={formatDuration(candidate.attendance?.workedMinutes)}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ShiftMetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#F4781B] ring-1 ring-gray-100">
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-          {label}
-        </span>
-        <span className="block truncate text-sm font-bold text-gray-900">{value}</span>
-      </span>
-    </div>
-  );
-}
-
-function SummaryMetricCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-gray-900">{value}</p>
     </div>
   );
 }
@@ -585,22 +522,10 @@ function ShiftStatusPill({ value }: { value?: string | null }) {
     : "border-gray-200 bg-gray-50 text-gray-600";
 
   return (
-    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusClass}`}>
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusClass}`}
+    >
       {formatShiftStatus(value) ?? "N/A"}
-    </span>
-  );
-}
-
-function CandidateBadge({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className: string;
-}) {
-  return (
-    <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${className}`}>
-      {children}
     </span>
   );
 }

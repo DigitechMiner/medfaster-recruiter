@@ -30,8 +30,8 @@ export function ChildJobsSection({
   enabled = true,
   jobUrgency,
   title,
-  emptyTitle = "No child jobs found",
-  emptyDescription = "This job does not have any child jobs or instant shifts yet.",
+  emptyTitle = "No instant shifts yet",
+  emptyDescription = "Urgent or short-notice shifts linked to this job will appear here.",
 }: ChildJobsSectionProps) {
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -48,9 +48,7 @@ export function ChildJobsSection({
   const hasPreviousPage = pagination?.hasPreviousPage ?? currentPage > 1;
   const hasNextPage = pagination?.hasNextPage ?? currentPage < totalPages;
   const showPagination = totalPages > 1;
-  const sectionTitle =
-    title ??
-    (jobUrgency === "INSTANT" ? "Instant shifts" : "Child jobs / instant shifts");
+  const sectionTitle = title ?? "Instant shifts";
 
   if (isLoading) {
     return (
@@ -58,7 +56,7 @@ export function ChildJobsSection({
         <div className="mb-3">
           <h3 className="text-sm font-semibold text-gray-900">{sectionTitle}</h3>
           <p className="mt-1 text-xs text-gray-500">
-            Loading related jobs for this posting.
+            Loading urgent and short-notice shifts for this job.
           </p>
         </div>
         <LoadingRows count={3} />
@@ -72,7 +70,10 @@ export function ChildJobsSection({
         <div className="mb-3">
           <h3 className="text-sm font-semibold text-gray-900">{sectionTitle}</h3>
         </div>
-        <EmptyState title="Unable to load related jobs" description={error} />
+        <EmptyState
+          title="Unable to load instant shifts"
+          description={error}
+        />
       </section>
     );
   }
@@ -83,7 +84,8 @@ export function ChildJobsSection({
         <div>
           <h3 className="text-sm font-semibold text-gray-900">{sectionTitle}</h3>
           <p className="mt-1 text-xs text-gray-500">
-            Open a related job to view its full details.
+            Urgent / short-notice shifts linked to this job. Open one to view
+            full details.
           </p>
         </div>
         <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-[#F4781B]">

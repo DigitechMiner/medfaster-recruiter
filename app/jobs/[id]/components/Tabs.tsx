@@ -5,9 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Activity,
   CalendarDays,
-  FileText,
-  LayoutDashboard,
+  Zap,
   Users,
+  UsersRound,
   WalletCards,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,19 +15,19 @@ import { cn } from "@/lib/utils";
 import type { JobDetailSummaryData } from "@/types";
 import { ActivityTab } from "./activity/ActivityTab";
 import { ApplicationsTab } from "./candidates/ApplicationsTab";
-import { DescriptionTab } from "./details/DescriptionTab";
 import { JobShiftsTab } from "./schedule/JobShiftsTab";
 import { OverviewTab } from "./overview/OverviewTab";
 import { ScheduleTab } from "./schedule/ScheduleTab";
+import { TeamTab } from "./team/TeamTab";
 import { TransitionTab } from "./funding/TransitionTab";
 
 type JobDetailTab =
   | "overview"
   | "candidates"
+  | "team"
   | "schedule"
   | "funding"
-  | "activity"
-  | "details";
+  | "activity";
 
 const tabTriggerClass =
   "gap-1.5 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-md border border-transparent transition-colors data-[state=active]:border-gray-200 data-[state=active]:bg-white data-[state=active]:text-[#f47b20] data-[state=active]:shadow-sm hover:text-gray-900";
@@ -36,15 +36,16 @@ const DEFAULT_JOB_DETAIL_TAB: JobDetailTab = "overview";
 const JOB_DETAIL_TAB_KEYS = new Set<JobDetailTab>([
   "overview",
   "candidates",
+  "team",
   "schedule",
   "funding",
   "activity",
-  "details",
 ]);
 
 function getValidJobDetailTab(tab: string | null): JobDetailTab {
-  if (tab === "description" || tab === "details") return "details";
+  if (tab === "description" || tab === "details") return "overview";
   if (tab === "applications" || tab === "candidates") return "candidates";
+  if (tab === "team" || tab === "workforce" || tab === "workers") return "team";
   if (tab === "schedule" || tab === "job_shifts" || tab === "shifts") {
     return "schedule";
   }
@@ -56,7 +57,6 @@ function getValidJobDetailTab(tab: string | null): JobDetailTab {
   ) {
     return "funding";
   }
-  if (tab === "workforce") return "overview";
 
   return JOB_DETAIL_TAB_KEYS.has(tab as JobDetailTab)
     ? (tab as JobDetailTab)
@@ -86,16 +86,20 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
   );
 
   const jobDetailTabs = [
-    { key: "overview" as const, label: "Overview", icon: LayoutDashboard },
+    {
+      key: "overview" as const,
+      label: "Instant shifts",
+      icon: Zap,
+    },
     {
       key: "candidates" as const,
-      label: isInstant ? "Responses" : "Candidates",
+      label: isInstant ? "Responses" : "Applications",
       icon: Users,
     },
+    { key: "team" as const, label: "Team", icon: UsersRound },
     { key: "schedule" as const, label: "Schedule", icon: CalendarDays },
     { key: "funding" as const, label: "Funding", icon: WalletCards },
     { key: "activity" as const, label: "Activity", icon: Activity },
-    { key: "details" as const, label: "Details", icon: FileText },
   ];
 
   return (
@@ -127,8 +131,20 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
         </TabsList>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <div className="p-4 sm:p-5">
+      <div
+        className={cn(
+          activeTab === "schedule" || activeTab === "funding"
+            ? "m-0"
+            : "overflow-hidden rounded-2xl border border-gray-200 bg-white",
+        )}
+      >
+        <div
+          className={
+            activeTab === "schedule" || activeTab === "funding"
+              ? "m-0"
+              : "p-4 sm:p-5"
+          }
+        >
           <TabsContent value="overview" className="m-0">
             <OverviewTab
               jobId={jobId}
@@ -144,31 +160,32 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
             />
           </TabsContent>
 
+          <TabsContent value="team" className="m-0">
+            <TeamTab jobId={jobId} enabled={activeTab === "team"} />
+          </TabsContent>
+
           <TabsContent value="schedule" className="m-0">
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-4">
               <ScheduleTab
                 jobId={jobId}
                 enabled={activeTab === "schedule"}
               />
-              <section>
-                <h3 className="mb-4 text-sm font-semibold text-gray-900">
-                  {isInstant ? "Broadcast shifts" : "Live shifts"}
-                </h3>
-                <JobShiftsTab
-                  jobId={jobId}
-                  enabled={activeTab === "schedule"}
-                  startDate={summary.start_date}
-                  endDate={summary.end_date}
-                  checkInTime={summary.next_shift?.start_time}
-                  checkOutTime={summary.next_shift?.end_time}
-                />
-              </section>
+              <JobShiftsTab
+                jobId={jobId}
+                enabled={activeTab === "schedule"}
+                title={isInstant ? "Broadcast shifts" : "Live shifts"}
+                startDate={summary.start_date}
+                endDate={summary.end_date}
+                checkInTime={summary.next_shift?.start_time}
+                checkOutTime={summary.next_shift?.end_time}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="funding" className="m-0">
             <TransitionTab
               jobId={jobId}
+              summary={summary}
               enabled={activeTab === "funding"}
             />
           </TabsContent>
@@ -177,13 +194,6 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
             <ActivityTab
               jobId={jobId}
               enabled={activeTab === "activity"}
-            />
-          </TabsContent>
-
-          <TabsContent value="details" className="m-0">
-            <DescriptionTab
-              jobId={jobId}
-              enabled={activeTab === "details"}
             />
           </TabsContent>
         </div>

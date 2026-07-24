@@ -7,9 +7,14 @@ import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 type DescriptionTabProps = {
   jobId: string;
   enabled?: boolean;
+  showChildJobs?: boolean;
 };
 
-export function DescriptionTab({ jobId, enabled = true }: DescriptionTabProps) {
+export function DescriptionTab({
+  jobId,
+  enabled = true,
+  showChildJobs = false,
+}: DescriptionTabProps) {
   const { description, isLoading, error } = useJobDescription(jobId, enabled);
 
   if (isLoading) {
@@ -39,11 +44,13 @@ export function DescriptionTab({ jobId, enabled = true }: DescriptionTabProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      <ChildJobsSection
-        jobId={jobId}
-        enabled={enabled}
-        title="Child jobs / instant shifts"
-      />
+      {showChildJobs ? (
+        <ChildJobsSection
+          jobId={jobId}
+          enabled={enabled}
+          title="Instant shifts"
+        />
+      ) : null}
       <section className="rounded-xl border border-gray-200 p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-2">
           Job Description

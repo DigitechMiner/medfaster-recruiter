@@ -23,17 +23,35 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 };
 
 const SHIFT_BADGE_CLASS: Record<string, string> = {
-  MORNING: "bg-amber-50 text-amber-800 border-amber-200",
-  EVENING: "bg-orange-50 text-orange-800 border-orange-200",
-  NIGHT: "bg-indigo-50 text-indigo-800 border-indigo-200",
+  MORNING: "bg-red-50 text-red-700 border-red-200",
+  EVENING: "bg-green-50 text-green-700 border-green-200",
+  NIGHT: "bg-blue-50 text-blue-700 border-blue-200",
   GENERAL: "bg-gray-50 text-gray-600 border-gray-200",
 };
+
+const SHIFT_DOT_CLASS: Record<string, string> = {
+  MORNING: "bg-red-500",
+  EVENING: "bg-green-500",
+  NIGHT: "bg-blue-500",
+  GENERAL: "bg-gray-400",
+};
+
+export const SHIFT_LEGEND_ITEMS = [
+  { key: "MORNING", label: "Morning" },
+  { key: "EVENING", label: "Evening" },
+  { key: "NIGHT", label: "Night" },
+] as const;
 
 export function getShiftMeta(shift: string) {
   const key = shift.trim().toUpperCase();
   if (SHIFT_META[key]) return SHIFT_META[key];
   const label = formatLabel(shift);
   return { letter: label.charAt(0).toUpperCase(), label };
+}
+
+export function getShiftDotClass(shift: string) {
+  const key = shift.trim().toUpperCase();
+  return SHIFT_DOT_CLASS[key] ?? "bg-gray-400";
 }
 
 export function formatEligibilityLabel(eligibility?: string | null) {

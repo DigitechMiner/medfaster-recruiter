@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 type DataTableProps = {
-  headers: string[];
+  headers: ReactNode[];
   children: ReactNode;
   minWidthClassName?: string;
   tableClassName?: string;
@@ -28,7 +28,7 @@ export function DataTable({
           <tr className={headerRowClassName}>
             {headers.map((header, index) => (
               <th
-                key={header}
+                key={index}
                 className={`px-4 py-2.5 text-left text-xs font-medium text-gray-500 whitespace-nowrap ${columnClassNames?.[index] ?? ""}`.trim()}
               >
                 {header}

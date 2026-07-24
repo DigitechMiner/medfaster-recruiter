@@ -140,3 +140,27 @@
     --angle: 360deg;
   }
 }
+
+/* Thin orange theme scrollbar for dialogs / scroll panels */
+.theme-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #f4781b #f3f4f6;
+}
+
+.theme-scrollbar::-webkit-scrollbar {
+  width: 1px;
+}
+
+.theme-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 9999px;
+}
+
+.theme-scrollbar::-webkit-scrollbar-thumb {
+  background: #f4781b;
+  border-radius: 9999px;
+}
+
+.theme-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #e56f18;
+}
