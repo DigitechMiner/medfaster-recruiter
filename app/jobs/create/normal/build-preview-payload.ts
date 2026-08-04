@@ -130,6 +130,7 @@ export function buildNormalJobSchedulingPayload(
   const handoffOverlapMinutes = getShiftHandoffOverlapMinutes(
     source.job_duration_per_day,
     selectedShifts,
+    source.include_shift_handoff !== false,
   );
 
   const existingTimes: ShiftTimesState = {
@@ -146,6 +147,7 @@ export function buildNormalJobSchedulingPayload(
     shiftDuration,
     jobDurationPerDay: source.job_duration_per_day,
     existing: existingTimes,
+    includeHandoff: source.include_shift_handoff !== false,
   });
 
   const shift_templates = selectedShifts.flatMap((shift) => {

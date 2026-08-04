@@ -19,6 +19,7 @@ export function getPayloadShiftHandoffMinutes(
   return getShiftHandoffOverlapMinutes(
     payload.job_duration_per_day,
     (payload.selected_shift_types ?? []) as ShiftType[],
+    payload.include_shift_handoff !== false,
   );
 }
 

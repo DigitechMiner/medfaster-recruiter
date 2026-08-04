@@ -763,6 +763,8 @@ export interface JobCreatePayload {
   staffing_type?: StaffingType;
   shift_duration_type?: ShiftDurationType;
   selected_shift_types?: ShiftType[];
+  /** When true, checkout includes 15 min handoff overlap. */
+  include_shift_handoff?: boolean;
 
   break_duration_minutes?: number;
   morning_shift_start?: string;
@@ -1181,18 +1183,19 @@ export interface JobFormData {
   staffing_type?: StaffingType;
   shift_duration_type?: ShiftDurationType;
   selected_shift_types?: ShiftType[]; // radios → array length 1, checkboxes → 1+
+  /** When true, checkout includes 15 min handoff overlap. */
+  include_shift_handoff?: boolean;
 
+  morning_shift_start?: string; // "HH:MM"
+  morning_shift_end?: string;
+  evening_shift_start?: string;
+  evening_shift_end?: string;
+  night_shift_start?: string;
+  night_shift_end?: string;
 
- morning_shift_start?: string; // "HH:MM"
-morning_shift_end?: string;
-evening_shift_start?: string;
-evening_shift_end?: string;
-night_shift_start?: string;
-night_shift_end?: string;
+  job_duration_per_day?: "24" | "12" | "8";
 
-job_duration_per_day?: "24" | "12" | "8";
-
-break_duration_minutes?: number;
+  break_duration_minutes?: number;
   cycle_start_day?: CycleStartDay;
   number_of_teams?: string;
   shift_schedule_details?: Partial<Record<ShiftType, ShiftScheduleDetail>>;

@@ -47,6 +47,7 @@ import {
   applyFifoShiftAdd,
   resolveSelectedShifts,
   shouldChainShiftTimes,
+  getShiftHandoffOverlapMinutes,
   calculateTotalCandidatesRequired,
   formatShiftCandidateBreakdown,
   getCandidatesPerTeam,
@@ -62,7 +63,7 @@ import {
   usesFifoShiftSelection,
   type ShiftTimesState,
 } from "./scheduling-utils";
-import { DEFAULT_CYCLE_START_DAY } from "./constant";
+import { DEFAULT_CYCLE_START_DAY, SHIFT_HANDOFF_OVERLAP_MINUTES } from "./constant";
 import { inferFormShiftTypeFromStartTime } from "../shift-windows";
 import { useSyncBackendPayRate } from "./use-platform-pay-rate";
 
@@ -96,31 +97,18 @@ function ReadOnlyMetric({
   required?: boolean;
 }) {
   return (
-    <JobFormField label={label} required={required} className="space-y-1">
-      <p className="text-xs text-gray-400">{hint}</p>
-      <div className="flex h-12 w-full items-center rounded-md bg-gray-100 px-4 text-lg font-semibold text-gray-900">
+    <JobFormField label={label} required={required} className="space-y-2">
+      <div className="flex h-11 w-full items-center rounded-md border border-gray-200 bg-gray-50 px-4 text-base font-semibold text-gray-900">
         {value}
       </div>
+      <p className="text-xs text-gray-400">{hint}</p>
     </JobFormField>
   );
 }
 
-/** Reserved space below controls so radios/checkboxes do not shift when hints change. */
 function SchedulingFieldHint({ message }: { message?: string | null }) {
-  return (
-    <div
-      className="mt-2 min-h-[4rem] text-xs leading-relaxed text-gray-400"
-      aria-live="polite"
-    >
-      {message ? (
-        <p>{message}</p>
-      ) : (
-        <span className="invisible select-none" aria-hidden="true">
-          —
-        </span>
-      )}
-    </div>
-  );
+  if (!message) return null;
+  return <p className="mt-1.5 text-xs text-gray-400">{message}</p>;
 }
 
 function ScheduleTemplateDayToggle({
@@ -168,6 +156,12 @@ export function NormalSchedulingStep({
   const selectedShiftTypes = useMemo(
     () => (formData.selected_shift_types as ShiftType[]) ?? [],
     [formData.selected_shift_types],
+  );
+  const includeShiftHandoff = formData.include_shift_handoff !== false;
+  const handoffOverlapMinutes = getShiftHandoffOverlapMinutes(
+    formData.job_duration_per_day,
+    selectedShiftTypes,
+    includeShiftHandoff,
   );
 
   const [showCalendar, setShowCalendar] = useState(false);
@@ -290,12 +284,14 @@ export function NormalSchedulingStep({
     duration: ShiftDurationType,
     selected: ShiftType[] = selectedShiftTypes,
     durationPerDay: "24" | "12" | "8" = jobDurationPerDay,
+    includeHandoff: boolean = includeShiftHandoff,
   ): Partial<JobFormData> =>
     rebuildShiftTimeChain({
       selectedShifts: selected,
       shiftDuration: duration,
       jobDurationPerDay: durationPerDay,
       existing: getExistingShiftTimes(),
+      includeHandoff,
     });
 
   useEffect(() => {
@@ -368,6 +364,7 @@ export function NormalSchedulingStep({
         shiftDuration: effectiveShiftDuration,
         jobDurationPerDay,
         existing: getExistingShiftTimes(),
+        includeHandoff: includeShiftHandoff,
       }),
     });
   }, [
@@ -377,6 +374,7 @@ export function NormalSchedulingStep({
     shiftDetails,
     updateFormData,
     getExistingShiftTimes,
+    includeShiftHandoff,
   ]);
 
   useEffect(() => {
@@ -430,6 +428,18 @@ export function NormalSchedulingStep({
         nextShiftDuration,
       ),
       ...buildShiftTimesRecalcPatch(nextShiftDuration, trimmed, value),
+    });
+  };
+
+  const handleShiftHandoffChange = (enabled: boolean) => {
+    syncScheduling({
+      include_shift_handoff: enabled,
+      ...buildShiftTimesRecalcPatch(
+        shiftDuration,
+        selectedShiftTypes,
+        jobDurationPerDay,
+        enabled,
+      ),
     });
   };
 
@@ -549,12 +559,12 @@ export function NormalSchedulingStep({
     templateLastDate &&
     firstDatedTemplateColumn &&
     lastDatedTemplateColumn
-      ? `Dates show from Day ${firstDatedTemplateColumn.dayNumber} (${templateFirstDate}) through Day ${lastDatedTemplateColumn.dayNumber} (${templateLastDate}). Days before the job start have no date. `
+      ? `Dates: Day ${firstDatedTemplateColumn.dayNumber} (${templateFirstDate}) – Day ${lastDatedTemplateColumn.dayNumber} (${templateLastDate}). `
       : "";
-  const weeklyHoursLimitNote = `Each candidate (per shift) may work at most ${MAX_CANDIDATE_WEEKLY_WORKING_HOURS} net hrs per template week — one shift per day (shift length minus break; e.g. 8 h shift with 1 h break = 7 h).`;
+  const weeklyHoursLimitNote = `Max ${MAX_CANDIDATE_WEEKLY_WORKING_HOURS} net hrs/week per candidate (shift length − break).`;
   const scheduleTemplateNote = isRotational
-    ? `Note: ${templateDateRangeNote}Each team has ${candidatesPerTeam} candidate${candidatesPerTeam === 1 ? "" : "s"} per shift on assigned days. ${weeklyHoursLimitNote}`
-    : `${templateDateRangeNote}Select one team per day; click the active day again to clear. ${weeklyHoursLimitNote}`;
+    ? `${templateDateRangeNote}${candidatesPerTeam} candidate${candidatesPerTeam === 1 ? "" : "s"}/team on assigned days. ${weeklyHoursLimitNote}`
+    : `${templateDateRangeNote}One team per day; click again to clear. ${weeklyHoursLimitNote}`;
 
   const formatDate = (value?: Date | string) => {
     if (!value) return "";
@@ -634,8 +644,14 @@ export function NormalSchedulingStep({
             shiftDuration,
             anchorShift: shiftType,
             anchorEndTime: time,
+            overlapMinutes: handoffOverlapMinutes,
           })
-        : buildSingleShiftTimesFromEnd(shiftType, time, shiftDuration);
+        : buildSingleShiftTimesFromEnd(
+            shiftType,
+            time,
+            shiftDuration,
+            handoffOverlapMinutes,
+          );
 
       updateFormData(timesPatch);
       return;
@@ -651,8 +667,14 @@ export function NormalSchedulingStep({
           anchorShift:
             getChainedShiftAnchor(selectedShiftTypes) ?? shiftType,
           anchorStartTime: time,
+          overlapMinutes: handoffOverlapMinutes,
         })
-      : buildSingleShiftTimes(shiftType, time, shiftDuration);
+      : buildSingleShiftTimes(
+          shiftType,
+          time,
+          shiftDuration,
+          handoffOverlapMinutes,
+        );
 
     updateFormData(timesPatch);
   };
@@ -776,28 +798,25 @@ export function NormalSchedulingStep({
 
   const jobDurationHint =
     jobDurationPerDay === "24"
-      ? "24 hr day: multiple shifts can be configured below."
-      : jobDurationPerDay === "12"
-        ? "12 hr day: 12 hr shift length is applied automatically."
-        : "8 hr day: 8 hr shift length is applied automatically.";
-
-  const shiftDurationHint = lockedShiftDuration
-    ? `${jobDurationPerDay} hr day uses a ${jobDurationPerDay} hr shift by default.`
-    : jobDurationPerDay === "24"
-      ? "24 hr day: choose 8 hr shift (3 types) or 12 hr shift (2 types)."
+      ? "Use multiple shifts for full-day coverage."
       : null;
 
+  const shiftDurationHint =
+    lockedShiftDuration !== null
+      ? null
+      : "8 hr → 3 shifts, or 12 hr → 2 shifts.";
+
   const shiftTypeHint = isAutoShiftSelection
-    ? "All required shifts are selected automatically for 24 hr coverage."
+    ? "Selected automatically for 24 hr coverage."
     : usesFifoShifts
-      ? "Select 2 shifts. Choosing a third replaces your earliest selection."
+      ? "Pick 2 shifts; a third replaces the earliest."
       : multipleShiftsAllowed
-        ? `Select up to ${maxSelectableShifts} shifts (${shiftDuration === "12_hrs" ? "12" : "8"} hrs each).`
-        : "Select one shift type.";
+        ? `Select up to ${maxSelectableShifts}.`
+        : null;
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <JobFormField label="Job Start Date" required>
           <button
             type="button"
@@ -825,14 +844,14 @@ export function NormalSchedulingStep({
             <CalendarIcon className="h-4 w-4 text-gray-400" />
           </button>
           {!formData.start_date && (
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-gray-400">
               Select a start date first.
             </p>
           )}
         </JobFormField>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
           <JobFormSelect
             id="cycle-start-day"
@@ -847,21 +866,14 @@ export function NormalSchedulingStep({
             }))}
             required
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1.5 text-xs text-gray-400">
             {templateFirstDate && firstDatedTemplateColumn ? (
               <>
-                Day 1 is {cycleStartLabel} ({templateDayColumns[0]?.weekdayShort}
-                ). Job starts {formatDate(formData.start_date)} on Day{" "}
-                {firstDatedTemplateColumn.dayNumber} ({templateFirstDate},{" "}
-                {firstDatedTemplateColumn.weekdayShort}) through Day{" "}
-                {lastDatedTemplateColumn?.dayNumber} ({templateLastDate}).
+                Day 1 = {cycleStartLabel}. Job starts on Day{" "}
+                {firstDatedTemplateColumn.dayNumber} ({templateFirstDate}).
               </>
             ) : (
-              <>
-                Day 1 is {cycleStartLabel} (
-                {templateDayColumns[0]?.weekdayShort}). Pick a job start date to
-                show calendar dates in the template.
-              </>
+              <>Day 1 = {cycleStartLabel}. Dates appear after you pick a start date.</>
             )}
           </p>
         </div>
@@ -881,86 +893,82 @@ export function NormalSchedulingStep({
             }
             className="h-11"
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1.5 text-xs text-gray-400">
             {isStandard
               ? "Standard staffing uses 1 team."
-              : "Rotational staffing requires at least 2 teams."}
+              : "Minimum 2 teams for rotational staffing."}
           </p>
         </JobFormField>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         <JobFormField label="Job Duration per Day" required>
-          <div className="min-h-[2.25rem] pt-1">
-            <RadioGroup
-              value={jobDurationPerDay}
-              onValueChange={(value) =>
-                handleJobDurationChange(value as "24" | "12" | "8")
-              }
-              className="flex flex-wrap gap-4"
-            >
-              {[
-                { label: "24 hrs", value: "24" as const },
-                { label: "12 hrs", value: "12" as const },
-                { label: "8 hrs", value: "8" as const },
-              ].map((opt) => (
-                <div key={opt.value} className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value={opt.value}
-                    id={`job-duration-${opt.value}`}
-                    className={RADIO_ITEM_CLASS}
-                  />
-                  <Label
-                    htmlFor={`job-duration-${opt.value}`}
-                    className="cursor-pointer text-sm font-normal text-gray-700"
-                  >
-                    {opt.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
+          <RadioGroup
+            value={jobDurationPerDay}
+            onValueChange={(value) =>
+              handleJobDurationChange(value as "24" | "12" | "8")
+            }
+            className="flex flex-wrap gap-4 pt-1"
+          >
+            {[
+              { label: "24 hrs", value: "24" as const },
+              { label: "12 hrs", value: "12" as const },
+              { label: "8 hrs", value: "8" as const },
+            ].map((opt) => (
+              <div key={opt.value} className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value={opt.value}
+                  id={`job-duration-${opt.value}`}
+                  className={RADIO_ITEM_CLASS}
+                />
+                <Label
+                  htmlFor={`job-duration-${opt.value}`}
+                  className="cursor-pointer text-sm font-normal text-gray-700"
+                >
+                  {opt.label}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
           <SchedulingFieldHint message={jobDurationHint} />
         </JobFormField>
 
         <JobFormField label="Each Shift Duration" required>
-          <div className="min-h-[2.25rem] pt-1">
-            <RadioGroup
-              value={shiftDuration}
-              onValueChange={(value) =>
-                handleShiftDurationChange(value as ShiftDurationType)
-              }
-              className="flex flex-wrap gap-4"
-            >
-              {[
-                { label: "8 hrs Shift", value: "8_hrs" as ShiftDurationType },
-                { label: "12 hrs Shift", value: "12_hrs" as ShiftDurationType },
-              ].map((opt) => (
-                <div key={opt.value} className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value={opt.value}
-                    id={`shift-duration-${opt.value}`}
-                    disabled={
-                      lockedShiftDuration !== null &&
-                      opt.value !== lockedShiftDuration
-                    }
-                    className={RADIO_ITEM_CLASS}
-                  />
-                  <Label
-                    htmlFor={`shift-duration-${opt.value}`}
-                    className="cursor-pointer text-sm font-normal text-gray-700"
-                  >
-                    {opt.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
+          <RadioGroup
+            value={shiftDuration}
+            onValueChange={(value) =>
+              handleShiftDurationChange(value as ShiftDurationType)
+            }
+            className="flex flex-wrap gap-4 pt-1"
+          >
+            {[
+              { label: "8 hrs Shift", value: "8_hrs" as ShiftDurationType },
+              { label: "12 hrs Shift", value: "12_hrs" as ShiftDurationType },
+            ].map((opt) => (
+              <div key={opt.value} className="flex items-center space-x-2">
+                <RadioGroupItem
+                  value={opt.value}
+                  id={`shift-duration-${opt.value}`}
+                  disabled={
+                    lockedShiftDuration !== null &&
+                    opt.value !== lockedShiftDuration
+                  }
+                  className={RADIO_ITEM_CLASS}
+                />
+                <Label
+                  htmlFor={`shift-duration-${opt.value}`}
+                  className="cursor-pointer text-sm font-normal text-gray-700"
+                >
+                  {opt.label}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
           <SchedulingFieldHint message={shiftDurationHint} />
         </JobFormField>
 
         <JobFormField label="Select Shift Type" required>
-          <div className="flex min-h-[2.25rem] flex-wrap items-center gap-5 pt-1">
+          <div className="flex flex-wrap items-center gap-5 pt-1">
             {SHIFT_TYPES.map((opt) => {
               const selected = selectedShiftTypes.includes(opt.value);
               const disabled =
@@ -999,57 +1007,69 @@ export function NormalSchedulingStep({
         </JobFormField>
       </div>
 
-      <JobFormField label="Shift Timings per Team" required>
-        <p className="mb-3 text-xs text-gray-400">
-          Unpaid break duration for {shiftDuration === "12_hrs" ? "12" : "8"}{" "}
-          hr shifts:{" "}
-          {breakBounds.min}–{breakBounds.max} min (default {breakBounds.default}{" "}
-          min).
-          {shouldChainShiftTimes(jobDurationPerDay, selectedShiftTypes) && (
-            <>
-              {" "}
-              Set the first shift start time only; later shifts are calculated
-              automatically. Consecutive shifts overlap by 15 min at handoff
-              (e.g. 9:00 AM–5:15 PM, then 5:00 PM–1:15 AM, then 1:00 AM–9:15
-              AM for 8 hr shifts).
-            </>
-          )}
-        </p>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Label className="text-sm font-medium text-gray-700">
+              Shift Timings per Team
+              <span className="text-red-500"> *</span>
+            </Label>
+            {isChainedMultiShift && (
+              <p className="mt-1 text-xs text-gray-400">
+                Set the first start time; later shifts fill in automatically.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleShiftHandoffChange(!includeShiftHandoff)}
+            className={cn(
+              "inline-flex items-center gap-2 self-start rounded-md border px-3 py-2 text-sm transition-colors",
+              includeShiftHandoff
+                ? "border-[#F4781B]/40 bg-orange-50 text-gray-800"
+                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                includeShiftHandoff
+                  ? "border-[#F4781B] bg-[#F4781B]"
+                  : "border-gray-300 bg-white",
+              )}
+            >
+              {includeShiftHandoff && <Check className="h-3 w-3 text-white" />}
+            </span>
+            <span>
+              {SHIFT_HANDOFF_OVERLAP_MINUTES}-min handoff
+              <span className="ml-1 text-xs text-gray-500">
+                (+{SHIFT_HANDOFF_OVERLAP_MINUTES} on checkout)
+              </span>
+            </span>
+          </button>
+        </div>
+
         {isChainedMultiShift && shiftTimingDisplays.length >= 2 && (
-          <div className="mb-3 rounded-lg border border-orange-100 bg-orange-50/40 px-3 py-2.5 text-xs text-gray-600">
-            <p className="mb-1.5 font-medium text-gray-800">
-              24-hour timeline
-              {formData.start_date ? (
-                <span className="font-normal text-gray-500">
-                  {" "}
-                  (job starts {formatDate(formData.start_date)})
-                </span>
-              ) : null}
-            </p>
-            <ul className="space-y-1">
-              {shiftTimingDisplays.map((timing) => (
-                <li key={timing.shift}>
-                  <span className="font-medium text-gray-700">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-600">
+            {shiftTimingDisplays.map((timing, index) => (
+              <span key={timing.shift} className="inline-flex items-center gap-2">
+                {index > 0 && (
+                  <span className="text-gray-300" aria-hidden="true">
+                    →
+                  </span>
+                )}
+                <span>
+                  <span className="font-medium text-gray-800">
                     {timing.label}
-                  </span>
-                  {": "}
-                  <span>
-                    {formatShiftDayLabel(
-                      formData.start_date,
-                      timing.startDayOffset,
-                    )}{" "}
-                    {formatTimeDisplay(timing.startTime)}
-                    {" – "}
-                    {timing.endDayOffset !== timing.startDayOffset
-                      ? `${formatShiftDayLabel(formData.start_date, timing.endDayOffset)} `
-                      : ""}
-                    {formatTimeDisplay(timing.endTime)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  </span>{" "}
+                  {formatTimeDisplay(timing.startTime)}–
+                  {formatTimeDisplay(timing.endTime)}
+                </span>
+              </span>
+            ))}
           </div>
         )}
+
         <div className="overflow-x-auto">
           {selectedShiftTypes.length > 0 && (
             <div className="space-y-3">
@@ -1059,26 +1079,11 @@ export function NormalSchedulingStep({
                   "border-b border-gray-100 pb-2 text-xs font-medium text-gray-500",
                 )}
               >
-                <span>Shift Type</span>
-                <span>
-                  Start Time
-                  <span className="mt-0.5 block font-normal text-gray-400">
-                    (date below)
-                  </span>
-                </span>
-                <span>
-                  End Time
-                  <span className="mt-0.5 block font-normal text-gray-400">
-                    (auto · date below)
-                  </span>
-                </span>
-                <span>
-                  Unpaid Break Duration
-                  <span className="mt-0.5 block font-normal text-gray-400">
-                    ({breakBounds.min}–{breakBounds.max} min)
-                  </span>
-                </span>
-                <span>No. of Candidate per Shift</span>
+                <span>Shift</span>
+                <span>Start</span>
+                <span>End</span>
+                <span>Break ({breakBounds.min}–{breakBounds.max} min)</span>
+                <span>Candidates</span>
               </div>
 
               {shiftTableRows.map((row) => {
@@ -1280,16 +1285,16 @@ export function NormalSchedulingStep({
 
           {selectedShiftTypes.length === 0 && (
             <p className="text-xs text-gray-400">
-              Select at least one shift type to configure timings.
+              Select a shift type to set timings.
             </p>
           )}
         </div>
-      </JobFormField>
+      </div>
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <ReadOnlyMetric
-          label="Number of Candidates Required"
-          hint={`${candidateShiftBreakdown} per shift = ${candidatesPerTeam} per team × ${teamCount} team${teamCount === 1 ? "" : "s"} = ${candidatesRequired} total`}
+          label="Candidates Required"
+          hint={`${candidateShiftBreakdown}/shift · ${candidatesPerTeam}/team · ${teamCount} team${teamCount === 1 ? "" : "s"}`}
           value={candidatesRequired.toString().padStart(2, "0")}
           required
         />
@@ -1298,8 +1303,8 @@ export function NormalSchedulingStep({
           label="Fixed Hourly Pay per Hire"
           hint={
             formData.backend_pay_rate != null
-              ? "Suggested hourly rate from platform"
-              : "Rates managed by platform"
+              ? "Platform suggested rate"
+              : "Set by platform"
           }
           value={
             formData.backend_pay_rate != null

@@ -447,11 +447,11 @@ export function calculateShiftStartTime(
   );
 }
 
-function getChainedNextShiftStart(previousShiftEnd: string): string | null {
-  return addMinutesToTime(
-    previousShiftEnd,
-    -SHIFT_HANDOFF_OVERLAP_MINUTES,
-  );
+function getChainedNextShiftStart(
+  previousShiftEnd: string,
+  overlapMinutes = 0,
+): string | null {
+  return addMinutesToTime(previousShiftEnd, -overlapMinutes);
 }
 
 export function getShiftStartFromState(
@@ -499,26 +499,32 @@ export function clearShiftTimesInState(
   setShiftTimesInState(shift, "", "", state);
 }
 
-/** One shift: end = start + shift length. */
+/** One shift: end = start + shift length (+ optional handoff). */
 export function buildSingleShiftTimes(
   shift: ShiftType,
   startTime: string,
   shiftDuration: ShiftDurationType,
+  overlapMinutes = 0,
 ): ShiftTimesState {
-  const end = calculateShiftEndTime(startTime, shiftDuration);
+  const end = calculateShiftEndTime(startTime, shiftDuration, overlapMinutes);
   if (!end) return {};
   const patch: ShiftTimesState = {};
   setShiftTimesInState(shift, startTime, end, patch);
   return patch;
 }
 
-/** One shift: start = end − shift length. */
+/** One shift: start = end − shift length (− optional handoff). */
 export function buildSingleShiftTimesFromEnd(
   shift: ShiftType,
   endTime: string,
   shiftDuration: ShiftDurationType,
+  overlapMinutes = 0,
 ): ShiftTimesState {
-  const start = calculateShiftStartTime(endTime, shiftDuration);
+  const start = calculateShiftStartTime(
+    endTime,
+    shiftDuration,
+    overlapMinutes,
+  );
   if (!start) return {};
   const patch: ShiftTimesState = {};
   setShiftTimesInState(shift, start, endTime, patch);
@@ -534,6 +540,8 @@ export function buildChainedShiftTimes(params: {
   shiftDuration: ShiftDurationType;
   anchorShift: ShiftType;
   anchorStartTime: string;
+  /** Extra minutes on checkout for handoff; 0 = no overlap. */
+  overlapMinutes?: number;
 }): ShiftTimesState {
   const ordered = sortShiftsInDayOrder(params.selectedShifts);
   const anchorIndex = ordered.indexOf(params.anchorShift);
@@ -541,7 +549,7 @@ export function buildChainedShiftTimes(params: {
 
   const patch: ShiftTimesState = {};
   let currentStart = params.anchorStartTime;
-  const overlap = SHIFT_HANDOFF_OVERLAP_MINUTES;
+  const overlap = params.overlapMinutes ?? 0;
 
   for (let i = anchorIndex; i < ordered.length; i++) {
     const shift = ordered[i];
@@ -552,7 +560,7 @@ export function buildChainedShiftTimes(params: {
     );
     if (!end) break;
     setShiftTimesInState(shift, currentStart, end, patch);
-    currentStart = getChainedNextShiftStart(end) ?? end;
+    currentStart = getChainedNextShiftStart(end, overlap) ?? end;
   }
 
   return patch;
@@ -567,12 +575,14 @@ export function buildChainedShiftTimesFromEnd(params: {
   shiftDuration: ShiftDurationType;
   anchorShift: ShiftType;
   anchorEndTime: string;
+  /** Extra minutes on checkout for handoff; 0 = no overlap. */
+  overlapMinutes?: number;
 }): ShiftTimesState {
   const ordered = sortShiftsInDayOrder(params.selectedShifts);
   const anchorIndex = ordered.indexOf(params.anchorShift);
   if (anchorIndex < 0) return {};
 
-  const overlap = SHIFT_HANDOFF_OVERLAP_MINUTES;
+  const overlap = params.overlapMinutes ?? 0;
   const anchorStart = calculateShiftStartTime(
     params.anchorEndTime,
     params.shiftDuration,
@@ -588,7 +598,7 @@ export function buildChainedShiftTimesFromEnd(params: {
     patch,
   );
 
-  let currentStart = getChainedNextShiftStart(params.anchorEndTime);
+  let currentStart = getChainedNextShiftStart(params.anchorEndTime, overlap);
   if (!currentStart) return patch;
 
   for (let i = anchorIndex + 1; i < ordered.length; i++) {
@@ -600,7 +610,7 @@ export function buildChainedShiftTimesFromEnd(params: {
     );
     if (!end) break;
     setShiftTimesInState(shift, currentStart, end, patch);
-    currentStart = getChainedNextShiftStart(end) ?? end;
+    currentStart = getChainedNextShiftStart(end, overlap) ?? end;
   }
 
   return patch;
@@ -613,17 +623,13 @@ export function shouldChainShiftTimes(
   return canSelectMultipleShifts(jobDurationPerDay) && selectedShifts.length > 1;
 }
 
-/** Handoff overlap included in chained shift end times (not actual work time). */
+/** Handoff minutes added to checkout when enabled (not actual payable work time). */
 export function getShiftHandoffOverlapMinutes(
-  jobDurationPerDay?: string,
-  selectedShifts?: ShiftType[],
+  _jobDurationPerDay?: string,
+  _selectedShifts?: ShiftType[],
+  includeHandoff = true,
 ): number {
-  if (!selectedShifts?.length) return 0;
-
-  const duration = (jobDurationPerDay ?? "8") as "24" | "12" | "8";
-  return shouldChainShiftTimes(duration, selectedShifts)
-    ? SHIFT_HANDOFF_OVERLAP_MINUTES
-    : 0;
+  return includeHandoff ? SHIFT_HANDOFF_OVERLAP_MINUTES : 0;
 }
 
 /** First shift in day order — anchor for chained 24 h coverage. */
@@ -658,6 +664,7 @@ export function resolveShiftTimesForJob(params: {
   shiftDuration: ShiftDurationType;
   jobDurationPerDay?: "24" | "12" | "8";
   existing: ShiftTimesState;
+  includeHandoff?: boolean;
 }): ShiftTimesState {
   const ordered = sortShiftsInDayOrder(params.selectedShifts);
   if (!ordered.length) return { ...params.existing };
@@ -672,12 +679,18 @@ export function resolveShiftTimesForJob(params: {
         shiftDuration: params.shiftDuration,
         jobDurationPerDay,
         existing: params.existing,
+        includeHandoff: params.includeHandoff,
       }),
     };
   }
 
   const resolved: ShiftTimesState = { ...params.existing };
   const first = ordered[0];
+  const overlapMinutes = getShiftHandoffOverlapMinutes(
+    jobDurationPerDay,
+    params.selectedShifts,
+    params.includeHandoff !== false,
+  );
 
   for (const shift of ordered) {
     let start = getShiftStartFromState(shift, resolved)?.trim();
@@ -687,8 +700,12 @@ export function resolveShiftTimesForJob(params: {
       start = "09:00";
     }
 
-    if (start && !end) {
-      const calculatedEnd = calculateShiftEndTime(start, params.shiftDuration);
+    if (start) {
+      const calculatedEnd = calculateShiftEndTime(
+        start,
+        params.shiftDuration,
+        overlapMinutes,
+      );
       if (calculatedEnd) {
         setShiftTimesInState(shift, start, calculatedEnd, resolved);
         end = calculatedEnd;
@@ -708,15 +725,34 @@ export function rebuildShiftTimeChain(params: {
   shiftDuration: ShiftDurationType;
   jobDurationPerDay: "24" | "12" | "8";
   existing: ShiftTimesState;
+  includeHandoff?: boolean;
 }): ShiftTimesState {
   const ordered = sortShiftsInDayOrder(params.selectedShifts);
   if (!ordered.length) return {};
 
   if (!shouldChainShiftTimes(params.jobDurationPerDay, ordered)) {
-    const first = ordered[0];
-    const start = getShiftStartFromState(first, params.existing);
-    if (!start) return {};
-    return buildSingleShiftTimes(first, start, params.shiftDuration);
+    const overlapMinutes = getShiftHandoffOverlapMinutes(
+      params.jobDurationPerDay,
+      params.selectedShifts,
+      params.includeHandoff !== false,
+    );
+    const patch: ShiftTimesState = {};
+
+    for (const shift of ordered) {
+      const start = getShiftStartFromState(shift, params.existing);
+      if (!start) continue;
+      Object.assign(
+        patch,
+        buildSingleShiftTimes(
+          shift,
+          start,
+          params.shiftDuration,
+          overlapMinutes,
+        ),
+      );
+    }
+
+    return patch;
   }
 
   const anchorShift = ordered[0];
@@ -724,11 +760,18 @@ export function rebuildShiftTimeChain(params: {
 
   if (!anchorStart) return {};
 
+  const overlapMinutes = getShiftHandoffOverlapMinutes(
+    params.jobDurationPerDay,
+    params.selectedShifts,
+    params.includeHandoff !== false,
+  );
+
   return buildChainedShiftTimes({
     selectedShifts: params.selectedShifts,
     shiftDuration: params.shiftDuration,
     anchorShift,
     anchorStartTime: anchorStart,
+    overlapMinutes,
   });
 }
 

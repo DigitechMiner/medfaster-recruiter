@@ -31,6 +31,7 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
   shift_duration_type: "8_hrs",
   staffing_type: "rotational",
   selected_shift_types: ["morning", "evening", "night"],
+  include_shift_handoff: true,
   job_period_option: "custom_end_date",
   cycle_start_day: DEFAULT_CYCLE_START_DAY,
   number_of_teams: "2",
@@ -48,7 +49,7 @@ export const DEFAULT_JOB_FORM_DATA: JobFormData = {
 export const MAX_AI_QUESTIONS = 10;
 export const MIN_AI_QUESTIONS = 5;
 
-/** Handoff overlap between consecutive shifts on a 24 h multi-shift day. */
+/** Handoff overlap added to shift checkout when enabled. */
 export const SHIFT_HANDOFF_OVERLAP_MINUTES = 15;
 
 export const SUCCESS_MESSAGES = {

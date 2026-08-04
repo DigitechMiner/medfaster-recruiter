@@ -108,6 +108,8 @@ function mergeSnapshotIntoJobPayload(
       snapshot.shift_duration_type ?? base.shift_duration_type,
     selected_shift_types:
       snapshot.selected_shift_types ?? base.selected_shift_types,
+    include_shift_handoff:
+      snapshot.include_shift_handoff ?? base.include_shift_handoff,
     job_duration_per_day:
       snapshot.job_duration_per_day ?? base.job_duration_per_day,
     cycle_start_day: snapshot.cycle_start_day ?? base.cycle_start_day,

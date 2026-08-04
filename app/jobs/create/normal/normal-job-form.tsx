@@ -229,6 +229,11 @@ function buildInitialFormData(
           DEFAULT_JOB_FORM_DATA.selected_shift_types ?? [],
         ),
       ) as ShiftType[],
+    include_shift_handoff: fromSnapshot(
+      snapshot,
+      "include_shift_handoff",
+      DEFAULT_JOB_FORM_DATA.include_shift_handoff,
+    ) as boolean,
     job_duration_per_day: fromSnapshot(
       snapshot,
       "job_duration_per_day",
@@ -377,6 +382,7 @@ export function NormalJobForm({
       staffing_type: data.staffing_type,
       shift_duration_type: data.shift_duration_type,
       selected_shift_types: data.selected_shift_types,
+      include_shift_handoff: data.include_shift_handoff !== false,
       job_duration_per_day: data.job_duration_per_day,
       cycle_start_day: data.cycle_start_day,
       number_of_teams: data.number_of_teams
