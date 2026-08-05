@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { JobFormField, JobFormSelect } from "../components/form-field";
 import { DateRangePicker } from "../components/date-picker";
 import { CustomTimePicker } from "../components/time-picker";
+import { formatFacilityTimezoneHint } from "@/utils/timezone/format-facility-timezone-hint";
 import {
   buildChainedShiftTimes,
   buildChainedShiftTimesFromEnd,
@@ -814,6 +815,8 @@ export function NormalSchedulingStep({
         ? `Select up to ${maxSelectableShifts}.`
         : null;
 
+  const facilityTimezoneHint = formatFacilityTimezoneHint(formData.province);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -849,6 +852,12 @@ export function NormalSchedulingStep({
             </p>
           )}
         </JobFormField>
+
+        {facilityTimezoneHint && (
+          <p className="lg:col-span-2 -mt-2 text-xs text-gray-400">
+            {facilityTimezoneHint}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

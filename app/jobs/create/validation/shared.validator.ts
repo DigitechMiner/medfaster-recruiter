@@ -1,17 +1,16 @@
 import type { JobCreatePayload } from "@/types";
 import {
   CANADIAN_POSTAL_REGEX,
+  INSTANT_JOB_MIN_LEAD_TIME_HOURS,
   MAX_ARRAY_ITEMS,
-  MIN_START_LEAD_TIME_HOURS,
+  NORMAL_JOB_MIN_LEAD_TIME_HOURS,
   SHIFT_MAX_HOURS,
   SHIFT_MIN_HOURS,
   TIME_REGEX,
 } from "./constants";
 import {
-  combineDateAndClockTime,
   getShiftWorkDurationHours,
   isEmpty,
-  isPastDate,
   isStringArrayBetween,
   parseLocalDate,
   shiftSpansMidnight,
@@ -21,6 +20,11 @@ import {
   collectPayloadShiftTimePairs,
   getPayloadShiftHandoffMinutes,
 } from "./shift-duration";
+import {
+  combineFacilityCheckInAt,
+  earliestAllowedCheckInAt,
+  isCalendarDateBeforeTodayInTz,
+} from "@/utils/timezone/combine-date-and-time";
 
 // START SECTION: Shared Validator
 export function validateSharedFields(
@@ -81,12 +85,13 @@ function validateLocation(payload: JobCreatePayload, push: PushError) {
 // START SECTION: Date Validation
 function validateDates(payload: JobCreatePayload, push: PushError) {
   const isFullTime = payload.job_type === "full_time";
+  const province = payload.province;
 
   if (isEmpty(payload.start_date)) {
     push("start_date", "Start date is required.");
   } else if (!parseLocalDate(payload.start_date)) {
     push("start_date", "Start date must be a valid date.");
-  } else if (isPastDate(payload.start_date)) {
+  } else if (isCalendarDateBeforeTodayInTz(payload.start_date, province)) {
     push("start_date", "Start date cannot be in the past.");
   } else {
     validateStartLeadTime(payload, push);
@@ -106,7 +111,7 @@ function validateDates(payload: JobCreatePayload, push: PushError) {
     return;
   }
 
-  if (isPastDate(payload.end_date)) {
+  if (isCalendarDateBeforeTodayInTz(payload.end_date, province)) {
     push("end_date", "End date cannot be in the past.");
     return;
   }
@@ -136,22 +141,55 @@ function validateDates(payload: JobCreatePayload, push: PushError) {
 // END SECTION: Date Validation
 
 // START SECTION: Start Lead Time Validation
+function resolveLeadTimeHours(payload: JobCreatePayload): number {
+  const urgency = (payload.job_urgency ?? "").toString().toUpperCase();
+  return urgency === "INSTANT"
+    ? INSTANT_JOB_MIN_LEAD_TIME_HOURS
+    : NORMAL_JOB_MIN_LEAD_TIME_HOURS;
+}
+
+function resolveEarliestCheckInTime(payload: JobCreatePayload): string | null {
+  const pairs = collectPayloadShiftTimePairs(payload);
+  if (pairs.length === 0) {
+    const fallback = payload.check_in_time?.trim();
+    return fallback || null;
+  }
+
+  let earliest: string | null = null;
+  for (const pair of pairs) {
+    if (!earliest || pair.checkIn < earliest) earliest = pair.checkIn;
+  }
+  return earliest;
+}
+
+/**
+ * Interpret start_date + check-in as facility (province) local time, convert to a
+ * UTC instant, then compare to now + lead hours — same rules as the backend.
+ */
 function validateStartLeadTime(payload: JobCreatePayload, push: PushError) {
-  const startsAt = combineDateAndClockTime(
-    payload.start_date,
-    payload.check_in_time,
-  );
+  if (isEmpty(payload.province)) {
+    // Province is required before lead-time can be evaluated in facility TZ.
+    return;
+  }
 
-  if (!startsAt) return;
+  const checkInTime = resolveEarliestCheckInTime(payload);
+  if (!checkInTime) return;
 
-  const minimumStartAt = new Date(
-    Date.now() + MIN_START_LEAD_TIME_HOURS * 60 * 60 * 1000,
-  );
+  const checkInAt = combineFacilityCheckInAt({
+    startDate: payload.start_date,
+    checkInTime,
+    province: payload.province,
+  });
+  if (!checkInAt) return;
 
-  if (startsAt < minimumStartAt) {
+  const leadHours = resolveLeadTimeHours(payload);
+  const earliestAllowed = earliestAllowedCheckInAt(leadHours);
+
+  if (checkInAt.getTime() < earliestAllowed.getTime()) {
+    const urgency = (payload.job_urgency ?? "").toString().toUpperCase();
     push(
-      "check_in_time",
-      `Start date and check-in time must be at least ${MIN_START_LEAD_TIME_HOURS} hour from now.`,
+      urgency === "INSTANT" ? "check_in_time" : "start_date",
+      `Start date and check-in time must be at least ${leadHours} hour${leadHours === 1 ? "" : "s"} from now.`,
     );
   }
 }
@@ -159,19 +197,27 @@ function validateStartLeadTime(payload: JobCreatePayload, push: PushError) {
 
 // START SECTION: Shift Validation
 function validateShift(payload: JobCreatePayload, push: PushError) {
-  if (isEmpty(payload.check_in_time)) {
-    push("check_in_time", "Check-in time is required.");
-  } else if (!TIME_REGEX.test(payload.check_in_time as string)) {
-    push("check_in_time", "Check-in time must be in HH:mm or HH:mm:ss format.");
-  }
+  const isInstant =
+    (payload.job_urgency ?? "").toString().toUpperCase() === "INSTANT";
 
-  if (isEmpty(payload.check_out_time)) {
-    push("check_out_time", "Check-out time is required.");
-  } else if (!TIME_REGEX.test(payload.check_out_time as string)) {
-    push(
-      "check_out_time",
-      "Check-out time must be in HH:mm or HH:mm:ss format.",
-    );
+  if (isInstant) {
+    if (isEmpty(payload.check_in_time)) {
+      push("check_in_time", "Check-in time is required.");
+    } else if (!TIME_REGEX.test(payload.check_in_time as string)) {
+      push(
+        "check_in_time",
+        "Check-in time must be in HH:mm or HH:mm:ss format.",
+      );
+    }
+
+    if (isEmpty(payload.check_out_time)) {
+      push("check_out_time", "Check-out time is required.");
+    } else if (!TIME_REGEX.test(payload.check_out_time as string)) {
+      push(
+        "check_out_time",
+        "Check-out time must be in HH:mm or HH:mm:ss format.",
+      );
+    }
   }
 
   const handoff = getPayloadShiftHandoffMinutes(payload);

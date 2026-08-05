@@ -1,6 +1,11 @@
 // START SECTION: Backend-Matched Validation Constants
 export const INSTANT_JOB_MIN_DURATION_HOURS = 4;
-export const MIN_START_LEAD_TIME_HOURS = 1;
+/** Instant jobs: first check-in must be ≥ 1 hour from now (facility TZ). */
+export const INSTANT_JOB_MIN_LEAD_TIME_HOURS = 1;
+/** Normal jobs: earliest check-in must be ≥ 24 hours from now (facility TZ). */
+export const NORMAL_JOB_MIN_LEAD_TIME_HOURS = 24;
+/** @deprecated Prefer INSTANT_JOB_MIN_LEAD_TIME_HOURS / NORMAL_JOB_MIN_LEAD_TIME_HOURS */
+export const MIN_START_LEAD_TIME_HOURS = INSTANT_JOB_MIN_LEAD_TIME_HOURS;
 export const SHIFT_MIN_HOURS = 3;
 export const SHIFT_MAX_HOURS = 12;
 

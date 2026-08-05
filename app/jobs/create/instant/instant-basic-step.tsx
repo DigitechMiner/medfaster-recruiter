@@ -27,6 +27,7 @@ import {
   getInstantBreakDurationBounds,
 } from "./build-instant-payload";
 import { HourlyPayWithTaxes } from "../components/hourly-pay-with-taxes";
+import { formatFacilityTimezoneHint } from "@/utils/timezone/format-facility-timezone-hint";
 
 interface InstantBasicStepProps {
   formData: InstantJobFormData;
@@ -163,6 +164,8 @@ export function InstantBasicStep({
     updateFormData,
   ]);
 
+  const facilityTimezoneHint = formatFacilityTimezoneHint(formData.province);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -254,6 +257,12 @@ export function InstantBasicStep({
           required
           error={fieldErrors.check_out_time}
         />
+
+        {facilityTimezoneHint && (
+          <p className="md:col-span-2 -mt-2 text-xs text-gray-400">
+            {facilityTimezoneHint}
+          </p>
+        )}
 
         <JobFormInput
           id="break-duration-minutes"

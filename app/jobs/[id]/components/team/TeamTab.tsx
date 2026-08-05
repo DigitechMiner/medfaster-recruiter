@@ -6,6 +6,7 @@ import { UsersRound } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { useJobTeam } from "@/hooks/useJobData";
+import { useNow } from "@/hooks/useNow";
 import { cn } from "@/lib/utils";
 import type {
   JobTeamMember,
@@ -22,6 +23,7 @@ import {
   getShiftBadgeClass,
   getShiftMeta,
 } from "../candidates/applications-table-helpers";
+import { ShiftCountdown } from "@/components/ShiftCountdown";
 
 const MEMBER_LIMIT = 12;
 
@@ -246,7 +248,13 @@ function MemberShiftsCell({ member }: { member: JobTeamMember }) {
   );
 }
 
-function NextShiftCell({ member }: { member: JobTeamMember }) {
+function NextShiftCell({
+  member,
+  nowMs,
+}: {
+  member: JobTeamMember;
+  nowMs: number;
+}) {
   const nextShift = member.next_shift;
   if (!nextShift) {
     return <span className="text-xs text-gray-400">—</span>;
@@ -262,6 +270,13 @@ function NextShiftCell({ member }: { member: JobTeamMember }) {
         {nextShift.planned_check_in && nextShift.planned_check_out
           ? ` · ${formatTime(nextShift.planned_check_in)}–${formatTime(nextShift.planned_check_out)}`
           : ""}
+      </p>
+      <p className="mt-0.5 truncate text-[11px]">
+        <ShiftCountdown
+          plannedCheckInAt={nextShift.planned_check_in_at}
+          plannedCheckOutAt={nextShift.planned_check_out_at}
+          nowMs={nowMs}
+        />
       </p>
     </div>
   );
@@ -293,6 +308,16 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
   const members = team?.members ?? [];
   const pagination = team?.pagination;
   const jobMeta = team?.job;
+  const hasLiveCountdown = useMemo(
+    () =>
+      members.some(
+        (member) =>
+          member.next_shift?.planned_check_in_at ||
+          member.next_shift?.planned_check_out_at,
+      ),
+    [members],
+  );
+  const nowMs = useNow(enabled && hasLiveCountdown);
 
   const teamIndexById = useMemo(
     () =>
@@ -459,7 +484,7 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
                   </td>
 
                   <td className="px-4 py-3 align-middle">
-                    <NextShiftCell member={member} />
+                    <NextShiftCell member={member} nowMs={nowMs} />
                   </td>
                 </tr>
               );

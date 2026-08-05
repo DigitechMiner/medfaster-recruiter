@@ -18,6 +18,11 @@ interface DescriptionFormProps {
   fieldErrors?: Partial<Record<keyof JobFormData, string>>;
   hideExperienceList?: boolean;
   onLoadingChange?: (loading: boolean) => void;
+  /** Fired when AI generate fails or recovers — use for step-heading Retry. */
+  onGenerateFailureChange?: (state: {
+    error: string | null;
+    onRetry: (() => void) | null;
+  }) => void;
 }
 
 interface ListSectionConfig {
@@ -40,12 +45,21 @@ const withEmptyRow = (items?: string[]) =>
 const hasFilledItem = (items?: string[]) =>
   items?.some((item) => item.trim().length > 0) ?? false;
 
+function buildDescriptionRequestKey(formData: JobFormData) {
+  return [
+    formData.job_title,
+    formData.department || "",
+    formData.job_type || "",
+  ].join("|");
+}
+
 export function DescriptionForm({
   formData,
   updateFormData,
   fieldErrors = {},
   hideExperienceList = false,
   onLoadingChange,
+  onGenerateFailureChange,
 }: DescriptionFormProps) {
   const listSections = hideExperienceList
     ? LIST_SECTIONS.filter((section) => section.key !== "experience")
@@ -84,10 +98,6 @@ export function DescriptionForm({
     onLoadingChange?.(loading);
   }, [loading, onLoadingChange]);
 
-  const reset = useCallback(() => {
-    setError(null);
-  }, []);
-
   const generateDescription = useCallback(async (input: JobDescriptionInput) => {
     setLoading(true);
     setError(null);
@@ -104,55 +114,71 @@ export function DescriptionForm({
     }
   }, []);
 
-  const generateAndMapDescription = useCallback(async () => {
-    if (!formData.job_title) return;
+  const generateAndMapDescription = useCallback(
+    async (options?: { force?: boolean }) => {
+      if (!formData.job_title) return;
 
-    const requestKey = [
+      const requestKey = buildDescriptionRequestKey(formData);
+
+      if (
+        !options?.force &&
+        requestedDescriptionKeyRef.current === requestKey
+      ) {
+        return;
+      }
+
+      requestedDescriptionKeyRef.current = requestKey;
+      setError(null);
+
+      const input: JobDescriptionInput = {
+        jobTitle: formData.job_title,
+        department: formData.department || "",
+        jobType: formData.job_type || "full_time",
+      };
+
+      const generatedDescription = await generateDescription(input);
+
+      if (!generatedDescription) {
+        // Allow an explicit retry for the same job title/department/type.
+        requestedDescriptionKeyRef.current = null;
+        return;
+      }
+
+      updateFormDataRef.current({
+        description: generatedDescription.description,
+        responsibilities: withEmptyRow(generatedDescription.responsibilities),
+        required_skills: withEmptyRow(generatedDescription.required_skills),
+        experience: withEmptyRow(generatedDescription.experience),
+        working_conditions: withEmptyRow(
+          generatedDescription.working_conditions,
+        ),
+        why_join: withEmptyRow(generatedDescription.why_join),
+      });
+    },
+    [
+      formData.department,
       formData.job_title,
-      formData.department || "",
-      formData.job_type || "",
-    ].join("|");
-
-    if (requestedDescriptionKeyRef.current === requestKey) {
-      return;
-    }
-
-    requestedDescriptionKeyRef.current = requestKey;
-    reset();
-
-    const input: JobDescriptionInput = {
-      jobTitle: formData.job_title,
-      department: formData.department || "",
-      jobType: formData.job_type || "full_time",
-    };
-
-    const generatedDescription = await generateDescription(input);
-
-    if (!generatedDescription) return;
-
-    updateFormDataRef.current({
-      description: generatedDescription.description,
-      responsibilities: withEmptyRow(generatedDescription.responsibilities),
-      required_skills: withEmptyRow(generatedDescription.required_skills),
-      experience: withEmptyRow(generatedDescription.experience),
-      working_conditions: withEmptyRow(
-        generatedDescription.working_conditions,
-      ),
-      why_join: withEmptyRow(generatedDescription.why_join),
-    });
-  }, [
-    formData.department,
-    formData.job_title,
-    formData.job_type,
-    generateDescription,
-    reset,
-  ]);
+      formData.job_type,
+      generateDescription,
+    ],
+  );
 
   useEffect(() => {
     if (hasDescriptionContent) return;
 
     void generateAndMapDescription();
   }, [generateAndMapDescription, hasDescriptionContent]);
+
+  const handleRetry = useCallback(() => {
+    void generateAndMapDescription({ force: true });
+  }, [generateAndMapDescription]);
+
+  useEffect(() => {
+    onGenerateFailureChange?.({
+      error,
+      onRetry: error ? handleRetry : null,
+    });
+  }, [error, handleRetry, onGenerateFailureChange]);
 
   if (loading) {
     return <DescriptionStepSkeleton sectionCount={listSections.length} />;
@@ -196,7 +222,6 @@ export function DescriptionForm({
           error={fieldErrors[key]}
         />
       ))}
-
     </>
   );
 }

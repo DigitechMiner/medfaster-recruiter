@@ -36,6 +36,10 @@ interface InstantJobFormProps {
   autoSubmitToken?: number;
   onValidationBlocked?: () => void;
   onDescriptionLoadingChange?: (loading: boolean) => void;
+  onDescriptionGenerateFailureChange?: (state: {
+    error: string | null;
+    onRetry: (() => void) | null;
+  }) => void;
 }
 
 function buildInitialInstantForm(
@@ -141,6 +145,7 @@ export function InstantJobForm({
   autoSubmitToken,
   onValidationBlocked,
   onDescriptionLoadingChange,
+  onDescriptionGenerateFailureChange,
 }: InstantJobFormProps) {
   const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
@@ -343,6 +348,7 @@ export function InstantJobForm({
               fieldErrors={fieldErrors}
               hideExperienceList
               onLoadingChange={onDescriptionLoadingChange}
+              onGenerateFailureChange={onDescriptionGenerateFailureChange}
             />
           )}
         </form>

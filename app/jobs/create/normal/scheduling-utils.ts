@@ -626,10 +626,13 @@ export function shouldChainShiftTimes(
 /** Handoff minutes added to checkout when enabled (not actual payable work time). */
 export function getShiftHandoffOverlapMinutes(
   _jobDurationPerDay?: string,
-  _selectedShifts?: ShiftType[],
+  selectedShifts?: ShiftType[],
   includeHandoff = true,
 ): number {
-  return includeHandoff ? SHIFT_HANDOFF_OVERLAP_MINUTES : 0;
+  if (!includeHandoff) return 0;
+  // Handoff only applies between consecutive shifts — never on a lone shift.
+  if ((selectedShifts?.length ?? 0) <= 1) return 0;
+  return SHIFT_HANDOFF_OVERLAP_MINUTES;
 }
 
 /** First shift in day order — anchor for chained 24 h coverage. */

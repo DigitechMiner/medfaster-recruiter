@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { createRecruiterShiftDispute } from "@/features/jobs";
 import { useJobShifts } from "@/hooks/useJobData";
+import { useNow } from "@/hooks/useNow";
 import type { JobShiftAssignment, JobShiftItem, JobShiftStaffingGap } from "@/types";
 import {
   EmptyState,
   LoadingRows,
 } from "../shared/JobDetailDataView";
 import { formatDate, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
+import { ShiftCountdown } from "@/components/ShiftCountdown";
 
 type ShiftStatus = "UPCOMING" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "MISSED";
 type ShiftStatusFilter = ShiftStatus | "ALL";
@@ -53,6 +55,8 @@ type ShiftCard = {
   date?: string | null;
   startTime?: string | null;
   endTime?: string | null;
+  plannedCheckInAt?: string | null;
+  plannedCheckOutAt?: string | null;
   duration?: number | string | null;
   status?: string | null;
   assignmentsCount: number;
@@ -126,6 +130,14 @@ export function JobShiftsTab({
     () => apiShifts.map((shift, index) => mapJobShift(shift, index)),
     [apiShifts],
   );
+  const hasLiveCountdown = useMemo(
+    () =>
+      shiftCards.some(
+        (shift) => shift.plannedCheckInAt || shift.plannedCheckOutAt,
+      ),
+    [shiftCards],
+  );
+  const nowMs = useNow(enabled && hasLiveCountdown);
   const filteredShifts = useMemo(
     () =>
       status === "ALL"
@@ -286,6 +298,12 @@ export function JobShiftsTab({
                               {formatTime(shift.startTime ?? checkInTime)} -{" "}
                               {formatTime(shift.endTime ?? checkOutTime)}
                             </span>
+                            <ShiftCountdown
+                              plannedCheckInAt={shift.plannedCheckInAt}
+                              plannedCheckOutAt={shift.plannedCheckOutAt}
+                              nowMs={nowMs}
+                              className="text-xs"
+                            />
                             <span className="inline-flex items-center gap-1.5 text-gray-500">
                               <Timer size={13} className="text-gray-400" />
                               {formatDuration(shift.duration)}
@@ -551,6 +569,8 @@ function mapJobShift(shift: JobShiftItem, index: number): ShiftCard {
     date: shift.shift_date ?? shift.start_date ?? null,
     startTime: shift.planned_check_in ?? null,
     endTime: shift.planned_check_out ?? null,
+    plannedCheckInAt: shift.planned_check_in_at ?? null,
+    plannedCheckOutAt: shift.planned_check_out_at ?? null,
     duration: shift.planned_minutes ?? null,
     status: shift.status ?? shift.shift_status ?? null,
     assignmentsCount: assignments.length,

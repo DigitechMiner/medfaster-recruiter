@@ -22,6 +22,7 @@ import {
   formatTime,
 } from "../shared/job-detail-helpers";
 import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
+import { ShiftCountdown } from "@/components/ShiftCountdown";
 
 type ScheduleSectionProps = {
   summary: JobDetailSummaryData;
@@ -119,6 +120,12 @@ export function ScheduleSection({
                   {formatTime(nextShift.start_time)} –{" "}
                   {formatTime(nextShift.end_time)}
                 </p>
+                <p className="mt-1.5 text-xs">
+                  <ShiftCountdown
+                    plannedCheckInAt={nextShift.planned_check_in_at}
+                    plannedCheckOutAt={nextShift.planned_check_out_at}
+                  />
+                </p>
               </div>
             </div>
           )}
@@ -176,6 +183,31 @@ export function ScheduleSection({
               View rotation
             </Button>
           )}
+        </div>
+      )}
+
+      {!isInstant && nextShift && (
+        <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-4">
+          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-[#F4781B] shadow-sm">
+            <Clock size={16} />
+          </span>
+          <div>
+            <p className="text-xs font-medium text-gray-500">Next shift</p>
+            <p className="mt-0.5 text-sm font-semibold text-gray-900">
+              {formatShiftTypeLabel(nextShift.shift_type)}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              {formatDate(nextShift.shift_date)} ·{" "}
+              {formatTime(nextShift.start_time)} –{" "}
+              {formatTime(nextShift.end_time)}
+            </p>
+            <p className="mt-1.5 text-xs">
+              <ShiftCountdown
+                plannedCheckInAt={nextShift.planned_check_in_at}
+                plannedCheckOutAt={nextShift.planned_check_out_at}
+              />
+            </p>
+          </div>
         </div>
       )}
     </div>

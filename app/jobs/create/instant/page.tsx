@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useCallback, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
+import { Button } from "@/components/ui/button";
 import { useJobsStore } from "@/stores/jobs-store";
 import type { JobCreatePayload } from "@/types";
 import { CreateJobLoadingFallback } from "../components/loading";
@@ -32,6 +34,26 @@ function InstantJobStepForm() {
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
   const clearDraft = useJobsStore((s) => s.clearDraft);
   const [descriptionLoading, setDescriptionLoading] = useState(false);
+  const [descriptionGenerateError, setDescriptionGenerateError] = useState<
+    string | null
+  >(null);
+  const [retryDescriptionGenerate, setRetryDescriptionGenerate] = useState<
+    (() => void) | null
+  >(null);
+
+  const handleDescriptionGenerateFailureChange = useCallback(
+    ({
+      error,
+      onRetry,
+    }: {
+      error: string | null;
+      onRetry: (() => void) | null;
+    }) => {
+      setDescriptionGenerateError(error);
+      setRetryDescriptionGenerate(() => onRetry);
+    },
+    [],
+  );
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [pendingPayload, setPendingPayload] =
@@ -185,6 +207,22 @@ function InstantJobStepForm() {
         {step === 2 && (
           <CreateJobStepCard
             title="Job Description"
+            titleAction={
+              descriptionGenerateError && retryDescriptionGenerate ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={retryDescriptionGenerate}
+                  disabled={descriptionLoading}
+                  className="h-8 shrink-0 gap-1.5 px-2 text-xs font-medium text-[#F4781B] hover:bg-orange-50 hover:text-[#d96814]"
+                  aria-label="Retry generating job description"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry
+                </Button>
+              ) : null
+            }
             footer={
               <CreateJobStepActions
                 onBack={handleBack}
@@ -203,6 +241,9 @@ function InstantJobStepForm() {
               autoSubmitToken={progressValidationToken}
               onValidationBlocked={resetProgressValidation}
               onDescriptionLoadingChange={setDescriptionLoading}
+              onDescriptionGenerateFailureChange={
+                handleDescriptionGenerateFailureChange
+              }
             />
           </CreateJobStepCard>
         )}

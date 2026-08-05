@@ -186,6 +186,11 @@ export interface JobDetailNextShift {
   start_time: string;
   end_time: string;
   required_workers: number;
+  /** Absolute UTC ISO start — use for countdowns via `new Date(planned_check_in_at)`. */
+  planned_check_in_at?: string | null;
+  /** Absolute UTC ISO end — use for countdowns via `new Date(planned_check_out_at)`. */
+  planned_check_out_at?: string | null;
+  province?: string | null;
 }
 
 /** Initial job detail screen — KPIs, hiring progress, next shift. */
@@ -557,7 +562,10 @@ export interface JobTeamMemberShift {
   shift_status?: string | null;
   planned_check_in?: string | null;
   planned_check_out?: string | null;
+  planned_check_in_at?: string | null;
+  planned_check_out_at?: string | null;
   planned_minutes?: number | null;
+  province?: string | null;
   team_id?: string | null;
   team_name?: string | null;
   attendance?: unknown;
@@ -700,6 +708,9 @@ export interface CalendarJob {
   check_out_source: string | null;
   planned_check_in: string | null;
   planned_check_out: string | null;
+  planned_check_in_at?: string | null;
+  planned_check_out_at?: string | null;
+  province?: string | null;
   job_title: string;
   job_type: string;
 }
@@ -1414,7 +1425,10 @@ export interface JobShiftItem extends JobDetailRecord {
   shift_status?: string | null;
   planned_check_in?: string | null;
   planned_check_out?: string | null;
+  planned_check_in_at?: string | null;
+  planned_check_out_at?: string | null;
   planned_minutes?: number | string | null;
+  province?: string | null;
   check_in?: string | null;
   check_out?: string | null;
   total_hours?: number | string | null;

@@ -78,6 +78,10 @@ interface NormalJobFormProps {
   autoSubmitToken?: number;
   onValidationBlocked?: () => void;
   onDescriptionLoadingChange?: (loading: boolean) => void;
+  onDescriptionGenerateFailureChange?: (state: {
+    error: string | null;
+    onRetry: (() => void) | null;
+  }) => void;
 }
 
 function buildInitialFormData(
@@ -276,6 +280,7 @@ export function NormalJobForm({
   autoSubmitToken,
   onValidationBlocked,
   onDescriptionLoadingChange,
+  onDescriptionGenerateFailureChange,
 }: NormalJobFormProps) {
   const setFormSnapshot = useJobsStore((s) => s.setFormSnapshot);
   const formSnapshot = useJobsStore((s) => s.formSnapshot);
@@ -502,6 +507,7 @@ export function NormalJobForm({
           fieldErrors={fieldErrors}
           hideExperienceList
           onLoadingChange={onDescriptionLoadingChange}
+          onGenerateFailureChange={onDescriptionGenerateFailureChange}
         />
       )}
     </form>

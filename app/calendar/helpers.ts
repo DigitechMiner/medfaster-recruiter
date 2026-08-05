@@ -1,4 +1,5 @@
 import type { CalendarJob } from "@/types";
+import { resolveShiftCountdown } from "@/utils/shift-countdown";
 
 export type CalendarView = "day" | "week" | "month";
 export type BadgeType = "active" | "noshow" | "upcoming" | "completed";
@@ -123,7 +124,10 @@ export function jobToSlotIdx(job: CalendarJob): number {
   return parseInt(job.planned_check_in.split(":")[0], 10);
 }
 
-export function getStatusPill(job: CalendarJob): { text: string; icon: string; className: string } {
+export function getStatusPill(
+  job: CalendarJob,
+  nowMs: number = Date.now(),
+): { text: string; icon: string; className: string } {
   if (job.check_out) {
     return { text: "Successful end", icon: "✓", className: "bg-green-50  text-green-700  border-green-200" };
   }
@@ -133,6 +137,29 @@ export function getStatusPill(job: CalendarJob): { text: string; icon: string; c
   if (job.shift_status === "CANCELLED") {
     return { text: "No show yet!", icon: "⚠", className: "bg-red-50    text-red-600    border-red-200" };
   }
+
+  const countdown = resolveShiftCountdown(
+    job.planned_check_in_at,
+    job.planned_check_out_at,
+    nowMs,
+  );
+
+  if (countdown.phase === "active" && countdown.text) {
+    return {
+      text: countdown.text,
+      icon: "⏱",
+      className: "bg-green-50 text-green-700 border-green-200",
+    };
+  }
+
+  if (countdown.phase === "upcoming" && countdown.text) {
+    return {
+      text: countdown.text,
+      icon: "⏱",
+      className: "bg-orange-50 text-orange-500 border-orange-200",
+    };
+  }
+
   if (job.shift_status === "ACTIVE") {
     return { text: "Successful start", icon: "✓", className: "bg-green-50  text-green-700  border-green-200" };
   }

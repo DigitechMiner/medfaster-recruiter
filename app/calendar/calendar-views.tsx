@@ -25,10 +25,11 @@ import {
   WEEKDAY_FULL,
 } from "@/app/calendar/helpers";
 import type { BadgeType, CalendarView } from "@/app/calendar/helpers";
+import { useNow } from "@/hooks/useNow";
 
-function DayEventCard({ job }: { job: CalendarJob }) {
+function DayEventCard({ job, nowMs }: { job: CalendarJob; nowMs: number }) {
   const isUrgent = job.job_type?.toLowerCase().includes("urgent") || job.job_type?.toLowerCase() === "instant";
-  const statusPill = getStatusPill(job);
+  const statusPill = getStatusPill(job, nowMs);
   const accentColor = isUrgent ? "border-l-orange-400" : "border-l-green-500";
 
   return (
@@ -141,7 +142,12 @@ export function OverviewPanel({ jobs, summary, view, currentDate }: {
 }
 
 export function CalendarDayView({ currentDate, jobs }: { currentDate: Date; jobs: CalendarJob[] }) {
-  const now = new Date();
+  const hasLiveCountdown = useMemo(
+    () => jobs.some((job) => job.planned_check_in_at || job.planned_check_out_at),
+    [jobs],
+  );
+  const nowMs = useNow(hasLiveCountdown);
+  const now = new Date(nowMs);
   const isToday = isSameDate(currentDate, now);
   const dayJobsBySlot = useMemo(() => {
     const selectedDateKey = toDateKey(currentDate);
@@ -185,7 +191,7 @@ export function CalendarDayView({ currentDate, jobs }: { currentDate: Date; jobs
 
               <div className="flex-1 py-2.5 px-3 flex flex-row flex-wrap gap-2.5 content-start">
                 {slotJobs.map(job => (
-                  <DayEventCard key={job.assignment_id} job={job} />
+                  <DayEventCard key={job.assignment_id} job={job} nowMs={nowMs} />
                 ))}
               </div>
             </div>

@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 
 interface CreateJobStepCardProps {
   title?: ReactNode;
+  /** Optional control rendered on the right of the step heading. */
+  titleAction?: ReactNode;
   children: ReactNode;
   footer: ReactNode;
   className?: string;
@@ -15,6 +17,7 @@ interface CreateJobStepCardProps {
 
 export function CreateJobStepCard({
   title,
+  titleAction,
   children,
   footer,
   className,
@@ -29,9 +32,12 @@ export function CreateJobStepCard({
     >
       <div className={cn("p-4 sm:p-6 lg:p-8", contentClassName)}>
         {title && (
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-6 sm:mb-8">
-            {title}
-          </h2>
+          <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
+            <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
+              {title}
+            </h2>
+            {titleAction}
+          </div>
         )}
         {children}
       </div>
