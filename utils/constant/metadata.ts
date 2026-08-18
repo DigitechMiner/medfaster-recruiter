@@ -482,6 +482,9 @@ export const DEFAULT_NEIGHBORHOOD_TYPES = [
   "Dementia / Memory Care",
   "Complex Dementia Care",
   "Adult Mental Health",
+  "Long-term Care",
+  "Palliative Care / Hospice Care",
+  "Transitional / Post-acute Rehab",
 ];
 
 export const CDSW_NEIGHBORHOOD_TYPES = [
