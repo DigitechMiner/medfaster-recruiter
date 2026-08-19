@@ -1,6 +1,8 @@
 "use client";
 
 import { useJobDescription } from "@/hooks/useJobData";
+import { useMetadataStore } from "@/stores/metadataStore";
+import { getMetadataLabel } from "@/utils/constant/metadata";
 import { ChildJobsSection } from "../shared/ChildJobsSection";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 
@@ -16,6 +18,7 @@ export function DescriptionTab({
   showChildJobs = false,
 }: DescriptionTabProps) {
   const { description, isLoading, error } = useJobDescription(jobId, enabled);
+  const specializationOptions = useMetadataStore((state) => state.specializations);
 
   if (isLoading) {
     return <LoadingRows count={4} />;
@@ -31,6 +34,12 @@ export function DescriptionTab({
   }
 
   const sections = [
+    {
+      title: "Specializations",
+      items: (description?.specializations ?? []).map(
+        (item) => getMetadataLabel(specializationOptions, item) || item,
+      ),
+    },
     { title: "Responsibilities", items: description?.responsibilities ?? [] },
     { title: "Requirements", items: description?.requirements ?? [] },
     {

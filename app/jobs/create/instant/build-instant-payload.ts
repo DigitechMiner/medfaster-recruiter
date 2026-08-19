@@ -145,6 +145,7 @@ export function buildInstantJobCreatePayload(
   return {
     ...rest,
     job_urgency: toCreateJobUrgency(rest.job_urgency),
+    specializations: source.specializations ?? [],
     shift_templates: [shiftTemplate],
   };
 }

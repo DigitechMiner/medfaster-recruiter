@@ -162,7 +162,10 @@ export function NormalBasicStep({
   };
 
   const employmentType: EmploymentType =
-    (formData.employment_type as EmploymentType) ?? "temporary";
+    formData.employment_type === "contractual" ||
+    (formData.employment_type as string) === "permanent"
+      ? "contractual"
+      : ((formData.employment_type as EmploymentType) ?? "temporary");
 
   const staffingType: StaffingType =
     (formData.staffing_type as StaffingType) ?? "standard";
@@ -222,7 +225,7 @@ export function NormalBasicStep({
             className="flex flex-wrap gap-4 pt-2"
           >
             {[
-              { label: "Permanent", value: "permanent" },
+              { label: "Contractual", value: "contractual" },
               { label: "Temporary", value: "temporary" },
             ].map((opt) => (
               <div key={opt.value} className="flex items-center space-x-2">

@@ -59,6 +59,7 @@ export interface InstantJobDetails {
   neighborhood_name: string | null;
   neighborhood_type: string | null;
   direct_number: string | null;
+  specializations?: (number | string)[];
   created_at: string;
   updated_at: string;
 }
@@ -121,6 +122,7 @@ export interface JobBackendResponse {
   working_conditions: string[];
   why_join: string[];
   employment_tenure?: string | null;
+  specializations?: (number | string)[];
   shift_templates?: JobListShiftTemplate[];
   shift_mode?: PreviewShiftMode | null;
   rotation_cycle_days?: number | null;
@@ -271,6 +273,7 @@ export interface JobDetailDescriptionData {
   experience?: string[];
   working_conditions?: string[];
   why_join?: string[];
+  specializations?: string[];
 }
 
 export interface JobDetailActivityEvent {
@@ -387,7 +390,6 @@ export interface RecruiterJobInfo {
   province?: string | null;
   job_type?: JobType | null;
   recruiter_pay_per_hour_cents?: number | null;
-  /** Normal jobs only — omitted for instant jobs. */
   specializations?: string[];
   /** Normal jobs only — omitted for instant jobs. */
   qualifications?: string[];
@@ -892,7 +894,7 @@ export interface NormalJobSchedulingPayload {
 /** Normal job preview/fee request (POST /recruiter/jobs/preview). */
 export type NormalJobFeePreviewPayload = NormalJobSchedulingPayload;
 
-export type EmploymentTenure = "TEMPORARY" | "PERMANENT";
+export type EmploymentTenure = "TEMPORARY" | "CONTRACTUAL";
 
 /** Normal job create request (POST /recruiter/jobs). */
 export interface NormalJobCreatePayload extends NormalJobSchedulingPayload {
@@ -1683,7 +1685,7 @@ export type InterviewStatus = InterviewSessionStatus;
 export type InterviewType = InterviewKind;
 // New enums
 
-export type EmploymentType = "temporary" | "permanent";
+export type EmploymentType = "temporary" | "contractual";
 
 export type TemporaryJobPeriod =
   | "3_months"

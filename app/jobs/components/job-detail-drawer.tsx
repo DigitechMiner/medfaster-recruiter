@@ -8,6 +8,7 @@ import { getRecruiterJobInfo } from "@/features/jobs";
 import type { JobInfoNeighborhood, JobInfoShiftTemplate, RecruiterJobInfo } from "@/features/jobs";
 import { resolveCanadianProvinceLabel, useMetadataStore } from "@/stores/metadataStore";
 import type { JobListItem } from "@/types";
+import { getMetadataLabel } from "@/utils/constant/metadata";
 import {
   formatBudget,
   formatDate,
@@ -123,6 +124,7 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
   const router = useRouter();
   const jobTypeOptions = useMetadataStore((state) => state.jobTypeOptions);
   const provinceOptions = useMetadataStore((state) => state.provinceOptions);
+  const specializationOptions = useMetadataStore((state) => state.specializations);
   const [isClosing, setIsClosing] = useState(false);
   const [jobInfo, setJobInfo] = useState<RecruiterJobInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
@@ -195,12 +197,16 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
   const applicationCount = jobInfo?.application_count ?? job.application_count ?? 0;
   const payRate = formatBudget(jobInfo?.recruiter_pay_per_hour_cents);
   const shiftTemplates = jobInfo?.shift_templates ?? [];
-  const specializations = jobInfo?.specializations ?? [];
+  const specializations = (jobInfo?.specializations ?? []).map(
+    (item) => getMetadataLabel(specializationOptions, item) || item,
+  );
   const qualifications = jobInfo?.qualifications ?? [];
   const neighborhood = jobInfo?.neighborhood;
   const provinceLabel = resolveCanadianProvinceLabel(provinceOptions, jobInfo?.province);
   const showRequirements =
-    isNormalJob && (infoLoading || specializations.length > 0 || qualifications.length > 0);
+    infoLoading ||
+    specializations.length > 0 ||
+    (isNormalJob && qualifications.length > 0);
   const showShifts = infoLoading || shiftTemplates.length > 0;
   const showNeighborhood =
     isInstantJob && (infoLoading || hasNeighborhoodData(neighborhood));
@@ -325,11 +331,13 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
                   loading={infoLoading}
                   value={formatChipList(specializations)}
                 />
-                <DetailField
-                  label="Qualifications"
-                  loading={infoLoading}
-                  value={formatChipList(qualifications)}
-                />
+                {isNormalJob && (
+                  <DetailField
+                    label="Qualifications"
+                    loading={infoLoading}
+                    value={formatChipList(qualifications)}
+                  />
+                )}
               </div>
             </section>
           )}

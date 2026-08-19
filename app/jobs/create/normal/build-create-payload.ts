@@ -13,14 +13,17 @@ import {
 
 const EMPLOYMENT_TENURE_BY_TYPE: Record<EmploymentType, EmploymentTenure> = {
   temporary: "TEMPORARY",
-  permanent: "PERMANENT",
+  contractual: "CONTRACTUAL",
 };
 
 function toEmploymentTenure(
-  employmentType?: EmploymentType,
+  employmentType?: EmploymentType | string,
 ): EmploymentTenure {
   if (!employmentType) return "TEMPORARY";
-  return EMPLOYMENT_TENURE_BY_TYPE[employmentType] ?? "TEMPORARY";
+  if (employmentType === "contractual" || employmentType === "permanent") {
+    return "CONTRACTUAL";
+  }
+  return EMPLOYMENT_TENURE_BY_TYPE[employmentType as EmploymentType] ?? "TEMPORARY";
 }
 
 function toCreateJobUrgency(urgency?: JobUrgency): JobUrgency {

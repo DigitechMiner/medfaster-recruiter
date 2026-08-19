@@ -35,6 +35,7 @@ export type JobDetailPayload = Omit<
   employment_tenure?: string | null;
   funding?: Partial<JobFundingDetails> & Record<string, unknown> | null;
   normalJob?: Partial<NormalJobDetails> & Record<string, unknown> | null;
+  instantJob?: Partial<InstantJobDetails> & Record<string, unknown> | null;
   shift_mode?: PreviewShiftMode | string | null;
   rotation_cycle_days?: number | null;
   cycle_start_day?: NormalJobDetails["cycle_start_day"];
@@ -176,12 +177,28 @@ function buildNormalJob(
   };
 }
 
+function toSpecializationList(
+  values?: (number | string)[] | null,
+): string[] {
+  if (!values?.length) return [];
+  return values.map((value) => String(value).trim()).filter(Boolean);
+}
+
 function buildInstantJob(
   job: JobDetailPayload,
   createdAt: string,
   jobUrgency: JobUrgency,
 ): InstantJobDetails | null {
-  if (job.instantJob) return job.instantJob;
+  const specializations = toSpecializationList(
+    job.instantJob?.specializations ?? job.specializations,
+  );
+
+  if (job.instantJob) {
+    return {
+      ...job.instantJob,
+      specializations,
+    };
+  }
 
   if (jobUrgency !== "INSTANT") return null;
 
@@ -191,6 +208,7 @@ function buildInstantJob(
     neighborhood_name: job.neighborhood_name ?? null,
     neighborhood_type: job.neighborhood_type ?? null,
     direct_number: job.direct_number ?? null,
+    specializations,
     created_at: createdAt,
     updated_at: job.updated_at ?? createdAt,
   };
@@ -367,6 +385,11 @@ export function mapJobDetail(job: JobDetailPayload): JobBackendResponse {
     working_conditions: job.working_conditions ?? [],
     why_join: job.why_join ?? [],
     employment_tenure: job.employment_tenure ?? null,
+    specializations: toSpecializationList(
+      (job.specializations?.length ? job.specializations : null) ??
+        job.instantJob?.specializations ??
+        job.normalJob?.specializations,
+    ),
     shift_templates: shiftTemplates,
     shift_mode: shiftMode,
     rotation_cycle_days: rotationCycleDays,

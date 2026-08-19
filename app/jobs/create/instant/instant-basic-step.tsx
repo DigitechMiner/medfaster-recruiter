@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarIcon, Clock } from "lucide-react";
+import { CalendarIcon, Clock, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useMetadataStore } from "@/stores/metadataStore";
 import type { InstantJobFormData, Province } from "@/types";
 import {
   CDSW_NEIGHBORHOOD_TYPES,
   DEFAULT_NEIGHBORHOOD_TYPES,
+  getMetadataLabel,
 } from "@/utils/constant/metadata";
 import { useCanadianCitySelectOptions } from "@/hooks/useCanadianCityOptions";
 import { DateRangePicker } from "../components/date-picker";
@@ -56,9 +58,20 @@ export function InstantBasicStep({
     jobTitlesForDepartment,
     loading,
     provinceOptions,
+    specializations,
+    specializationsForJobTitle,
   } = useMetadataStore();
   const cityOptions = useCanadianCitySelectOptions(formData.province);
   const departmentJobTitles = jobTitlesForDepartment(formData.department ?? "");
+  const availableSpecializations = useMemo(
+    () => specializationsForJobTitle(formData.job_title ?? ""),
+    [formData.job_title, specializationsForJobTitle],
+  );
+  const hasJobTitle = Boolean(formData.job_title);
+  const hasSpecializationOptions = availableSpecializations.length > 0;
+  const specializationEmptyMessage = "No specialization for this role";
+  const getSpecializationLabel = (value: string) =>
+    getMetadataLabel(specializations, value);
 
   const today = new Date();
 
@@ -91,7 +104,37 @@ export function InstantBasicStep({
   };
 
   const handleDepartmentChange = (value: string) => {
-    updateFormData({ department: value, job_title: "" });
+    updateFormData({ department: value, job_title: "", specializations: [] });
+  };
+
+  const handleJobTitleChange = (value: string) => {
+    const nextSpecializations = specializationsForJobTitle(value);
+    const allowedValues = new Set(nextSpecializations.map((spec) => spec.value));
+    const keptSpecializations = (formData.specializations ?? []).filter((spec) =>
+      allowedValues.has(spec),
+    );
+
+    updateFormData({
+      job_title: value,
+      specializations: keptSpecializations,
+    });
+  };
+
+  const handleSpecializationSelect = (value: string) => {
+    const current = formData.specializations ?? [];
+    if (value && !current.includes(value)) {
+      updateFormData({
+        specializations: [...current, value],
+      });
+    }
+  };
+
+  const removeSpecialization = (tagToRemove: string) => {
+    updateFormData({
+      specializations: (formData.specializations ?? []).filter(
+        (tag) => tag !== tagToRemove,
+      ),
+    });
   };
 
   const allTitles = departmentJobTitles.length
@@ -189,7 +232,7 @@ export function InstantBasicStep({
           id="job-title"
           label="Job Role"
           value={formData.job_title}
-          onValueChange={(value) => updateFormData({ job_title: value })}
+          onValueChange={handleJobTitleChange}
           options={departmentJobTitles.map(({ uuid, label, value }, index) => ({
             key: `${uuid}-${value}-${index}`,
             label,
@@ -201,6 +244,72 @@ export function InstantBasicStep({
           required
           error={fieldErrors.job_title}
         />
+
+        <JobFormSelect
+          id="specialization"
+          label="Required Specialization"
+          value=""
+          onValueChange={handleSpecializationSelect}
+          options={availableSpecializations.map(({ uuid, label, value }, index) => {
+            const alreadyAdded = (formData.specializations ?? []).includes(value);
+            return {
+              key: `${uuid}-${value}-${index}`,
+              label,
+              value,
+              disabled: alreadyAdded,
+              className: alreadyAdded ? "cursor-not-allowed opacity-40" : "",
+              suffix: alreadyAdded ? (
+                <span className="ml-2 text-xs text-gray-400">Added</span>
+              ) : undefined,
+            };
+          })}
+          contentClassName="max-h-60"
+          triggerClassName="h-11 w-full"
+          disabled={!hasJobTitle || loading}
+          emptyOptionsMessage={specializationEmptyMessage}
+          triggerContent={
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="text-sm">
+                {!hasJobTitle
+                  ? "Select a job title first"
+                  : !hasSpecializationOptions
+                    ? specializationEmptyMessage
+                    : "Select specialization"}
+              </span>
+            </div>
+          }
+          error={fieldErrors.specializations}
+          fieldClassName="md:col-span-2 space-y-3"
+        >
+          <div className="flex flex-wrap gap-2">
+            {formData.specializations && formData.specializations.length > 0 ? (
+              formData.specializations.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="rounded-md border px-3 py-1.5 text-sm"
+                >
+                  {getSpecializationLabel(tag)}
+                  <button
+                    type="button"
+                    onClick={() => removeSpecialization(tag)}
+                    className="ml-2 hover:text-orange-900"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))
+            ) : (
+              <p className="text-xs text-gray-500">
+                {!hasJobTitle
+                  ? "Select a job title to see available specializations."
+                  : !hasSpecializationOptions
+                    ? specializationEmptyMessage
+                    : "No specializations added yet. Select from the dropdown."}
+              </p>
+            )}
+          </div>
+        </JobFormSelect>
 
         <JobFormPickerButton
           id="shift-start-date"

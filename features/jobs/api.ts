@@ -185,7 +185,13 @@ export async function getRecruiterJobDescription(
   id: string,
 ): Promise<JobDetailDescriptionData> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_DESCRIPTION(id));
-  return extractData<JobDetailDescriptionData>(res.data);
+  const data = extractData<JobDetailDescriptionData>(res.data);
+  return {
+    ...data,
+    specializations: Array.isArray(data.specializations)
+      ? data.specializations.map((item) => String(item).trim()).filter(Boolean)
+      : [],
+  };
 }
 
 function normalizeJobActivity(data: unknown): JobDetailActivityData {
@@ -368,7 +374,9 @@ export async function getRecruiterJobInfo(id: string): Promise<RecruiterJobInfo>
   const data = extractData<RecruiterJobInfo>(res.data);
   return {
     ...data,
-    specializations: data.specializations ?? [],
+    specializations: Array.isArray(data.specializations)
+      ? data.specializations.map((item) => String(item))
+      : [],
     qualifications: data.qualifications ?? [],
     shift_templates: data.shift_templates ?? [],
   };

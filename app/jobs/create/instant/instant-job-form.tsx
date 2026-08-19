@@ -132,6 +132,13 @@ function buildInitialInstantForm(
     why_join: normalizeStringArray(
       fromSnapshot(snapshot, "why_join", DEFAULT_INSTANT_FORM.why_join),
     ),
+    specializations: normalizeStringArray(
+      fromSnapshot(
+        snapshot,
+        "specializations",
+        DEFAULT_INSTANT_FORM.specializations,
+      ),
+    ),
     start_date: dateFromSnapshot(snapshot, "start_date"),
     end_date: dateFromSnapshot(snapshot, "end_date"),
   };
@@ -209,7 +216,7 @@ export function InstantJobForm({
       direct_number: formData.direct_number || undefined,
       years_of_experience: undefined,
       qualifications: undefined,
-      specializations: undefined,
+      specializations: normalizeStringArray(formData.specializations),
       ai_interview: false,
       questions: undefined,
       description: formData.description || undefined,
