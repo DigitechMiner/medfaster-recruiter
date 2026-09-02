@@ -200,6 +200,7 @@ export interface JobDetailSummaryData {
   id: string;
   title: string;
   department: string;
+  specializations?: string[];
   status: JobStatus;
   job_urgency: JobUrgency;
   job_type: JobType;
@@ -1127,6 +1128,17 @@ export interface GenerateQuestionsResponse {
   success: boolean;
   message: string;
   data: { questions: string[] };
+}
+
+/** Stored AI interview questions for a normal job (GET /recruiter/jobs/:id/questions). */
+export interface JobQuestionsData {
+  questions: string[];
+}
+
+export interface JobQuestionsResponse {
+  success: boolean;
+  message: string;
+  data: JobQuestionsData;
 }
 
 export type Province =

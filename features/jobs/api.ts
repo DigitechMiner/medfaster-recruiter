@@ -163,7 +163,13 @@ export async function getRecruiterJobSummary(
   id: string,
 ): Promise<JobDetailSummaryData> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SUMMARY(id));
-  return extractData<JobDetailSummaryData>(res.data);
+  const data = extractData<JobDetailSummaryData>(res.data);
+  return {
+    ...data,
+    specializations: Array.isArray(data.specializations)
+      ? data.specializations.map((item) => String(item).trim()).filter(Boolean)
+      : [],
+  };
 }
 
 export async function getRecruiterJobChildren(
@@ -192,6 +198,44 @@ export async function getRecruiterJobDescription(
       ? data.specializations.map((item) => String(item).trim()).filter(Boolean)
       : [],
   };
+}
+
+function flattenQuestionItems(items: unknown[]): string[] {
+  return items.flatMap((item) => {
+    if (typeof item === "string" && item.trim()) return [item.trim()];
+    if (!isRecord(item)) return [];
+    const text = item.text ?? item.question ?? item.title;
+    if (typeof text === "string" && text.trim()) return [text.trim()];
+    if (Array.isArray(item.questions)) return flattenQuestionItems(item.questions);
+    return [];
+  });
+}
+
+function flattenGroupedQuestions(value: unknown): string[] {
+  if (!isRecord(value)) return [];
+  return Object.values(value).flatMap((entry) => {
+    if (typeof entry === "string" && entry.trim()) return [entry.trim()];
+    if (Array.isArray(entry)) return flattenQuestionItems(entry);
+    if (isRecord(entry) && Array.isArray(entry.questions)) {
+      return flattenQuestionItems(entry.questions);
+    }
+    return [];
+  });
+}
+
+function normalizeJobQuestions(data: unknown): string[] {
+  if (Array.isArray(data)) return flattenQuestionItems(data);
+  if (!isRecord(data)) return [];
+
+  const questions = data.questions;
+  if (Array.isArray(questions)) return flattenQuestionItems(questions);
+  if (isRecord(questions)) return flattenGroupedQuestions(questions);
+  return [];
+}
+
+export async function getRecruiterJobQuestions(id: string): Promise<string[]> {
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_QUESTIONS(id));
+  return normalizeJobQuestions(extractData<unknown>(res.data));
 }
 
 function normalizeJobActivity(data: unknown): JobDetailActivityData {

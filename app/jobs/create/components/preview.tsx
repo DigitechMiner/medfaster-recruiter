@@ -56,6 +56,7 @@ import {
   getTeamForTemplateDay,
 } from "../normal/scheduling-utils";
 import { cn } from "@/lib/utils";
+import { isIncompleteProfileError } from "@/features/profile/completion";
 
 interface JobReviewProps {
   mode: "normal" | "urgent";
@@ -293,6 +294,10 @@ function isInsufficientBalanceError(msg: string): boolean {
 
 function redirectToTopup(router: ReturnType<typeof useRouter>) {
   router.push("/wallet/topup");
+}
+
+function redirectToCompleteProfile(router: ReturnType<typeof useRouter>) {
+  router.push("/profile");
 }
 
 function formatCurrency(cents: number): string {
@@ -671,18 +676,39 @@ export function JobReview({
           );
           return;
         }
+        if (isIncompleteProfileError(msg)) {
+          toast.error(
+            "Complete your profile to 100% before creating a job. Redirecting...",
+            {
+              autoClose: 2000,
+              onClose: () => redirectToCompleteProfile(router),
+            },
+          );
+          return;
+        }
         setError(msg || "Failed to create job. Please try again.");
       }
     } catch (err) {
       const axiosMsg =
         (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ?? "";
+          ?.data?.message ??
+        (err instanceof Error ? err.message : "");
       if (isInsufficientBalanceError(axiosMsg)) {
         toast.error(
           "Insufficient wallet balance. Redirecting to top-up...",
           {
             autoClose: 2000,
             onClose: () => redirectToTopup(router),
+          },
+        );
+        return;
+      }
+      if (isIncompleteProfileError(axiosMsg)) {
+        toast.error(
+          "Complete your profile to 100% before creating a job. Redirecting...",
+          {
+            autoClose: 2000,
+            onClose: () => redirectToCompleteProfile(router),
           },
         );
         return;

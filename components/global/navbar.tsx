@@ -14,6 +14,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import { NotificationPanel } from "@/components/global/NotificationPanel";
 import { WalletBalance } from "@/components/global/wallet-balance";
+import { useJobCreateGate } from "@/hooks/useJobCreateGate";
 
 const NO_SIDEBAR_ROUTES = ["/messages"];
 const desktopProfileItemClass =
@@ -36,6 +37,7 @@ export function Navbar() {
   const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
   const unreadCount = useAuthStore((s) => s.unreadCount);
   const ensureNotificationsLoaded = useAuthStore((s) => s.ensureNotificationsLoaded);
+  const { goToCreate, completeProfileDialog } = useJobCreateGate();
   const showSidebar = !NO_SIDEBAR_ROUTES.some((route) => pathname.startsWith(route));
 
   useEffect(() => {
@@ -293,7 +295,7 @@ export function Navbar() {
         {/* Right-side actions */}
         <div className="ml-auto flex items-center gap-1 md:gap-3">
           <button
-            onClick={() => router.push("/jobs/create/instant")}
+            onClick={() => goToCreate("/jobs/create/instant")}
             className="hidden md:flex items-center gap-1.5 border border-[#F4781B] text-[#F4781B]
               hover:bg-orange-50 rounded-lg px-4 py-1.5 text-sm font-semibold
               transition-colors whitespace-nowrap h-9"
@@ -303,7 +305,7 @@ export function Navbar() {
           </button>
 
           <button
-            onClick={() => router.push("/jobs/create/normal")}
+            onClick={() => goToCreate("/jobs/create/normal")}
             className="hidden md:flex items-center gap-1.5 bg-[#F4781B] hover:bg-[#e06a10] text-white
               rounded-lg px-3 sm:px-4 py-1.5 text-sm font-semibold transition-colors whitespace-nowrap h-9 shadow-sm"
           >
@@ -435,6 +437,7 @@ export function Navbar() {
           </div>
         </>
       )}
+      {completeProfileDialog}
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useJobsStore } from "@/stores/jobs-store";
 import type {
@@ -31,6 +31,7 @@ import {
   getRecruiterJobActivity,
   getRecruiterJobChildren,
   getRecruiterJobDescription,
+  getRecruiterJobQuestions,
   getRecruiterJobPayments,
   getRecruiterJobSchedule,
   getRecruiterJobShiftDetails,
@@ -251,6 +252,46 @@ export function useJobDescription(jobId?: string | null, enabled = true) {
   }, [jobId, enabled]);
 
   return { description, isLoading, error };
+}
+
+// ─── useJobQuestions (AI interview questions dialog) ─────────────────────────
+export function useJobQuestions(jobId?: string | null, enabled = true) {
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobQuestions(jobId)
+      .then((data) => {
+        if (!cancelled) setQuestions(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load interview questions",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, enabled]);
+
+  return { questions, isLoading, error };
 }
 
 // ─── useJobActivity (activity timeline tab) ──────────────────────────────────
@@ -534,7 +575,7 @@ export function useJobApplications(params?: {
     };
   }, [jobId, status, page, limit, refreshKey]);
 
-  const refetch = () => setRefreshKey((key) => key + 1);
+  const refetch = useCallback(() => setRefreshKey((key) => key + 1), []);
 
   return { applications, isLoading, error, refetch };
 }

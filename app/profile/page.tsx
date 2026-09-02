@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-toastify";
 import { Building2, FileText, Shield, User } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { complianceFields, FormPageLayout } from "@/components/forms";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { IncompleteProfileBanner } from "@/components/profile/incomplete-profile-banner";
 
 import { ProfileContactTab } from "./components/contact-tab";
 import { ProfileDocumentsTab } from "./components/documents-tab";
@@ -34,11 +36,41 @@ import {
 } from "@/features/profile";
 
 import { convertProvinceToFrontend } from "@/utils/constant/metadata";
+import {
+  getJobCreateBlock,
+  type ProfileTab,
+} from "@/features/profile/completion";
+
+const PROFILE_TABS: ProfileTab[] = [
+  "contact",
+  "organization",
+  "documents",
+  "security",
+];
+
+function isProfileTab(value: string | null): value is ProfileTab {
+  return PROFILE_TABS.includes(value as ProfileTab);
+}
 
 const tabTriggerClass =
   "gap-1.5 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-md border border-transparent transition-colors data-[state=active]:border-gray-200 data-[state=active]:bg-white data-[state=active]:text-[#f47b20] data-[state=active]:shadow-sm hover:text-gray-900";
 
 export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <FormPageLayout innerClassName="animate-pulse">
+          <div className="h-8 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-full max-w-md bg-gray-100 rounded" />
+        </FormPageLayout>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+function ProfilePageContent() {
   const [orgPhotoUrl, setOrgPhotoUrl] = useState<string | null>(null);
   const [documents, setDocuments] = useState<RecruiterDocument[]>([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -56,6 +88,20 @@ export default function ProfilePage() {
   const metadataLoaded = useMetadataStore((state) => state.loaded);
   const isPageLoading = !metadataLoaded || !recruiterProfile;
   const fieldClassName = "h-10 text-sm";
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: ProfileTab = isProfileTab(tabParam) ? tabParam : "contact";
+  const jobCreateBlock = useMemo(
+    () => getJobCreateBlock(recruiterProfile, recruiterDocuments),
+    [recruiterProfile, recruiterDocuments],
+  );
+
+  const handleTabChange = (tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`/profile?${params.toString()}`, { scroll: false });
+  };
 
   const contactMethods = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -313,7 +359,15 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <Tabs defaultValue="contact" className="flex w-full flex-col gap-4">
+      {jobCreateBlock && (
+        <IncompleteProfileBanner block={jobCreateBlock} />
+      )}
+
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="flex w-full flex-col gap-4"
+      >
         <div className="-mx-1 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList
             className={cn(

@@ -7,6 +7,8 @@ import type { AIQuestion } from "./form/question-form";
 import {
   type JobCreateDraftMode,
   type JobCreateDraftSession,
+  enableJobCreateDraftPersist,
+  isJobCreateDraftPersistDiscarded,
   loadJobCreateDraft,
   saveJobCreateDraft,
 } from "./job-create-draft-storage";
@@ -35,6 +37,7 @@ export function useJobCreateDraft({
   onRestoreRef.current = onRestore;
 
   useLayoutEffect(() => {
+    enableJobCreateDraftPersist();
     const saved = loadJobCreateDraft(mode);
 
     if (saved) {
@@ -48,7 +51,7 @@ export function useJobCreateDraft({
   }, [mode, setFormSnapshot]);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated || isJobCreateDraftPersistDiscarded()) return;
 
     saveJobCreateDraft(mode, {
       formSnapshot,
@@ -71,6 +74,8 @@ export function useJobCreateDraft({
     if (!isHydrated) return;
 
     return () => {
+      if (isJobCreateDraftPersistDiscarded()) return;
+
       saveJobCreateDraft(mode, {
         formSnapshot: useJobsStore.getState().formSnapshot,
         step,

@@ -1,11 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, Check, FileText, Info, Lock, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight, Check, FileText, Info, Lock, LogOut, Mail } from "lucide-react";
 
 import { steps } from "@/components/forms";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/authStore";
 
 const stepConfig = [
   { label: steps[0], description: "Enter Organization Details", icon: Info },
@@ -83,6 +85,42 @@ export function RegistrationLayout({ sidebar, children }: RegistrationLayoutProp
   );
 }
 
+function SignOutButton({
+  className,
+  fullWidth,
+}: {
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    const { useWalletStore } = await import("@/stores/walletStore");
+    useWalletStore.getState().clearWallet();
+    await logout();
+    router.push("/auth");
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleLogout()}
+      disabled={loggingOut}
+      className={`inline-flex items-center gap-2 rounded-lg border border-[#D9D9E0] bg-white text-gray-700 shadow-sm transition-colors hover:border-[#F4781B] hover:bg-[#FFF3EC] hover:text-[#F4781B] disabled:cursor-not-allowed disabled:opacity-50 ${
+        fullWidth ? "w-full justify-start px-4 py-2.5" : "px-3 py-2"
+      } ${className ?? ""}`}
+    >
+      <LogOut className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+      <span className="text-sm font-medium">
+        {loggingOut ? "Signing out..." : "Sign out"}
+      </span>
+    </button>
+  );
+}
+
 export function Sidebar({ step, completedSteps = new Set(), onStepChange }: SidebarProps) {
   const progressPercentage = ((step + 1) / stepConfig.length) * 100;
 
@@ -90,14 +128,17 @@ export function Sidebar({ step, completedSteps = new Set(), onStepChange }: Side
     <aside className="w-full lg:w-80 xl:w-96 flex flex-col justify-between py-4 sm:py-6 lg:py-8 border-b-0 lg:border-r border-gray-200 lg:min-h-screen bg-[#F8FAFC]">
       <div>
         <div className="px-4 sm:px-6 mb-6 sm:mb-8 lg:mb-12">
-          <Image
-            src="/img/brand/new_logo.svg"
-            alt="KeRaeva"
-            width={220}
-            height={50}
-            className="w-full h-auto max-w-[180px] object-contain mx-auto lg:mx-0"
-            priority
-          />
+          <div className="flex items-center justify-between gap-3">
+            <Image
+              src="/img/brand/new_logo.svg"
+              alt="KeRaeva"
+              width={220}
+              height={50}
+              className="w-full h-auto max-w-[180px] object-contain"
+              priority
+            />
+            <SignOutButton className="lg:hidden shrink-0" />
+          </div>
         </div>
 
         <div className="lg:hidden px-4 sm:px-6">
@@ -221,11 +262,14 @@ export function Sidebar({ step, completedSteps = new Set(), onStepChange }: Side
         </nav>
       </div>
 
-      <div className="hidden lg:flex px-4 sm:px-6 mt-4 sm:mt-6 lg:mt-8 items-center justify-center lg:justify-start gap-2 text-gray-400 text-xs sm:text-sm">
-        <Mail className="w-4 h-4" />
-        <a href="mailto:help@KeRaeva.com" className="truncate">
-          help@KeRaeva.com
-        </a>
+      <div className="hidden lg:flex flex-col gap-4 px-4 pt-6 mt-4 border-t border-gray-200">
+        <SignOutButton fullWidth />
+        <div className="flex items-center justify-start gap-2 text-gray-400 text-xs sm:text-sm px-1">
+          <Mail className="w-4 h-4" />
+          <a href="mailto:help@KeRaeva.com" className="truncate">
+            help@KeRaeva.com
+          </a>
+        </div>
       </div>
     </aside>
   );

@@ -26,6 +26,7 @@ import {
 } from "../form/utils";
 import { DescriptionForm } from "../form/description-form";
 import { InstantBasicStep } from "./instant-basic-step";
+import { isIncompleteProfileError } from "@/features/profile/completion";
 
 interface InstantJobFormProps {
   urgencyMode: "instant";
@@ -156,6 +157,7 @@ export function InstantJobForm({
 }: InstantJobFormProps) {
   const router = useRouter();
   const createJob = useJobsStore((state) => state.createJob);
+  const clearDraft = useJobsStore((state) => state.clearDraft);
   const setFormSnapshot = useJobsStore((s) => s.setFormSnapshot);
   const formSnapshot = useJobsStore((s) => s.formSnapshot);
 
@@ -287,13 +289,32 @@ export function InstantJobForm({
 
       const response = await createJob(instantPayload);
       if (response.success) {
-        sessionStorage.setItem("createdJobId", response.data.id);
+        clearDraft();
         setShowSuccessModal(true);
+      } else if (isIncompleteProfileError(response.message || "")) {
+        toast.error(
+          "Complete your profile to 100% before creating a job. Redirecting...",
+          {
+            autoClose: 2000,
+            onClose: () => router.push("/profile"),
+          },
+        );
       } else {
         toast.error(response.message || "Failed to create instant replacement");
       }
     } catch (err) {
-      toast.error((err as Error).message || "An error occurred");
+      const message = (err as Error).message || "An error occurred";
+      if (isIncompleteProfileError(message)) {
+        toast.error(
+          "Complete your profile to 100% before creating a job. Redirecting...",
+          {
+            autoClose: 2000,
+            onClose: () => router.push("/profile"),
+          },
+        );
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsSubmitting(false);
     }

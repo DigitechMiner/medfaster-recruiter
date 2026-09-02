@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { clearJobCreateDraft } from '@/app/jobs/create/job-create-draft-storage';
+import { discardJobCreateDraft } from '@/app/jobs/create/job-create-draft-storage';
 import {
   getRecruiterJobs,
   getRecruiterJob,
@@ -127,8 +127,10 @@ export const useJobsStore = create<JobsStore>()(
         setFormSnapshot: (snapshot) => set({ formSnapshot: snapshot }),
 
         // Wipe draft, snapshot, and session storage after publish or explicit exit.
+        // discardJobCreateDraft also blocks the create-job hook from writing leftover
+        // step/payload state back into sessionStorage on the way out.
         clearDraft: () => {
-          clearJobCreateDraft();
+          discardJobCreateDraft();
           set({ draftPayload: null, formSnapshot: null });
         },
 

@@ -101,14 +101,22 @@ export function ProfileOrganizationTab({
           <h2 className="text-xl font-bold text-gray-900 mb-8">Organization Overview</h2>
 
           <div className="flex flex-col items-center mb-10">
-            <label className="text-sm font-medium text-gray-700 mb-3">Organization Logo</label>
-            <div className="border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center w-full max-w-sm">
+            <label className="text-sm font-medium text-gray-700 mb-3">
+              Organization Logo <span className="text-[#F4781B]">*</span>
+            </label>
+            <div
+              className={`border border-dashed rounded-lg p-6 flex flex-col items-center w-full max-w-sm ${
+                orgPhotoUrl
+                  ? "border-gray-300"
+                  : "border-[#F4781B] bg-[#FFF7F0]"
+              }`}
+            >
               <div className="relative w-48 h-20 mb-4 flex items-center justify-center">
                 {orgPhotoUrl ? (
                   <Image src={orgPhotoUrl} alt="Organization Logo" fill className="object-contain" />
                 ) : (
-                  <div className="bg-gray-100 rounded w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                    No logo uploaded
+                  <div className="bg-white rounded w-full h-full flex items-center justify-center text-gray-500 text-sm text-center px-3">
+                    Required to reach 100% and post jobs
                   </div>
                 )}
               </div>
@@ -126,7 +134,11 @@ export function ProfileOrganizationTab({
                 className="flex items-center gap-1 text-sm text-[#f47b20] hover:underline disabled:opacity-50"
               >
                 <Pencil className="w-3 h-3" />
-                {isUploadingLogo ? "Uploading..." : "Update Organization Logo"}
+                {isUploadingLogo
+                  ? "Uploading..."
+                  : orgPhotoUrl
+                    ? "Update Organization Logo"
+                    : "Upload Organization Logo"}
               </button>
             </div>
           </div>

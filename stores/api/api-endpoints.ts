@@ -33,6 +33,7 @@ export const ENDPOINTS = {
   JOBS_DETAIL_SUMMARY: (id: string) => `/recruiter/jobs/${id}/summary`,
   JOBS_DETAIL_CHILDREN: (id: string) => `/recruiter/jobs/${id}/children`,
   JOBS_DETAIL_DESCRIPTION: (id: string) => `/recruiter/jobs/${id}/description`,
+  JOBS_DETAIL_QUESTIONS: (id: string) => `/recruiter/jobs/${id}/questions`,
   JOBS_DETAIL_ACTIVITY: (id: string) => `/recruiter/jobs/${id}/activity`,
   JOBS_DETAIL_PAYMENTS: (id: string) => `/recruiter/jobs/${id}/payments`,
   JOBS_DETAIL_SCHEDULE: (id: string) => `/recruiter/jobs/${id}/schedule`,

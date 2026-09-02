@@ -22,8 +22,22 @@ const STORAGE_KEYS: Record<JobCreateDraftMode, string> = {
   instant: "medfaster:job-create-draft:instant",
 };
 
+const CREATED_JOB_ID_KEY = "createdJobId";
+
+// After publish or explicit exit, skip re-saving leftover React state
+// (step / pendingPayload) back into sessionStorage.
+let persistDiscarded = false;
+
 function isBrowser(): boolean {
   return typeof window !== "undefined";
+}
+
+export function enableJobCreateDraftPersist(): void {
+  persistDiscarded = false;
+}
+
+export function isJobCreateDraftPersistDiscarded(): boolean {
+  return persistDiscarded;
 }
 
 export function loadJobCreateDraft(
@@ -65,7 +79,7 @@ export function saveJobCreateDraft(
   mode: JobCreateDraftMode,
   draft: Omit<JobCreateDraftSession, "savedAt">,
 ): void {
-  if (!isBrowser()) return;
+  if (!isBrowser() || persistDiscarded) return;
 
   if (!hasMeaningfulDraftContent(draft)) {
     clearJobCreateDraft(mode);
@@ -88,10 +102,17 @@ export function clearJobCreateDraft(mode?: JobCreateDraftMode): void {
 
   if (mode) {
     sessionStorage.removeItem(STORAGE_KEYS[mode]);
-    return;
+  } else {
+    (Object.keys(STORAGE_KEYS) as JobCreateDraftMode[]).forEach((key) => {
+      sessionStorage.removeItem(STORAGE_KEYS[key]);
+    });
   }
 
-  (Object.keys(STORAGE_KEYS) as JobCreateDraftMode[]).forEach((key) => {
-    sessionStorage.removeItem(STORAGE_KEYS[key]);
-  });
+  sessionStorage.removeItem(CREATED_JOB_ID_KEY);
+}
+
+/** Wipe drafts and block the create-job hook from writing them back. */
+export function discardJobCreateDraft(mode?: JobCreateDraftMode): void {
+  persistDiscarded = true;
+  clearJobCreateDraft(mode);
 }

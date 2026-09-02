@@ -19,6 +19,14 @@ type ProfileDocumentsTabProps = {
   onViewDocument: (doc: RecruiterDocument) => void;
 };
 
+function formatDocumentStatus(status: string): string {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "pending") return "Under review";
+  if (normalized === "verified") return "Verified";
+  if (normalized === "rejected") return "Rejected";
+  return status.replace(/_/g, " ");
+}
+
 export function ProfileDocumentsTab({
   documents,
   docType,
@@ -62,18 +70,20 @@ export function ProfileDocumentsTab({
                   <Badge
                     variant="outline"
                     className={cn(
-                      "shrink-0 self-start border-transparent capitalize [&>svg]:size-3.5",
-                      doc.status === "verified"
+                      "shrink-0 self-start border-transparent [&>svg]:size-3.5",
+                      doc.status.toLowerCase() === "verified"
                         ? "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/15"
-                        : "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-600/20"
+                        : doc.status.toLowerCase() === "rejected"
+                          ? "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/15"
+                          : "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-600/20"
                     )}
                   >
-                    {doc.status === "verified" ? (
+                    {doc.status.toLowerCase() === "verified" ? (
                       <CheckCircle2 aria-hidden />
                     ) : (
                       <AlertCircle aria-hidden />
                     )}
-                    {doc.status.replace(/_/g, " ")}
+                    {formatDocumentStatus(doc.status)}
                   </Badge>
                 </div>
               </div>

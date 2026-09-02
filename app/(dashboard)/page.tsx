@@ -8,12 +8,19 @@ import { TodaysTopIssues } from "./components/TodaysTopIssues";
 import { TodaysOperationsPanel } from "./components/TodaysOperationsPanel";
 import { JobsShiftsOverview } from "./components/JobsShiftsOverview";
 import { QuickActions } from "./components/QuickActions";
+import { IncompleteProfileBanner } from "@/components/profile/incomplete-profile-banner";
+import { getJobCreateBlock } from "@/features/profile/completion";
 import type { DashboardShiftRange } from "@/features/dashboard";
 
 const DashboardPage: React.FC = () => {
-  const { recruiterProfile } = useAuthStore();
+  const recruiterProfile = useAuthStore((s) => s.recruiterProfile);
+  const recruiterDocuments = useAuthStore((s) => s.recruiterDocuments);
   const { jobs, shifts, isLoading } = useDashboardOverview();
   const [range, setRange] = useState<DashboardShiftRange>("today");
+  const jobCreateBlock = getJobCreateBlock(
+    recruiterProfile,
+    recruiterDocuments,
+  );
 
   const firstName =
     recruiterProfile?.contact_person_name?.split(" ")[0] ??
@@ -52,6 +59,10 @@ const DashboardPage: React.FC = () => {
             <option value="month">This Month</option>
           </select>
         </div>
+
+        {jobCreateBlock && (
+          <IncompleteProfileBanner block={jobCreateBlock} />
+        )}
 
         {/* Top Metric Cards Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

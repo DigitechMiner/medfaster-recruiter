@@ -2,10 +2,10 @@
 
 import { Suspense, useState } from "react";
 import {
-  ArrowRight,
   CalendarDays,
   MapPin,
   Mic,
+  Stethoscope,
   UserCheck,
   Users,
   Wallet,
@@ -20,6 +20,7 @@ import {
 import { ScrollFadeContainer } from "@/components/ui/scroll-fade-container";
 import type { JobDetailSummaryData } from "@/types";
 import { DescriptionTab } from "../details/DescriptionTab";
+import { InterviewQuestionsDialog } from "./InterviewQuestionsDialog";
 import { JobWorkflow } from "./JobWorkflow";
 import { ScheduleSection } from "../schedule/ScheduleSection";
 import {
@@ -102,8 +103,11 @@ function KpiCard({
 
 export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [questionsOpen, setQuestionsOpen] = useState(false);
   const isInstant = summary.job_urgency === "INSTANT";
+  const showInterviewQuestions = !isInstant && summary.ai_interview === true;
   const isRotational = summary.shift_mode?.toUpperCase() === "ROTATIONAL";
+  const specializations = summary.specializations ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -141,6 +145,11 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
                     {summary.department}
                   </MetaPill>
                 )}
+                {specializations.map((specialization) => (
+                  <MetaPill key={specialization} icon={<Stethoscope size={12} />}>
+                    {specialization}
+                  </MetaPill>
+                ))}
                 {summary.location && (
                   <MetaPill icon={<MapPin size={12} />}>
                     {summary.location}, Canada
@@ -159,7 +168,17 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center lg:pt-0.5">
+            <div className="flex shrink-0 flex-wrap items-center gap-2 lg:pt-0.5">
+              {showInterviewQuestions && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setQuestionsOpen(true)}
+                  className="h-9 gap-1.5 rounded-lg border border-[#F4781B] bg-white px-4 text-sm font-semibold text-[#F4781B] hover:bg-orange-50"
+                >
+                  Interview Questions
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="ghost"
@@ -220,6 +239,14 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
           <ScheduleSection summary={summary} jobId={jobId} embedded />
         </Suspense>
       </div>
+
+      {showInterviewQuestions && (
+        <InterviewQuestionsDialog
+          jobId={jobId}
+          open={questionsOpen}
+          onOpenChange={setQuestionsOpen}
+        />
+      )}
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="top-[10vh] flex max-h-[82vh] w-[calc(100%-2rem)] max-w-5xl translate-y-0 flex-col gap-4 overflow-hidden p-6 pb-0 sm:max-w-5xl sm:rounded-2xl">

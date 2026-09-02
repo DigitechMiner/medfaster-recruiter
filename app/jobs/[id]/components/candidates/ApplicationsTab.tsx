@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { LayoutGrid, List, MoreVertical } from "lucide-react";
+import { LayoutGrid, List, MoreVertical, RefreshCw } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { useJobApplications } from "@/hooks/useJobData";
@@ -28,6 +28,7 @@ import {
 } from "./application-status-transitions";
 
 const APPLICATION_LIMIT = 10;
+const REFRESH_COOLDOWN_MS = 1000;
 
 const TABLE_COLUMN_CLASS_NAMES = [
   "min-w-[200px] w-[26%] !text-left !text-xs !font-medium !text-gray-500",
@@ -475,6 +476,9 @@ export function ApplicationsTab({
   const [updatingApplicationId, setUpdatingApplicationId] = useState<string | null>(
     null,
   );
+  const [isRefreshLocked, setIsRefreshLocked] = useState(false);
+  const isRefreshLockedRef = useRef(false);
+  const refreshCooldownTimeoutRef = useRef<number | null>(null);
   const {
     applications,
     isLoading,
@@ -518,6 +522,26 @@ export function ApplicationsTab({
     setUpdatingApplicationId(application.id);
   };
 
+  useEffect(() => {
+    return () => {
+      if (refreshCooldownTimeoutRef.current != null) {
+        window.clearTimeout(refreshCooldownTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    if (isRefreshLockedRef.current || isLoading) return;
+    isRefreshLockedRef.current = true;
+    setIsRefreshLocked(true);
+    refetch();
+    refreshCooldownTimeoutRef.current = window.setTimeout(() => {
+      isRefreshLockedRef.current = false;
+      setIsRefreshLocked(false);
+      refreshCooldownTimeoutRef.current = null;
+    }, REFRESH_COOLDOWN_MS);
+  }, [isLoading, refetch]);
+
   const handleActionSuccess = () => {
     setUpdatingApplicationId(null);
     refetch();
@@ -543,6 +567,19 @@ export function ApplicationsTab({
           <p className="text-xs text-gray-400">Filter candidates by application status.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshLocked || isLoading}
+            aria-label="Refresh applications"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-[#F4781B] hover:text-[#F4781B] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw
+              size={16}
+              className={isLoading ? "animate-spin" : undefined}
+            />
+            Refresh
+          </button>
           <select
             value={status}
             onChange={(event) => {
@@ -585,7 +622,7 @@ export function ApplicationsTab({
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading && applicationItems.length === 0 && !error ? (
         <LoadingRows />
       ) : error ? (
         <EmptyState title="Unable to load applications" description={error} />
