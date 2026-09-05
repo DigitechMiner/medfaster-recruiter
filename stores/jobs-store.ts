@@ -35,7 +35,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 // Covers both JobFormData and InstantJobFormData fields.
-// Dates are serialized as ISO strings for safe plain-object storage in Zustand.
+// Dates are stored as YYYY-MM-DD calendar days (never UTC ISO timestamps).
 export type JobFormSnapshot = Omit<JobFormData, 'start_date' | 'end_date'> & {
   start_date?: string;
   end_date?: string;

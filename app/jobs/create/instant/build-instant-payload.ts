@@ -5,6 +5,7 @@ import type {
   JobPreviewShiftTemplate,
   JobUrgency,
 } from "@/types";
+import { toCalendarDateString } from "../form/utils";
 import {
   getShiftDurationHours,
 } from "../validation/helpers";
@@ -105,8 +106,8 @@ export function buildInstantJobFeePreviewPayload(
 ): InstantJobFeePreviewPayload | null {
   const jobTitle = source.job_title?.trim();
   const province = source.province?.trim();
-  const startDate = source.start_date?.trim();
-  const endDate = source.end_date?.trim();
+  const startDate = toCalendarDateString(source.start_date);
+  const endDate = toCalendarDateString(source.end_date);
   const shiftTemplate = buildInstantShiftTemplate(
     source.check_in_time,
     source.check_out_time,
@@ -144,6 +145,8 @@ export function buildInstantJobCreatePayload(
 
   return {
     ...rest,
+    start_date: toCalendarDateString(rest.start_date) ?? rest.start_date,
+    end_date: toCalendarDateString(rest.end_date) ?? rest.end_date,
     job_urgency: toCreateJobUrgency(rest.job_urgency),
     specializations: source.specializations ?? [],
     shift_templates: [shiftTemplate],

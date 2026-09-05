@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from "@/types";
+import { formatRelativeTimestamp } from "@/utils/datetime";
 import { formatLabel } from "../shared/job-detail-helpers";
 
 export const EMPTY_DISPLAY = "-";
@@ -99,17 +100,11 @@ export function formatExperienceCompact(
 
 export function formatAppliedDate(value?: string | null) {
   if (!value) return { short: EMPTY_DISPLAY, full: "" };
-  const date = new Date(value);
-  const short = date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  });
-  const full = date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-  return { short, full };
+  const { relative, absolute } = formatRelativeTimestamp(value);
+  return {
+    short: relative ?? EMPTY_DISPLAY,
+    full: absolute ?? "",
+  };
 }
 
 export function formatScoreDisplay(

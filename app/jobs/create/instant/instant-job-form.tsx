@@ -14,6 +14,7 @@ import {
   type CreateFormStep,
   type JobFormFieldErrors,
 } from "../validation";
+import { validateJobStartDateTime } from "@/utils/datetime";
 import { DEFAULT_INSTANT_FORM } from "./constant";
 import { buildInstantJobCreatePayload } from "./build-instant-payload";
 import {
@@ -248,6 +249,16 @@ export function InstantJobForm({
     };
 
     const validationErrors = validateJobPayload(backendData);
+    if (formStep === "basic") {
+      const startTimeError = validateJobStartDateTime({
+        province: backendData.province,
+        startDate: backendData.start_date,
+        startTime: backendData.check_in_time,
+        urgency: "INSTANT",
+      });
+      if (startTimeError) validationErrors.push(startTimeError);
+    }
+
     const scopedValidationErrors = filterValidationErrorsForStep(
       validationErrors,
       formStep,

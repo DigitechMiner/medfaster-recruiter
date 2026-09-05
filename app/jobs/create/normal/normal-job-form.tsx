@@ -344,7 +344,6 @@ export function NormalJobForm({
         };
 
     const jobType = getJobTypeValue(data.job_type, jobTypeOptions);
-    const isFullTime = jobType === "full_time";
 
     const raw: Record<string, unknown> = {
       job_title: data.job_title || "",
@@ -361,7 +360,7 @@ export function NormalJobForm({
         ? parseInt(data.no_of_hires_required, 10)
         : 1,
       start_date: formatDateForBackend(data.start_date),
-      end_date: isFullTime ? undefined : formatDateForBackend(data.end_date),
+      end_date: formatDateForBackend(data.end_date),
       check_in_time:
         data.morning_shift_start ||
         data.check_in_time ||

@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
 import { JobFormField, JobFormSelect } from "../components/form-field";
 import { DateRangePicker } from "../components/date-picker";
 import { CustomTimePicker } from "../components/time-picker";
-import { formatFacilityTimezoneHint } from "@/utils/timezone/format-facility-timezone-hint";
+import { parseCalendarDate } from "../form/utils";
+import { formatFacilityTimezoneHint } from "@/utils/datetime";
 import {
   buildChainedShiftTimes,
   buildChainedShiftTimesFromEnd,
@@ -568,9 +569,8 @@ export function NormalSchedulingStep({
     : `${templateDateRangeNote}One team per day; click again to clear. ${weeklyHoursLimitNote}`;
 
   const formatDate = (value?: Date | string) => {
-    if (!value) return "";
-    const dateObj = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(dateObj.getTime())) return "";
+    const dateObj = parseCalendarDate(value);
+    if (!dateObj) return "";
     return dateObj.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",
@@ -597,8 +597,8 @@ export function NormalSchedulingStep({
 
   const calendarMinDate = (() => {
     if (dateEditMode === "end" && formData.start_date) {
-      const start = new Date(formData.start_date);
-      if (!Number.isNaN(start.getTime())) {
+      const start = parseCalendarDate(formData.start_date);
+      if (start) {
         return start > today ? start : today;
       }
     }
@@ -1394,14 +1394,8 @@ export function NormalSchedulingStep({
       {showCalendar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <DateRangePicker
-            fromDate={
-              formData.start_date
-                ? new Date(formData.start_date)
-                : undefined
-            }
-            tillDate={
-              formData.end_date ? new Date(formData.end_date) : undefined
-            }
+            fromDate={parseCalendarDate(formData.start_date)}
+            tillDate={parseCalendarDate(formData.end_date)}
             minDate={calendarMinDate}
             editMode={dateEditMode}
             onChange={handleCalendarChange}

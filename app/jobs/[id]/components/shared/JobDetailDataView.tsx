@@ -1,4 +1,5 @@
-import { formatDate, formatDateTime, formatLabel } from "./job-detail-helpers";
+import { formatDate, formatLabel } from "./job-detail-helpers";
+import { formatTimeAgo } from "@/utils/datetime";
 
 const EMPTY_VALUES = new Set(["", "null", "undefined"]);
 
@@ -41,7 +42,7 @@ export function formatFieldValue(key: string, value: unknown) {
   if (typeof value === "number") return formatMaybeCurrency(key, value);
   if (typeof value !== "string") return String(value);
 
-  if (key.endsWith("_at")) return formatDateTime(value);
+  if (key.endsWith("_at")) return formatTimeAgo(value) ?? value;
   if (key.includes("date")) return formatDate(value);
   if (key.includes("cents")) return formatMaybeCurrency(key, value);
   if (key.includes("status")) return formatLabel(value);

@@ -9,6 +9,7 @@ import type { JobInfoNeighborhood, JobInfoShiftTemplate, RecruiterJobInfo } from
 import { resolveCanadianProvinceLabel, useMetadataStore } from "@/stores/metadataStore";
 import type { JobListItem } from "@/types";
 import { getMetadataLabel } from "@/utils/constant/metadata";
+import { formatRelativeTimestamp } from "@/utils/datetime";
 import {
   formatBudget,
   formatDate,
@@ -190,6 +191,7 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
   const isInstantJob = job.job_urgency === "INSTANT";
   const isNormalJob = job.job_urgency === "NORMAL";
   const isClosed = job.status === "CLOSED" || job.status === "COMPLETED";
+  const createdAt = formatRelativeTimestamp(job.created_at);
   const jobTitle = formatJobTitleDisplay(jobInfo?.job_title ?? job.job_title);
   const jobTypeLabel = formatJobTypeLabel(jobInfo?.job_type ?? job.job_type, jobTypeOptions);
   const workforceCount = jobInfo?.workforce_count ?? 0;
@@ -463,8 +465,15 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
                 loading={infoLoading}
                 value={formatDate(jobInfo?.end_date)}
               />
-              {job.created_at && (
-                <DetailField label="Created" value={formatDate(job.created_at)} />
+              {createdAt.relative && (
+                <DetailField
+                  label="Created"
+                  value={
+                    <span title={createdAt.absolute ?? undefined}>
+                      {createdAt.relative}
+                    </span>
+                  }
+                />
               )}
             </div>
           </section>

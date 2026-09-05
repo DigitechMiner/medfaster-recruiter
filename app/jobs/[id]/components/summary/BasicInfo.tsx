@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import {
   CalendarDays,
+  Clock,
   MapPin,
   Mic,
   Stethoscope,
@@ -10,6 +11,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { formatRelativeTimestamp } from "@/utils/datetime";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -108,6 +110,7 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
   const showInterviewQuestions = !isInstant && summary.ai_interview === true;
   const isRotational = summary.shift_mode?.toUpperCase() === "ROTATIONAL";
   const specializations = summary.specializations ?? [];
+  const postedAt = formatRelativeTimestamp(summary.created_at);
 
   return (
     <div className="flex flex-col gap-4">
@@ -158,6 +161,13 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
                 {(summary.start_date || summary.end_date) && (
                   <MetaPill icon={<CalendarDays size={12} />}>
                     {formatDateRange(summary.start_date, summary.end_date)}
+                  </MetaPill>
+                )}
+                {postedAt.relative && (
+                  <MetaPill icon={<Clock size={12} />}>
+                    <span title={postedAt.absolute ?? undefined}>
+                      Posted {postedAt.relative}
+                    </span>
                   </MetaPill>
                 )}
                 {!isInstant && summary.ai_interview != null && (

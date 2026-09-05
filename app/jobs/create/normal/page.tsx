@@ -31,7 +31,7 @@ import {
   getCandidateWeeklyHoursViolations,
   getDefaultTeamCount,
 } from "./scheduling-utils";
-import { formatDateForBackend } from "../form/utils";
+import { toCalendarDateString } from "../form/utils";
 import { formatSchedulingStepErrors } from "../validation/normal.validator";
 import type { ShiftDurationType, ShiftType, StaffingType } from "@/types";
 import { toast } from "react-toastify";
@@ -68,15 +68,6 @@ function mergeSnapshotIntoJobPayload(
 ): JobCreatePayload {
   if (!snapshot) return base;
 
-  const toBackendDateString = (
-    value?: Date | string,
-  ): string | undefined => {
-    if (!value) return undefined;
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return undefined;
-    return formatDateForBackend(date);
-  };
-
   const mergedCheckIn =
     snapshot.morning_shift_start ??
     snapshot.check_in_time ??
@@ -89,9 +80,8 @@ function mergeSnapshotIntoJobPayload(
 
   return {
     ...base,
-    start_date:
-      toBackendDateString(snapshot.start_date) ?? base.start_date,
-    end_date: toBackendDateString(snapshot.end_date) ?? base.end_date,
+    start_date: toCalendarDateString(snapshot.start_date) ?? base.start_date,
+    end_date: toCalendarDateString(snapshot.end_date) ?? base.end_date,
     check_in_time: mergedCheckIn,
     check_out_time: mergedCheckOut,
     morning_shift_start: snapshot.morning_shift_start ?? base.morning_shift_start,

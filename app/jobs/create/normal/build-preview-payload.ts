@@ -25,6 +25,7 @@ import {
   type ShiftTimesState,
 } from "./scheduling-utils";
 import { DEFAULT_CYCLE_START_DAY } from "./constant";
+import { toCalendarDateString } from "../form/utils";
 import { getShiftWorkDurationHours } from "../validation/helpers";
 import { inferShiftTypeFromStartTime } from "../shift-windows";
 
@@ -36,13 +37,6 @@ const SHIFT_TEMPLATE_ORDER: ShiftType[] = [
   "evening",
   "night",
 ];
-
-function toPreviewIsoDate(value?: string | Date | null): string | undefined {
-  if (value == null || value === "") return undefined;
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toISOString();
-}
 
 function toPreviewJobUrgency(urgency?: JobUrgency): JobUrgency {
   const raw = (urgency ?? "NORMAL").toString().toUpperCase();
@@ -73,23 +67,6 @@ function isFullTimeJobType(jobType?: string): boolean {
   return normalized === "full_time";
 }
 
-/** Full-time posts may omit end date; preview uses one month from start. */
-function resolvePreviewEndDate(
-  source: NormalJobSchedulingSource,
-  startDateIso: string,
-): string | undefined {
-  const explicitEnd = toPreviewIsoDate(source.end_date);
-  if (explicitEnd) return explicitEnd;
-  if (!isFullTimeJobType(source.job_type)) return undefined;
-
-  const start = new Date(startDateIso);
-  if (Number.isNaN(start.getTime())) return undefined;
-
-  const previewEnd = new Date(start);
-  previewEnd.setMonth(previewEnd.getMonth() + 1);
-  return previewEnd.toISOString();
-}
-
 export type NormalJobSchedulingSource = JobCreatePayload | JobFormData;
 
 /**
@@ -100,16 +77,18 @@ export function buildNormalJobSchedulingPayload(
 ): NormalJobSchedulingPayload | null {
   const jobTitle = source.job_title?.trim();
   const province = source.province?.trim();
-  const startDate = toPreviewIsoDate(source.start_date);
-  const endDate = startDate
-    ? resolvePreviewEndDate(source, startDate)
-    : undefined;
+  const startDate = toCalendarDateString(source.start_date);
+  const endDate = toCalendarDateString(source.end_date);
+  const isFullTime = isFullTimeJobType(source.job_type);
 
   const selectedShifts = orderShiftsForPreview(
     (source.selected_shift_types as ShiftType[] | undefined) ?? [],
   );
 
-  if (!jobTitle || !province || !startDate || !endDate || selectedShifts.length === 0) {
+  if (!jobTitle || !province || !startDate || selectedShifts.length === 0) {
+    return null;
+  }
+  if (!isFullTime && !endDate) {
     return null;
   }
 
@@ -216,7 +195,7 @@ export function buildNormalJobSchedulingPayload(
     rotation_cycle_days: TEMPLATE_DAY_COUNT,
     cycle_start_day: cycleStartDay,
     start_date: startDate,
-    end_date: endDate,
+    ...(endDate ? { end_date: endDate } : {}),
     shift_templates,
     teams,
   };

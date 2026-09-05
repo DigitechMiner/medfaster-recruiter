@@ -7,6 +7,7 @@ import type {
 } from "@/types";
 import { SHIFT_HANDOFF_OVERLAP_MINUTES } from "./constant";
 import { inferFormShiftTypeFromStartTime } from "../shift-windows";
+import { parseCalendarDate } from "../form/utils";
 
 export const TEMPLATE_DAY_COUNT = 14;
 export const SCHEDULE_EMPTY_VALUE = "__none__";
@@ -38,11 +39,7 @@ export type TemplateDayColumn = {
 };
 
 function parseScheduleAnchorDate(value?: Date | string): Date | null {
-  if (!value) return null;
-  const date = value instanceof Date ? new Date(value) : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return parseCalendarDate(value) ?? null;
 }
 
 function addCalendarDays(date: Date, days: number): Date {

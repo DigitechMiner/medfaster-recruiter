@@ -22,6 +22,7 @@ import {
   isBlockedNumberOfHiresKey,
   MIN_NUMBER_OF_HIRES,
   normalizeNumberOfHiresInput,
+  parseCalendarDate,
 } from "../form/utils";
 import type { JobFormFieldErrors } from "../validation";
 import {
@@ -29,7 +30,7 @@ import {
   getInstantBreakDurationBounds,
 } from "./build-instant-payload";
 import { HourlyPayWithTaxes } from "../components/hourly-pay-with-taxes";
-import { formatFacilityTimezoneHint } from "@/utils/timezone/format-facility-timezone-hint";
+import { formatFacilityTimezoneHint } from "@/utils/datetime";
 
 interface InstantBasicStepProps {
   formData: InstantJobFormData;
@@ -84,9 +85,8 @@ export function InstantBasicStep({
   >(undefined);
 
   const formatDate = (date?: Date | string) => {
-    if (!date) return "MM/DD/YYYY";
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) return "MM/DD/YYYY";
+    const dateObj = parseCalendarDate(date);
+    if (!dateObj) return "MM/DD/YYYY";
     return dateObj.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",

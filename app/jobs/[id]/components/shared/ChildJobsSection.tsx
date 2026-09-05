@@ -10,6 +10,7 @@ import {
   LoadingRows,
   StatusBadge,
 } from "./JobDetailDataView";
+import { formatRelativeTimestamp } from "@/utils/datetime";
 import {
   formatDateShort,
   formatLabel,
@@ -104,6 +105,7 @@ export function ChildJobsSection({
               job.no_of_hires_hired ?? job.workforce_count ?? null;
             const hasSchedule = job.start_date || job.end_date;
             const hasTime = job.check_in_time && job.check_out_time;
+            const postedAt = formatRelativeTimestamp(job.created_at);
             const location = [job.city, job.province]
               .filter(Boolean)
               .map((value) => formatLabel(value))
@@ -141,6 +143,11 @@ export function ChildJobsSection({
                       {hasTime && (
                         <span>
                           {formatTime(job.check_in_time)} - {formatTime(job.check_out_time)}
+                        </span>
+                      )}
+                      {postedAt.relative && (
+                        <span title={postedAt.absolute ?? undefined}>
+                          Posted {postedAt.relative}
                         </span>
                       )}
                     </div>

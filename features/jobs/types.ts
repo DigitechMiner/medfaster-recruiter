@@ -220,6 +220,7 @@ export interface JobDetailSummaryData {
   current_visibility_stage: number | null;
   total_visibility_stages: number | null;
   location: string;
+  created_at?: string | null;
   /** Normal jobs only — STANDARD or ROTATIONAL. */
   shift_mode?: string | null;
   /** Normal jobs only. */
@@ -887,7 +888,7 @@ export interface NormalJobSchedulingPayload {
   rotation_cycle_days: number;
   cycle_start_day: CycleStartDay;
   start_date: string;
-  end_date: string;
+  end_date?: string;
   shift_templates: JobPreviewShiftTemplate[];
   teams: JobPreviewTeam[];
 }

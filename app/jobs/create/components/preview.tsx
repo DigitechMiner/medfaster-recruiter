@@ -48,6 +48,7 @@ import type {
   ShiftType,
 } from "@/types";
 import { parseClockTimeToMinutes, parseLocalDate, shiftSpansMidnight } from "../validation/helpers";
+import { parseCalendarDate } from "../form/utils";
 import { INSTANT_JOB_MIN_DURATION_HOURS, SHIFT_MAX_HOURS } from "../validation/constants";
 import { validatePayloadShiftDurations } from "../validation/shift-duration";
 import { getMetadataLabel } from "@/utils/constant/metadata";
@@ -91,7 +92,7 @@ function formatTime(timeStr?: string | null): string {
 function parsePayloadDate(value?: string | Date | null): Date | null {
   if (!value) return null;
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
+    return parseCalendarDate(value) ?? null;
   }
 
   const trimmed = value.trim();

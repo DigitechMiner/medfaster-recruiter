@@ -9,7 +9,8 @@ import { useJobPayments } from "@/hooks/useJobData";
 import type { JobDetailSummaryData } from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { FeeBreakdownSection } from "./FeeBreakdownSection";
-import { formatDate, formatDateTime, formatLabel, formatPay } from "../shared/job-detail-helpers";
+import { formatRelativeTimestamp } from "@/utils/datetime";
+import { formatDate, formatLabel, formatPay } from "../shared/job-detail-helpers";
 
 type TransitionTabProps = {
   jobId: string;
@@ -237,6 +238,10 @@ export function TransitionTab({
                         ? "bg-red-50 text-red-600"
                         : "bg-gray-100 text-gray-600";
 
+                const occurredAt = formatRelativeTimestamp(
+                  transaction.created_at ?? transaction.updated_at,
+                );
+
                 return (
                   <tr
                     key={transactionKey}
@@ -280,10 +285,11 @@ export function TransitionTab({
                       </span>
                     </td>
 
-                    <td className="px-4 py-2.5 text-xs whitespace-nowrap text-gray-500">
-                      {formatDateTime(
-                        transaction.created_at ?? transaction.updated_at,
-                      )}
+                    <td
+                      className="px-4 py-2.5 text-xs whitespace-nowrap text-gray-500"
+                      title={occurredAt.absolute ?? undefined}
+                    >
+                      {occurredAt.relative ?? "N/A"}
                     </td>
                   </tr>
                 );

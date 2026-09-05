@@ -9,7 +9,8 @@ import {
   LoadingRows,
   StatusBadge,
 } from "../shared/JobDetailDataView";
-import { formatDate, formatDateTime, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
+import { formatRelativeTimestamp } from "@/utils/datetime";
+import { formatDate, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
 
 type DisputesTabProps = {
   jobId: string;
@@ -45,6 +46,8 @@ function DisputeCard({ dispute }: { dispute: JobDisputeItem }) {
   const attendance = assignment?.shift_attendance ?? assignment?.latest_attendance;
   const candidateName = getCandidateName(candidate);
   const profileImage = candidate?.profile_image_url ?? candidate?.profile_image ?? null;
+  const raisedAt = formatRelativeTimestamp(dispute.created_at);
+  const updatedAt = formatRelativeTimestamp(dispute.updated_at);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-red-100 bg-white shadow-sm">
@@ -76,8 +79,11 @@ function DisputeCard({ dispute }: { dispute: JobDisputeItem }) {
                 )}
                 <StatusBadge value={dispute.status ?? null} />
               </div>
-              <p className="mt-1 text-xs font-medium text-gray-500">
-                Raised {formatDateTime(dispute.created_at)}
+              <p
+                className="mt-1 text-xs font-medium text-gray-500"
+                title={raisedAt.absolute ?? undefined}
+              >
+                Raised {raisedAt.relative ?? "N/A"}
               </p>
             </div>
           </div>
@@ -137,7 +143,8 @@ function DisputeCard({ dispute }: { dispute: JobDisputeItem }) {
           />
           <SummaryMetricCard
             label="Updated"
-            value={formatDateTime(dispute.updated_at)}
+            value={updatedAt.relative ?? "N/A"}
+            title={updatedAt.absolute ?? undefined}
           />
         </div>
       </div>
@@ -179,14 +186,18 @@ function DisputeMetricCard({
 function SummaryMetricCard({
   label,
   value,
+  title,
 }: {
   label: string;
   value: React.ReactNode;
+  title?: string;
 }) {
   return (
     <div className="rounded-xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-gray-900">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold text-gray-900" title={title}>
+        {value}
+      </p>
     </div>
   );
 }

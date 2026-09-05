@@ -76,15 +76,27 @@ export const getShiftWorkDurationHours = (
 // END SECTION: Time Helpers
 
 // START SECTION: Date Helpers
+function localCalendarDayFromDate(date: Date): Date | null {
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 export const parseLocalDate = (iso?: string): Date | null => {
   if (!iso) return null;
 
-  const [datePart] = iso.split("T");
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+  const trimmed = iso.trim();
+  if (!trimmed) return null;
+
+  // ISO timestamps: recover the local day the user picked. Do not slice
+  // YYYY-MM-DD from the UTC string — IST midnight Sept 5 is 2026-09-04T18:30Z.
+  if (trimmed.includes("T")) {
+    return localCalendarDayFromDate(new Date(trimmed));
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
 
   if (!match) {
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? null : d;
+    return localCalendarDayFromDate(new Date(trimmed));
   }
 
   const year = Number(match[1]);
