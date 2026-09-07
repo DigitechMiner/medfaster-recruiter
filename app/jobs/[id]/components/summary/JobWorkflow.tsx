@@ -82,6 +82,7 @@ export type JobWorkflowData = {
   fillPercent: number;
   variant: "broadcast" | "hiring";
   isPublic?: boolean;
+  stats?: { label: string; value: string }[];
 };
 
 function buildNormalWorkflow(
@@ -150,12 +151,20 @@ function buildInstantWorkflow(
 
   return {
     title: "Broadcast Progress",
-    subtitle: `Now notifying ${current.label} · stops when filled`,
+    subtitle: `Now notifying ${current.label} · accept assigns all shifts immediately`,
     stages,
     currentStageIndex,
     fillPercent: progress.fill_percent,
     variant: "broadcast",
     isPublic,
+    stats: [
+      { label: "Notified", value: String(progress.broadcasts_sent ?? 0) },
+      { label: "Responses", value: String(progress.responses ?? 0) },
+      {
+        label: "Accepted",
+        value: `${progress.accepted ?? 0}/${progress.required ?? 0}`,
+      },
+    ],
   };
 }
 
@@ -376,6 +385,14 @@ export function JobWorkflow({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {workflow.stats?.map((stat) => (
+            <span
+              key={stat.label}
+              className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600"
+            >
+              {stat.label} {stat.value}
+            </span>
+          ))}
           {workflow.isPublic ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-[#F4781B]">
               <Eye className="h-3 w-3" />
@@ -411,10 +428,11 @@ export function JobWorkflow({
 
         {isBroadcast ? (
           <p className="mt-3 text-[11px] leading-5 text-gray-400">
-            At <span className="font-medium text-gray-600">5 km</span> the job
-            is listed in the public feed for everyone under 40 km. Later waves
-            only notify a wider radius. If a hire cancels, broadcast restarts
-            from Inner Team.
+            Notification is only an invite. If someone accepts — from a
+            broadcast, or after 5 km from the public feed inside the radius —
+            they are assigned to every shift immediately. There is no recruiter
+            approval. If an accepted worker cancels, broadcast restarts from
+            Inner Team.
           </p>
         ) : null}
       </div>

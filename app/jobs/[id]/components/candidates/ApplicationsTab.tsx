@@ -6,10 +6,18 @@ import { LayoutGrid, List, MoreVertical, RefreshCw } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { useJobApplications } from "@/hooks/useJobData";
-import type { ApplicationStatus, ApplicationTeamPreference } from "@/types";
+import type {
+  ApplicationStatus,
+  ApplicationTeamPreference,
+  JobStatus,
+  JobUrgency,
+} from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { formatLabel } from "../shared/job-detail-helpers";
-import { ApplicationStatusActionModal } from "./ApplicationStatusActionModal";
+import {
+  ApplicationStatusActionModal,
+  type ApplicationActionCandidatePreview,
+} from "./ApplicationStatusActionModal";
 import {
   EMPTY_DISPLAY,
   SHIFT_LEGEND_ITEMS,
@@ -19,12 +27,17 @@ import {
   formatExperienceCompact,
   formatScoreDisplay,
   getApplicationStatusBadgeClass,
+  getInstantApplicationBadgeStatus,
+  getInstantApplicationStatusLabel,
+  getInstantResponseSourceLabel,
   getShiftDotClass,
   getShiftMeta,
 } from "./applications-table-helpers";
 import {
+  type ApplicationStatusTransitionOptions,
   getApplicationFilterStatuses,
   getApplicationStatusTransitions,
+  isInstantJobUrgency,
 } from "./application-status-transitions";
 
 const APPLICATION_LIMIT = 10;
@@ -40,9 +53,20 @@ const TABLE_COLUMN_CLASS_NAMES = [
   "w-[3%] !text-right !text-xs !font-medium !text-gray-500",
 ];
 
+const INSTANT_TABLE_COLUMN_CLASS_NAMES = [
+  "min-w-[220px] w-[32%] !text-left !text-xs !font-medium !text-gray-500",
+  "w-[12%] !text-center !text-xs !font-medium !text-gray-500",
+  "w-[16%] !text-center !text-xs !font-medium !text-gray-500",
+  "w-[20%] !text-center !text-xs !font-medium !text-gray-500",
+  "w-[20%] !text-center !text-xs !font-medium !text-gray-500",
+];
+
 type ApplicationsTabProps = {
   jobId: string;
   aiInterviewEnabled?: boolean;
+  jobStatus?: JobStatus | string | null;
+  jobUrgency?: JobUrgency | string | null;
+  onApplicationUpdated?: () => void;
 };
 
 function PreferencesHeader() {
@@ -77,12 +101,39 @@ const APPLICATION_TABLE_HEADERS = [
   "⋮",
 ];
 
-function ApplicationStatusBadge({ status }: { status: string }) {
+const INSTANT_TABLE_HEADERS = [
+  "Candidate",
+  "Experience",
+  "Source",
+  "Status",
+  "Responded",
+];
+
+function ApplicationStatusBadge({
+  status,
+  isInstant = false,
+}: {
+  status: string;
+  isInstant?: boolean;
+}) {
+  const badgeStatus = isInstant
+    ? getInstantApplicationBadgeStatus(status)
+    : status;
+  const isAccepted =
+    isInstant && ["ACCEPTED", "HIRE"].includes(status.toUpperCase());
+
   return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${getApplicationStatusBadgeClass(status)}`}
-    >
-      {formatLabel(status)}
+    <span className="inline-flex flex-col items-center gap-0.5">
+      <span
+        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${getApplicationStatusBadgeClass(badgeStatus)}`}
+      >
+        {isInstant ? getInstantApplicationStatusLabel(status) : formatLabel(status)}
+      </span>
+      {isAccepted ? (
+        <span className="text-[10px] font-medium text-emerald-700">
+          Assigned to all shifts
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -242,18 +293,21 @@ function TeamShiftPreferencesCell({
 function ApplicationActionsCell({
   status,
   aiInterviewEnabled,
+  transitionOptions,
   isUpdating,
   onOpen,
   variant = "table",
 }: {
   status: ApplicationStatus;
   aiInterviewEnabled: boolean;
+  transitionOptions?: ApplicationStatusTransitionOptions;
   isUpdating?: boolean;
   onOpen: () => void;
   variant?: "table" | "card";
 }) {
   const hasActions =
-    getApplicationStatusTransitions(status, aiInterviewEnabled).length > 0;
+    getApplicationStatusTransitions(status, aiInterviewEnabled, transitionOptions)
+      .length > 0;
   if (!hasActions) {
     if (variant === "card") return null;
     return <span className="text-sm text-gray-300">{EMPTY_DISPLAY}</span>;
@@ -318,6 +372,10 @@ function getCandidateInitials(name: string) {
 type ApplicationGridCardData = {
   status: ApplicationStatus;
   created_at: string;
+  accepted_at?: string | null;
+  response_source?: string | null;
+  source?: string | null;
+  broadcast_status?: string | null;
   team_preferences?: ApplicationTeamPreference[];
   candidate: {
     profile_image_url?: string | null;
@@ -337,11 +395,15 @@ type ApplicationGridCardData = {
 function ApplicationGridCard({
   application,
   aiInterviewEnabled,
+  transitionOptions,
+  isInstant,
   isUpdating,
   onOpenActions,
 }: {
   application: ApplicationGridCardData;
   aiInterviewEnabled: boolean;
+  transitionOptions?: ApplicationStatusTransitionOptions;
+  isInstant: boolean;
   isUpdating: boolean;
   onOpenActions: () => void;
 }) {
@@ -356,14 +418,22 @@ function ApplicationGridCard({
   );
   const score =
     candidate?.job_interview_score ?? candidate?.best_ai_interview_score;
-  const appliedDate = formatAppliedDate(application.created_at);
+  const appliedDate = formatAppliedDate(
+    isInstant
+      ? application.accepted_at ?? application.created_at
+      : application.created_at,
+  );
+  const sourceLabel = getInstantResponseSourceLabel(application);
   const metaParts = [citizenship, location].filter(
     (part) => part && part !== EMPTY_DISPLAY,
   );
   const meta = metaParts.join(" · ");
   const hasActions =
-    getApplicationStatusTransitions(application.status, aiInterviewEnabled)
-      .length > 0;
+    getApplicationStatusTransitions(
+      application.status,
+      aiInterviewEnabled,
+      transitionOptions,
+    ).length > 0;
   const hasPreferences = Boolean(application.team_preferences?.length);
 
   return (
@@ -397,7 +467,7 @@ function ApplicationGridCard({
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <ApplicationStatusBadge status={application.status} />
+          <ApplicationStatusBadge status={application.status} isInstant={isInstant} />
           <span
             className="text-[10px] text-gray-400"
             title={appliedDate.full || undefined}
@@ -412,15 +482,22 @@ function ApplicationGridCard({
           <span className="text-slate-400">Exp</span>
           <span className="font-semibold text-slate-800">{experience}</span>
         </div>
-        <div className="flex items-center gap-1.5 rounded-md bg-orange-50 px-2 py-1">
-          <span className="text-orange-500/80">Score</span>
-          <span className="font-semibold text-orange-800">
-            {formatScoreDisplay(score, application.status)}
-          </span>
-        </div>
+        {isInstant ? (
+          <div className="flex items-center gap-1.5 rounded-md bg-orange-50 px-2 py-1">
+            <span className="text-orange-500/80">Source</span>
+            <span className="font-semibold text-orange-800">{sourceLabel}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 rounded-md bg-orange-50 px-2 py-1">
+            <span className="text-orange-500/80">Score</span>
+            <span className="font-semibold text-orange-800">
+              {formatScoreDisplay(score, application.status)}
+            </span>
+          </div>
+        )}
       </div>
 
-      {hasPreferences ? (
+      {!isInstant && hasPreferences ? (
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span className="text-[11px] font-medium text-gray-400">
@@ -446,11 +523,12 @@ function ApplicationGridCard({
         </div>
       ) : null}
 
-      {hasActions ? (
+      {!isInstant && hasActions ? (
         <ApplicationActionsCell
           variant="card"
           status={application.status}
           aiInterviewEnabled={aiInterviewEnabled}
+          transitionOptions={transitionOptions}
           isUpdating={isUpdating}
           onOpen={onOpenActions}
         />
@@ -462,14 +540,18 @@ function ApplicationGridCard({
 export function ApplicationsTab({
   jobId,
   aiInterviewEnabled = false,
+  jobStatus,
+  jobUrgency,
+  onApplicationUpdated,
 }: ApplicationsTabProps) {
   const [applicationPage, setApplicationPage] = useState(1);
   const [status, setStatus] = useState<ApplicationStatus | "ALL">("ALL");
   const [view, setView] = useState<"grid" | "list">("list");
   const [pendingApplication, setPendingApplication] = useState<{
     applicationId: string;
-    candidateName: string;
+    candidate: ApplicationActionCandidatePreview;
     jobTitle?: string | null;
+    appliedAt?: string | null;
     currentStatus: ApplicationStatus;
     teamPreferences?: ApplicationTeamPreference[];
   } | null>(null);
@@ -495,9 +577,14 @@ export function ApplicationsTab({
   const total = pagination?.total ?? 0;
   const perPage = pagination?.limit ?? APPLICATION_LIMIT;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const isInstant = isInstantJobUrgency(jobUrgency);
+  const transitionOptions = useMemo(
+    () => ({ jobStatus, jobUrgency }),
+    [jobStatus, jobUrgency],
+  );
   const filterStatuses = useMemo(
-    () => getApplicationFilterStatuses(aiInterviewEnabled),
-    [aiInterviewEnabled],
+    () => getApplicationFilterStatuses(aiInterviewEnabled, { jobUrgency }),
+    [aiInterviewEnabled, jobUrgency],
   );
 
   useEffect(() => {
@@ -514,8 +601,22 @@ export function ApplicationsTab({
 
     setPendingApplication({
       applicationId: application.id,
-      candidateName,
+      candidate: {
+        id: candidate?.id,
+        name: candidateName,
+        profileImageUrl: candidate?.profile_image_url,
+        city: candidate?.city,
+        state: candidate?.state,
+        experience: candidate?.experience,
+        experienceMonths: candidate?.experience_months,
+        workEligibility: candidate?.work_eligibility,
+        jobTitle: candidate?.job_title,
+        department: candidate?.department,
+        score:
+          candidate?.job_interview_score ?? candidate?.best_ai_interview_score,
+      },
       jobTitle: application.job?.job_title,
+      appliedAt: application.created_at,
       currentStatus: application.status,
       teamPreferences: application.team_preferences,
     });
@@ -545,6 +646,7 @@ export function ApplicationsTab({
   const handleActionSuccess = () => {
     setUpdatingApplicationId(null);
     refetch();
+    onApplicationUpdated?.();
   };
 
   const renderPagination = () =>
@@ -554,7 +656,7 @@ export function ApplicationsTab({
         totalItems={total}
         perPage={perPage}
         onPageChange={setApplicationPage}
-        itemLabel="applications"
+        itemLabel={isInstant ? "responses" : "applications"}
         className="flex items-center justify-between bg-[#FEF3E9] px-4 py-3 text-sm text-gray-600"
       />
     ) : null;
@@ -563,15 +665,21 @@ export function ApplicationsTab({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">Applications</p>
-          <p className="text-xs text-gray-400">Filter candidates by application status.</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {isInstant ? "Responses" : "Applications"}
+          </p>
+          <p className="text-xs text-gray-400">
+            {isInstant
+              ? "Accept assigns every shift immediately. Notification is only an invite — no recruiter approval."
+              : "Filter candidates by application status."}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshLocked || isLoading}
-            aria-label="Refresh applications"
+            aria-label={isInstant ? "Refresh responses" : "Refresh applications"}
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-[#F4781B] hover:text-[#F4781B] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw
@@ -591,7 +699,9 @@ export function ApplicationsTab({
             <option value="ALL">All Status</option>
             {filterStatuses.map((applicationStatus) => (
               <option key={applicationStatus} value={applicationStatus}>
-                {formatLabel(applicationStatus)}
+              {isInstant
+                ? getInstantApplicationStatusLabel(applicationStatus)
+                : formatLabel(applicationStatus)}
               </option>
             ))}
           </select>
@@ -625,11 +735,18 @@ export function ApplicationsTab({
       {isLoading && applicationItems.length === 0 && !error ? (
         <LoadingRows />
       ) : error ? (
-        <EmptyState title="Unable to load applications" description={error} />
+        <EmptyState
+          title={isInstant ? "Unable to load responses" : "Unable to load applications"}
+          description={error}
+        />
       ) : applicationItems.length === 0 ? (
         <EmptyState
-          title="No applications yet"
-          description="Candidates who apply for this job will appear here."
+          title={isInstant ? "No responses yet" : "No applications yet"}
+          description={
+            isInstant
+              ? "People who accept from a broadcast or the public feed appear here, already assigned to the shifts."
+              : "Candidates who apply for this job will appear here."
+          }
         />
       ) : view === "grid" ? (
         <div className="flex flex-col gap-4">
@@ -639,6 +756,8 @@ export function ApplicationsTab({
                 key={application.id}
                 application={application}
                 aiInterviewEnabled={aiInterviewEnabled}
+                transitionOptions={transitionOptions}
+                isInstant={isInstant}
                 isUpdating={updatingApplicationId === application.id}
                 onOpenActions={() => openActionsModal(application)}
               />
@@ -649,11 +768,13 @@ export function ApplicationsTab({
       ) : (
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           <DataTable
-            headers={APPLICATION_TABLE_HEADERS}
-            minWidthClassName="min-w-[960px]"
+            headers={isInstant ? INSTANT_TABLE_HEADERS : APPLICATION_TABLE_HEADERS}
+            minWidthClassName={isInstant ? "min-w-[760px]" : "min-w-[960px]"}
             headerRowClassName="border-b border-gray-100 bg-gray-50/60"
             tableClassName="text-sm"
-            columnClassNames={TABLE_COLUMN_CLASS_NAMES}
+            columnClassNames={
+              isInstant ? INSTANT_TABLE_COLUMN_CLASS_NAMES : TABLE_COLUMN_CLASS_NAMES
+            }
           >
             {applicationItems.map((application) => {
               const candidate = application.candidate;
@@ -661,7 +782,11 @@ export function ApplicationsTab({
               const initials = getCandidateInitials(candidateName);
               const score =
                 candidate?.job_interview_score ?? candidate?.best_ai_interview_score;
-              const appliedDate = formatAppliedDate(application.created_at);
+              const appliedDate = formatAppliedDate(
+                isInstant
+                  ? application.accepted_at ?? application.created_at
+                  : application.created_at,
+              );
 
               return (
                 <tr
@@ -684,17 +809,28 @@ export function ApplicationsTab({
                       candidate?.experience_months,
                     )}
                   </td>
-                  <td className="px-4 py-3 align-middle text-center text-sm text-gray-600 tabular-nums whitespace-nowrap">
-                    {formatScoreDisplay(score, application.status)}
-                  </td>
-                  <td className="px-4 py-3 align-middle min-w-[260px] w-[34%]">
-                    <TeamShiftPreferencesCell
-                      preferences={application.team_preferences}
-                      compact
-                    />
-                  </td>
+                  {isInstant ? (
+                    <td className="px-4 py-3 align-middle text-center text-sm text-gray-600 whitespace-nowrap">
+                      {getInstantResponseSourceLabel(application)}
+                    </td>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 align-middle text-center text-sm text-gray-600 tabular-nums whitespace-nowrap">
+                        {formatScoreDisplay(score, application.status)}
+                      </td>
+                      <td className="px-4 py-3 align-middle min-w-[260px] w-[34%]">
+                        <TeamShiftPreferencesCell
+                          preferences={application.team_preferences}
+                          compact
+                        />
+                      </td>
+                    </>
+                  )}
                   <td className="px-4 py-3 align-middle text-center">
-                    <ApplicationStatusBadge status={application.status} />
+                    <ApplicationStatusBadge
+                      status={application.status}
+                      isInstant={isInstant}
+                    />
                   </td>
                   <td
                     className="px-4 py-3 align-middle text-center text-sm text-gray-500 whitespace-nowrap tabular-nums"
@@ -702,14 +838,17 @@ export function ApplicationsTab({
                   >
                     {appliedDate.short}
                   </td>
-                  <td className="px-3 py-3 align-middle text-right">
-                    <ApplicationActionsCell
-                      status={application.status}
-                      aiInterviewEnabled={aiInterviewEnabled}
-                      isUpdating={updatingApplicationId === application.id}
-                      onOpen={() => openActionsModal(application)}
-                    />
-                  </td>
+                  {isInstant ? null : (
+                    <td className="px-3 py-3 align-middle text-right">
+                      <ApplicationActionsCell
+                        status={application.status}
+                        aiInterviewEnabled={aiInterviewEnabled}
+                        transitionOptions={transitionOptions}
+                        isUpdating={updatingApplicationId === application.id}
+                        onOpen={() => openActionsModal(application)}
+                      />
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -718,21 +857,30 @@ export function ApplicationsTab({
         </div>
       )}
 
-      <ApplicationStatusActionModal
-        jobId={jobId}
-        applicationId={pendingApplication?.applicationId ?? ""}
-        candidateName={pendingApplication?.candidateName ?? ""}
-        jobTitle={pendingApplication?.jobTitle}
-        currentStatus={pendingApplication?.currentStatus ?? "APPLIED"}
-        aiInterviewEnabled={aiInterviewEnabled}
-        open={pendingApplication != null}
-        teamPreferences={pendingApplication?.teamPreferences}
-        onClose={() => {
-          setPendingApplication(null);
-          setUpdatingApplicationId(null);
-        }}
-        onSuccess={handleActionSuccess}
-      />
+      {isInstant ? null : (
+        <ApplicationStatusActionModal
+          jobId={jobId}
+          applicationId={pendingApplication?.applicationId ?? ""}
+          candidate={
+            pendingApplication?.candidate ?? {
+              name: "",
+            }
+          }
+          jobTitle={pendingApplication?.jobTitle}
+          appliedAt={pendingApplication?.appliedAt}
+          currentStatus={pendingApplication?.currentStatus ?? "APPLIED"}
+          aiInterviewEnabled={aiInterviewEnabled}
+          jobStatus={jobStatus}
+          jobUrgency={jobUrgency}
+          open={pendingApplication != null}
+          teamPreferences={pendingApplication?.teamPreferences}
+          onClose={() => {
+            setPendingApplication(null);
+            setUpdatingApplicationId(null);
+          }}
+          onSuccess={handleActionSuccess}
+        />
+      )}
     </div>
   );
 }

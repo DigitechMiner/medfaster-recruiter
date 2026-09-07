@@ -31,8 +31,8 @@ export function ChildJobsSection({
   enabled = true,
   jobUrgency,
   title,
-  emptyTitle = "No instant shifts yet",
-  emptyDescription = "Urgent or short-notice shifts linked to this job will appear here.",
+  emptyTitle,
+  emptyDescription,
 }: ChildJobsSectionProps) {
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -50,6 +50,15 @@ export function ChildJobsSection({
   const hasNextPage = pagination?.hasNextPage ?? currentPage < totalPages;
   const showPagination = totalPages > 1;
   const sectionTitle = title ?? "Instant shifts";
+  const isInstantParent = String(jobUrgency ?? "").toUpperCase() === "INSTANT";
+  const resolvedEmptyTitle =
+    emptyTitle ??
+    (isInstantParent ? "No linked shifts" : "No instant shifts yet");
+  const resolvedEmptyDescription =
+    emptyDescription ??
+    (isInstantParent
+      ? "This is the instant job itself. Linked follow-up shifts will appear here."
+      : "Urgent or short-notice shifts linked to this job will appear here.");
 
   if (isLoading) {
     return (
@@ -95,7 +104,7 @@ export function ChildJobsSection({
       </div>
 
       {childJobs.length === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        <EmptyState title={resolvedEmptyTitle} description={resolvedEmptyDescription} />
       ) : (
         <div className="flex flex-col gap-3">
           {childJobs.map((job) => {
@@ -160,13 +169,13 @@ export function ChildJobsSection({
                       )}
                       {hiredWorkers !== null && (
                         <span>
-                          Hired: <span className="font-semibold">{hiredWorkers}</span>
+                          Accepted: <span className="font-semibold">{hiredWorkers}</span>
                         </span>
                       )}
                       {job.application_count !== null &&
                         job.application_count !== undefined && (
                           <span>
-                            Applications:{" "}
+                            Responses:{" "}
                             <span className="font-semibold">{job.application_count}</span>
                           </span>
                         )}

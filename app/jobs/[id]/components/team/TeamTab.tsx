@@ -12,6 +12,7 @@ import type {
   JobTeamMember,
   JobTeamMemberStatus,
   JobTeamRosterTeam,
+  JobUrgency,
 } from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import {
@@ -80,6 +81,9 @@ const TEAM_ACCENTS = [
 type TeamTabProps = {
   jobId: string;
   enabled?: boolean;
+  jobUrgency?: JobUrgency | string | null;
+  acceptedCount?: number | null;
+  requiredCount?: number | null;
 };
 
 function getMemberName(member: JobTeamMember) {
@@ -282,10 +286,17 @@ function NextShiftCell({
   );
 }
 
-export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
+export function TeamTab({
+  jobId,
+  enabled = true,
+  jobUrgency,
+  acceptedCount,
+  requiredCount,
+}: TeamTabProps) {
   const [page, setPage] = useState(1);
   const [teamId, setTeamId] = useState("");
   const [status, setStatus] = useState<"" | JobTeamMemberStatus>("");
+  const isInstant = String(jobUrgency ?? "").toUpperCase() === "INSTANT";
 
   const { team, isLoading, error } = useJobTeam(
     jobId,
@@ -293,7 +304,8 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
       page,
       limit: MEMBER_LIMIT,
       team_id: teamId || undefined,
-      status: status || undefined,
+      // Instant accepts are SHIFT_COVERAGE (no job_worker). A status filter drops them.
+      status: isInstant ? undefined : status || undefined,
       include_shifts: false,
       shift_limit: 1,
     },
@@ -341,31 +353,43 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Team roster</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {isInstant ? "Assigned workers" : "Team roster"}
+          </h3>
           <p className="mt-0.5 text-xs text-gray-500">
-            Hired members and coverage workers by rotational team
-            {jobMeta?.hired_count != null
-              ? ` · ${jobMeta.hired_count}/${jobMeta.no_of_hires_required ?? "—"} hired`
-              : ""}
+            {isInstant
+              ? "People who accept are assigned to every shift immediately. They show here from shift assignments, not a hire record."
+              : "Hired members and coverage workers by rotational team"}
+            {isInstant
+              ? acceptedCount != null
+                ? ` · ${acceptedCount}/${requiredCount ?? "—"} accepted`
+                : pagination?.total != null
+                  ? ` · ${pagination.total} assigned`
+                  : ""
+              : jobMeta?.hired_count != null
+                ? ` · ${jobMeta.hired_count}/${jobMeta.no_of_hires_required ?? "—"} hired`
+                : ""}
           </p>
         </div>
 
-        <label className="flex items-center gap-2 text-xs text-gray-500">
-          Status
-          <select
-            value={status}
-            onChange={(event) =>
-              setStatus(event.target.value as "" | JobTeamMemberStatus)
-            }
-            className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#F4781B]/20"
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {isInstant ? null : (
+          <label className="flex items-center gap-2 text-xs text-gray-500">
+            Status
+            <select
+              value={status}
+              onChange={(event) =>
+                setStatus(event.target.value as "" | JobTeamMemberStatus)
+              }
+              className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#F4781B]/20"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <TeamFilterBar
@@ -378,11 +402,19 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
         <LoadingRows count={3} />
       ) : members.length === 0 ? (
         <EmptyState
-          title={teamId ? "No members on this team" : "No team members yet"}
+          title={
+            teamId
+              ? "No members on this team"
+              : isInstant
+                ? "No assigned workers yet"
+                : "No team members yet"
+          }
           description={
             teamId
               ? "Try another team or clear the team filter."
-              : "Members appear here after candidates are hired into this job."
+              : isInstant
+                ? "Workers appear here when a candidate accepts. Accept assigns them to all shifts — no recruiter approval."
+                : "Members appear here after candidates are hired into this job."
           }
         />
       ) : (
@@ -397,7 +429,11 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
             {members.map((member) => {
               const name = getMemberName(member);
               const initials = getInitials(name);
-              const isCoverage = member.source === "SHIFT_COVERAGE";
+              const sourceLabel = isInstant
+                ? "Accepted"
+                : member.source === "SHIFT_COVERAGE"
+                  ? "Coverage"
+                  : "Hired";
               const summary = member.shift_summary;
 
               return (
@@ -430,7 +466,7 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
                           {name}
                         </p>
                         <p className="truncate text-[11px] text-gray-400">
-                          {isCoverage ? "Coverage" : "Hired"}
+                          {sourceLabel}
                           {member.start_date
                             ? ` · Since ${formatDate(member.start_date)}`
                             : ""}
@@ -459,6 +495,10 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
                         )}
                       >
                         {formatLabel(member.status)}
+                      </span>
+                    ) : isInstant ? (
+                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                        Assigned
                       </span>
                     ) : (
                       <span className="text-xs text-gray-400">—</span>
@@ -507,7 +547,9 @@ export function TeamTab({ jobId, enabled = true }: TeamTabProps) {
       {teams.length === 0 && members.length > 0 && (
         <div className="flex items-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-3 text-xs text-gray-500">
           <UsersRound size={14} />
-          This job has hired members but no rotational teams configured.
+          {isInstant
+            ? "Instant accepts are assigned to shifts directly. They do not join a rotational hire roster."
+            : "This job has hired members but no rotational teams configured."}
         </div>
       )}
     </div>

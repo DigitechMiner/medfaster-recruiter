@@ -65,13 +65,13 @@ const MODAL_CONFIG: Record<
     apiAction: "shortlist",
   },
   hire: {
-    title: (name) => `Hire ${name} Instantly For Urgent Shifts`,
-    subtitle: "Select From Urgent Shift Openings",
+    title: (name) => `Notify ${name} about an urgent shift`,
+    subtitle: "Notification is only an invite. If they accept, they are assigned immediately.",
     jobPool: "urgent",
-    ctaLabel: "Send Shift Request",
-    successTitle: () => "Shift Request Sent Successfully",
+    ctaLabel: "Send Shift Notification",
+    successTitle: () => "Shift Notification Sent",
     successBody: (name, jobTitle, jobId) =>
-      `${jobTitle} – Shift ID: ${jobId} Invitation sent and waiting for ${name}.`,
+      `${jobTitle} – Shift ID: ${jobId}. ${name} can accept to take every shift on this job. No recruiter approval is needed.`,
     apiAction: "hire",
   },
 };
@@ -106,13 +106,15 @@ function useJobOptions(
   const jobs: JobOption[] = (data?.data?.jobs ?? []).map((j: JobApiItem) => {
     const city = formatLabel(j.city);
     const province = formatLabel(j.province);
+    const urgency = String(j.job_urgency ?? "").toUpperCase();
+    const isUrgent = urgency === "INSTANT" || urgency === "URGENT";
 
     return {
       id: j.id,
       title: j.job_title,
       status: j.status ?? "OPEN",
-      type: j.job_urgency?.toLowerCase() === "urgent" ? "Urgent" : "Regular",
-      interviewRequired: true,
+      type: isUrgent ? "Urgent" : "Regular",
+      interviewRequired: !isUrgent,
       org_photo: organizationPhotoUrl ?? null,
       experience_range: j.years_of_experience ? `${j.years_of_experience}+ yrs` : null,
       department: j.department ?? null,
@@ -179,15 +181,15 @@ export function CandidateActionModal({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      if (config.apiAction === "invite" || config.apiAction === "schedule") {
+      if (config.apiAction === "invite" || config.apiAction === "schedule" || config.apiAction === "hire") {
         await inviteCandidate({
           job_id: selectedJobId,
           candidate_id: candidate.id,
         });
-      } else if (config.apiAction === "shortlist" || config.apiAction === "hire") {
+      } else if (config.apiAction === "shortlist") {
         if (!applicationId) throw new Error("Application ID is required");
         await axiosInstance.patch(ENDPOINTS.JOB_APPLICATION_STATUS(applicationId), {
-          status: config.apiAction === "shortlist" ? "SHORTLISTED" : "HIRE",
+          status: "SHORTLISTED",
         });
       }
       onActionSuccess?.();

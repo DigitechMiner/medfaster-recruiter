@@ -66,9 +66,10 @@ function getValidJobDetailTab(tab: string | null): JobDetailTab {
 type JobDetailTabsProps = {
   summary: JobDetailSummaryData;
   jobId: string;
+  onHiringChange?: () => void;
 };
 
-export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
+export function JobDetailTabs({ summary, jobId, onHiringChange }: JobDetailTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -88,7 +89,7 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
   const jobDetailTabs = [
     {
       key: "overview" as const,
-      label: "Instant shifts",
+      label: isInstant ? "Instant shifts" : "Overview",
       icon: Zap,
     },
     {
@@ -96,7 +97,7 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
       label: isInstant ? "Responses" : "Applications",
       icon: Users,
     },
-    { key: "team" as const, label: "Team", icon: UsersRound },
+    { key: "team" as const, label: isInstant ? "Assigned" : "Team", icon: UsersRound },
     { key: "schedule" as const, label: "Schedule", icon: CalendarDays },
     { key: "funding" as const, label: "Funding", icon: WalletCards },
     { key: "activity" as const, label: "Activity", icon: Activity },
@@ -157,11 +158,20 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
             <ApplicationsTab
               jobId={jobId}
               aiInterviewEnabled={summary.ai_interview === true}
+              jobStatus={summary.status}
+              jobUrgency={summary.job_urgency}
+              onApplicationUpdated={onHiringChange}
             />
           </TabsContent>
 
           <TabsContent value="team" className="m-0">
-            <TeamTab jobId={jobId} enabled={activeTab === "team"} />
+            <TeamTab
+              jobId={jobId}
+              enabled={activeTab === "team"}
+              jobUrgency={summary.job_urgency}
+              acceptedCount={summary.accepted}
+              requiredCount={summary.required_workers}
+            />
           </TabsContent>
 
           <TabsContent value="schedule" className="m-0">
@@ -194,6 +204,7 @@ export function JobDetailTabs({ summary, jobId }: JobDetailTabsProps) {
             <ActivityTab
               jobId={jobId}
               enabled={activeTab === "activity"}
+              jobUrgency={summary.job_urgency}
             />
           </TabsContent>
         </div>

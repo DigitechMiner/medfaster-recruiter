@@ -116,7 +116,7 @@ function ActionButtons({
   inHouseStatus?: string | null;
 }) {
   const open = (e: MouseEvent) => { e.stopPropagation(); onOpenModal(); };
-  if (actionType === 'hire') return <button type="button" onClick={open} className="w-full flex items-center justify-center gap-1.5 bg-green-50 border border-green-400 text-green-600 text-xs font-semibold py-2 rounded-xl hover:bg-green-100 transition-colors whitespace-nowrap"><Zap size={12} fill="#16a34a" stroke="#16a34a" /> Hire Instantly</button>;
+  if (actionType === 'hire') return <button type="button" onClick={open} className="w-full flex items-center justify-center gap-1.5 bg-green-50 border border-green-400 text-green-600 text-xs font-semibold py-2 rounded-xl hover:bg-green-100 transition-colors whitespace-nowrap"><Zap size={12} fill="#16a34a" stroke="#16a34a" /> Notify for shift</button>;
   if (actionType === 'schedule') return score >= 80 ? (
     <div className="flex flex-nowrap gap-2">
       <button type="button" onClick={open} className="flex-1 min-w-0 border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-medium py-2 rounded-xl transition-colors whitespace-nowrap">Schedule Interview</button>

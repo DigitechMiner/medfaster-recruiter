@@ -1258,10 +1258,9 @@ export interface HirePlacement {
   shift_type: HireShiftBand;
 }
 
-export interface UpdateApplicationStatusPayload {
-  status: ApplicationStatus;
-  hire_placement?: HirePlacement;
-}
+export type UpdateApplicationStatusPayload =
+  | { status: Exclude<ApplicationStatus, "HIRE"> }
+  | { status: "HIRE"; hire_placement: HirePlacement };
 
 export interface JobApplicationItem {
   id: string;
@@ -1271,6 +1270,10 @@ export interface JobApplicationItem {
   team_preferences?: ApplicationTeamPreference[];
   created_at: string;
   updated_at: string;
+  accepted_at?: string | null;
+  response_source?: string | null;
+  source?: string | null;
+  broadcast_status?: string | null;
   job: {
     id: string;
     job_title: string;
@@ -1336,6 +1339,10 @@ export interface JobApplicationListResponse {
     team_preferences?: ApplicationTeamPreference[];
     created_at: string;
     updated_at: string;
+    accepted_at?: string | null;
+    response_source?: string | null;
+    source?: string | null;
+    broadcast_status?: string | null;
     job: {
       id: string;
       job_title: string;

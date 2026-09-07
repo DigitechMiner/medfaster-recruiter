@@ -208,7 +208,11 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
               icon={<UserCheck size={16} />}
               label="Filled"
               value={`${summary.accepted}/${summary.required_workers}`}
-              subLabel={`${summary.remaining} remaining`}
+              subLabel={
+                isInstant
+                  ? `${summary.remaining} remaining · assigned on accept`
+                  : `${summary.remaining} remaining`
+              }
             />
             <KpiCard
               icon={<Users size={16} />}

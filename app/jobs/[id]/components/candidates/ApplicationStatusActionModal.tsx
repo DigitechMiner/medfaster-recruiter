@@ -1,7 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowUpRight,
+  Briefcase,
+  Loader2,
+  MapPin,
+  Mic,
+  Star,
+  UserCheck,
+  UserMinus,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,24 +24,60 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { updateApplicationStatus } from "@/features/jobs";
-import type { ApplicationStatus, ApplicationTeamPreference, HireShiftBand } from "@/types";
+import { useJobSchedule } from "@/hooks/useJobData";
+import type {
+  ApplicationStatus,
+  ApplicationTeamPreference,
+  HireShiftBand,
+  JobStatus,
+  JobUrgency,
+} from "@/types";
 import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
+import { formatLabel } from "../shared/job-detail-helpers";
+import {
+  EMPTY_DISPLAY,
+  formatAppliedDate,
+  formatCandidateLocation,
+  formatEligibilityLabel,
+  formatExperienceCompact,
+  formatScoreDisplay,
+  getApplicationStatusBadgeClass,
+} from "./applications-table-helpers";
 import {
   type ApplicationStatusAction,
   getApplicationStatusActionClassName,
   getApplicationStatusActionDescription,
+  getApplicationStatusActionHint,
   getApplicationStatusActionLabel,
   getApplicationStatusTransitions,
+  getHirePlacementTeamsFromSchedule,
   getHireShiftBandOptions,
 } from "./application-status-transitions";
+
+export type ApplicationActionCandidatePreview = {
+  id?: string;
+  name: string;
+  profileImageUrl?: string | null;
+  city?: string | null;
+  state?: string | null;
+  experience?: string | null;
+  experienceMonths?: number | null;
+  workEligibility?: string | null;
+  jobTitle?: string | null;
+  department?: string | null;
+  score?: number | null;
+};
 
 type ApplicationStatusActionModalProps = {
   jobId: string;
   applicationId: string;
-  candidateName: string;
+  candidate: ApplicationActionCandidatePreview;
   jobTitle?: string | null;
+  appliedAt?: string | null;
   currentStatus: ApplicationStatus;
   aiInterviewEnabled: boolean;
+  jobStatus?: JobStatus | string | null;
+  jobUrgency?: JobUrgency | string | null;
   open: boolean;
   teamPreferences?: ApplicationTeamPreference[];
   onClose: () => void;
@@ -37,6 +86,31 @@ type ApplicationStatusActionModalProps = {
 
 const choiceClassName =
   "flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 has-[:checked]:border-[#F4781B] has-[:checked]:bg-orange-50 has-[:checked]:text-gray-900";
+
+function getActionIcon(action: ApplicationStatusAction) {
+  switch (action) {
+    case "HIRE":
+      return UserCheck;
+    case "REJECTED":
+      return UserMinus;
+    case "SHORTLISTED":
+      return UserPlus;
+    case "INTERVIEWING":
+    case "INTERVIEWED":
+      return Mic;
+    default:
+      return Users;
+  }
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 function HirePlacementForm({
   teamPreferences,
@@ -109,13 +183,120 @@ function HirePlacementForm({
   );
 }
 
+function CandidatePreviewCard({
+  candidate,
+  jobTitle,
+  appliedAt,
+  currentStatus,
+}: {
+  candidate: ApplicationActionCandidatePreview;
+  jobTitle?: string | null;
+  appliedAt?: string | null;
+  currentStatus: ApplicationStatus;
+}) {
+  const initials = getInitials(candidate.name || "C");
+  const location = formatCandidateLocation(candidate.city, candidate.state);
+  const experience = formatExperienceCompact(
+    candidate.experience,
+    candidate.experienceMonths,
+  );
+  const eligibility = formatEligibilityLabel(candidate.workEligibility);
+  const applied = formatAppliedDate(appliedAt);
+  const role = candidate.jobTitle || jobTitle;
+  const score = formatScoreDisplay(candidate.score, currentStatus);
+
+  return (
+    <div className="rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50/90 to-white p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white ring-2 ring-orange-100">
+          {candidate.profileImageUrl ? (
+            <Image
+              src={candidate.profileImageUrl}
+              alt={candidate.name}
+              width={56}
+              height={56}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm font-bold text-[#F4781B]">
+              {initials}
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-base font-bold text-gray-900">
+                {candidate.name}
+              </p>
+              {role ? (
+                <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
+                  <Briefcase size={11} className="shrink-0 text-[#F4781B]" />
+                  {role}
+                  {candidate.department ? ` · ${candidate.department}` : ""}
+                </p>
+              ) : null}
+            </div>
+            <span
+              className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${getApplicationStatusBadgeClass(currentStatus)}`}
+            >
+              {formatLabel(currentStatus)}
+            </span>
+          </div>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+            {location !== EMPTY_DISPLAY ? (
+              <span className="inline-flex items-center gap-1">
+                <MapPin size={11} className="text-green-500" />
+                {location}
+              </span>
+            ) : null}
+            {applied.short !== EMPTY_DISPLAY ? (
+              <span title={applied.full || undefined}>Applied {applied.short}</span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-gray-700 ring-1 ring-gray-200">
+          Exp {experience}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-orange-800 ring-1 ring-orange-100">
+          <Star size={10} className="fill-[#F4781B] text-[#F4781B]" />
+          Score {score}
+        </span>
+        {eligibility !== EMPTY_DISPLAY ? (
+          <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-gray-700 ring-1 ring-gray-200">
+            {eligibility}
+          </span>
+        ) : null}
+      </div>
+
+      {candidate.id ? (
+        <Link
+          href={`/candidates/${candidate.id}`}
+          className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#F4781B] hover:underline"
+        >
+          View profile
+          <ArrowUpRight size={12} />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 export function ApplicationStatusActionModal({
   jobId,
   applicationId,
-  candidateName,
+  candidate,
   jobTitle,
+  appliedAt,
   currentStatus,
   aiInterviewEnabled,
+  jobStatus,
+  jobUrgency,
   open,
   teamPreferences = [],
   onClose,
@@ -127,8 +308,28 @@ export function ApplicationStatusActionModal({
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedShiftBand, setSelectedShiftBand] = useState("");
 
-  const availableActions = getApplicationStatusTransitions(currentStatus, aiInterviewEnabled);
+  const candidateName = candidate.name || "this candidate";
+  const transitionOptions = useMemo(
+    () => ({ jobStatus, jobUrgency }),
+    [jobStatus, jobUrgency],
+  );
+  const availableActions = getApplicationStatusTransitions(
+    currentStatus,
+    aiInterviewEnabled,
+    transitionOptions,
+  );
   const hasTeamPreferences = teamPreferences.length > 0;
+  const needsJobTeams = open && selectedAction === "HIRE" && !hasTeamPreferences;
+  const {
+    schedule,
+    isLoading: isScheduleLoading,
+    error: scheduleError,
+  } = useJobSchedule(jobId, needsJobTeams);
+
+  const placementTeams = useMemo(() => {
+    if (hasTeamPreferences) return teamPreferences;
+    return getHirePlacementTeamsFromSchedule(schedule);
+  }, [hasTeamPreferences, teamPreferences, schedule]);
 
   useEffect(() => {
     if (!open) {
@@ -146,16 +347,16 @@ export function ApplicationStatusActionModal({
   }, [open, applicationId]);
 
   useEffect(() => {
-    if (!open || selectedAction !== "HIRE" || !hasTeamPreferences) return;
+    if (!open || selectedAction !== "HIRE") return;
 
-    const firstTeam = teamPreferences[0];
+    const firstTeam = placementTeams[0];
     setSelectedTeamId(firstTeam?.team_id ?? "");
     setSelectedShiftBand(getHireShiftBandOptions(firstTeam?.shift_types)[0] ?? "");
-  }, [open, selectedAction, hasTeamPreferences, teamPreferences]);
+  }, [open, selectedAction, placementTeams]);
 
   const handleTeamChange = (teamId: string) => {
     setSelectedTeamId(teamId);
-    const team = teamPreferences.find((preference) => preference.team_id === teamId);
+    const team = placementTeams.find((preference) => preference.team_id === teamId);
     setSelectedShiftBand(getHireShiftBandOptions(team?.shift_types)[0] ?? "");
   };
 
@@ -167,22 +368,18 @@ export function ApplicationStatusActionModal({
 
     try {
       if (selectedAction === "HIRE") {
-        if (hasTeamPreferences) {
-          if (!selectedTeamId) throw new Error("Select a team to hire onto.");
-          if (!selectedShiftBand) {
-            throw new Error("Select a shift band for the chosen team.");
-          }
-
-          await updateApplicationStatus(jobId, applicationId, {
-            status: "HIRE",
-            hire_placement: {
-              team_id: selectedTeamId,
-              shift_type: selectedShiftBand as HireShiftBand,
-            },
-          });
-        } else {
-          await updateApplicationStatus(jobId, applicationId, { status: "HIRE" });
+        const shiftType = getHireShiftBandOptions([selectedShiftBand])[0];
+        if (!selectedTeamId || !shiftType) {
+          throw new Error("Select a team and shift band to hire onto.");
         }
+
+        await updateApplicationStatus(jobId, applicationId, {
+          status: "HIRE",
+          hire_placement: {
+            team_id: selectedTeamId,
+            shift_type: shiftType,
+          },
+        });
       } else {
         await updateApplicationStatus(jobId, applicationId, { status: selectedAction });
       }
@@ -204,14 +401,16 @@ export function ApplicationStatusActionModal({
   const actionLabel = selectedAction
     ? getApplicationStatusActionLabel(selectedAction)
     : null;
-  const canSubmitHire =
-    selectedAction !== "HIRE" ||
-    !hasTeamPreferences ||
-    (selectedTeamId.length > 0 && selectedShiftBand.length > 0);
+  const hireReady =
+    selectedTeamId.length > 0 &&
+    selectedShiftBand.length > 0 &&
+    placementTeams.length > 0 &&
+    !(needsJobTeams && (isScheduleLoading || Boolean(scheduleError)));
+  const canSubmitHire = selectedAction !== "HIRE" || hireReady;
 
-  const hireDescription = jobTitle
-    ? `Select team and shift to hire ${candidateName} on ${jobTitle}.`
-    : `Select team and shift to hire ${candidateName}.`;
+  const hireDescription = hasTeamPreferences
+    ? `Select a team and shift from ${candidateName}'s preferences.`
+    : `Select a job team and shift band to place ${candidateName}.`;
 
   return (
     <Dialog
@@ -220,60 +419,88 @@ export function ApplicationStatusActionModal({
         if (!nextOpen && !isSubmitting) onClose();
       }}
     >
-      <DialogContent className="gap-3 sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="gap-4 overflow-hidden sm:max-w-md">
+        <DialogHeader className="space-y-1">
           <DialogTitle>
             {selectedAction
               ? selectedAction === "HIRE"
                 ? `Hire ${candidateName}`
                 : `${actionLabel} ${candidateName}`
-              : `Actions for ${candidateName}`}
+              : "Application actions"}
           </DialogTitle>
           <DialogDescription>
             {selectedAction
               ? selectedAction === "HIRE"
                 ? hireDescription
                 : getApplicationStatusActionDescription(selectedAction, candidateName)
-              : "Choose how you want to update this application."}
+              : "Review this candidate, then choose hire, shortlist, interview, or reject."}
           </DialogDescription>
         </DialogHeader>
 
+        <CandidatePreviewCard
+          candidate={candidate}
+          jobTitle={jobTitle}
+          appliedAt={appliedAt}
+          currentStatus={currentStatus}
+        />
+
         {!selectedAction ? (
-          <div className="flex flex-col gap-2">
-            {availableActions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                onClick={() => {
-                  setSubmitError(null);
-                  setSelectedAction(action);
-                }}
-                className={getApplicationStatusActionClassName(action)}
-              >
-                {getApplicationStatusActionLabel(action)}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-2">
+            {availableActions.map((action) => {
+              const Icon = getActionIcon(action);
+              return (
+                <button
+                  key={action}
+                  type="button"
+                  onClick={() => {
+                    setSubmitError(null);
+                    setSelectedAction(action);
+                  }}
+                  className={getApplicationStatusActionClassName(action)}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span className="text-sm font-semibold leading-tight">
+                    {getApplicationStatusActionLabel(action)}
+                  </span>
+                  <span
+                    className={`text-[11px] font-normal leading-tight ${
+                      action === "HIRE" ? "text-white/80" : "text-current opacity-70"
+                    }`}
+                  >
+                    {getApplicationStatusActionHint(action)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : selectedAction === "HIRE" ? (
-          hasTeamPreferences ? (
+          needsJobTeams && isScheduleLoading ? (
+            <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading job teams…
+            </div>
+          ) : needsJobTeams && scheduleError ? (
+            <p className="text-sm text-red-600">{scheduleError}</p>
+          ) : placementTeams.length > 0 ? (
             <HirePlacementForm
-              teamPreferences={teamPreferences}
+              teamPreferences={placementTeams}
               selectedTeamId={selectedTeamId}
               selectedShiftBand={selectedShiftBand}
               onTeamChange={handleTeamChange}
               onShiftChange={setSelectedShiftBand}
             />
           ) : (
-            <p className="text-sm text-gray-500">
-              No team preferences on this application. Hire will be sent without placement.
+            <p className="text-sm text-amber-700">
+              This job has no teams with a working Morning, Evening, or Night shift.
+              Hire cannot be completed until a valid placement is available.
             </p>
           )
         ) : null}
 
         {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          {selectedAction ? (
+        {selectedAction ? (
+          <DialogFooter className="gap-2 sm:justify-end">
             <button
               type="button"
               onClick={() => {
@@ -285,16 +512,6 @@ export function ApplicationStatusActionModal({
             >
               Back
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          {selectedAction ? (
             <button
               type="button"
               onClick={handleConfirm}
@@ -308,8 +525,8 @@ export function ApplicationStatusActionModal({
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {selectedAction === "HIRE" ? "Hire" : actionLabel}
             </button>
-          ) : null}
-        </DialogFooter>
+          </DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

@@ -107,6 +107,53 @@ export function formatAppliedDate(value?: string | null) {
   };
 }
 
+export function getInstantApplicationStatusLabel(status: string): string {
+  switch (status.trim().toUpperCase()) {
+    case "ACCEPTED":
+    case "HIRE":
+      return "Accepted";
+    case "APPLIED":
+      return "Pending";
+    case "REJECTED":
+      return "Declined";
+    case "WITHDRAWN":
+      return "Withdrawn";
+    case "CANCELLED":
+      return "Cancelled";
+    default:
+      return formatLabel(status);
+  }
+}
+
+export function getInstantResponseSourceLabel(application: {
+  response_source?: string | null;
+  source?: string | null;
+  broadcast_status?: string | null;
+}): string {
+  const source = String(
+    application.response_source ?? application.source ?? "",
+  ).toUpperCase();
+  if (source.includes("PUBLIC")) return "Public feed";
+  if (
+    source.includes("BROADCAST") ||
+    source.includes("NOTIFY") ||
+    source.includes("INVITE")
+  ) {
+    return "Broadcast";
+  }
+
+  const broadcast = String(application.broadcast_status ?? "").toUpperCase();
+  if (broadcast === "SENT" || broadcast === "VIEWED" || broadcast === "DELIVERED") {
+    return "Broadcast";
+  }
+
+  return EMPTY_DISPLAY;
+}
+
+export function getInstantApplicationBadgeStatus(status: string): string {
+  return status.trim().toUpperCase() === "HIRE" ? "ACCEPTED" : status;
+}
+
 export function formatScoreDisplay(
   score: number | null | undefined,
   status: ApplicationStatus,

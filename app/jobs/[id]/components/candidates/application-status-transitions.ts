@@ -1,7 +1,20 @@
-import type { ApplicationStatus, HireShiftBand } from "@/types";
+import type {
+  ApplicationStatus,
+  ApplicationTeamPreference,
+  HireShiftBand,
+  JobScheduleData,
+  JobScheduleRotationalTeam,
+  JobStatus,
+  JobUrgency,
+} from "@/types";
 import { formatLabel } from "../shared/job-detail-helpers";
 
 const HIRE_SHIFT_BANDS: HireShiftBand[] = ["MORNING", "EVENING", "NIGHT"];
+
+export type ApplicationStatusTransitionOptions = {
+  jobStatus?: JobStatus | string | null;
+  jobUrgency?: JobUrgency | string | null;
+};
 
 const APPLICATION_STATUS_TRANSITIONS: Partial<
   Record<ApplicationStatus, ApplicationStatus[]>
@@ -14,6 +27,7 @@ const APPLICATION_STATUS_TRANSITIONS: Partial<
   CANCELLED: [],
   REJECTED: [],
   ACCEPTED: [],
+  WITHDRAWN: [],
 };
 
 const INTERVIEW_TRANSITION_STATUSES = new Set<ApplicationStatus>([
@@ -32,9 +46,28 @@ const APPLICATION_FILTER_STATUSES: ApplicationStatus[] = [
   "CANCELLED",
 ];
 
+const INSTANT_APPLICATION_FILTER_STATUSES: ApplicationStatus[] = [
+  "ACCEPTED",
+  "APPLIED",
+  "REJECTED",
+  "WITHDRAWN",
+  "CANCELLED",
+];
+
+export function isInstantJobUrgency(
+  urgency?: JobUrgency | string | null,
+): boolean {
+  return String(urgency ?? "").toUpperCase() === "INSTANT";
+}
+
 export function getApplicationFilterStatuses(
   aiInterviewEnabled: boolean,
+  options?: ApplicationStatusTransitionOptions,
 ): ApplicationStatus[] {
+  if (isInstantJobUrgency(options?.jobUrgency)) {
+    return INSTANT_APPLICATION_FILTER_STATUSES;
+  }
+
   if (aiInterviewEnabled) return APPLICATION_FILTER_STATUSES;
 
   return APPLICATION_FILTER_STATUSES.filter(
@@ -64,15 +97,71 @@ export function getHireShiftBandOptions(shiftTypes?: string[]): HireShiftBand[] 
   return options;
 }
 
+function workingShiftTypesForTeam(
+  team: JobScheduleRotationalTeam,
+  templates: JobScheduleData["shift_templates"],
+): string[] {
+  const fromCycles = (team.cycles ?? [])
+    .filter((cycle) => cycle.is_working !== false)
+    .map((cycle) => {
+      if (cycle.shift_type?.trim()) return cycle.shift_type;
+      if (cycle.shift_template_id) {
+        const match = templates.find((template) => template.id === cycle.shift_template_id);
+        if (match?.shift_type) return match.shift_type;
+      }
+      if (typeof cycle.shift_template_index === "number") {
+        return templates[cycle.shift_template_index]?.shift_type ?? "";
+      }
+      return "";
+    })
+    .filter(Boolean);
+
+  if (fromCycles.length) return fromCycles;
+  return templates.map((template) => template.shift_type).filter(Boolean);
+}
+
+/** Job teams + working shift bands used when the application has no saved preferences. */
+export function getHirePlacementTeamsFromSchedule(
+  schedule: JobScheduleData | null | undefined,
+): ApplicationTeamPreference[] {
+  if (!schedule) return [];
+
+  const templates = schedule.shift_templates ?? [];
+  const teams = [...(schedule.rotational_teams ?? [])]
+    .filter((team) => team.is_active !== false && Boolean(team.id))
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+  return teams
+    .map((team) => ({
+      team_id: team.id,
+      team_name: team.team_name,
+      shift_types: getHireShiftBandOptions(workingShiftTypesForTeam(team, templates)),
+    }))
+    .filter((team) => team.shift_types.length > 0);
+}
+
+export function canHireOnJob(options?: ApplicationStatusTransitionOptions): boolean {
+  const status = String(options?.jobStatus ?? "").toUpperCase();
+  const urgency = String(options?.jobUrgency ?? "NORMAL").toUpperCase();
+  return status !== "CLOSED" && urgency !== "INSTANT";
+}
+
 export function getApplicationStatusTransitions(
   currentStatus: ApplicationStatus,
   aiInterviewEnabled: boolean,
+  options?: ApplicationStatusTransitionOptions,
 ): ApplicationStatusAction[] {
+  if (isInstantJobUrgency(options?.jobUrgency)) return [];
+
   const transitions = APPLICATION_STATUS_TRANSITIONS[currentStatus] ?? [];
 
-  const filtered = aiInterviewEnabled
+  const withoutInterviews = aiInterviewEnabled
     ? transitions
     : transitions.filter((status) => !INTERVIEW_TRANSITION_STATUSES.has(status));
+
+  const filtered = canHireOnJob(options)
+    ? withoutInterviews
+    : withoutInterviews.filter((status) => status !== "HIRE");
 
   return filtered as ApplicationStatusAction[];
 }
@@ -108,7 +197,24 @@ export function getApplicationStatusActionDescription(
     case "REJECTED":
       return `This will mark ${candidateName}'s application as rejected for this job.`;
     case "HIRE":
-      return "Select the team and shift band from the candidate's preferences.";
+      return "Select the team and shift band to place this candidate.";
+    default:
+      return "";
+  }
+}
+
+export function getApplicationStatusActionHint(status: ApplicationStatusAction): string {
+  switch (status) {
+    case "SHORTLISTED":
+      return "Add to shortlist";
+    case "INTERVIEWING":
+      return "Interview in progress";
+    case "INTERVIEWED":
+      return "Interview complete";
+    case "REJECTED":
+      return "Decline application";
+    case "HIRE":
+      return "Place on a shift";
     default:
       return "";
   }
@@ -118,16 +224,16 @@ export function getApplicationStatusActionClassName(
   action: ApplicationStatusAction,
 ): string {
   const base =
-    "w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors disabled:opacity-50";
+    "flex h-full min-h-[88px] w-full flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-3 text-center transition-colors disabled:opacity-50";
 
   switch (action) {
     case "HIRE":
       return `${base} bg-[#F4781B] text-white hover:bg-[#e06a10]`;
     case "REJECTED":
-      return `${base} text-red-600 hover:bg-red-50`;
+      return `${base} border border-red-200 bg-red-50 text-red-700 hover:bg-red-100`;
     case "SHORTLISTED":
-      return `${base} border border-[#F4781B] text-[#F4781B] hover:bg-orange-50`;
+      return `${base} border border-[#F4781B] bg-orange-50 text-[#F4781B] hover:bg-orange-100`;
     default:
-      return `${base} border border-gray-200 text-gray-700 hover:bg-gray-50`;
+      return `${base} border border-gray-200 bg-white text-gray-800 hover:bg-gray-50`;
   }
 }

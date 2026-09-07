@@ -345,17 +345,25 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
           )}
 
           <section>
-            <SectionTitle>Hiring</SectionTitle>
+            <SectionTitle>{isInstantJob ? "Fill" : "Hiring"}</SectionTitle>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <DetailField label="Required Hires" loading={infoLoading} value={hiresRequired} />
               <DetailField
-                label="Applications Received"
+                label={isInstantJob ? "Required slots" : "Required Hires"}
+                loading={infoLoading}
+                value={hiresRequired}
+              />
+              <DetailField
+                label={isInstantJob ? "Responses" : "Applications Received"}
                 loading={infoLoading}
                 value={applicationCount}
               />
-              <DetailField label="Workforce Assigned" loading={infoLoading} value={workforceCount} />
               <DetailField
-                label="Hiring Progress"
+                label={isInstantJob ? "Accepted" : "Workforce Assigned"}
+                loading={infoLoading}
+                value={workforceCount}
+              />
+              <DetailField
+                label={isInstantJob ? "Accepted / required" : "Hiring Progress"}
                 loading={infoLoading}
                 value={`${workforceCount} / ${hiresRequired}`}
               />

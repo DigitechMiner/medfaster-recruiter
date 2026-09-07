@@ -97,7 +97,11 @@ export default function JobDetailPageRoute() {
         </Suspense>
 
         <Suspense fallback={null}>
-          <JobDetailTabs summary={summary} jobId={jobId!} />
+          <JobDetailTabs
+            summary={summary}
+            jobId={jobId!}
+            onHiringChange={refetch}
+          />
         </Suspense>
       </div>
     </AppLayout>

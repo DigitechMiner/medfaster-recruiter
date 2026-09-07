@@ -13,7 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useJobActivity } from "@/hooks/useJobData";
-import type { JobDetailActivityEvent } from "@/types";
+import type { JobDetailActivityEvent, JobUrgency } from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { formatDateTime, formatLabel, formatPay } from "../shared/job-detail-helpers";
 
@@ -21,6 +21,7 @@ type ActivityTabProps = {
   jobId: string;
   enabled?: boolean;
   limit?: number;
+  jobUrgency?: JobUrgency | string | null;
 };
 
 const ACTIVITY_ICON_MAP: Record<string, typeof Briefcase> = {
@@ -35,6 +36,7 @@ const ACTIVITY_ICON_MAP: Record<string, typeof Briefcase> = {
   INTERVIEW_COMPLETED: Calendar,
   CANDIDATE_HIRED: UserCheck,
   WORKER_HIRED: UserCheck,
+  CANDIDATE_ACCEPTED: UserCheck,
   CANDIDATE_REJECTED: XCircle,
   CANDIDATE_WITHDRAWN: UserMinus,
 };
@@ -54,7 +56,11 @@ function getActivityIcon(type: string) {
   if (normalized.includes("reject")) return XCircle;
   if (normalized.includes("withdraw")) return UserMinus;
   if (normalized.includes("applied")) return Users;
-  if (normalized.includes("hire") || normalized.includes("worker")) {
+  if (
+    normalized.includes("accept") ||
+    normalized.includes("hire") ||
+    normalized.includes("worker")
+  ) {
     return UserCheck;
   }
   if (normalized.includes("created")) return Briefcase;
@@ -85,6 +91,7 @@ export function ActivityTab({
   jobId,
   enabled = true,
   limit,
+  jobUrgency,
 }: ActivityTabProps) {
   const { activity, isLoading, error } = useJobActivity(jobId, enabled);
   const events = (activity?.events ?? []).slice(0, limit);
@@ -106,7 +113,9 @@ export function ActivityTab({
         description={
           limit
             ? undefined
-            : "Job timeline events will appear here as the post goes live, receives applications, and hires are made."
+            : String(jobUrgency ?? "").toUpperCase() === "INSTANT"
+              ? "Broadcast, public-feed, and accept events appear here. Accept assigns the worker to all shifts immediately."
+              : "Job timeline events will appear here as the post goes live, receives applications, and hires are made."
         }
       />
     );
