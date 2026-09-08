@@ -145,8 +145,8 @@ export function buildInstantJobCreatePayload(
 
   return {
     ...rest,
-    start_date: toCalendarDateString(rest.start_date) ?? rest.start_date,
-    end_date: toCalendarDateString(rest.end_date) ?? rest.end_date,
+    start_date: toCalendarDateString(rest.start_date),
+    end_date: toCalendarDateString(rest.end_date),
     job_urgency: toCreateJobUrgency(rest.job_urgency),
     specializations: source.specializations ?? [],
     shift_templates: [shiftTemplate],

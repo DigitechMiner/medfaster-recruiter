@@ -49,9 +49,12 @@ import {
   getApplicationStatusActionDescription,
   getApplicationStatusActionHint,
   getApplicationStatusActionLabel,
+  getApplicationStatusActionGridClass,
+  getApplicationStatusChooserDescription,
   getApplicationStatusTransitions,
   getHirePlacementTeamsFromSchedule,
   getHireShiftBandOptions,
+  sortApplicationStatusActions,
 } from "./application-status-transitions";
 
 export type ApplicationActionCandidatePreview = {
@@ -225,25 +228,25 @@ function CandidatePreviewCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-base font-bold text-gray-900">
-                {candidate.name}
-              </p>
-              {role ? (
-                <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
-                  <Briefcase size={11} className="shrink-0 text-[#F4781B]" />
-                  {role}
-                  {candidate.department ? ` · ${candidate.department}` : ""}
-                </p>
-              ) : null}
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-base font-bold text-gray-900">
+              {candidate.name}
+            </p>
             <span
               className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${getApplicationStatusBadgeClass(currentStatus)}`}
             >
               {formatLabel(currentStatus)}
             </span>
           </div>
+          {role ? (
+            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
+              <Briefcase size={11} className="shrink-0 text-[#F4781B]" />
+              <span className="truncate">
+                {role}
+                {candidate.department ? ` · ${candidate.department}` : ""}
+              </span>
+            </p>
+          ) : null}
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
             {location !== EMPTY_DISPLAY ? (
@@ -313,10 +316,12 @@ export function ApplicationStatusActionModal({
     () => ({ jobStatus, jobUrgency }),
     [jobStatus, jobUrgency],
   );
-  const availableActions = getApplicationStatusTransitions(
-    currentStatus,
-    aiInterviewEnabled,
-    transitionOptions,
+  const availableActions = sortApplicationStatusActions(
+    getApplicationStatusTransitions(
+      currentStatus,
+      aiInterviewEnabled,
+      transitionOptions,
+    ),
   );
   const hasTeamPreferences = teamPreferences.length > 0;
   const needsJobTeams = open && selectedAction === "HIRE" && !hasTeamPreferences;
@@ -419,8 +424,8 @@ export function ApplicationStatusActionModal({
         if (!nextOpen && !isSubmitting) onClose();
       }}
     >
-      <DialogContent className="gap-4 overflow-hidden sm:max-w-md">
-        <DialogHeader className="space-y-1">
+      <DialogContent className="gap-4 overflow-y-auto sm:max-w-lg">
+        <DialogHeader className="space-y-1 pr-8 text-left">
           <DialogTitle>
             {selectedAction
               ? selectedAction === "HIRE"
@@ -433,7 +438,7 @@ export function ApplicationStatusActionModal({
               ? selectedAction === "HIRE"
                 ? hireDescription
                 : getApplicationStatusActionDescription(selectedAction, candidateName)
-              : "Review this candidate, then choose hire, shortlist, interview, or reject."}
+              : getApplicationStatusChooserDescription(availableActions)}
           </DialogDescription>
         </DialogHeader>
 
@@ -445,7 +450,7 @@ export function ApplicationStatusActionModal({
         />
 
         {!selectedAction ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className={getApplicationStatusActionGridClass(availableActions.length)}>
             {availableActions.map((action) => {
               const Icon = getActionIcon(action);
               return (
@@ -458,16 +463,30 @@ export function ApplicationStatusActionModal({
                   }}
                   className={getApplicationStatusActionClassName(action)}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="text-sm font-semibold leading-tight">
-                    {getApplicationStatusActionLabel(action)}
-                  </span>
                   <span
-                    className={`text-[11px] font-normal leading-tight ${
-                      action === "HIRE" ? "text-white/80" : "text-current opacity-70"
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                      action === "HIRE"
+                        ? "bg-white/20"
+                        : action === "REJECTED"
+                          ? "bg-red-100"
+                          : action === "SHORTLISTED"
+                            ? "bg-orange-100"
+                            : "bg-gray-100"
                     }`}
                   >
-                    {getApplicationStatusActionHint(action)}
+                    <Icon className="h-4 w-4 shrink-0" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block text-sm font-semibold leading-tight">
+                      {getApplicationStatusActionLabel(action)}
+                    </span>
+                    <span
+                      className={`mt-0.5 block text-[11px] font-normal leading-tight ${
+                        action === "HIRE" ? "text-white/80" : "text-current opacity-70"
+                      }`}
+                    >
+                      {getApplicationStatusActionHint(action)}
+                    </span>
                   </span>
                 </button>
               );

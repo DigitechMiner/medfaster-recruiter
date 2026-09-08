@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { JobFormSnapshot } from "@/stores/jobs-store";
-import { parseLocalDate } from "../validation/helpers";
+import { calendarDayYmd, parseLocalDate } from "../validation/helpers";
 
 type SnapshotDateUpdate = {
   start_date?: Date | string;
@@ -39,22 +39,16 @@ export function parseCalendarDate(
   if (value == null || value === "") return undefined;
 
   if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return undefined;
-    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    const ymd = calendarDayYmd(value);
+    return ymd ? (parseLocalDate(ymd) ?? undefined) : undefined;
   }
 
   return parseLocalDate(value) ?? undefined;
 }
 
 export function formatDateForBackend(date?: Date): string | undefined {
-  const parsed = parseCalendarDate(date);
-  if (!parsed) return undefined;
-
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, "0");
-  const day = String(parsed.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  if (date == null) return undefined;
+  return calendarDayYmd(date);
 }
 
 /** Snapshot, preview, create, and fees all send this calendar-day string. */
@@ -62,12 +56,14 @@ export function toCalendarDateString(
   value?: Date | string | null,
 ): string | undefined {
   if (value == null || value === "") return undefined;
-  if (value instanceof Date) return formatDateForBackend(value);
+  if (value instanceof Date) return calendarDayYmd(value);
 
   const trimmed = value.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
 
-  return formatDateForBackend(parseCalendarDate(trimmed));
+  const parsed = parseLocalDate(trimmed);
+  if (!parsed) return undefined;
+  return calendarDayYmd(parsed);
 }
 
 export function fromSnapshot<K extends keyof JobFormSnapshot, TValue>(

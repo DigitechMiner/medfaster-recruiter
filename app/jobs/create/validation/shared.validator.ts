@@ -84,6 +84,8 @@ function validateDates(payload: JobCreatePayload, push: PushError) {
     push("start_date", "Start date is required.");
   } else if (!parseLocalDate(payload.start_date)) {
     push("start_date", "Start date must be a valid date.");
+  } else if (isPastDate(payload.start_date)) {
+    push("start_date", "Start date cannot be in the past.");
   }
 
   const endEmpty = isEmpty(payload.end_date);

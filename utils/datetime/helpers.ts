@@ -1,18 +1,9 @@
-import dayjs from "dayjs";
-import customParseFormat from "dayjs/plugin/customParseFormat";
-import timezone from "dayjs/plugin/timezone";
-import utc from "dayjs/plugin/utc";
 import { getProvinceLabel } from "@/utils/constant/metadata";
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(customParseFormat);
-
 /**
- * Job date/time helpers.
- * Create still submits YYYY-MM-DD + HH:mm as picked. These helpers interpret
- * wall-clock values in the facility timezone, and format relative times
- * for job details (e.g. "3h ago").
+ * Display helpers for job details (e.g. "3h ago") and create-form copy.
+ * Create-job payloads send calendar YYYY-MM-DD; the backend combines those
+ * dates with shift template times in the facility timezone.
  *
  * Keep the province map in sync with medfaster-backend
  * `utils/timezone/canadianProvince.ts`.
@@ -45,73 +36,6 @@ export function timezoneFromCanadianProvince(
     CANADIAN_PROVINCE_TIMEZONES[province.trim().toLowerCase()] ??
     DEFAULT_JOB_TIMEZONE
   );
-}
-
-function formatLocalYmd(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-/** Normalize a Date or string to `YYYY-MM-DD` without UTC day-shift. */
-export function toDateOnly(value?: string | Date | null): string | undefined {
-  if (value == null || value === "") return undefined;
-
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return undefined;
-    return formatLocalYmd(value);
-  }
-
-  const trimmed = value.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-
-  if (trimmed.includes("T")) {
-    const date = new Date(trimmed);
-    if (Number.isNaN(date.getTime())) return undefined;
-    return formatLocalYmd(date);
-  }
-
-  return trimmed;
-}
-
-function normalizeTimeToHms(time: string): string {
-  const [hh = "00", mm = "00", ss = "00"] = time.trim().split(":");
-  return `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}:${ss.padStart(2, "0")}`;
-}
-
-/**
- * Build a real UTC instant from facility-local date + clock time.
- * Do not use `new Date(y, m, d)` / `setHours` — those use the browser zone.
- */
-export function combineDateAndTimeInTz(
-  dateValue: string,
-  timeValue: string,
-  timeZone: string,
-): Date | null {
-  const datePart = toDateOnly(dateValue);
-  if (!datePart || !/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
-
-  const timePart = normalizeTimeToHms(timeValue);
-  if (!/^\d{2}:\d{2}:\d{2}$/.test(timePart)) return null;
-
-  const local = dayjs.tz(
-    `${datePart} ${timePart}`,
-    "YYYY-MM-DD HH:mm:ss",
-    timeZone,
-  );
-  if (!local.isValid()) return null;
-  return local.toDate();
-}
-
-/** Today's calendar date in the given IANA timezone (`YYYY-MM-DD`). */
-export function todayInTimeZone(timeZone: string): string {
-  return dayjs().tz(timeZone).format("YYYY-MM-DD");
-}
-
-/** Absolute instant that is `leadHours` from now. */
-export function earliestAllowedAt(leadHours: number): number {
-  return dayjs().add(leadHours, "hour").valueOf();
 }
 
 /** UI copy, e.g. "Times are in Alberta (America/Edmonton)". */

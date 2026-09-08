@@ -76,9 +76,62 @@ export const getShiftWorkDurationHours = (
 // END SECTION: Time Helpers
 
 // START SECTION: Date Helpers
+/** UTC midnight ISO: `2026-05-01T00:00:00.000Z`. Time is not a real clock value. */
+const UTC_MIDNIGHT_ISO =
+  /^(\d{4}-\d{2}-\d{2})T00:00:00(?:\.\d+)?(?:Z|[+-]00:00)$/;
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function ymd(year: number, monthIndex: number, day: number): string {
+  return `${year}-${pad2(monthIndex + 1)}-${pad2(day)}`;
+}
+
+function dateFromYmd(year: number, monthIndex: number, day: number): Date | null {
+  const d = new Date(year, monthIndex, day);
+  if (
+    d.getFullYear() !== year ||
+    d.getMonth() !== monthIndex ||
+    d.getDate() !== day
+  ) {
+    return null;
+  }
+  return d;
+}
+
+function isUtcMidnight(date: Date): boolean {
+  return (
+    date.getUTCHours() === 0 &&
+    date.getUTCMinutes() === 0 &&
+    date.getUTCSeconds() === 0 &&
+    date.getUTCMilliseconds() === 0
+  );
+}
+
 function localCalendarDayFromDate(date: Date): Date | null {
   if (Number.isNaN(date.getTime())) return null;
+  // UTC midnight means the calendar day in the ISO string, not the browser zone.
+  // `T00:00:00.000Z` in Canada (UTC-3 to UTC-8) is the previous local evening.
+  if (isUtcMidnight(date)) {
+    return dateFromYmd(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+    );
+  }
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function localTodayYmd(): string {
+  const today = new Date();
+  return ymd(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+export function calendarDayYmd(date: Date): string | undefined {
+  const day = localCalendarDayFromDate(date);
+  if (!day) return undefined;
+  return ymd(day.getFullYear(), day.getMonth(), day.getDate());
 }
 
 export const parseLocalDate = (iso?: string): Date | null => {
@@ -87,8 +140,13 @@ export const parseLocalDate = (iso?: string): Date | null => {
   const trimmed = iso.trim();
   if (!trimmed) return null;
 
-  // ISO timestamps: recover the local day the user picked. Do not slice
-  // YYYY-MM-DD from the UTC string — IST midnight Sept 5 is 2026-09-04T18:30Z.
+  const utcMidnight = UTC_MIDNIGHT_ISO.exec(trimmed);
+  if (utcMidnight) {
+    return parseLocalDate(utcMidnight[1]);
+  }
+
+  // Real timestamps: recover the local day. Do not slice YYYY-MM-DD from the
+  // UTC string — IST midnight Sept 5 is 2026-09-04T18:30Z.
   if (trimmed.includes("T")) {
     return localCalendarDayFromDate(new Date(trimmed));
   }
@@ -99,20 +157,7 @@ export const parseLocalDate = (iso?: string): Date | null => {
     return localCalendarDayFromDate(new Date(trimmed));
   }
 
-  const year = Number(match[1]);
-  const month = Number(match[2]) - 1;
-  const day = Number(match[3]);
-  const d = new Date(year, month, day);
-
-  if (
-    d.getFullYear() !== year ||
-    d.getMonth() !== month ||
-    d.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return d;
+  return dateFromYmd(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 };
 
 export const combineDateAndClockTime = (
@@ -135,17 +180,10 @@ export const isPastDate = (iso?: string): boolean => {
   if (!iso) return false;
 
   const d = parseLocalDate(iso);
+  if (!d) return false;
 
-  if (!d) {
-    return false;
-  }
-
-  const today = new Date();
-
-  today.setHours(0, 0, 0, 0);
-  d.setHours(0, 0, 0, 0);
-
-  return d < today;
+  const day = ymd(d.getFullYear(), d.getMonth(), d.getDate());
+  return day < localTodayYmd();
 };
 // END SECTION: Date Helpers
 

@@ -220,11 +220,56 @@ export function getApplicationStatusActionHint(status: ApplicationStatusAction):
   }
 }
 
+const ACTION_DISPLAY_ORDER: ApplicationStatusAction[] = [
+  "SHORTLISTED",
+  "INTERVIEWING",
+  "INTERVIEWED",
+  "HIRE",
+  "REJECTED",
+];
+
+export function sortApplicationStatusActions(
+  actions: ApplicationStatusAction[],
+): ApplicationStatusAction[] {
+  return [...actions].sort(
+    (a, b) => ACTION_DISPLAY_ORDER.indexOf(a) - ACTION_DISPLAY_ORDER.indexOf(b),
+  );
+}
+
+export function getApplicationStatusChooserDescription(
+  actions: ApplicationStatusAction[],
+): string {
+  const labels = sortApplicationStatusActions(actions).map((action) =>
+    getApplicationStatusActionLabel(action).toLowerCase(),
+  );
+
+  if (labels.length === 0) {
+    return "No actions are available for this application.";
+  }
+  if (labels.length === 1) {
+    return `Review this candidate, then choose ${labels[0]}.`;
+  }
+  if (labels.length === 2) {
+    return `Review this candidate, then choose ${labels[0]} or ${labels[1]}.`;
+  }
+
+  const last = labels[labels.length - 1];
+  return `Review this candidate, then choose ${labels.slice(0, -1).join(", ")}, or ${last}.`;
+}
+
+export function getApplicationStatusActionGridClass(
+  count: number,
+): string {
+  if (count <= 1) return "grid grid-cols-1 gap-2";
+  if (count === 3) return "grid grid-cols-3 gap-2";
+  return "grid grid-cols-2 gap-2";
+}
+
 export function getApplicationStatusActionClassName(
   action: ApplicationStatusAction,
 ): string {
   const base =
-    "flex h-full min-h-[88px] w-full flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-3 text-center transition-colors disabled:opacity-50";
+    "flex h-full w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors disabled:opacity-50";
 
   switch (action) {
     case "HIRE":

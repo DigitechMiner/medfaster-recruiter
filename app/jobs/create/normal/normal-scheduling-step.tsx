@@ -177,6 +177,7 @@ export function NormalSchedulingStep({
   >({});
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const isRotational = staffingType === "rotational";
   const isStandard = staffingType === "standard";

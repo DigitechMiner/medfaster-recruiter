@@ -5,8 +5,7 @@ import type {
   ShiftType,
   StaffingType,
 } from "@/types";
-import { validateJobStartDateTime } from "@/utils/datetime";
-import { isEmpty, isStringArrayBetween, parseClockTimeToMinutes, parseLocalDate } from "./helpers";
+import { isEmpty, isPastDate, isStringArrayBetween, parseClockTimeToMinutes, parseLocalDate } from "./helpers";
 import type { PushError } from "./types";
 import {
   buildTeamLabels,
@@ -182,6 +181,11 @@ export function formatSchedulingStepDateErrors(
 
   if (isSnapshotDateMissing(snapshot.start_date)) {
     messages.push("Job start date is required.");
+  } else if (
+    typeof snapshot.start_date === "string" &&
+    isPastDate(snapshot.start_date)
+  ) {
+    messages.push("Start date cannot be in the past.");
   }
 
   const isFullTime =
@@ -262,40 +266,12 @@ export function formatSchedulingStepTemplateErrors(
   );
 }
 
-function earliestSnapshotStartTime(snapshot: JobFormSnapshot): string | undefined {
-  const selectedShifts = sortShiftsInDayOrder(
-    (snapshot.selected_shift_types as ShiftType[] | undefined) ?? [],
-  );
-
-  let earliest: string | undefined;
-  for (const shift of selectedShifts) {
-    const start = getShiftStartFromState(shift, snapshot)?.trim();
-    if (!start) continue;
-    if (!earliest || start < earliest) earliest = start;
-  }
-
-  return (
-    earliest ||
-    snapshot.check_in_time?.trim() ||
-    snapshot.morning_shift_start?.trim() ||
-    undefined
-  );
-}
-
 /** Date, shift-timing, and template checks before leaving the scheduling step. */
 export function formatSchedulingStepErrors(
   snapshot: JobFormSnapshot,
 ): string | null {
-  const startTimeError = validateJobStartDateTime({
-    province: snapshot.province,
-    startDate: snapshot.start_date,
-    startTime: earliestSnapshotStartTime(snapshot),
-    urgency: snapshot.job_urgency ?? "NORMAL",
-  });
-
   const messages = [
     formatSchedulingStepDateErrors(snapshot),
-    startTimeError?.message ?? null,
     formatSchedulingStepShiftTimingErrors(snapshot),
     formatSchedulingStepTemplateErrors(snapshot),
   ].filter((message): message is string => message !== null);
