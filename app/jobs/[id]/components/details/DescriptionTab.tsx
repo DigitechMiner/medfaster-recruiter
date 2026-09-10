@@ -32,7 +32,6 @@ export function DescriptionTab({
 
   const sections = [
     { title: "Responsibilities", items: description?.responsibilities ?? [] },
-    { title: "Requirements", items: description?.requirements ?? [] },
     {
       title: "Required Skills",
       items: description?.skills ?? description?.required_skills ?? [],
