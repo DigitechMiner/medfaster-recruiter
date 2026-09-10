@@ -11,6 +11,16 @@ import { getProvinceLabel } from "@/utils/constant/metadata";
 
 const DEFAULT_JOB_TIMEZONE = "America/Toronto";
 
+const CALENDAR_YMD = /^(\d{4})-(\d{2})-(\d{2})$/;
+const UTC_MIDNIGHT_ISO =
+  /^(\d{4}-\d{2}-\d{2})T00:00:00(?:\.\d+)?(?:Z|[+-]00:00)$/;
+
+const DEFAULT_CALENDAR_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+};
+
 const CANADIAN_PROVINCE_TIMEZONES: Record<string, string> = {
   alberta: "America/Edmonton",
   british_columbia: "America/Vancouver",
@@ -26,6 +36,47 @@ const CANADIAN_PROVINCE_TIMEZONES: Record<string, string> = {
   nunavut: "America/Iqaluit",
   yukon: "America/Whitehorse",
 };
+
+function calendarDateFromYmd(year: number, monthIndex: number, day: number): Date | null {
+  const date = new Date(year, monthIndex, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== monthIndex ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+}
+
+/**
+ * Format a calendar date (`YYYY-MM-DD`) as the same day in every timezone.
+ * `2026-09-11` always displays as 11 Sept 2026 — no UTC/local shift.
+ * Returns null when the value is not a date-only (or UTC-midnight) string.
+ */
+export function formatCalendarDate(
+  value?: string | null,
+  options: Intl.DateTimeFormatOptions = DEFAULT_CALENDAR_DATE_FORMAT,
+): string | null {
+  if (value == null || value === "") return null;
+
+  const trimmed = value.trim();
+  const utcMidnight = UTC_MIDNIGHT_ISO.exec(trimmed);
+  const ymd = utcMidnight?.[1] ?? (CALENDAR_YMD.test(trimmed) ? trimmed : null);
+  if (!ymd) return null;
+
+  const match = CALENDAR_YMD.exec(ymd);
+  if (!match) return null;
+
+  const date = calendarDateFromYmd(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  );
+  if (!date) return null;
+
+  return date.toLocaleDateString("en-GB", options);
+}
 
 /** Province slug → IANA timezone. Unknown values fall back to Toronto. */
 export function timezoneFromCanadianProvince(

@@ -1,6 +1,7 @@
 import { JobCardSkeleton } from "@/components/card/JobCard";
 import type { JobListItem, JobListShiftTemplate } from "@/types";
 import { getMetadataLabel, metaData } from "@/utils/constant/metadata";
+import { formatCalendarDate } from "@/utils/datetime";
 
 export interface StatCounts {
   activeJobs: number;
@@ -319,7 +320,13 @@ export function formatDateRangeShort(job: JobListItem): string | null {
 export const formatDate = (date?: string | null) => {
   if (!date) return "—";
 
-  return new Date(date).toLocaleDateString("en-GB", {
+  const calendar = formatCalendarDate(date);
+  if (calendar) return calendar;
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "—";
+
+  return parsed.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",

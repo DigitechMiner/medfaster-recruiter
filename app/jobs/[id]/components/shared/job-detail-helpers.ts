@@ -10,6 +10,7 @@ import type {
   PreviewShiftMode,
 } from "@/types";
 import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
+import { formatCalendarDate } from "@/utils/datetime";
 
 export type JobDetailPayload = Omit<
   Partial<JobBackendResponse>,
@@ -457,6 +458,14 @@ export function formatTeamPreferenceShifts(shiftTypes?: string[] | null) {
 
 export function formatDate(value?: string | null) {
   if (!value) return "N/A";
+
+  const calendar = formatCalendarDate(value, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  if (calendar) return calendar;
+
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -466,6 +475,10 @@ export function formatDate(value?: string | null) {
 
 export function formatDateShort(value?: string | null) {
   if (!value) return "—";
+
+  const calendar = formatCalendarDate(value);
+  if (calendar) return calendar;
+
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
