@@ -27,5 +27,6 @@ export const PAYLOAD_TO_FORM_FIELD = {
   ai_interview: "ai_interview",
   questions: "questions",
   schedule_template: "schedule_template",
+  selected_shift_types: "selected_shift_types",
 } as const satisfies Partial<Record<keyof JobCreatePayload, keyof JobFormData>>;
 // END SECTION: Payload To Form Field Map

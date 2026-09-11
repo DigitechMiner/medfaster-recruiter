@@ -33,6 +33,10 @@ import {
   PaymentBreakdownTable,
   type PaymentBreakdownColumn,
 } from "./payment-breakdown-table";
+import {
+  computeTaxBreakdown,
+  formatHourlyRate,
+} from "./hourly-pay-with-taxes";
 import { useMetadataStore } from "@/stores/metadataStore";
 import { useWalletStore } from "@/stores/walletStore";
 import type {
@@ -527,6 +531,13 @@ export function JobReview({
     () => instantPreviewCost?.taxComponents ?? previewCost?.taxComponents ?? [],
     [instantPreviewCost?.taxComponents, previewCost?.taxComponents],
   );
+  const hourlyTaxBreakdown = useMemo(
+    () =>
+      hourlyRateCents > 0 && taxComponents.length > 0
+        ? computeTaxBreakdown(hourlyRateCents, taxComponents)
+        : null,
+    [hourlyRateCents, taxComponents],
+  );
   const firstMonthPayment = previewCost?.monthlyPayments[0];
   const useApiShiftTable = isUrgent
     ? hasInstantPreviewShifts(feePreview)
@@ -851,35 +862,61 @@ export function JobReview({
           {shifts.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <div className="mb-4">
-                <h3 className="text-base font-semibold text-gray-900">
-                  {tableTitle}
-                </h3>
-                {jobDateRangeLabel && (
-                  <p className="mt-1 text-sm text-gray-600">
-                    {jobDateRangeLabel}
-                  </p>
-                )}
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    {tableTitle}
+                  </h3>
+                  {jobDateRangeLabel && (
+                    <p className="text-sm text-gray-600">{jobDateRangeLabel}</p>
+                  )}
+                </div>
                 {hourlyRateCents > 0 && (
-                  <p className="mt-1 text-sm text-gray-600">
-                    Hourly rate{" "}
-                    <span className="font-semibold text-gray-900">
-                      $
-                      {hourlyRate.toLocaleString("en-CA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                      /hr
-                    </span>
-                    {taxComponents.length > 0 ? (
-                      <span className="text-gray-400">
-                        {" "}
-                        · Tax shown per shift below
-                      </span>
+                  <div
+                    className={cn(
+                      "mt-3 grid overflow-hidden rounded-lg border border-gray-200 bg-gray-50/80",
+                      hourlyTaxBreakdown
+                        ? "grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]"
+                        : "grid-cols-1",
+                    )}
+                  >
+                    <div className="px-4 py-3">
+                      <p className="text-xs text-gray-500">Base Pay</p>
+                      <p className="mt-1 text-sm font-semibold tabular-nums text-gray-900">
+                        {formatHourlyRate(hourlyRateCents)}/hr
+                      </p>
+                    </div>
+                    {hourlyTaxBreakdown
+                      ? hourlyTaxBreakdown.lines.map((line) => (
+                          <div
+                            key={`${line.tax_name}-${line.display_order}`}
+                            className="border-t border-gray-100 px-4 py-3 sm:border-t-0 sm:border-l"
+                          >
+                            <p className="text-xs text-gray-500">
+                              {line.tax_name}
+                              <span className="ml-1 text-gray-400">
+                                ({line.tax_percentage}%)
+                              </span>
+                            </p>
+                            <p className="mt-1 text-sm font-semibold tabular-nums text-gray-900">
+                              {formatHourlyRate(line.amountCents)}/hr
+                            </p>
+                          </div>
+                        ))
+                      : null}
+                    {hourlyTaxBreakdown ? (
+                      <div className="border-t border-gray-100 bg-white px-4 py-3 sm:border-t-0 sm:border-l">
+                        <p className="text-xs font-medium text-gray-500">
+                          Total with tax
+                        </p>
+                        <p className="mt-1 text-sm font-bold tabular-nums text-[#F4781B]">
+                          {formatHourlyRate(hourlyTaxBreakdown.totalCents)}/hr
+                        </p>
+                      </div>
                     ) : null}
-                  </p>
+                  </div>
                 )}
                 {previewDaysNote && (
-                  <p className="mt-0.5 text-xs text-gray-400">
+                  <p className="mt-2 text-xs text-gray-400">
                     {previewDaysNote}
                   </p>
                 )}
@@ -1040,14 +1077,16 @@ export function JobReview({
                           </span>
                         </div>
 
-                        <div className="flex justify-between py-3 text-sm">
-                          <span className="text-gray-700 font-medium">
-                            Workers required per shift
-                          </span>
-                          <span className="font-medium text-gray-900">
-                            x {previewCost.hires}
-                          </span>
-                        </div>
+                        {previewCost.workersPerShift != null && (
+                          <div className="flex justify-between py-3 text-sm">
+                            <span className="text-gray-700 font-medium">
+                              Workers per shift
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {previewCost.workersPerShift}
+                            </span>
+                          </div>
+                        )}
 
                         <div className="py-3">
                           {previewCost.monthlyPayments.length > 1 && (
@@ -1061,6 +1100,17 @@ export function JobReview({
                                   : ""}
                             </p>
                           )}
+                          {previewCost.previewShiftCount > 0 &&
+                            previewCost.monthlyPayments[0]?.shiftCount >
+                              previewCost.previewShiftCount && (
+                              <p className="mb-2 text-xs text-gray-500">
+                                Month 1 includes{" "}
+                                {previewCost.monthlyPayments[0].shiftCount} shifts
+                                through the billing end date. The table above shows
+                                the capped preview window (
+                                {previewCost.previewShiftCount} shifts).
+                              </p>
+                            )}
                           <PaymentBreakdownTable
                             columns={toPaymentBreakdownColumns(
                               previewCost.monthlyPayments,
@@ -1106,14 +1156,16 @@ export function JobReview({
                           </span>
                         </div>
 
-                        <div className="flex justify-between py-3 text-sm">
-                          <span className="text-gray-700 font-medium">
-                            Workers required per shift
-                          </span>
-                          <span className="font-medium text-gray-900">
-                            x {previewCost.hires}
-                          </span>
-                        </div>
+                        {previewCost.workersPerShift != null && (
+                          <div className="flex justify-between py-3 text-sm">
+                            <span className="text-gray-700 font-medium">
+                              Workers per shift
+                            </span>
+                            <span className="font-medium text-gray-900">
+                              {previewCost.workersPerShift}
+                            </span>
+                          </div>
+                        )}
 
                         {previewCost.oneCyclePayment && (
                           <div className="py-1">

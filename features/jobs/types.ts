@@ -298,14 +298,40 @@ export interface JobDetailActivityData {
   events: JobDetailActivityEvent[];
 }
 
+export interface JobPaymentInvoice {
+  id?: string;
+  invoice_number?: string | null;
+  due_date?: string | null;
+  total_amount_cents?: string | number | null;
+  paid_at?: string | null;
+  status?: string | null;
+}
+
+export interface JobPaymentLedgerSummary {
+  total_payment_received_cents?: string | number | null;
+  total_candidate_payout_cents?: string | number | null;
+  total_platform_fee_cents?: string | number | null;
+  total_tax_collected_cents?: string | number | null;
+  total_refund_cents?: string | number | null;
+  total_tax_refund_cents?: string | number | null;
+  total_adjustment_cents?: string | number | null;
+  held_amount_cents?: string | number | null;
+}
+
 export interface JobDetailPaymentCycle {
   id?: string;
+  cycle_number?: number;
   label?: string;
   period_start?: string;
   period_end?: string;
+  estimated_amount_cents?: string | number;
+  actual_amount_cents?: string | number;
+  refund_amount_cents?: string | number;
   amount_cents?: string | number;
   status?: string;
   shift_count?: number;
+  invoice?: JobPaymentInvoice | null;
+  ledger?: JobPaymentLedgerSummary | null;
 }
 
 export interface JobFeeBreakdownPerHour {
@@ -329,7 +355,7 @@ export interface JobFeeBreakdownContract {
   candidate_share_cents?: string | number | null;
   platform_share_cents?: string | number | null;
   tax?: JobPreviewTaxSummary | null;
-  total_tax_cents?: number | null;
+  total_tax_cents?: string | number | null;
   total_pay_cents?: string | number | null;
 }
 
@@ -343,10 +369,18 @@ export interface JobFeeBreakdown {
 }
 
 export interface JobDetailFundingInfo {
+  id?: string;
+  funding_type?: string | null;
   status?: string | null;
+  contract_start_date?: string | null;
+  contract_end_date?: string | null;
+  total_contract_amount_cents?: string | number | null;
+  total_paid_amount_cents?: string | number | null;
   total_candidate_payout_cents?: string | number | null;
   total_platform_fee_cents?: string | number | null;
-  ledger?: JobWalletTransactionItem[] | Record<string, unknown>;
+  total_tax_collected_cents?: string | number | null;
+  total_refund_cents?: string | number | null;
+  ledger?: JobPaymentLedgerSummary | JobWalletTransactionItem[] | null;
 }
 
 /** Funding tab — contract, escrow, fee breakdown, cycles, and ledger. */
@@ -360,6 +394,7 @@ export interface JobDetailPaymentsData {
   fee_breakdown?: JobFeeBreakdown | null;
   funding?: JobDetailFundingInfo | null;
   cycles?: JobDetailPaymentCycle[];
+  ledger_summary?: JobPaymentLedgerSummary | null;
   ledger?: JobWalletTransactionItem[];
   transactions?: JobWalletTransactionItem[];
 }
@@ -427,6 +462,11 @@ export interface JobListShiftTemplate {
 
 /** One scheduled shift slot for a team on a rotation cycle day (job detail API). */
 export interface JobShiftStaffingGap {
+  shiftRecordId?: string;
+  jobId?: string;
+  shiftDate?: string;
+  requiredWorkers?: number;
+  availableWorkers?: number;
   required?: number;
   assigned?: number;
   gap?: number;
@@ -457,11 +497,15 @@ export interface JobScheduleRotationalTeam {
 }
 
 export interface JobTeamCandidateRotation {
+  id?: string;
   team_id: string;
   team_name?: string;
   candidate_user_id: string;
   rotation_order: number;
+  shift_types?: string[];
   is_active: boolean;
+  joined_at?: string | null;
+  removed_at?: string | null;
 }
 
 /** Rotation plan + shift templates (lazy-loaded on Schedule tab). */
@@ -1423,6 +1467,7 @@ export interface JobShiftAssignment extends JobDetailRecord {
   assignment_id?: string;
   job_id?: string;
   job_shift_id?: string;
+  job_shift_record_id?: string;
   candidate_id?: string;
   status?: string | null;
   hourly_rate_cents?: number | string | null;
@@ -1450,6 +1495,7 @@ export interface JobShiftItem extends JobDetailRecord {
   planned_check_in_at?: string | null;
   planned_check_out_at?: string | null;
   planned_minutes?: number | string | null;
+  required_workers?: number | string | null;
   province?: string | null;
   check_in?: string | null;
   check_out?: string | null;
@@ -1461,18 +1507,34 @@ export interface JobShiftItem extends JobDetailRecord {
 
 export interface JobShiftsResponse extends JobDetailRecord {
   shifts: JobShiftItem[];
+  /** Applied status filter from the API, or null when listing every shift. */
+  status?: JobShiftStatus[] | null;
   pagination?: {
     total?: number;
     count?: number;
     page?: number;
     limit?: number;
+    offset?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
   };
 }
 
+export type JobShiftStatus =
+  | "UPCOMING"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "MISSED";
+
 export interface JobShiftsParams {
-  status?: string;
+  /** Single status, comma-separated list (`ACTIVE,UPCOMING`), or omit for every shift. */
+  status?: JobShiftStatus | JobShiftStatus[] | string;
   start_date?: string;
   end_date?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface JobShiftPaymentItem extends JobDetailRecord {

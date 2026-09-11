@@ -32,6 +32,12 @@ import type {
   JobDetailActivityEvent,
   JobDetailDescriptionData,
   JobDetailPaymentsData,
+  JobDetailPaymentCycle,
+  JobPaymentInvoice,
+  JobPaymentLedgerSummary,
+  JobFeeBreakdown,
+  JobFeeBreakdownContract,
+  JobPreviewTaxSummary,
   JobDetailSummaryData,
   JobScheduleData,
   JobWorkersResponse,
@@ -44,6 +50,7 @@ import type {
   JobFeePreviewPayload,
   JobFeePreviewResponse,
   JobShiftItem,
+  JobShiftStatus,
   JobShiftPaymentItem,
   JobShiftPaymentsResponse,
   JobShiftDetailsResponse,
@@ -273,45 +280,248 @@ export async function getRecruiterJobActivity(
   return normalizeJobActivity(data);
 }
 
-function normalizeJobPayments(data: unknown): JobDetailPaymentsData {
-  if (!isRecord(data)) return { cycles: [], ledger: [] };
+function asCents(value: unknown): string | number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") return value;
+  return undefined;
+}
 
-  const funding = isRecord(data.funding) ? data.funding : null;
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
 
-  let ledger: JobWalletTransactionItem[] = [];
-  if (Array.isArray(data.ledger)) {
-    ledger = data.ledger as JobWalletTransactionItem[];
-  } else if (Array.isArray(data.transactions)) {
-    ledger = data.transactions as JobWalletTransactionItem[];
-  } else if (Array.isArray(data.wallet_transactions)) {
-    ledger = data.wallet_transactions as JobWalletTransactionItem[];
-  } else if (funding && Array.isArray(funding.ledger)) {
-    ledger = funding.ledger as JobWalletTransactionItem[];
+function normalizePaymentInvoice(value: unknown): JobPaymentInvoice | null {
+  if (!isRecord(value)) return null;
+  return {
+    id: asOptionalString(value.id),
+    invoice_number: asOptionalString(value.invoice_number) ?? null,
+    due_date: asOptionalString(value.due_date) ?? null,
+    total_amount_cents: asCents(value.total_amount_cents) ?? null,
+    paid_at: asOptionalString(value.paid_at) ?? null,
+    status: asOptionalString(value.status) ?? null,
+  };
+}
+
+function normalizePaymentLedgerSummary(
+  value: unknown,
+): JobPaymentLedgerSummary | null {
+  if (!isRecord(value)) return null;
+  return {
+    total_payment_received_cents: asCents(value.total_payment_received_cents),
+    total_candidate_payout_cents: asCents(value.total_candidate_payout_cents),
+    total_platform_fee_cents: asCents(value.total_platform_fee_cents),
+    total_tax_collected_cents: asCents(value.total_tax_collected_cents),
+    total_refund_cents: asCents(value.total_refund_cents),
+    total_tax_refund_cents: asCents(value.total_tax_refund_cents),
+    total_adjustment_cents: asCents(value.total_adjustment_cents),
+    held_amount_cents: asCents(value.held_amount_cents),
+  };
+}
+
+function normalizePaymentCycle(
+  value: unknown,
+  index: number,
+): JobDetailPaymentCycle {
+  if (!isRecord(value)) {
+    return { label: `Cycle ${index + 1}` };
   }
 
-  const cycles = Array.isArray(data.cycles)
+  const cycleNumber =
+    typeof value.cycle_number === "number" && Number.isFinite(value.cycle_number)
+      ? value.cycle_number
+      : index + 1;
+  const actual = asCents(value.actual_amount_cents);
+  const estimated = asCents(value.estimated_amount_cents);
+
+  return {
+    id: asOptionalString(value.id),
+    cycle_number: cycleNumber,
+    label: asOptionalString(value.label) ?? `Cycle ${cycleNumber}`,
+    period_start:
+      asOptionalString(value.period_start_date) ??
+      asOptionalString(value.period_start),
+    period_end:
+      asOptionalString(value.period_end_date) ??
+      asOptionalString(value.period_end),
+    estimated_amount_cents: estimated,
+    actual_amount_cents: actual,
+    refund_amount_cents: asCents(value.refund_amount_cents),
+    amount_cents: actual ?? estimated ?? asCents(value.amount_cents),
+    status: asOptionalString(value.status),
+    shift_count:
+      typeof value.shift_count === "number" ? value.shift_count : undefined,
+    invoice: normalizePaymentInvoice(value.invoice),
+    ledger: normalizePaymentLedgerSummary(value.ledger),
+  };
+}
+
+function normalizeFeeBreakdownTax(value: unknown): JobPreviewTaxSummary | null {
+  if (!isRecord(value)) return null;
+  const components = Array.isArray(value.components)
+    ? value.components.flatMap((component) => {
+        if (!isRecord(component)) return [];
+        return [
+          {
+            tax_name: asOptionalString(component.tax_name) ?? "Tax",
+            tax_percentage: Number(component.tax_percentage ?? 0),
+            display_order: Number(component.display_order ?? 0),
+            tax_amount_cents: Number(component.tax_amount_cents ?? 0),
+          },
+        ];
+      })
+    : [];
+
+  return {
+    components,
+    total_tax_cents: Number(value.total_tax_cents ?? 0),
+    total_tax_percentage: Number(value.total_tax_percentage ?? 0),
+  };
+}
+
+function normalizeFeeBreakdownContract(
+  value: unknown,
+): JobFeeBreakdownContract | null {
+  if (!isRecord(value)) return null;
+  return {
+    recruiter_pay_cents: asCents(value.recruiter_pay_cents),
+    candidate_share_cents: asCents(value.candidate_share_cents),
+    platform_share_cents: asCents(value.platform_share_cents),
+    tax: normalizeFeeBreakdownTax(value.tax),
+    total_tax_cents: asCents(value.total_tax_cents),
+    total_pay_cents: asCents(value.total_pay_cents),
+  };
+}
+
+function normalizeFeeBreakdown(value: unknown): JobFeeBreakdown | null {
+  if (!isRecord(value)) return null;
+  const perHour = isRecord(value.per_hour) ? value.per_hour : null;
+  const components = Array.isArray(value.components)
+    ? value.components.flatMap((component) => {
+        if (!isRecord(component)) return [];
+        return [
+          {
+            payee: asOptionalString(component.payee) ?? "",
+            code: asOptionalString(component.code) ?? "",
+            name: asOptionalString(component.name) ?? "",
+            value_type: asOptionalString(component.value_type) ?? "",
+            percentage: Number(component.percentage ?? 0),
+            amount_per_hour_cents: Number(component.amount_per_hour_cents ?? 0),
+            display_order: Number(component.display_order ?? 0),
+          },
+        ];
+      })
+    : [];
+
+  return {
+    province: asOptionalString(value.province) ?? null,
+    candidate_percentage:
+      typeof value.candidate_percentage === "number"
+        ? value.candidate_percentage
+        : null,
+    platform_percentage:
+      typeof value.platform_percentage === "number"
+        ? value.platform_percentage
+        : null,
+    per_hour: perHour
+      ? {
+          recruiter_pay_per_hour_cents: Number(
+            perHour.recruiter_pay_per_hour_cents ?? 0,
+          ),
+          candidate_receive_per_hour_cents: Number(
+            perHour.candidate_receive_per_hour_cents ?? 0,
+          ),
+          platform_fee_per_hour_cents: Number(
+            perHour.platform_fee_per_hour_cents ?? 0,
+          ),
+        }
+      : null,
+    components,
+    contract: normalizeFeeBreakdownContract(value.contract),
+  };
+}
+
+function extractPaymentTransactions(data: JobDetailRecord): JobWalletTransactionItem[] {
+  if (Array.isArray(data.ledger)) {
+    return data.ledger as JobWalletTransactionItem[];
+  }
+  if (Array.isArray(data.transactions)) {
+    return data.transactions as JobWalletTransactionItem[];
+  }
+  if (Array.isArray(data.wallet_transactions)) {
+    return data.wallet_transactions as JobWalletTransactionItem[];
+  }
+  const funding = isRecord(data.funding) ? data.funding : null;
+  if (funding && Array.isArray(funding.ledger)) {
+    return funding.ledger as JobWalletTransactionItem[];
+  }
+  return [];
+}
+
+function normalizeJobPayments(data: unknown): JobDetailPaymentsData {
+  if (!isRecord(data)) {
+    return { cycles: [], ledger: [], ledger_summary: null };
+  }
+
+  const funding = isRecord(data.funding) ? data.funding : null;
+  const ledgerSummary =
+    normalizePaymentLedgerSummary(data.ledger) ??
+    (funding ? normalizePaymentLedgerSummary(funding.ledger) : null);
+  const rawCycles = Array.isArray(data.cycles)
     ? data.cycles
     : funding && Array.isArray(funding.cycles)
       ? funding.cycles
       : [];
-
+  const cycles = rawCycles.map(normalizePaymentCycle);
+  const transactions = extractPaymentTransactions(data);
   const fundingStatus =
-    typeof data.funding_status === "string"
-      ? data.funding_status
-      : funding && typeof funding.status === "string"
-        ? funding.status
-        : undefined;
+    asOptionalString(data.funding_status) ??
+    (funding ? asOptionalString(funding.status) : undefined);
 
   return {
-    ...(data as JobDetailPaymentsData),
+    job_id: asOptionalString(data.job_id),
+    contract_amount_cents:
+      asCents(data.contract_amount_cents) ??
+      (funding ? asCents(funding.total_contract_amount_cents) : undefined),
+    escrow_held_cents:
+      asCents(data.escrow_held_cents) ??
+      (ledgerSummary?.held_amount_cents ?? undefined),
+    spent_cents: asCents(data.spent_cents),
+    refunded_cents:
+      asCents(data.refunded_cents) ??
+      asCents(ledgerSummary?.total_refund_cents),
     funding_status: fundingStatus,
-    cycles: cycles as JobDetailPaymentsData["cycles"],
-    ledger,
-    transactions: ledger,
-    funding: funding as JobDetailPaymentsData["funding"],
-    fee_breakdown: isRecord(data.fee_breakdown)
-      ? (data.fee_breakdown as unknown as JobDetailPaymentsData["fee_breakdown"])
+    fee_breakdown: normalizeFeeBreakdown(data.fee_breakdown),
+    funding: funding
+      ? {
+          id: asOptionalString(funding.id),
+          funding_type: asOptionalString(funding.funding_type) ?? null,
+          status: asOptionalString(funding.status) ?? null,
+          contract_start_date:
+            asOptionalString(funding.contract_start_date) ?? null,
+          contract_end_date: asOptionalString(funding.contract_end_date) ?? null,
+          total_contract_amount_cents: asCents(
+            funding.total_contract_amount_cents,
+          ),
+          total_paid_amount_cents: asCents(funding.total_paid_amount_cents),
+          total_candidate_payout_cents:
+            asCents(funding.total_candidate_payout_cents) ??
+            ledgerSummary?.total_candidate_payout_cents,
+          total_platform_fee_cents:
+            asCents(funding.total_platform_fee_cents) ??
+            ledgerSummary?.total_platform_fee_cents,
+          total_tax_collected_cents:
+            asCents(funding.total_tax_collected_cents) ??
+            ledgerSummary?.total_tax_collected_cents,
+          total_refund_cents:
+            asCents(funding.total_refund_cents) ??
+            ledgerSummary?.total_refund_cents,
+          ledger: ledgerSummary,
+        }
       : null,
+    cycles,
+    ledger_summary: ledgerSummary,
+    ledger: transactions,
+    transactions,
   };
 }
 
@@ -555,12 +765,69 @@ export async function getJobApplications(params: {
   return Array.isArray(data) ? { applications: data, pagination: { total: data.length, count: data.length, page: 1, limit: data.length } } : data;
 }
 
+const JOB_SHIFT_STATUSES: JobShiftStatus[] = [
+  "UPCOMING",
+  "ACTIVE",
+  "COMPLETED",
+  "CANCELLED",
+  "MISSED",
+];
+
+function serializeShiftStatusParam(
+  status: JobShiftsParams["status"],
+): string | undefined {
+  if (status == null || status === "") return undefined;
+
+  const value = Array.isArray(status) ? status.filter(Boolean).join(",") : status;
+  return value || undefined;
+}
+
+function normalizeAppliedShiftStatuses(value: unknown): JobShiftStatus[] | null {
+  if (value == null || value === "") return null;
+
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  const statuses = raw
+    .map((item) => String(item).trim().toUpperCase())
+    .filter((item): item is JobShiftStatus =>
+      JOB_SHIFT_STATUSES.includes(item as JobShiftStatus),
+    );
+
+  return statuses.length > 0 ? statuses : null;
+}
+
+function normalizeJobShifts(data: unknown): JobShiftsResponse {
+  const normalized = normalizeCollectionResponse<JobShiftItem, JobShiftsResponse>(
+    data,
+    "shifts",
+  );
+
+  return {
+    ...normalized,
+    status: normalizeAppliedShiftStatuses(normalized.status),
+  };
+}
+
 export async function getRecruiterJobShifts(
   jobId: string,
   params?: JobShiftsParams,
 ): Promise<JobShiftsResponse> {
-  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SHIFTS(jobId), { params });
-  return normalizeCollectionResponse<JobShiftItem, JobShiftsResponse>(extractData(res.data), "shifts");
+  const query: Record<string, string | number> = {};
+  const status = serializeShiftStatusParam(params?.status);
+
+  if (status) query.status = status;
+  if (params?.start_date) query.start_date = params.start_date;
+  if (params?.end_date) query.end_date = params.end_date;
+  if (params?.page != null) query.page = params.page;
+  if (params?.limit != null) query.limit = params.limit;
+
+  const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_SHIFTS(jobId), {
+    params: query,
+  });
+  return normalizeJobShifts(extractData(res.data));
 }
 
 export async function getRecruiterJobWalletTransactions(

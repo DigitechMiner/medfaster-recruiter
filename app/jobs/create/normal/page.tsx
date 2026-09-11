@@ -30,6 +30,7 @@ import {
   formatCandidateWeeklyHoursViolations,
   getCandidateWeeklyHoursViolations,
   getDefaultTeamCount,
+  sanitizeSchedulingSnapshot,
 } from "./scheduling-utils";
 import { toCalendarDateString } from "../form/utils";
 import { formatSchedulingStepErrors } from "../validation/normal.validator";
@@ -135,7 +136,9 @@ function NormalJobStepForm() {
   const createJob = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
   const clearDraft = useJobsStore((s) => s.clearDraft);
+  const resetFormDraft = useJobsStore((s) => s.resetFormDraft);
   const formSnapshot = useJobsStore((s) => s.formSnapshot);
+  const setFormSnapshot = useJobsStore((s) => s.setFormSnapshot);
   const [descriptionLoading, setDescriptionLoading] = useState(false);
   const [descriptionGenerateError, setDescriptionGenerateError] = useState<
     string | null
@@ -173,6 +176,7 @@ function NormalJobStepForm() {
       isProcessing: false,
       isSubmitDisabled: false,
     });
+  const [formResetKey, setFormResetKey] = useState(0);
 
   const handleDraftRestore = useCallback((draft: JobCreateDraftSession) => {
     if (draft.step >= 1 && draft.step <= 4) {
@@ -245,6 +249,23 @@ function NormalJobStepForm() {
   const resetProgressValidation = () => {
     setPendingProgressStep(null);
     setProgressValidationToken(undefined);
+  };
+
+  const handleResetForm = () => {
+    resetFormDraft("normal");
+    setStep(1);
+    setPendingPayload(null);
+    setWantsInterview(true);
+    setAiQuestions(makeDefaultQuestions());
+    setDescriptionLoading(false);
+    setDescriptionGenerateError(null);
+    setRetryDescriptionGenerate(null);
+    setReviewActionState({
+      isProcessing: false,
+      isSubmitDisabled: false,
+    });
+    resetProgressValidation();
+    setFormResetKey((key) => key + 1);
   };
 
   const navigateToProgressStep = (targetStep: number) => {
@@ -341,6 +362,7 @@ function NormalJobStepForm() {
           currentStep={currentProgressStep}
           onBack={handleBackToJobs}
           onStepClick={handleProgressStepClick}
+          onResetForm={handleResetForm}
           backLabel="Back to Jobs"
         />
 
@@ -358,6 +380,7 @@ function NormalJobStepForm() {
             }
           >
             <NormalJobForm
+              key={`basic-${formResetKey}`}
               urgencyMode="normal"
               formStep="basic"
               formId={NORMAL_BASIC_FORM_ID}
@@ -421,20 +444,15 @@ function NormalJobStepForm() {
               />
             }
           >
-            {useJobsStore.getState().formSnapshot && (
+            {formSnapshot && (
               <NormalSchedulingStep
-                formData={
-                  useJobsStore.getState()
-                    .formSnapshot as unknown as JobFormData
-                }
+                formData={formSnapshot as unknown as JobFormData}
                 updateFormData={(updates) => {
-                  const current =
-                    useJobsStore.getState().formSnapshot ?? {};
-                  const nextSnapshot = {
-                    ...current,
+                  const nextSnapshot = sanitizeSchedulingSnapshot({
+                    ...(formSnapshot ?? {}),
                     ...updates,
-                  } as JobFormSnapshot;
-                  useJobsStore.getState().setFormSnapshot(nextSnapshot);
+                  } as JobFormSnapshot);
+                  setFormSnapshot(nextSnapshot);
                 }}
               />
             )}
@@ -473,6 +491,7 @@ function NormalJobStepForm() {
           >
             {/* Description part: always visible */}
             <NormalJobForm
+              key={`description-${formResetKey}`}
               urgencyMode="normal"
               formStep="description"
               formId={NORMAL_DESCRIPTION_FORM_ID}

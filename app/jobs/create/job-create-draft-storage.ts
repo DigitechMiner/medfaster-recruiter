@@ -1,5 +1,6 @@
 import type { JobFormSnapshot } from "@/stores/jobs-store";
 import type { JobCreatePayload } from "@/types";
+import { sanitizeSchedulingSnapshot } from "./normal/scheduling-utils";
 
 export type JobCreateDraftMode = "normal" | "instant";
 
@@ -52,6 +53,10 @@ export function loadJobCreateDraft(
     const parsed = JSON.parse(raw) as JobCreateDraftSession;
     if (!parsed || typeof parsed !== "object") return null;
 
+    if (parsed.formSnapshot) {
+      parsed.formSnapshot = sanitizeSchedulingSnapshot(parsed.formSnapshot);
+    }
+
     return parsed;
   } catch {
     return null;
@@ -89,6 +94,9 @@ export function saveJobCreateDraft(
   try {
     const payload: JobCreateDraftSession = {
       ...draft,
+      formSnapshot: draft.formSnapshot
+        ? sanitizeSchedulingSnapshot(draft.formSnapshot)
+        : null,
       savedAt: Date.now(),
     };
     sessionStorage.setItem(STORAGE_KEYS[mode], JSON.stringify(payload));

@@ -7,7 +7,7 @@ import type { ProvinceTaxComponent } from "@/types";
 import { useProvinceTaxes } from "@/hooks/useProvinceTaxes";
 import { JobFormField } from "./form-field";
 
-function formatHourlyRate(cents: number): string {
+export function formatHourlyRate(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
@@ -44,9 +44,12 @@ function PayBreakdownRow({
   );
 }
 
-function computeTaxBreakdown(
+export function computeTaxBreakdown(
   payRateCents: number,
-  components: ProvinceTaxComponent[],
+  components: Pick<
+    ProvinceTaxComponent,
+    "tax_name" | "tax_percentage" | "display_order"
+  >[],
 ) {
   const lines = [...components]
     .sort((a, b) => a.display_order - b.display_order)

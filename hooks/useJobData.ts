@@ -588,6 +588,8 @@ export function useJobShifts(jobId?: string | null, params?: JobShiftsParams) {
   const status = params?.status;
   const startDate = params?.start_date;
   const endDate = params?.end_date;
+  const page = params?.page;
+  const limit = params?.limit;
 
   useEffect(() => {
     if (!jobId) {
@@ -603,12 +605,19 @@ export function useJobShifts(jobId?: string | null, params?: JobShiftsParams) {
       status,
       start_date: startDate,
       end_date: endDate,
+      page,
+      limit,
     })
       .then((data) => {
         if (!cancelled) setShifts(data);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message ?? "Failed to load job shifts");
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load job shifts",
+          );
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -617,7 +626,7 @@ export function useJobShifts(jobId?: string | null, params?: JobShiftsParams) {
     return () => {
       cancelled = true;
     };
-  }, [jobId, status, startDate, endDate]);
+  }, [jobId, status, startDate, endDate, page, limit]);
 
   return { shifts, isLoading, error };
 }

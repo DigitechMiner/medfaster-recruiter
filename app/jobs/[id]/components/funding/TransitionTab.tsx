@@ -8,9 +8,8 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { useJobPayments } from "@/hooks/useJobData";
 import type { JobDetailSummaryData } from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
-import { FeeBreakdownSection } from "./FeeBreakdownSection";
 import { formatRelativeTimestamp } from "@/utils/datetime";
-import { formatDate, formatLabel, formatPay } from "../shared/job-detail-helpers";
+import { formatDate, formatDateTime, formatLabel, formatPay } from "../shared/job-detail-helpers";
 
 type TransitionTabProps = {
   jobId: string;
@@ -28,6 +27,13 @@ export function TransitionTab({
   const { payments, isLoading, error } = useJobPayments(jobId, enabled);
   const ledger = payments?.ledger ?? payments?.transactions ?? [];
   const cycles = payments?.cycles ?? [];
+  const contracted =
+    payments?.contract_amount_cents ?? summary.contract_amount_cents;
+  const held = payments?.escrow_held_cents ?? summary.escrow_held_cents;
+  const spent = payments?.spent_cents ?? summary.spent_cents;
+  const refunded = payments?.refunded_cents ?? summary.refunded_cents;
+  const fundingStatus = payments?.funding_status ?? summary.funding_status;
+  const funding = payments?.funding;
   const transactionHeadings = [
     "Transaction",
     "Type",
@@ -53,28 +59,28 @@ export function TransitionTab({
         <MetricCard
           icon={<DollarSign size={18} />}
           title="Contracted"
-          value={formatPay(summary.contract_amount_cents)}
-          subLabel={formatLabel(summary.funding_status)}
+          value={formatPay(contracted)}
+          subLabel={formatLabel(fundingStatus)}
           className="border-gray-200"
         />
         <MetricCard
           icon={<Wallet size={18} />}
           title="Held"
-          value={formatPay(summary.escrow_held_cents)}
+          value={formatPay(held)}
           subLabel="In escrow"
           className="border-gray-200"
         />
         <MetricCard
           icon={<CreditCard size={18} />}
           title="Spent"
-          value={formatPay(summary.spent_cents)}
+          value={formatPay(spent)}
           subLabel="Paid to candidates"
           className="border-gray-200"
         />
         <MetricCard
           icon={<RotateCcw size={18} />}
           title="Refunded"
-          value={formatPay(summary.refunded_cents)}
+          value={formatPay(refunded)}
           subLabel="Returned"
           className="border-gray-200"
         />
@@ -119,8 +125,6 @@ export function TransitionTab({
     <div className="flex flex-col gap-4">
       {fundingSummary}
 
-      <FeeBreakdownSection payments={payments} />
-
       {cycles.length > 0 && (
         <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3 sm:px-5">
@@ -128,71 +132,109 @@ export function TransitionTab({
               Billing Cycles
             </h3>
             <p className="mt-0.5 text-xs text-gray-500">
-              Escrow release windows for this job
+              {funding?.funding_type
+                ? `${formatLabel(funding.funding_type)} funding`
+                : "Escrow windows for this job"}
+              {funding?.contract_start_date && funding?.contract_end_date
+                ? ` · ${formatDate(funding.contract_start_date)} – ${formatDate(funding.contract_end_date)}`
+                : ""}
             </p>
           </div>
           <DataTable
-            headers={["Cycle", "Period", "Shifts", "Amount", "Status"]}
-            minWidthClassName="min-w-[640px]"
+            headers={["Cycle", "Period", "Invoice", "Amount", "Status"]}
+            minWidthClassName="min-w-[720px]"
             headerRowClassName="border-b border-gray-100 bg-gray-50/80"
             wrapperClassName="overflow-x-auto"
           >
-            {cycles.map((cycle, index) => (
-              <tr
-                key={cycle.id ?? `cycle-${index}`}
-                className="border-b border-gray-50 last:border-b-0"
-              >
-                <td className="px-4 py-2.5 text-xs font-semibold text-gray-900 sm:px-5">
-                  {cycle.label ?? `Cycle ${index + 1}`}
-                </td>
-                <td className="px-4 py-2.5 text-xs whitespace-nowrap text-gray-500">
-                  {cycle.period_start && cycle.period_end
-                    ? `${formatDate(cycle.period_start)} – ${formatDate(cycle.period_end)}`
-                    : "N/A"}
-                </td>
-                <td className="px-4 py-2.5 text-xs text-gray-700">
-                  {cycle.shift_count ?? "—"}
-                </td>
-                <td className="px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-gray-900">
-                  {formatPay(cycle.amount_cents)}
-                </td>
-                <td className="px-4 py-2.5 sm:pr-5">
-                  <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
-                    {formatLabel(cycle.status)}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {cycles.map((cycle, index) => {
+              const invoice = cycle.invoice;
+              const invoiceStatus = invoice?.status?.toUpperCase();
+              const invoiceStatusClass =
+                invoiceStatus === "PAID"
+                  ? "bg-green-50 text-green-700"
+                  : invoiceStatus === "PENDING"
+                    ? "bg-orange-50 text-[#F4781B]"
+                    : "bg-gray-100 text-gray-600";
+
+              return (
+                <tr
+                  key={cycle.id ?? `cycle-${index}`}
+                  className="border-b border-gray-50 last:border-b-0"
+                >
+                  <td className="px-4 py-2.5 text-xs font-semibold text-gray-900 sm:px-5">
+                    {cycle.label ?? `Cycle ${cycle.cycle_number ?? index + 1}`}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs whitespace-nowrap text-gray-500">
+                    {cycle.period_start && cycle.period_end
+                      ? `${formatDate(cycle.period_start)} – ${formatDate(cycle.period_end)}`
+                      : "N/A"}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {invoice ? (
+                      <div>
+                        <p className="font-mono text-xs font-semibold text-gray-900">
+                          {invoice.invoice_number ?? "Invoice"}
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          {invoice.status && (
+                            <span
+                              className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${invoiceStatusClass}`}
+                            >
+                              {formatLabel(invoice.status)}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-gray-400">
+                            {invoice.paid_at
+                              ? `Paid ${formatDateTime(invoice.paid_at)}`
+                              : invoice.due_date
+                                ? `Due ${formatDate(invoice.due_date)}`
+                                : ""}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    <p className="text-xs font-semibold text-gray-900">
+                      {formatPay(cycle.amount_cents)}
+                    </p>
+                    {cycle.estimated_amount_cents != null &&
+                      cycle.actual_amount_cents != null &&
+                      String(cycle.estimated_amount_cents) !==
+                        String(cycle.actual_amount_cents) && (
+                        <p className="mt-0.5 text-[11px] text-gray-400">
+                          Est. {formatPay(cycle.estimated_amount_cents)}
+                        </p>
+                      )}
+                  </td>
+                  <td className="px-4 py-2.5 sm:pr-5">
+                    <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
+                      {formatLabel(cycle.status)}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </DataTable>
         </section>
       )}
 
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <div className="border-b border-gray-100 px-4 py-3 sm:px-5">
-          <h3 className="text-sm font-semibold text-gray-900">Ledger</h3>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Wallet holds, releases, and refunds for this job
-          </p>
-        </div>
-
-        {ledger.length === 0 ? (
-          <div className="px-4 py-5 text-center sm:px-5">
-            <p className="text-sm font-semibold text-gray-700">
-              No ledger entries yet
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-gray-400">
-              Transactions appear here once funds are held, released, or
-              refunded.
+      {ledger.length > 0 && (
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-100 px-4 py-3 sm:px-5">
+            <h3 className="text-sm font-semibold text-gray-900">Ledger</h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Wallet holds, releases, and refunds for this job
             </p>
           </div>
-        ) : (
-          <>
-            <DataTable
-              headers={transactionHeadings}
-              minWidthClassName="min-w-[780px]"
-              headerRowClassName="border-b border-gray-100 bg-gray-50/80"
-            >
-              {paginatedTransactions.map((transaction, index) => {
+          <DataTable
+            headers={transactionHeadings}
+            minWidthClassName="min-w-[780px]"
+            headerRowClassName="border-b border-gray-100 bg-gray-50/80"
+          >
+            {paginatedTransactions.map((transaction, index) => {
                 const transactionKey =
                   transaction.id ??
                   transaction.transaction_id ??
@@ -310,9 +352,8 @@ export function TransitionTab({
                 }}
               />
             </div>
-          </>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

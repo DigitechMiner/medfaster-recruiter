@@ -1,17 +1,18 @@
 "use client";
 
-import { Layers, Users } from "lucide-react";
+import { Layers, Moon, Sun, Sunset, Users } from "lucide-react";
 import type {
   JobListShiftTemplate,
   JobScheduleData,
   JobScheduleRotationalTeam,
   JobScheduleTeamCycle,
+  JobTeamCandidateRotation,
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import {
+  formatDateShort,
   formatLabel,
-  formatShiftTemplateLine,
   formatTime,
 } from "../shared/job-detail-helpers";
 import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
@@ -30,6 +31,7 @@ type ResolvedCycleShift = {
   shiftName: string;
   shiftType: string;
   time: string | null;
+  compactTime: string | null;
   workers: number;
 };
 
@@ -38,6 +40,59 @@ const SHIFT_TYPE_STYLES: Record<string, string> = {
   EVENING: "border-green-100 bg-green-50/80",
   NIGHT: "border-blue-100 bg-blue-50/80",
 };
+
+const SHIFT_TYPE_ICONS: Record<
+  string,
+  { icon: typeof Sun; wrap: string; iconClass: string }
+> = {
+  MORNING: {
+    icon: Sun,
+    wrap: "bg-red-50 text-red-600",
+    iconClass: "text-red-600",
+  },
+  EVENING: {
+    icon: Sunset,
+    wrap: "bg-green-50 text-green-600",
+    iconClass: "text-green-600",
+  },
+  NIGHT: {
+    icon: Moon,
+    wrap: "bg-blue-50 text-blue-600",
+    iconClass: "text-blue-600",
+  },
+};
+
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const CYCLE_START_WEEKDAY_INDEX: Record<string, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
+function formatCompactTime(value?: string | null) {
+  if (!value) return null;
+  const [hours, minutes] = value.split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  const hour12 = hours % 12 || 12;
+  const suffix = hours >= 12 ? "p" : "a";
+  return minutes === 0
+    ? `${hour12}${suffix}`
+    : `${hour12}:${String(minutes).padStart(2, "0")}${suffix}`;
+}
+
+function formatCompactTimeRange(
+  startTime?: string | null,
+  endTime?: string | null,
+) {
+  const start = formatCompactTime(startTime);
+  const end = formatCompactTime(endTime);
+  if (!start || !end) return null;
+  return `${start}–${end}`;
+}
 
 function resolveCycleShift(
   cycle: JobScheduleTeamCycle,
@@ -64,6 +119,7 @@ function resolveCycleShift(
       startTime && endTime
         ? `${formatTime(startTime)} – ${formatTime(endTime)}`
         : null,
+    compactTime: formatCompactTimeRange(startTime, endTime),
     workers: cycle.required_workers ?? 1,
   };
 }
@@ -120,48 +176,106 @@ function getCycleLength(
   return maxDay || 14;
 }
 
+function getWeekdayHeaders(cycleStartDay?: string | null) {
+  const startKey = (cycleStartDay ?? "SATURDAY").toUpperCase();
+  const startIndex = CYCLE_START_WEEKDAY_INDEX[startKey] ?? 6;
+  return Array.from({ length: 7 }, (_, index) => {
+    return WEEKDAY_SHORT[(startIndex + index) % 7];
+  });
+}
+
 function CycleDayCell({
+  day,
   shifts,
 }: {
+  day: number;
   shifts: ResolvedCycleShift[];
 }) {
   if (shifts.length === 0) {
     return (
-      <span className="inline-block w-full rounded-lg bg-gray-100 px-2 py-3 text-xs font-medium text-gray-400">
-        Off
-      </span>
+      <div className="flex min-h-[54px] min-w-0 flex-col items-center rounded-lg border border-gray-100 bg-gray-50/80 px-0.5 py-1 sm:min-h-[62px] sm:px-1">
+        <span className="text-[9px] font-semibold tabular-nums text-gray-400 sm:text-[10px]">
+          {day}
+        </span>
+        <span className="mt-auto pb-0.5 text-[9px] font-medium text-gray-400 sm:text-[10px]">
+          Off
+        </span>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1">
       {shifts.map((shift) => (
         <div
           key={shift.id}
+          title={[shift.shiftName, shift.time, `${shift.workers} worker${shift.workers === 1 ? "" : "s"}`]
+            .filter(Boolean)
+            .join(" · ")}
           className={cn(
-            "rounded-lg border px-2 py-1.5 text-left",
+            "flex min-h-[54px] min-w-0 flex-col rounded-lg border px-1 py-1 sm:min-h-[62px] sm:px-1.5",
             SHIFT_TYPE_STYLES[shift.shiftType] ??
               "border-orange-100 bg-orange-50/60",
           )}
         >
-          <p className="text-[11px] font-semibold leading-tight text-gray-900">
+          <span className="text-[9px] font-semibold tabular-nums text-gray-500 sm:text-[10px]">
+            {day}
+          </span>
+          <p className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-gray-900 sm:text-[11px]">
             {shift.shiftName}
+            <span className="ml-0.5 font-medium text-[#F4781B]">
+              ×{shift.workers}
+            </span>
           </p>
-          {shift.time && (
-            <p className="mt-0.5 text-[10px] leading-tight text-gray-500">
-              {shift.time}
+          {shift.compactTime && (
+            <p className="mt-auto truncate text-[9px] leading-tight text-gray-500 sm:text-[10px]">
+              {shift.compactTime}
             </p>
           )}
-          <p className="mt-0.5 text-[10px] font-medium text-[#F4781B]">
-            {shift.workers} worker{shift.workers === 1 ? "" : "s"}
-          </p>
         </div>
       ))}
     </div>
   );
 }
 
-function RotationalGrid({
+function ShiftTemplateCard({ template }: { template: JobListShiftTemplate }) {
+  const shiftType = template.shift_type.toUpperCase();
+  const style = SHIFT_TYPE_ICONS[shiftType] ?? SHIFT_TYPE_ICONS.MORNING;
+  const Icon = style.icon;
+  const breakLabel =
+    template.break_minutes != null && template.break_minutes > 0
+      ? `${template.break_minutes}m break`
+      : null;
+  const payableLabel =
+    template.payable_hours != null ? `${template.payable_hours}h` : null;
+  const timeLabel =
+    template.start_time && template.end_time
+      ? `${formatTime(template.start_time)} – ${formatTime(template.end_time)}`
+      : null;
+
+  return (
+    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50/40 px-3 py-2">
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+          style.wrap,
+        )}
+      >
+        <Icon size={14} className={style.iconClass} />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-gray-900">
+          {formatShiftTypeLabel(template.shift_type)}
+        </p>
+        <p className="mt-0.5 truncate text-[11px] text-gray-500">
+          {[timeLabel, payableLabel, breakLabel].filter(Boolean).join(" · ")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TeamCycleCalendar({
   schedule,
   teams,
 }: {
@@ -169,62 +283,171 @@ function RotationalGrid({
   teams: JobScheduleRotationalTeam[];
 }) {
   const cycleLength = getCycleLength(schedule, teams);
-  const cycleDays = Array.from({ length: cycleLength }, (_, index) => index + 1);
+  const weekdayHeaders = getWeekdayHeaders(schedule.cycle_start_day);
+  const weekCount = Math.max(1, Math.ceil(cycleLength / 7));
   const templates = schedule.shift_templates ?? [];
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200">
-      <table className="w-full min-w-[900px] border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Team
-            </th>
-            {cycleDays.map((day) => (
-              <th
-                key={day}
-                className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 min-w-[120px]"
-              >
-                Day {day}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {teams.map((team) => {
-            const cyclesByDay = groupCyclesByDay(team.cycles ?? []);
+    <div className="min-w-0 space-y-3">
+      {teams.map((team) => {
+        const cyclesByDay = groupCyclesByDay(team.cycles ?? []);
 
-            return (
-              <tr
-                key={team.id}
-                className="border-b border-gray-100 last:border-b-0 align-top"
-              >
-                <td className="sticky left-0 z-10 bg-white px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
-                  <div>{team.team_name}</div>
-                  {team.is_active === false && (
-                    <span className="text-[10px] font-normal text-gray-400">
-                      Inactive
-                    </span>
-                  )}
-                </td>
-                {cycleDays.map((day) => {
-                  const shifts = resolveDayShifts(
-                    cyclesByDay.get(day),
-                    templates,
-                  );
+        return (
+          <div key={team.id} className="min-w-0">
+            <div className="mb-1.5 flex items-center gap-2">
+              <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+                {team.team_name}
+              </p>
+              {team.is_active === false && (
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+                  Inactive
+                </span>
+              )}
+            </div>
 
-                  return (
-                    <td key={day} className="px-2 py-2 align-top">
-                      <CycleDayCell shifts={shifts} />
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            <div className="min-w-0 space-y-1">
+              <div className="grid grid-cols-7 gap-1">
+                {weekdayHeaders.map((weekday) => (
+                  <div
+                    key={weekday}
+                    className="px-0.5 text-center text-[9px] font-semibold uppercase tracking-wide text-gray-400 sm:text-[10px]"
+                  >
+                    <span className="sm:hidden">{weekday.slice(0, 2)}</span>
+                    <span className="hidden sm:inline">{weekday}</span>
+                  </div>
+                ))}
+              </div>
+
+              {Array.from({ length: weekCount }, (_, weekIndex) => (
+                <div
+                  key={`${team.id}-week-${weekIndex}`}
+                  className="grid grid-cols-7 gap-1"
+                >
+                  {Array.from({ length: 7 }, (_, dayIndex) => {
+                    const day = weekIndex * 7 + dayIndex + 1;
+                    if (day > cycleLength) {
+                      return <div key={`${team.id}-pad-${day}`} />;
+                    }
+
+                    return (
+                      <CycleDayCell
+                        key={`${team.id}-${day}`}
+                        day={day}
+                        shifts={resolveDayShifts(
+                          cyclesByDay.get(day),
+                          templates,
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+function CandidateRotationsSection({
+  rotations,
+  teams,
+}: {
+  rotations: JobTeamCandidateRotation[];
+  teams: JobScheduleRotationalTeam[];
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+          <Users size={14} className="text-[#F4781B]" />
+          Assigned to rotation
+        </h3>
+        <span className="rounded-full bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500 ring-1 ring-gray-200">
+          {rotations.length}
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50/80">
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400 sm:px-5">
+                Order
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Team
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Shifts
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Joined
+              </th>
+              <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400 sm:pr-5">
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rotations.map((rotation) => {
+              const teamName =
+                rotation.team_name ??
+                teams.find((team) => team.id === rotation.team_id)?.team_name ??
+                formatLabel(rotation.team_id);
+              const shiftTypes = rotation.shift_types ?? [];
+
+              return (
+                <tr
+                  key={
+                    rotation.id ??
+                    `${rotation.team_id}-${rotation.candidate_user_id}-${rotation.rotation_order}`
+                  }
+                  className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60"
+                >
+                  <td className="px-4 py-3 font-semibold tabular-nums text-gray-900 sm:px-5">
+                    #{rotation.rotation_order}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700">{teamName}</td>
+                  <td className="px-4 py-3">
+                    {shiftTypes.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {shiftTypes.map((shiftType) => (
+                          <span
+                            key={shiftType}
+                            className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-[#F4781B]"
+                          >
+                            {formatShiftTypeLabel(shiftType)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {rotation.joined_at
+                      ? formatDateShort(rotation.joined_at)
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-3 sm:pr-5">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        rotation.is_active
+                          ? "bg-green-50 text-green-700 ring-1 ring-green-100"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {rotation.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -261,7 +484,7 @@ export function SchedulePlanPanel({
   const isStandard = schedule.shift_mode?.toUpperCase() === "STANDARD";
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-4">
       {!isRotational &&
         (isInstant ||
           schedule.shift_mode ||
@@ -307,114 +530,39 @@ export function SchedulePlanPanel({
               framed={false}
             />
           </div>
-
-          {showCandidateRotations && rotations.length > 0 && (
-            <div className="border-t border-gray-100">
-              <div className="flex items-center justify-between gap-3 px-5 py-3">
-                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                  <Users size={14} className="text-[#F4781B]" />
-                  Candidate Rotations
-                </h3>
-                <span className="rounded-full bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500 ring-1 ring-gray-200">
-                  {rotations.length}
-                </span>
-              </div>
-              <div className="overflow-x-auto border-t border-gray-50">
-                <table className="w-full min-w-[480px] border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/80">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                        Order
-                      </th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                        Team
-                      </th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                        Candidate
-                      </th>
-                      <th className="px-4 py-2.5 pr-5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rotations.map((rotation) => (
-                      <tr
-                        key={`${rotation.team_id}-${rotation.candidate_user_id}-${rotation.rotation_order}`}
-                        className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60"
-                      >
-                        <td className="px-5 py-3 font-semibold tabular-nums text-gray-900">
-                          #{rotation.rotation_order}
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">
-                          {rotation.team_name ??
-                            teams.find((team) => team.id === rotation.team_id)
-                              ?.team_name ??
-                            formatLabel(rotation.team_id)}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                          {rotation.candidate_user_id.length > 14
-                            ? `${rotation.candidate_user_id.slice(0, 6)}…${rotation.candidate_user_id.slice(-4)}`
-                            : rotation.candidate_user_id}
-                        </td>
-                        <td className="px-4 py-3 pr-5">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              rotation.is_active
-                                ? "bg-green-50 text-green-700 ring-1 ring-green-100"
-                                : "bg-gray-100 text-gray-500"
-                            }`}
-                          >
-                            {rotation.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white p-3 sm:p-4">
           {templates.length > 0 && (
             <section>
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">
                 Shift Templates
               </h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {templates.map((template, index) => (
-                  <div
+                  <ShiftTemplateCard
                     key={template.id ?? `${template.shift_type}-${index}`}
-                    className="rounded-xl border border-gray-100 bg-gray-50/40 p-4"
-                  >
-                    <p className="text-sm font-semibold text-gray-900">
-                      {formatShiftTypeLabel(template.shift_type)}
-                    </p>
-                    <p className="mt-1 text-xs font-medium text-gray-500">
-                      {formatLabel(template.shift_type)}
-                    </p>
-                    <p className="mt-2 text-sm text-gray-700">
-                      {formatShiftTemplateLine(template)}
-                    </p>
-                    {template.payable_hours != null && (
-                      <p className="mt-1.5 text-xs text-gray-400">
-                        {template.payable_hours}h per shift
-                      </p>
-                    )}
-                  </div>
+                    template={template}
+                  />
                 ))}
               </div>
             </section>
           )}
 
           {isStandard && teams.length > 0 && (
-            <section className={templates.length > 0 ? "mt-5" : undefined}>
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                Team Schedule
-              </h3>
-              <RotationalGrid schedule={schedule} teams={teams} />
+            <section className={templates.length > 0 ? "mt-4" : undefined}>
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Team Schedule
+                </h3>
+                <p className="text-[11px] text-gray-400">
+                  {getCycleLength(schedule, teams)}-day cycle
+                  {schedule.cycle_start_day
+                    ? ` · starts ${formatLabel(schedule.cycle_start_day)}`
+                    : ""}
+                </p>
+              </div>
+              <TeamCycleCalendar schedule={schedule} teams={teams} />
             </section>
           )}
 
@@ -427,75 +575,9 @@ export function SchedulePlanPanel({
         </div>
       )}
 
-      {!isRotational &&
-        showCandidateRotations &&
-        rotations.length > 0 && (
-          <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-            <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
-              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                <Users size={14} className="text-[#F4781B]" />
-                Candidate Rotations
-              </h3>
-              <span className="rounded-full bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-500 ring-1 ring-gray-200">
-                {rotations.length}
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/80">
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400 sm:px-5">
-                      Order
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                      Team
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                      Candidate
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400 sm:pr-5">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rotations.map((rotation) => (
-                    <tr
-                      key={`${rotation.team_id}-${rotation.candidate_user_id}-${rotation.rotation_order}`}
-                      className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60"
-                    >
-                      <td className="px-4 py-3 font-semibold tabular-nums text-gray-900 sm:px-5">
-                        #{rotation.rotation_order}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">
-                        {rotation.team_name ??
-                          teams.find((team) => team.id === rotation.team_id)
-                            ?.team_name ??
-                          formatLabel(rotation.team_id)}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                        {rotation.candidate_user_id.length > 14
-                          ? `${rotation.candidate_user_id.slice(0, 6)}…${rotation.candidate_user_id.slice(-4)}`
-                          : rotation.candidate_user_id}
-                      </td>
-                      <td className="px-4 py-3 sm:pr-5">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            rotation.is_active
-                              ? "bg-green-50 text-green-700 ring-1 ring-green-100"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
-                        >
-                          {rotation.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+      {showCandidateRotations && rotations.length > 0 && (
+        <CandidateRotationsSection rotations={rotations} teams={teams} />
+      )}
 
       {isRotational && teams.length === 0 && (
         <div className="flex items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-3 text-xs text-gray-500">

@@ -78,6 +78,9 @@ export type NormalPreviewCostSummary = {
   taxComponents: JobPreviewTaxComponent[];
   costPerShiftCents: number;
   hires: number;
+  /** Workers on each listed preview shift, when every shift uses the same count. */
+  workersPerShift: number | null;
+  previewShiftCount: number;
   maxMonths: number;
   monthlyPayments: MonthlyPaymentPreview[];
   oneCyclePayment: {
@@ -591,12 +594,21 @@ function getSliceTotalPayCents(
 }
 
 function resolveCostPerShiftCents(
-  recruiterPayCents: number,
+  payCents: number,
   shiftCount: number,
-  hires: number,
 ): number {
-  const divisor = Math.max(1, shiftCount * Math.max(1, hires));
-  return Math.round(recruiterPayCents / divisor);
+  return Math.round(payCents / Math.max(1, shiftCount));
+}
+
+function resolveWorkersPerShift(
+  data: NormalJobFeePreviewData | null | undefined,
+): number | null {
+  const workers = (data?.preview_shifts ?? []).map(
+    (shift) => shift.required_workers,
+  );
+  if (workers.length === 0) return null;
+  const first = workers[0];
+  return workers.every((value) => value === first) ? first : null;
 }
 
 export function hasNormalPreviewShifts(
@@ -746,11 +758,12 @@ export function buildNormalPreviewCostSummary(
     taxCents: primaryTax.total_tax_cents,
     taxComponents: primaryTax.components,
     costPerShiftCents: resolveCostPerShiftCents(
-      getSliceSubtotalCents(primarySlice),
+      getSliceTotalPayCents(primarySlice),
       getSliceShiftCount(primarySlice),
-      hires,
     ),
     hires,
+    workersPerShift: resolveWorkersPerShift(data),
+    previewShiftCount: data.preview_shifts?.length ?? data.shift_count ?? 0,
     maxMonths: payment.max_months ?? monthlyPayments.length,
     monthlyPayments,
     oneCyclePayment,

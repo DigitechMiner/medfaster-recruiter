@@ -11,6 +11,7 @@ import {
   buildTeamLabels,
   clampTeamCount,
   formatCandidateWeeklyHoursViolations,
+  formatRequiredShiftCountError,
   formatScheduleTemplateAssignmentErrors,
   getCandidateWeeklyHoursViolations,
   getDefaultTeamCount,
@@ -32,6 +33,7 @@ export function validateNormalJob(payload: JobCreatePayload, push: PushError) {
   validateSpecializations(payload, push);
   validateAIInterview(payload, push);
   validateNormalQuestions(payload, push);
+  validateSelectedShiftCount(payload, push);
   validateScheduleWeeklyHours(payload, push);
 }
 // END SECTION: Normal Job Validator
@@ -133,6 +135,22 @@ function validateNormalQuestions(payload: JobCreatePayload, push: PushError) {
 }
 // END SECTION: Normal Question Validation
 
+// START SECTION: Selected Shift Count Validation
+function validateSelectedShiftCount(
+  payload: JobCreatePayload,
+  push: PushError,
+) {
+  const message = formatRequiredShiftCountError(
+    ((payload.selected_shift_types ?? []) as ShiftType[]).length,
+    payload.job_duration_per_day ?? "24",
+    (payload.shift_duration_type as ShiftDurationType) ?? "8_hrs",
+  );
+  if (message) {
+    push("selected_shift_types", message);
+  }
+}
+// END SECTION: Selected Shift Count Validation
+
 // START SECTION: Schedule Weekly Hours Validation
 function validateScheduleWeeklyHours(
   payload: JobCreatePayload,
@@ -214,15 +232,22 @@ function isShiftClockTimeMissing(time?: string): boolean {
 
 /** Returns a user-facing message when selected shifts lack start/end times. */
 export function formatSchedulingStepShiftTimingErrors(
-  snapshot: Pick<JobFormSnapshot, "selected_shift_types"> & ShiftTimesState,
+  snapshot: Pick<
+    JobFormSnapshot,
+    "selected_shift_types" | "job_duration_per_day" | "shift_duration_type"
+  > &
+    ShiftTimesState,
 ): string | null {
   const selectedShifts = sortShiftsInDayOrder(
     (snapshot.selected_shift_types as ShiftType[] | undefined) ?? [],
   );
+  const countError = formatRequiredShiftCountError(
+    selectedShifts.length,
+    snapshot.job_duration_per_day ?? "24",
+    (snapshot.shift_duration_type as ShiftDurationType) ?? "8_hrs",
+  );
 
-  if (!selectedShifts.length) {
-    return "Select at least one shift type.";
-  }
+  if (countError) return countError;
 
   const messages: string[] = [];
 

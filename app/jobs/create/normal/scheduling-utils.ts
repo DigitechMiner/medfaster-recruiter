@@ -138,6 +138,28 @@ export function getMaxSelectableShifts(
   return shiftDuration === "12_hrs" ? 2 : 3;
 }
 
+/** Coverage needs the same count as the max for that day/shift length. */
+export function getRequiredShiftCount(
+  jobDurationPerDay: "24" | "12" | "8",
+  shiftDuration: ShiftDurationType,
+): number {
+  return getMaxSelectableShifts(jobDurationPerDay, shiftDuration);
+}
+
+/** User-facing error when too few shift types are selected for the day. */
+export function formatRequiredShiftCountError(
+  selectedCount: number,
+  jobDurationPerDay: "24" | "12" | "8",
+  shiftDuration: ShiftDurationType,
+): string | null {
+  const required = getRequiredShiftCount(jobDurationPerDay, shiftDuration);
+  if (selectedCount >= required) return null;
+  if (required === 1) return "Select at least one shift type.";
+
+  const durationLabel = shiftDuration === "12_hrs" ? "12 hr" : "8 hr";
+  return `Select ${required} shift types. ${durationLabel} shifts need ${required} to cover a ${jobDurationPerDay} hour day.`;
+}
+
 export function canSelectMultipleShifts(
   jobDurationPerDay: "24" | "12" | "8",
 ): boolean {
@@ -300,6 +322,37 @@ const SHIFT_DISPLAY_LABEL: Record<ShiftType, string> = {
   night: "Night",
 };
 
+const FORM_SHIFT_SLOTS: Array<"morning" | "evening" | "night"> = [
+  "morning",
+  "evening",
+  "night",
+];
+
+export function emptyShiftTimes(): ShiftTimesState {
+  return {
+    morning_shift_start: "",
+    morning_shift_end: "",
+    evening_shift_start: "",
+    evening_shift_end: "",
+    night_shift_start: "",
+    night_shift_end: "",
+  };
+}
+
+function normalizeShiftTime(value?: string | null): string {
+  return value?.trim() ?? "";
+}
+
+function shiftTimesEqual(a: ShiftTimesState, b: ShiftTimesState): boolean {
+  return FORM_SHIFT_SLOTS.every(
+    (shift) =>
+      normalizeShiftTime(getShiftStartFromState(shift, a)) ===
+        normalizeShiftTime(getShiftStartFromState(shift, b)) &&
+      normalizeShiftTime(getShiftEndFromState(shift, a)) ===
+        normalizeShiftTime(getShiftEndFromState(shift, b)),
+  );
+}
+
 export type ShiftTimingDisplay = {
   shift: ShiftType;
   /** Inferred from start time via SHIFT_WINDOWS; falls back to `shift` slot. */
@@ -382,7 +435,7 @@ export function buildShiftTimingDisplays(params: {
     displays.push({
       shift,
       inferredShift,
-      label: SHIFT_DISPLAY_LABEL[inferredShift],
+      label: SHIFT_DISPLAY_LABEL[shift],
       startTime,
       endTime,
       startDayOffset,
@@ -728,7 +781,8 @@ export function rebuildShiftTimeChain(params: {
   includeHandoff?: boolean;
 }): ShiftTimesState {
   const ordered = sortShiftsInDayOrder(params.selectedShifts);
-  if (!ordered.length) return {};
+  const patch = emptyShiftTimes();
+  if (!ordered.length) return patch;
 
   if (!shouldChainShiftTimes(params.jobDurationPerDay, ordered)) {
     const overlapMinutes = getShiftHandoffOverlapMinutes(
@@ -736,7 +790,6 @@ export function rebuildShiftTimeChain(params: {
       params.selectedShifts,
       params.includeHandoff !== false,
     );
-    const patch: ShiftTimesState = {};
 
     for (const shift of ordered) {
       const start = getShiftStartFromState(shift, params.existing);
@@ -758,7 +811,7 @@ export function rebuildShiftTimeChain(params: {
   const anchorShift = ordered[0];
   const anchorStart = getShiftStartFromState(anchorShift, params.existing);
 
-  if (!anchorStart) return {};
+  if (!anchorStart) return patch;
 
   const overlapMinutes = getShiftHandoffOverlapMinutes(
     params.jobDurationPerDay,
@@ -766,13 +819,76 @@ export function rebuildShiftTimeChain(params: {
     params.includeHandoff !== false,
   );
 
-  return buildChainedShiftTimes({
-    selectedShifts: params.selectedShifts,
-    shiftDuration: params.shiftDuration,
-    anchorShift,
-    anchorStartTime: anchorStart,
-    overlapMinutes,
+  return {
+    ...patch,
+    ...buildChainedShiftTimes({
+      selectedShifts: params.selectedShifts,
+      shiftDuration: params.shiftDuration,
+      anchorShift,
+      anchorStartTime: anchorStart,
+      overlapMinutes,
+    }),
+  };
+}
+
+type SchedulingSnapshotFields = ShiftTimesState & {
+  selected_shift_types?: ShiftType[];
+  shift_duration_type?: ShiftDurationType;
+  job_duration_per_day?: "24" | "12" | "8";
+  include_shift_handoff?: boolean;
+};
+
+function sameShiftList(a: ShiftType[], b: ShiftType[]): boolean {
+  return a.length === b.length && a.every((shift, index) => shift === b[index]);
+}
+
+/** Drop stale cached times for unselected slots and rebuild chained coverage. */
+export function sanitizeSchedulingSnapshot<T extends SchedulingSnapshotFields>(
+  snapshot: T,
+): T {
+  const jobDurationPerDay = snapshot.job_duration_per_day ?? "24";
+  const shiftDuration = snapshot.shift_duration_type ?? "8_hrs";
+  const selected = resolveSelectedShifts(
+    snapshot.selected_shift_types ?? [],
+    jobDurationPerDay,
+    shiftDuration,
+  );
+  const times = rebuildShiftTimeChain({
+    selectedShifts: selected,
+    shiftDuration,
+    jobDurationPerDay,
+    existing: {
+      morning_shift_start: snapshot.morning_shift_start,
+      morning_shift_end: snapshot.morning_shift_end,
+      evening_shift_start: snapshot.evening_shift_start,
+      evening_shift_end: snapshot.evening_shift_end,
+      night_shift_start: snapshot.night_shift_start,
+      night_shift_end: snapshot.night_shift_end,
+    },
+    includeHandoff: snapshot.include_shift_handoff !== false,
   });
+
+  const rest = { ...snapshot } as T & { cachedPayRate?: unknown };
+  delete rest.cachedPayRate;
+
+  return {
+    ...rest,
+    selected_shift_types: selected,
+    ...times,
+  };
+}
+
+export function didSchedulingSnapshotChange<T extends SchedulingSnapshotFields>(
+  before: T,
+  after: T,
+): boolean {
+  const beforeSelected = sortShiftsInDayOrder(before.selected_shift_types ?? []);
+  const afterSelected = sortShiftsInDayOrder(after.selected_shift_types ?? []);
+
+  return (
+    !sameShiftList(beforeSelected, afterSelected) ||
+    !shiftTimesEqual(before, after)
+  );
 }
 
 export function getBreakDurationBounds(

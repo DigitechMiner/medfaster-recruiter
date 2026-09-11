@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { getJobFees } from "@/features/jobs";
-import { useJobsStore, type JobFormSnapshot } from "@/stores/jobs-store";
 import type { JobFormData } from "@/types";
 
 export function parseJobFeesYears(yearsOfExperience?: string): number | null {
@@ -28,53 +27,6 @@ export function canFetchNormalJobFees(
 }
 
 export const canFetchJobFees = canFetchNormalJobFees;
-
-export function getCachedPayRateCents(
-  jobTitle: string,
-  feeType: "instant" | "normal",
-  yearsOfExperience?: number,
-): number | null {
-  const cachedPayRate = useJobsStore.getState().formSnapshot?.cachedPayRate;
-
-  if (
-    cachedPayRate?.jobTitle === jobTitle &&
-    cachedPayRate?.feeType === feeType &&
-    typeof cachedPayRate.cents === "number" &&
-    (feeType === "instant" ||
-      cachedPayRate.yearsOfExperience === yearsOfExperience)
-  ) {
-    return cachedPayRate.cents;
-  }
-
-  return null;
-}
-
-export function cacheJobPayRate(
-  jobTitle: string,
-  feeType: "instant" | "normal",
-  cents: number,
-  yearsOfExperience?: number,
-): void {
-  const currentSnapshot = useJobsStore.getState().formSnapshot;
-  useJobsStore.getState().setFormSnapshot({
-    ...(currentSnapshot ?? {}),
-    cachedPayRate: {
-      jobTitle,
-      feeType,
-      ...(feeType === "normal" ? { yearsOfExperience } : {}),
-      cents,
-    },
-  } as JobFormSnapshot);
-}
-
-export function clearCachedPayRate(): void {
-  const currentSnapshot = useJobsStore.getState().formSnapshot;
-  if (!currentSnapshot?.cachedPayRate) return;
-
-  const { cachedPayRate, ...rest } = currentSnapshot;
-  void cachedPayRate;
-  useJobsStore.getState().setFormSnapshot(rest as JobFormSnapshot);
-}
 
 export function shouldSyncPlatformPayRate(jobType?: string): boolean {
   return jobType === "part_time" || jobType === "full_time";
@@ -102,16 +54,7 @@ export function useSyncBackendPayRate(
     }
 
     const experienceYears = yearsOfExperience as number;
-    const cachedRateCents = getCachedPayRateCents(
-      jobTitle,
-      "normal",
-      experienceYears,
-    );
-    if (cachedRateCents !== null) {
-      const dollars = cachedRateCents / 100;
-      if (backendPayRate !== dollars) {
-        updateFormData({ backend_pay_rate: dollars });
-      }
+    if (backendPayRate != null) {
       return;
     }
 
@@ -123,7 +66,6 @@ export function useSyncBackendPayRate(
         const dollars = Number(data.recruiter_pay_per_hour ?? 0);
         const cents = Math.round(dollars * 100);
         updateFormData({ backend_pay_rate: cents / 100 });
-        cacheJobPayRate(jobTitle, "normal", cents, experienceYears);
       })
       .catch(() => {
         /* basic step shows fetch errors; scheduling keeps placeholder */

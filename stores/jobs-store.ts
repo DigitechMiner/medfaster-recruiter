@@ -2,7 +2,12 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { discardJobCreateDraft } from '@/app/jobs/create/job-create-draft-storage';
+import {
+  clearJobCreateDraft,
+  discardJobCreateDraft,
+  enableJobCreateDraftPersist,
+  type JobCreateDraftMode,
+} from '@/app/jobs/create/job-create-draft-storage';
 import {
   getRecruiterJobs,
   getRecruiterJob,
@@ -42,13 +47,6 @@ export type JobFormSnapshot = Omit<JobFormData, 'start_date' | 'end_date'> & {
   // Instant-only fields
   amountPerHire?:     string;
   physicalInterview?: string | boolean;
-  // Cached backend-fetched pay rate — UI-only and survives Back navigation.
-  cachedPayRate?: {
-    jobTitle: string;
-    feeType: "instant" | "normal";
-    yearsOfExperience?: number;
-    cents: number;
-  };
 };
 
 interface JobsState {
@@ -66,6 +64,7 @@ interface JobsActions {
   setDraftPayload: (payload: Partial<JobCreatePayload> | null) => void;
   setFormSnapshot: (snapshot: JobFormSnapshot | null) => void;
   clearDraft:      () => void;
+  resetFormDraft:  (mode?: JobCreateDraftMode) => void;
 
   getJobs:       (params?: GetJobsParams) => Promise<JobsListResponse>;
   getJobsSilent: (params?: GetJobsParams) => Promise<JobsListResponse>;
@@ -131,6 +130,14 @@ export const useJobsStore = create<JobsStore>()(
         // step/payload state back into sessionStorage on the way out.
         clearDraft: () => {
           discardJobCreateDraft();
+          set({ draftPayload: null, formSnapshot: null });
+        },
+
+        // Clear the in-progress form without leaving the create flow, so a
+        // new draft can still be persisted after the user starts over.
+        resetFormDraft: (mode) => {
+          enableJobCreateDraftPersist();
+          clearJobCreateDraft(mode);
           set({ draftPayload: null, formSnapshot: null });
         },
 

@@ -33,6 +33,7 @@ function InstantJobStepForm() {
   const createJob = useJobsStore((s) => s.createJob);
   const setHasJobs = useJobsStore((s) => s.setHasJobs);
   const clearDraft = useJobsStore((s) => s.clearDraft);
+  const resetFormDraft = useJobsStore((s) => s.resetFormDraft);
   const [descriptionLoading, setDescriptionLoading] = useState(false);
   const [descriptionGenerateError, setDescriptionGenerateError] = useState<
     string | null
@@ -68,6 +69,7 @@ function InstantJobStepForm() {
       isProcessing: false,
       isSubmitDisabled: false,
     });
+  const [formResetKey, setFormResetKey] = useState(0);
 
   const handleDraftRestore = useCallback((draft: JobCreateDraftSession) => {
     if (draft.step >= 1 && draft.step <= 3) {
@@ -107,6 +109,21 @@ function InstantJobStepForm() {
   const resetProgressValidation = () => {
     setPendingProgressStep(null);
     setProgressValidationToken(undefined);
+  };
+
+  const handleResetForm = () => {
+    resetFormDraft("instant");
+    setStep(1);
+    setPendingPayload(null);
+    setDescriptionLoading(false);
+    setDescriptionGenerateError(null);
+    setRetryDescriptionGenerate(null);
+    setReviewActionState({
+      isProcessing: false,
+      isSubmitDisabled: false,
+    });
+    resetProgressValidation();
+    setFormResetKey((key) => key + 1);
   };
 
   const handleProgressStepClick = (targetStep: number) => {
@@ -178,6 +195,7 @@ function InstantJobStepForm() {
           onBack={handleBackToJobs}
           onStepClick={handleProgressStepClick}
           canNavigateToStep={canNavigateToProgressStep}
+          onResetForm={handleResetForm}
           backLabel="Back to Job"
         />
 
@@ -194,6 +212,7 @@ function InstantJobStepForm() {
             }
           >
             <InstantJobForm
+              key={`basic-${formResetKey}`}
               urgencyMode="instant"
               formStep="basic"
               formId={INSTANT_BASIC_FORM_ID}
@@ -234,6 +253,7 @@ function InstantJobStepForm() {
             }
           >
             <InstantJobForm
+              key={`description-${formResetKey}`}
               urgencyMode="instant"
               formStep="description"
               formId={INSTANT_DESCRIPTION_FORM_ID}

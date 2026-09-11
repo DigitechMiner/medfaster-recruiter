@@ -42,12 +42,15 @@ import {
   getAutoSelectedShifts,
   getDefaultShiftDurationForJobDay,
   getMaxSelectableShifts,
+  formatRequiredShiftCountError,
   getMinTeams,
   normalizeScheduleTemplate,
   normalizeShiftScheduleBreaks,
   rebuildShiftTimeChain,
   applyFifoShiftAdd,
   resolveSelectedShifts,
+  sanitizeSchedulingSnapshot,
+  didSchedulingSnapshotChange,
   shouldChainShiftTimes,
   getShiftHandoffOverlapMinutes,
   calculateTotalCandidatesRequired,
@@ -156,7 +159,8 @@ export function NormalSchedulingStep({
     (formData.shift_duration_type as ShiftDurationType) ?? "8_hrs";
 
   const selectedShiftTypes = useMemo(
-    () => (formData.selected_shift_types as ShiftType[]) ?? [],
+    () =>
+      sortShiftsInDayOrder((formData.selected_shift_types as ShiftType[]) ?? []),
     [formData.selected_shift_types],
   );
   const includeShiftHandoff = formData.include_shift_handoff !== false;
@@ -196,6 +200,11 @@ export function NormalSchedulingStep({
     jobDurationPerDay,
   );
   const maxSelectableShifts = getMaxSelectableShifts(
+    jobDurationPerDay,
+    shiftDuration,
+  );
+  const shiftTypeCountError = formatRequiredShiftCountError(
+    selectedShiftTypes.length,
     jobDurationPerDay,
     shiftDuration,
   );
@@ -338,15 +347,24 @@ export function NormalSchedulingStep({
     const defaultShiftDuration =
       getDefaultShiftDurationForJobDay(jobDurationPerDay);
     const effectiveShiftDuration = defaultShiftDuration ?? shiftDuration;
-    const trimmed = resolveSelectedShifts(
-      selectedShiftTypes,
-      jobDurationPerDay,
-      effectiveShiftDuration,
-    );
+    const currentSnapshot = {
+      selected_shift_types: selectedShiftTypes,
+      shift_duration_type: effectiveShiftDuration,
+      job_duration_per_day: jobDurationPerDay,
+      include_shift_handoff: includeShiftHandoff,
+      morning_shift_start: formData.morning_shift_start,
+      morning_shift_end: formData.morning_shift_end,
+      evening_shift_start: formData.evening_shift_start,
+      evening_shift_end: formData.evening_shift_end,
+      night_shift_start: formData.night_shift_start,
+      night_shift_end: formData.night_shift_end,
+    };
+    const sanitized = sanitizeSchedulingSnapshot(currentSnapshot);
 
-    const shiftsChanged =
-      trimmed.length !== selectedShiftTypes.length ||
-      trimmed.some((s, i) => s !== selectedShiftTypes[i]);
+    const shiftsChanged = didSchedulingSnapshotChange(
+      currentSnapshot,
+      sanitized,
+    );
     const shiftDurationChanged =
       defaultShiftDuration !== null && shiftDuration !== defaultShiftDuration;
 
@@ -356,19 +374,18 @@ export function NormalSchedulingStep({
       ...(shiftDurationChanged
         ? { shift_duration_type: defaultShiftDuration }
         : {}),
-      ...(shiftsChanged ? { selected_shift_types: trimmed } : {}),
+      selected_shift_types: sanitized.selected_shift_types,
       shift_schedule_details: normalizeShiftScheduleBreaks(
-        trimmed,
+        sanitized.selected_shift_types ?? selectedShiftTypes,
         shiftDetails,
         effectiveShiftDuration,
       ),
-      ...rebuildShiftTimeChain({
-        selectedShifts: trimmed,
-        shiftDuration: effectiveShiftDuration,
-        jobDurationPerDay,
-        existing: getExistingShiftTimes(),
-        includeHandoff: includeShiftHandoff,
-      }),
+      morning_shift_start: sanitized.morning_shift_start,
+      morning_shift_end: sanitized.morning_shift_end,
+      evening_shift_start: sanitized.evening_shift_start,
+      evening_shift_end: sanitized.evening_shift_end,
+      night_shift_start: sanitized.night_shift_start,
+      night_shift_end: sanitized.night_shift_end,
     });
   }, [
     jobDurationPerDay,
@@ -376,8 +393,13 @@ export function NormalSchedulingStep({
     selectedShiftTypes,
     shiftDetails,
     updateFormData,
-    getExistingShiftTimes,
     includeShiftHandoff,
+    formData.morning_shift_start,
+    formData.morning_shift_end,
+    formData.evening_shift_start,
+    formData.evening_shift_end,
+    formData.night_shift_start,
+    formData.night_shift_end,
   ]);
 
   useEffect(() => {
@@ -485,11 +507,17 @@ export function NormalSchedulingStep({
 
     if (current.includes(value)) {
       const next = current.filter((t) => t !== value);
+      if (next.length === 0) return;
       const cleared: ShiftTimesState = {};
       clearShiftTimesInState(value, cleared);
       syncScheduling({
-        selected_shift_types: next.length ? next : [value],
+        selected_shift_types: next,
         ...cleared,
+        shift_schedule_details: normalizeShiftScheduleBreaks(
+          next,
+          shiftDetails,
+          shiftDuration,
+        ),
         ...(next.length > 1
           ? buildShiftTimesRecalcPatch(shiftDuration, next)
           : {}),
@@ -782,9 +810,9 @@ export function NormalSchedulingStep({
       return {
         shift,
         shiftLabel:
+          SHIFT_TYPES.find((opt) => opt.value === shift)?.label ??
           timing?.label ??
           inferredLabel ??
-          SHIFT_TYPES.find((opt) => opt.value === shift)?.label ??
           shift,
         startDayOffset: timing?.startDayOffset ?? 0,
         endDayOffset: timing?.endDayOffset ?? 0,
@@ -811,7 +839,7 @@ export function NormalSchedulingStep({
   const shiftTypeHint = isAutoShiftSelection
     ? "Selected automatically for 24 hr coverage."
     : usesFifoShifts
-      ? "Pick 2 shifts; a third replaces the earliest."
+      ? "Pick 2 shifts. Unselect one to change, or a third replaces the earliest."
       : multipleShiftsAllowed
         ? `Select up to ${maxSelectableShifts}.`
         : null;
@@ -977,7 +1005,11 @@ export function NormalSchedulingStep({
           <SchedulingFieldHint message={shiftDurationHint} />
         </JobFormField>
 
-        <JobFormField label="Select Shift Type" required>
+        <JobFormField
+          label="Select Shift Type"
+          required
+          error={shiftTypeCountError}
+        >
           <div className="flex flex-wrap items-center gap-5 pt-1">
             {SHIFT_TYPES.map((opt) => {
               const selected = selectedShiftTypes.includes(opt.value);
@@ -1013,7 +1045,9 @@ export function NormalSchedulingStep({
               );
             })}
           </div>
-          <SchedulingFieldHint message={shiftTypeHint} />
+          <SchedulingFieldHint
+            message={shiftTypeCountError ? null : shiftTypeHint}
+          />
         </JobFormField>
       </div>
 

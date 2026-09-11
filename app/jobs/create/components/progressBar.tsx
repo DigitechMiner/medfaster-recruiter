@@ -1,7 +1,16 @@
 "use client";
 
-import { ArrowLeft, Check } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface CreateJobProgressHeaderProps {
@@ -13,6 +22,8 @@ interface CreateJobProgressHeaderProps {
   canNavigateToStep?: (step: number) => boolean;
   backLabel?: string;
   showBackButton?: boolean;
+  onResetForm?: () => void;
+  resetLabel?: string;
 }
 
 export function CreateJobProgressHeader({
@@ -24,23 +35,81 @@ export function CreateJobProgressHeader({
   canNavigateToStep,
   backLabel = "Back",
   showBackButton = true,
+  onResetForm,
+  resetLabel = "Start over",
 }: CreateJobProgressHeaderProps) {
   const clampedStep = Math.min(Math.max(currentStep, 1), steps.length);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+
+  const handleConfirmReset = () => {
+    setResetDialogOpen(false);
+    onResetForm?.();
+  };
 
   return (
     <div className="space-y-4">
-      {showBackButton && (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onBack}
-          className="inline-flex h-auto items-center gap-2 px-0 py-0 text-sm font-semibold text-gray-700 hover:text-gray-900"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm">
-            <ArrowLeft className="h-4 w-4" />
-          </span>
-          {backLabel}
-        </Button>
+      {(showBackButton || onResetForm) && (
+        <div className="flex items-center justify-between gap-3">
+          {showBackButton ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              className="inline-flex h-auto items-center gap-2 px-0 py-0 text-sm font-semibold text-gray-700 hover:text-gray-900"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm">
+                <ArrowLeft className="h-4 w-4" />
+              </span>
+              {backLabel}
+            </Button>
+          ) : (
+            <span />
+          )}
+
+          {onResetForm && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setResetDialogOpen(true)}
+              className="inline-flex h-auto items-center gap-2 px-0 py-0 text-sm font-semibold text-gray-700 hover:text-gray-900"
+            >
+              {resetLabel}
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm">
+                <RotateCcw className="h-4 w-4" />
+              </span>
+            </Button>
+          )}
+        </div>
+      )}
+
+      {onResetForm && (
+        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Start over?</DialogTitle>
+              <DialogDescription>
+                This clears the job form and returns you to the first step.
+                Details you have entered so far will not be saved.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setResetDialogOpen(false)}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                className="rounded-lg bg-[#F4781B] px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+              >
+                Start over
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
