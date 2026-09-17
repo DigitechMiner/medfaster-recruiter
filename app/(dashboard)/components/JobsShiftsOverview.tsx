@@ -38,17 +38,17 @@ export function JobsShiftsOverview({
   });
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 min-h-[180px]">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 min-h-[180px] min-w-0 overflow-hidden">
       <h2 className="text-sm font-semibold text-gray-900 mb-3">Jobs/Shifts Overview</h2>
       {isLoading ? (
         <div className="flex items-center justify-center h-28">
           <div className="w-20 h-20 rounded-full border-[12px] border-gray-100 animate-pulse" />
         </div>
       ) : (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           {/* SVG Donut */}
           <div className="relative shrink-0 w-[100px] h-[100px]">
-  <svg width="100" height="100" viewBox="0 0 120 120" className="w-full h-full">
+            <svg width="100" height="100" viewBox="0 0 120 120" className="w-full h-full">
               {total === 0 ? (
                 <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
               ) : arcs.map(({ color, dash, rotation }, i) => (
@@ -72,12 +72,12 @@ export function JobsShiftsOverview({
           </div>
 
           {/* Legend */}
-          <div className="flex flex-col gap-2 flex-1">
+          <div className="flex flex-col gap-2 flex-1 min-w-0">
             {SEGMENTS.map(({ label, color }, idx) => (
-              <div key={label} className="flex items-center gap-1.5">
+              <div key={label} className="flex items-center gap-1.5 min-w-0">
                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-[11px] text-gray-600 flex-1">{label}</span>
-                <span className="text-[11px] font-semibold text-gray-800 tabular-nums">
+                <span className="text-[11px] text-gray-600 flex-1 truncate">{label}</span>
+                <span className="text-[11px] font-semibold text-gray-800 tabular-nums shrink-0">
                   {counts[idx]}
                 </span>
               </div>

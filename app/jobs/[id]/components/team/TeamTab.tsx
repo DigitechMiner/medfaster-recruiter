@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { UsersRound } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
@@ -293,10 +294,19 @@ export function TeamTab({
   acceptedCount,
   requiredCount,
 }: TeamTabProps) {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [teamId, setTeamId] = useState("");
   const [status, setStatus] = useState<"" | JobTeamMemberStatus>("");
   const isInstant = String(jobUrgency ?? "").toUpperCase() === "INSTANT";
+
+  const navigateToCandidate = useCallback(
+    (candidateId?: string | null) => {
+      if (!candidateId) return;
+      router.push(`/candidates/${candidateId}`);
+    },
+    [router],
+  );
 
   const { team, isLoading, error } = useJobTeam(
     jobId,
@@ -429,6 +439,7 @@ export function TeamTab({
             {members.map((member) => {
               const name = getMemberName(member);
               const initials = getInitials(name);
+              const candidateId = member.candidate_id || member.candidate?.id;
               const sourceLabel = isInstant
                 ? "Accepted"
                 : member.source === "SHIFT_COVERAGE"
@@ -442,7 +453,20 @@ export function TeamTab({
                     member.worker_id ??
                     `${member.source}-${member.candidate_id}-${member.application_id ?? ""}`
                   }
-                  className="border-b border-gray-50 last:border-b-0 transition-colors hover:bg-gray-50/60"
+                  role={candidateId ? "link" : undefined}
+                  tabIndex={candidateId ? 0 : undefined}
+                  onClick={() => navigateToCandidate(candidateId)}
+                  onKeyDown={(event) => {
+                    if (!candidateId) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigateToCandidate(candidateId);
+                    }
+                  }}
+                  className={cn(
+                    "border-b border-gray-50 last:border-b-0 transition-colors hover:bg-gray-50/60",
+                    candidateId && "cursor-pointer",
+                  )}
                 >
                   <td className="px-4 py-3 align-middle">
                     <div className="flex min-w-0 items-center gap-3">

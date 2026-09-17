@@ -4,7 +4,7 @@ import type {
   CandidateDetailProfile,
   CandidateDetailsResponse,
 } from "@/types";
-import type { CandidateDetailVM, InterviewSummaryBlock, ScoreRound } from "@/types/view-models";
+import type { CandidateDetailVM, InterviewContextVM, InterviewSummaryBlock, ScoreRound } from "@/types/view-models";
 import type { CandidateDetailApiResponse } from "./interfaces";
 
 type CandidateApiData = CandidateDetailApiResponse["data"];
@@ -220,6 +220,61 @@ function mapRound(
   };
 }
 
+function mapInterviewContext(
+  raw: unknown
+): InterviewContextVM {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const ctx = raw as Record<string, unknown>;
+
+  const jobTitles = Array.isArray(ctx.job_titles)
+    ? ctx.job_titles.filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+    : [];
+
+  const specializations = Array.isArray(ctx.specializations)
+    ? ctx.specializations.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    : [];
+
+  const jobTitle =
+    typeof ctx.job_title === "string" && ctx.job_title.trim()
+      ? ctx.job_title
+      : jobTitles[0] ?? null;
+
+  const mapped: NonNullable<InterviewContextVM> = {
+    candidate_name:
+      typeof ctx.candidate_name === "string" && ctx.candidate_name.trim()
+        ? ctx.candidate_name
+        : null,
+    job_title: jobTitle,
+    job_titles: jobTitles,
+    department:
+      typeof ctx.department === "string" && ctx.department.trim()
+        ? ctx.department
+        : null,
+    education:
+      typeof ctx.education === "string" && ctx.education.trim()
+        ? ctx.education
+        : null,
+    year_of_experience: parseOptionalNumber(ctx.year_of_experience),
+    specializations,
+    interview_type:
+      typeof ctx.interview_type === "string" && ctx.interview_type.trim()
+        ? ctx.interview_type
+        : null,
+  };
+
+  const hasAny =
+    mapped.candidate_name ||
+    mapped.job_title ||
+    mapped.job_titles.length > 0 ||
+    mapped.department ||
+    mapped.education ||
+    mapped.year_of_experience !== null ||
+    mapped.specializations.length > 0 ||
+    mapped.interview_type;
+
+  return hasAny ? mapped : null;
+}
+
 /** Resolve nested legacy eval vs flat `general_score` object from API. */
 function resolveInterviewEvalBlock(
   gs: CandidateDetailProfile["general_score"]
@@ -241,13 +296,13 @@ function resolveInterviewEvalBlock(
 
 function mapSummaryBlock(result: Record<string, unknown> | null): InterviewSummaryBlock {
   if (!result) return null;
-  const riskFlags = (result.risk_flags ?? {}) as Record<string, boolean>;
+  const riskFlags = (result.risk_flags ?? {}) as Record<string, unknown>;
   return {
     strengths: Array.isArray(result.strengths) ? (result.strengths as string[]) : [],
     risk_flags: {
-      communication_red_flag: Boolean(riskFlags.communication_red_flag),
-      unsafe_decision_detected: Boolean(riskFlags.unsafe_decision_detected),
-      critical_safety_violation: Boolean(riskFlags.critical_safety_violation),
+      communication_red_flag: riskFlags.communication_red_flag === true,
+      unsafe_decision_detected: riskFlags.unsafe_decision_detected === true,
+      critical_safety_violation: riskFlags.critical_safety_violation === true,
     },
     interview_summary: typeof result.interview_summary === 'string' ? result.interview_summary : null,
     recommendation: typeof result.recommendation === 'string' ? result.recommendation : null,
@@ -286,9 +341,6 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
   // ── AI interview evaluation ──────────────────────────────────────────────
   const rawEval = resolveInterviewEvalBlock(p.general_score);
 
-  const overallScore =
-    rawEval !== null ? parseOptionalNumber(rawEval.overall_score) : null;
-
   const maxSelfInterviewScore =
     rawEval !== null
       ? parseOptionalNumber(rawEval.max_self_interview_score)
@@ -308,6 +360,12 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
     !Array.isArray(interviewResultRaw)
       ? (interviewResultRaw as AiInterviewResultPayload)
       : null;
+
+  const overallScore =
+    (rawEval !== null ? parseOptionalNumber(rawEval.overall_score) : null) ??
+    (typedInterviewResult
+      ? parseOptionalNumber(typedInterviewResult.overall_score)
+      : null);
 
   const breakdown = typedInterviewResult?.score_breakdown ?? null;
 
@@ -340,6 +398,36 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
       : null,
   );
 
+  const interviewMeta =
+    rawEval !== null &&
+    "interview" in rawEval &&
+    rawEval.interview &&
+    typeof rawEval.interview === "object" &&
+    !Array.isArray(rawEval.interview)
+      ? (rawEval.interview as Record<string, unknown>)
+      : p.general_score?.interview && typeof p.general_score.interview === "object"
+        ? (p.general_score.interview as unknown as Record<string, unknown>)
+        : null;
+
+  const interviewId =
+    (rawEval !== null && typeof rawEval.interview_id === "string"
+      ? rawEval.interview_id
+      : null) ??
+    p.general_score?.interview_id ??
+    (typeof interviewMeta?.id === "string" ? interviewMeta.id : null);
+
+  const interviewType =
+    typeof interviewMeta?.interview_type === "string"
+      ? interviewMeta.interview_type
+      : null;
+
+  const interviewStatus =
+    typeof interviewMeta?.status === "string" ? interviewMeta.status : null;
+
+  const interviewDurationSec = parseOptionalNumber(interviewMeta?.duration_sec);
+
+  const interviewContext = mapInterviewContext(interviewMeta?.interview_context);
+
   return {
     id: p.candidate_id ?? "",
     display_id: toDisplayId(p.candidate_id ?? ""),
@@ -367,6 +455,11 @@ export function fromDetailProfile(p: CandidateDetailProfile): CandidateDetailVM 
       max_self_interview_score: maxSelfInterviewScore,
       interview_result: typedInterviewResult,
       interview_created_at: interviewCreatedAt,
+      interview_id: interviewId,
+      interview_type: interviewType,
+      interview_status: interviewStatus,
+      interview_duration_sec: interviewDurationSec,
+      interview_context: interviewContext,
       avg_rating_score: p.general_score?.avg_rating_score ?? null,
       interview_summary_block: summaryBlock,
       conversational_round: conversationalRound,

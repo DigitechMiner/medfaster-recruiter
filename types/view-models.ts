@@ -134,6 +134,17 @@ export type InterviewSummaryBlock = {
   recommendation: string | null;
   areas_to_improve: string[];
 } | null;
+
+export type InterviewContextVM = {
+  candidate_name: string | null;
+  job_title: string | null;
+  job_titles: string[];
+  department: string | null;
+  education: string | null;
+  year_of_experience: number | null;
+  specializations: string[];
+  interview_type: string | null;
+} | null;
 export interface CandidateDetailVM {
   // Header
   id: string;
@@ -166,6 +177,11 @@ export interface CandidateDetailVM {
     interview_result: AiInterviewResultPayload | null;
     /** ISO date string from API `created_at` when present. */
     interview_created_at: string | null;
+    interview_id: string | null;
+    interview_type: string | null;
+    interview_status: string | null;
+    interview_duration_sec: number | null;
+    interview_context: InterviewContextVM;
     avg_rating_score: number | null;
     interview_summary_block: InterviewSummaryBlock;
     conversational_round: ScoreRound;

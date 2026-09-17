@@ -81,17 +81,19 @@ export function TodaysOperationsPanel({ range }: TodaysOperationsPanelProps) {
   );
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col ">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col min-w-0 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-100">
-        <h2 className="text-sm font-semibold text-gray-900">Today&apos;s Operations</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-4 border-b border-gray-100">
+        <h2 className="text-sm font-semibold text-gray-900 min-w-0">
+          Today&apos;s Operations
+        </h2>
         <button
-  type="button"
-  className="text-xs text-[#F4781B] font-medium hover:underline"
-  onClick={() => router.push("/calendar")}
->
-  View Full Schedule
-</button>
+          type="button"
+          className="text-xs text-[#F4781B] font-medium hover:underline shrink-0 whitespace-nowrap"
+          onClick={() => router.push("/calendar")}
+        >
+          View Full Schedule
+        </button>
       </div>
 
       {/* NO range tabs here anymore — controlled from header */}
@@ -105,7 +107,7 @@ export function TodaysOperationsPanel({ range }: TodaysOperationsPanelProps) {
         </div>
       ) : (
         <>
-          <DataTable headers={HEADERS} minWidthClassName="min-w-[480px]">
+          <DataTable headers={HEADERS} minWidthClassName="min-w-[420px]">
             {isLoading
               ? Array.from({ length: perPage }).map((_, i) => (
                   <tr key={i} className="border-b border-gray-50">

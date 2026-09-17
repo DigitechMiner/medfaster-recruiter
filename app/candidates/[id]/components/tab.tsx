@@ -11,6 +11,7 @@ import {
   Star,
   XCircle,
 } from "lucide-react";
+import { toLabel } from "./helpers";
 
 export const CANDIDATE_DETAIL_TABS = [
   "General score",
@@ -138,36 +139,36 @@ const ROUND_METRICS: Record<
   string,
   { key: string; label: string; max: number }[]
 > = {
-  "Conversational Round": [
-    { key: "engagement", label: "Engagement", max: 25 },
-    { key: "adaptability", label: "Adaptability", max: 25 },
-    { key: "responsiveness", label: "Responsiveness", max: 25 },
-    { key: "clarity_of_thought", label: "Clarity of Thought", max: 25 },
+  "Conversational Intelligence": [
+    { key: "engagement", label: "Engagement", max: 100 },
+    { key: "adaptability", label: "Adaptability", max: 100 },
+    { key: "responsiveness", label: "Responsiveness", max: 100 },
+    { key: "clarity_of_thought", label: "Clarity of Thought", max: 100 },
   ],
-  "Behavioral Round": [
-    { key: "empathy", label: "Empathy", max: 25 },
-    { key: "ethical_reasoning", label: "Ethical Reasoning", max: 25 },
-    { key: "stress_management", label: "Stress Management", max: 25 },
-    { key: "team_collaboration", label: "Team Collaboration", max: 25 },
+  "Behavioral Professionalism": [
+    { key: "empathy", label: "Empathy", max: 100 },
+    { key: "ethical_reasoning", label: "Ethical Reasoning", max: 100 },
+    { key: "stress_management", label: "Stress Management", max: 100 },
+    { key: "team_collaboration", label: "Team Collaboration", max: 100 },
   ],
-  "Communication analysis": [
-    { key: "confidence", label: "Confidence", max: 25 },
-    { key: "articulation", label: "Articulation", max: 25 },
-    { key: "active_listening", label: "Active Listening", max: 25 },
-    { key: "structure_of_answers", label: "Structure of Answers", max: 25 },
+  "Communication Clarity": [
+    { key: "confidence", label: "Confidence", max: 100 },
+    { key: "articulation", label: "Articulation", max: 100 },
+    { key: "active_listening", label: "Active Listening", max: 100 },
+    { key: "structure_of_answers", label: "Structure of Answers", max: 100 },
   ],
-  "Accuracy of answers": [
-    { key: "medical_accuracy", label: "Medical Accuracy", max: 25 },
-    { key: "clinical_reasoning", label: "Clinical Reasoning", max: 25 },
+  "Clinical Competency": [
+    { key: "medical_accuracy", label: "Medical Accuracy", max: 100 },
+    { key: "clinical_reasoning", label: "Clinical Reasoning", max: 100 },
     {
       key: "evidence_based_decision",
       label: "Evidence Based Decision",
-      max: 25,
+      max: 100,
     },
     {
       key: "patient_safety_awareness",
       label: "Patient Safety Awareness",
-      max: 25,
+      max: 100,
     },
   ],
 };
@@ -190,7 +191,7 @@ function RoundCard({ title, round }: { title: string; round: ScoreRound }) {
       <div className="flex flex-col gap-3">
         {metrics.map(({ key, label, max }) => {
           const raw = Number((round as Record<string, unknown>)[key] ?? 0);
-          const percent = Math.round((raw / max) * 100);
+          const percent = Math.min(100, Math.round((raw / max) * 100));
           const isLow = percent < 50;
           return (
             <div key={key}>
@@ -215,6 +216,26 @@ function RoundCard({ title, round }: { title: string; round: ScoreRound }) {
     </div>
   );
 }
+
+function formatInterviewDuration(seconds: number | null): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return null;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+}
+
+function formatInterviewDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-CA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function GeneralScoreTab({
   candidate,
 }: {
@@ -222,11 +243,17 @@ export function GeneralScoreTab({
 }) {
   const {
     overall_score,
+    max_self_interview_score,
     interview_summary_block,
     conversational_round,
     behavioral_round,
     communication_analysis,
     accuracy_of_answers,
+    interview_created_at,
+    interview_type,
+    interview_status,
+    interview_duration_sec,
+    interview_context,
   } = candidate.general_score;
 
   const hasAnyRound =
@@ -235,7 +262,7 @@ export function GeneralScoreTab({
     communication_analysis ||
     accuracy_of_answers;
 
-  if (!hasAnyRound && overall_score === null) {
+  if (!hasAnyRound && overall_score === null && !interview_context) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
         <p className="text-sm">No interview record available.</p>
@@ -244,30 +271,188 @@ export function GeneralScoreTab({
   }
 
   const rounds: { title: string; data: ScoreRound }[] = [
-    { title: "Conversational Round", data: conversational_round },
-    { title: "Behavioral Round", data: behavioral_round },
-    { title: "Communication analysis", data: communication_analysis },
-    { title: "Accuracy of answers", data: accuracy_of_answers },
+    { title: "Conversational Intelligence", data: conversational_round },
+    { title: "Behavioral Professionalism", data: behavioral_round },
+    { title: "Communication Clarity", data: communication_analysis },
+    { title: "Clinical Competency", data: accuracy_of_answers },
   ];
+
+  const durationLabel = formatInterviewDuration(interview_duration_sec);
+  const createdLabel = formatInterviewDate(interview_created_at);
+  const metaBits = [
+    interview_type ? toLabel(interview_type) : null,
+    interview_status ? toLabel(interview_status) : null,
+    durationLabel ? `Duration ${durationLabel}` : null,
+    createdLabel ? `Completed ${createdLabel}` : null,
+  ].filter(Boolean) as string[];
+
+  const contextJobTitles =
+    interview_context?.job_titles?.length
+      ? interview_context.job_titles
+      : interview_context?.job_title
+        ? [interview_context.job_title]
+        : [];
+
+  const contextFields = interview_context
+    ? (
+        [
+          {
+            label: "Candidate",
+            value: interview_context.candidate_name,
+          },
+          {
+            label: "Department",
+            value: interview_context.department
+              ? toLabel(interview_context.department)
+              : null,
+          },
+          {
+            label: "Education",
+            value: interview_context.education,
+          },
+          {
+            label: "Experience",
+            value:
+              interview_context.year_of_experience != null
+                ? `${interview_context.year_of_experience}+ ${
+                    interview_context.year_of_experience === 1 ? "year" : "years"
+                  }`
+                : null,
+          },
+          {
+            label: "Interview type",
+            value: interview_context.interview_type
+              ? toLabel(interview_context.interview_type)
+              : null,
+          },
+        ] as { label: string; value: string | null }[]
+      ).filter((field) => Boolean(field.value))
+    : [];
 
   return (
     <div className="flex flex-col gap-5">
+      {/* ── Overall score header ── */}
+      {(overall_score !== null || max_self_interview_score !== null) && (
+        <div className="border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 min-w-0">
+            <h3 className="text-base font-semibold text-gray-900">
+              Overall AI Interview Score
+            </h3>
+            {metaBits.length > 0 && (
+              <p className="text-sm text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
+                {metaBits.map((bit) => (
+                  <span key={bit}>{bit}</span>
+                ))}
+              </p>
+            )}
+            {interview_summary_block?.recommendation && (
+              <div className="pt-1">
+                <RecommendationBadge
+                  value={interview_summary_block.recommendation}
+                />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {overall_score !== null && (
+              <ScoreCard
+                score={overall_score}
+                maxScore={100}
+                category="Overall"
+              />
+            )}
+            {max_self_interview_score !== null &&
+              max_self_interview_score !== overall_score && (
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Max self score</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {max_self_interview_score}/100
+                  </p>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Interview context ── */}
+      {interview_context &&
+        (contextFields.length > 0 ||
+          contextJobTitles.length > 0 ||
+          interview_context.specializations.length > 0) && (
+          <div className="border border-gray-200 rounded-2xl p-5 flex flex-col gap-4">
+            <h3 className="text-base font-semibold text-gray-900">
+              Interview Context
+            </h3>
+
+            {contextFields.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {contextFields.map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl bg-gray-50 px-3.5 py-3"
+                  >
+                    <p className="text-xs text-gray-500 mb-1">{label}</p>
+                    <p className="text-sm font-medium text-gray-900 break-words">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {contextJobTitles.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Job titles
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {contextJobTitles.map((title) => (
+                    <span
+                      key={title}
+                      className="rounded-md bg-[#F3F4F6] px-2.5 py-1 text-xs text-[#525866]"
+                    >
+                      {toLabel(title)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {interview_context.specializations.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Specializations
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {interview_context.specializations.map((spec) => (
+                    <span
+                      key={spec}
+                      className="rounded-md bg-[#F3F4F6] px-2.5 py-1 text-xs text-[#525866]"
+                    >
+                      {toLabel(spec)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       {/* ── Top Summary Section ── */}
       {interview_summary_block && (
         <div className="border border-gray-200 rounded-2xl p-5 flex flex-col gap-4">
-          {/* Recommendation badge — top right */}
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-base font-semibold text-gray-900">
               Interview Summary
             </h3>
-            {interview_summary_block.recommendation && (
-              <RecommendationBadge
-                value={interview_summary_block.recommendation}
-              />
-            )}
+            {interview_summary_block.recommendation &&
+              overall_score === null && (
+                <RecommendationBadge
+                  value={interview_summary_block.recommendation}
+                />
+              )}
           </div>
 
-          {/* Summary text */}
           {interview_summary_block.interview_summary && (
             <p className="text-sm text-gray-500 leading-relaxed">
               {interview_summary_block.interview_summary}
@@ -275,7 +460,6 @@ export function GeneralScoreTab({
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Strengths */}
             {interview_summary_block.strengths.length > 0 && (
               <div className="bg-emerald-50 rounded-xl p-4">
                 <p className="text-sm font-semibold text-emerald-700 flex items-center gap-2 mb-2">
@@ -306,43 +490,74 @@ export function GeneralScoreTab({
               </div>
             )}
 
-            {/* Risk Flags */}
-            <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-2">
+            {interview_summary_block.areas_to_improve.length > 0 && (
+              <div className="bg-amber-50 rounded-xl p-4">
+                <p className="text-sm font-semibold text-amber-700 mb-2">
+                  Areas to Improve
+                </p>
+                <ul className="flex flex-col gap-1">
+                  {interview_summary_block.areas_to_improve.map((item, i) => (
+                    <li
+                      key={i}
+                      className="text-sm text-amber-800 flex items-start gap-2"
+                    >
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div
+              className={`rounded-xl p-4 ${
+                Object.values(interview_summary_block.risk_flags).some(Boolean)
+                  ? "bg-red-50"
+                  : "bg-gray-50"
+              }`}
+            >
+              <p className="text-sm font-semibold text-gray-700 mb-3">
                 Risk Flags
               </p>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2.5">
                 {[
                   {
-                    key: "communication_red_flag",
+                    key: "communication_red_flag" as const,
                     label: "Communication Red Flag",
                   },
                   {
-                    key: "unsafe_decision_detected",
+                    key: "unsafe_decision_detected" as const,
                     label: "Unsafe Decision Detected",
                   },
                   {
-                    key: "critical_safety_violation",
+                    key: "critical_safety_violation" as const,
                     label: "Critical Safety Violation",
                   },
                 ].map(({ key, label }) => {
-                  const flagged =
-                    interview_summary_block.risk_flags[
-                      key as keyof typeof interview_summary_block.risk_flags
-                    ];
+                  const flagged = Boolean(
+                    interview_summary_block.risk_flags?.[key],
+                  );
                   return (
-                    <li key={key} className="flex items-center gap-2 text-sm">
-                      {flagged ? (
-                        <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-                      ) : (
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
-                      )}
+                    <li
+                      key={key}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2.5 border border-gray-100"
+                    >
+                      <span className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                        {flagged ? (
+                          <XCircle className="h-4 w-4 shrink-0 text-red-500" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                        )}
+                        <span className="truncate">{label}</span>
+                      </span>
                       <span
-                        className={
-                          flagged ? "text-red-600 font-medium" : "text-gray-500"
-                        }
+                        className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          flagged
+                            ? "bg-red-100 text-red-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}
                       >
-                        {label}
+                        {flagged ? "True" : "False"}
                       </span>
                     </li>
                   );
@@ -350,7 +565,6 @@ export function GeneralScoreTab({
               </ul>
             </div>
           </div>
-
         </div>
       )}
 
@@ -366,17 +580,23 @@ export function GeneralScoreTab({
 
 // Recommendation badge component
 function RecommendationBadge({ value }: { value: string }) {
-  const isRecommended =
-    value.toLowerCase().includes("recommended") &&
-    !value.toLowerCase().includes("not");
+  const normalized = value.toLowerCase();
+  const isNotRecommended = normalized.includes("not recommended");
+  const needsCoaching =
+    !isNotRecommended && normalized.includes("coaching");
+  const isRecommended = !isNotRecommended && normalized.includes("recommended");
+
+  const className = isNotRecommended
+    ? "bg-red-100 text-red-600"
+    : needsCoaching
+      ? "bg-amber-100 text-amber-700"
+      : isRecommended
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-gray-100 text-gray-600";
 
   return (
     <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-        isRecommended
-          ? "bg-emerald-100 text-emerald-700"
-          : "bg-red-100 text-red-600"
-      }`}
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${className}`}
     >
       {value}
     </span>

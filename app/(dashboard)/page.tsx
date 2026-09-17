@@ -106,34 +106,36 @@ const DashboardPage: React.FC = () => {
           />
         </div>
 
-        {/* Main 3-column layout — columns same width, items-start kills stretch */}
-        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr_300px] gap-3 items-start">
+        {/* Main layout
+            - lg: Issues | Overview side-by-side (dense), Operations full-width below
+            - xl+: 3-col with fluid middle so the table isn't crushed beside the sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-flow-dense xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)_minmax(220px,280px)] xl:grid-flow-row gap-3 items-start">
 
-          {/* Col 1: Today's Top Issues — natural height only */}
-          <div className="self-stretch flex flex-col">
-  <TodaysTopIssues
-    noShows={noShows}
-    lateArrivals={shifts?.LATE_CHECK_IN ?? 0}
-    positionsUnfilled={jobs?.OPEN ?? 0}
-    pendingCheckIns={shifts?.UPCOMING ?? 0}
-    isLoading={isLoading}
-  />
-</div>
+          {/* Col 1: Today's Top Issues */}
+          <div className="min-w-0 self-stretch flex flex-col">
+            <TodaysTopIssues
+              noShows={noShows}
+              lateArrivals={shifts?.LATE_CHECK_IN ?? 0}
+              positionsUnfilled={jobs?.OPEN ?? 0}
+              pendingCheckIns={shifts?.UPCOMING ?? 0}
+              isLoading={isLoading}
+            />
+          </div>
 
-          {/* Col 2: Today's Operations — grows with data */}
-          <TodaysOperationsPanel range={range} />
+          {/* Col 2: Today's Operations — spans full row on lg, middle track on xl */}
+          <div className="min-w-0 w-full lg:col-span-2 xl:col-span-1">
+            <TodaysOperationsPanel range={range} />
+          </div>
 
-          {/* Col 3: Overview + Quick Actions stacked, no stretching */}
-          <div className="flex flex-col gap-3">
-           <div className="flex-1">
-    <JobsShiftsOverview
-      active={shifts?.ACTIVE ?? 0}
-      upcoming={shifts?.UPCOMING ?? 0}
-      open={jobs?.OPEN ?? 0}
-      completed={shifts?.COMPLETED ?? 0}
-      isLoading={isLoading}
-    />
-  </div>
+          {/* Col 3: Overview + Quick Actions — backfills beside Issues on lg via dense */}
+          <div className="min-w-0 flex flex-col gap-3">
+            <JobsShiftsOverview
+              active={shifts?.ACTIVE ?? 0}
+              upcoming={shifts?.UPCOMING ?? 0}
+              open={jobs?.OPEN ?? 0}
+              completed={shifts?.COMPLETED ?? 0}
+              isLoading={isLoading}
+            />
             <QuickActions />
           </div>
 

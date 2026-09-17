@@ -218,11 +218,38 @@ export interface AiInterviewResultPayload {
   areas_to_improve?: string[];
 }
 
+export interface CandidateInterviewContext {
+  education?: string | null;
+  job_title?: string | null;
+  created_at?: string | null;
+  department?: string | null;
+  job_titles?: string[] | null;
+  candidate_name?: string | null;
+  interview_type?: string | null;
+  specializations?: string[] | null;
+  year_of_experience?: number | null;
+}
+
+export interface CandidateInterviewMeta {
+  id: string;
+  status?: string | null;
+  interview_type?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  duration_sec?: number | null;
+  termination_reason?: string | null;
+  interview_context?: CandidateInterviewContext | null;
+  visible_to_recruiter?: boolean;
+  created_at?: string | null;
+}
+
 export interface CandidateGeneralScore {
   max_self_interview_score?: number | null;
   overall_score?: number | null;
+  interview_id?: string | null;
   result?: AiInterviewResultPayload | null;
   created_at?: string | null;
+  interview?: CandidateInterviewMeta | null;
   best_ai_interview_score?: number | Record<string, unknown> | null;
   avg_rating_score?: number | null;
 }

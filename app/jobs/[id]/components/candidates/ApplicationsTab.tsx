@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { LayoutGrid, List, MoreVertical, RefreshCw } from "lucide-react";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
@@ -399,6 +400,7 @@ function ApplicationGridCard({
   isInstant,
   isUpdating,
   onOpenActions,
+  onNavigate,
 }: {
   application: ApplicationGridCardData;
   aiInterviewEnabled: boolean;
@@ -406,6 +408,7 @@ function ApplicationGridCard({
   isInstant: boolean;
   isUpdating: boolean;
   onOpenActions: () => void;
+  onNavigate?: () => void;
 }) {
   const candidate = application.candidate;
   const candidateName = getCandidateName(candidate);
@@ -437,7 +440,24 @@ function ApplicationGridCard({
   const hasPreferences = Boolean(application.team_preferences?.length);
 
   return (
-    <div className="flex min-w-[300px] flex-col gap-3 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm transition-all hover:border-gray-200 hover:shadow-md">
+    <div
+      role={onNavigate ? "link" : undefined}
+      tabIndex={onNavigate ? 0 : undefined}
+      onClick={onNavigate}
+      onKeyDown={
+        onNavigate
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onNavigate();
+              }
+            }
+          : undefined
+      }
+      className={`flex min-w-[300px] flex-col gap-3 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm transition-all hover:border-gray-200 hover:shadow-md${
+        onNavigate ? " cursor-pointer" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-orange-50 ring-1 ring-orange-100">
@@ -544,6 +564,7 @@ export function ApplicationsTab({
   jobUrgency,
   onApplicationUpdated,
 }: ApplicationsTabProps) {
+  const router = useRouter();
   const [applicationPage, setApplicationPage] = useState(1);
   const [status, setStatus] = useState<ApplicationStatus | "ALL">("ALL");
   const [view, setView] = useState<"grid" | "list">("list");
@@ -561,6 +582,14 @@ export function ApplicationsTab({
   const [isRefreshLocked, setIsRefreshLocked] = useState(false);
   const isRefreshLockedRef = useRef(false);
   const refreshCooldownTimeoutRef = useRef<number | null>(null);
+
+  const navigateToCandidate = useCallback(
+    (candidateId?: string | null) => {
+      if (!candidateId) return;
+      router.push(`/candidates/${candidateId}`);
+    },
+    [router],
+  );
   const {
     applications,
     isLoading,
@@ -760,6 +789,11 @@ export function ApplicationsTab({
                 isInstant={isInstant}
                 isUpdating={updatingApplicationId === application.id}
                 onOpenActions={() => openActionsModal(application)}
+                onNavigate={() =>
+                  navigateToCandidate(
+                    application.candidate?.id ?? application.candidate_id,
+                  )
+                }
               />
             ))}
           </div>
@@ -778,6 +812,7 @@ export function ApplicationsTab({
           >
             {applicationItems.map((application) => {
               const candidate = application.candidate;
+              const candidateId = candidate?.id ?? application.candidate_id;
               const candidateName = getCandidateName(candidate);
               const initials = getCandidateInitials(candidateName);
               const score =
@@ -791,7 +826,19 @@ export function ApplicationsTab({
               return (
                 <tr
                   key={application.id}
-                  className="group border-b border-gray-50 last:border-b-0 transition-colors hover:bg-gray-50/60"
+                  role={candidateId ? "link" : undefined}
+                  tabIndex={candidateId ? 0 : undefined}
+                  onClick={() => navigateToCandidate(candidateId)}
+                  onKeyDown={(event) => {
+                    if (!candidateId) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigateToCandidate(candidateId);
+                    }
+                  }}
+                  className={`group border-b border-gray-50 last:border-b-0 transition-colors hover:bg-gray-50/60${
+                    candidateId ? " cursor-pointer" : ""
+                  }`}
                 >
                   <td className="px-4 py-3 align-middle min-w-[200px] w-[26%]">
                     <CandidatePrimaryCell

@@ -107,8 +107,8 @@ export function TodaysTopIssues({
               )}
             </span>
 
-            {/* Label — whitespace-nowrap keeps it on one line */}
-            <span className={cn("flex-1 text-sm font-semibold whitespace-nowrap", textColor)}>
+            {/* Label */}
+            <span className={cn("flex-1 text-sm font-semibold min-w-0 truncate", textColor)}>
               {isLoading ? (
                 <span className="block h-3.5 w-28 bg-gray-200 rounded animate-pulse" />
               ) : (
@@ -118,7 +118,7 @@ export function TodaysTopIssues({
 
             {/* Meta + chevron */}
             <div className="flex items-center gap-0.5 shrink-0">
-              <span className="text-xs text-gray-400 whitespace-nowrap">{meta}</span>
+              <span className="text-xs text-gray-400 whitespace-nowrap hidden sm:inline">{meta}</span>
               <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
             </div>
           </button>

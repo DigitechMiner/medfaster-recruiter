@@ -17,7 +17,7 @@ export const QuickActions = () => {
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
       {completeProfileDialog}
       <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h2>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2">
         {actions.map(({ icon: Icon, label, href, bg, color, requiresCompleteProfile }) => (
           <button
             key={label}
@@ -25,7 +25,7 @@ export const QuickActions = () => {
             onClick={() =>
               requiresCompleteProfile ? goToCreate(href) : router.push(href)
             }
-            className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50/50 px-1 py-3 hover:border-orange-200 hover:bg-orange-50/40 transition-all"
+            className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50/50 px-1 py-3 hover:border-orange-200 hover:bg-orange-50/40 transition-all min-w-0"
           >
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bg}`}>
               <Icon className={`w-4 h-4 ${color}`} aria-hidden />
