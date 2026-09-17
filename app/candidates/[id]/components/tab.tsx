@@ -6,7 +6,9 @@ import { useCandidateDocumentUrl } from "@/hooks/useApplicationActions";
 import type { CandidateDetailVM, ScoreRound } from "@/types/view-models";
 import {
   BriefcaseBusiness,
+  Calendar,
   CheckCircle2,
+  Clock,
   Eye,
   Star,
   XCircle,
@@ -262,7 +264,12 @@ export function GeneralScoreTab({
     communication_analysis ||
     accuracy_of_answers;
 
-  if (!hasAnyRound && overall_score === null && !interview_context) {
+  if (
+    !hasAnyRound &&
+    overall_score === null &&
+    !interview_context &&
+    !interview_summary_block
+  ) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
         <p className="text-sm">No interview record available.</p>
@@ -279,12 +286,21 @@ export function GeneralScoreTab({
 
   const durationLabel = formatInterviewDuration(interview_duration_sec);
   const createdLabel = formatInterviewDate(interview_created_at);
-  const metaBits = [
-    interview_type ? toLabel(interview_type) : null,
-    interview_status ? toLabel(interview_status) : null,
-    durationLabel ? `Duration ${durationLabel}` : null,
-    createdLabel ? `Completed ${createdLabel}` : null,
-  ].filter(Boolean) as string[];
+  const typeLabel = interview_type
+    ? interview_type.replace(/_/g, " ").toUpperCase()
+    : null;
+  const statusLabel = interview_status
+    ? interview_status.replace(/_/g, " ").toUpperCase()
+    : null;
+  const hasInterviewMeta = Boolean(
+    typeLabel || statusLabel || durationLabel || createdLabel,
+  );
+
+  const showOverallHeader =
+    overall_score !== null ||
+    max_self_interview_score !== null ||
+    hasInterviewMeta ||
+    Boolean(interview_summary_block?.recommendation);
 
   const contextJobTitles =
     interview_context?.job_titles?.length
@@ -332,45 +348,93 @@ export function GeneralScoreTab({
   return (
     <div className="flex flex-col gap-5">
       {/* ── Overall score header ── */}
-      {(overall_score !== null || max_self_interview_score !== null) && (
-        <div className="border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 min-w-0">
+      {showOverallHeader && (
+        <div className="border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3 min-w-0">
             <h3 className="text-base font-semibold text-gray-900">
               Overall AI Interview Score
             </h3>
-            {metaBits.length > 0 && (
-              <p className="text-sm text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
-                {metaBits.map((bit) => (
-                  <span key={bit}>{bit}</span>
-                ))}
-              </p>
+
+            {hasInterviewMeta && (
+              <div className="flex flex-wrap items-center gap-2">
+                {typeLabel && (
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-gray-700">
+                    {typeLabel}
+                  </span>
+                )}
+                {statusLabel && (
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${
+                      statusLabel === "COMPLETED"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        : "bg-gray-50 text-gray-700 border border-gray-200"
+                    }`}
+                  >
+                    {statusLabel}
+                  </span>
+                )}
+                {(durationLabel || createdLabel) &&
+                  (typeLabel || statusLabel) && (
+                    <span
+                      className="hidden sm:inline-block h-4 w-px bg-gray-200 mx-0.5"
+                      aria-hidden
+                    />
+                  )}
+                {durationLabel && (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
+                    <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    <span>
+                      <span className="text-gray-400">Duration</span>{" "}
+                      <span className="font-medium text-gray-700">
+                        {durationLabel}
+                      </span>
+                    </span>
+                  </span>
+                )}
+                {createdLabel && (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
+                    <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                    <span>
+                      <span className="text-gray-400">Completed</span>{" "}
+                      <span className="font-medium text-gray-700">
+                        {createdLabel}
+                      </span>
+                    </span>
+                  </span>
+                )}
+              </div>
             )}
+
             {interview_summary_block?.recommendation && (
-              <div className="pt-1">
+              <div>
                 <RecommendationBadge
                   value={interview_summary_block.recommendation}
                 />
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {overall_score !== null && (
-              <ScoreCard
-                score={overall_score}
-                maxScore={100}
-                category="Overall"
-              />
-            )}
-            {max_self_interview_score !== null &&
-              max_self_interview_score !== overall_score && (
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Max self score</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {max_self_interview_score}/100
-                  </p>
-                </div>
+          {(overall_score !== null ||
+            (max_self_interview_score !== null &&
+              max_self_interview_score !== overall_score)) && (
+            <div className="flex items-center gap-3 shrink-0">
+              {overall_score !== null && (
+                <ScoreCard
+                  score={overall_score}
+                  maxScore={100}
+                  category="Overall"
+                />
               )}
-          </div>
+              {max_self_interview_score !== null &&
+                max_self_interview_score !== overall_score && (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Max self score</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {max_self_interview_score}/100
+                    </p>
+                  </div>
+                )}
+            </div>
+          )}
         </div>
       )}
 
@@ -589,7 +653,7 @@ function RecommendationBadge({ value }: { value: string }) {
   const className = isNotRecommended
     ? "bg-red-100 text-red-600"
     : needsCoaching
-      ? "bg-amber-100 text-amber-700"
+      ? "bg-[#FFF4E5] text-[#B54708]"
       : isRecommended
         ? "bg-emerald-100 text-emerald-700"
         : "bg-gray-100 text-gray-600";
