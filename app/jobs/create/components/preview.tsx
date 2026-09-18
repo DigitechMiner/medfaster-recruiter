@@ -55,13 +55,50 @@ import { parseClockTimeToMinutes, parseLocalDate, shiftSpansMidnight } from "../
 import { parseCalendarDate } from "../form/utils";
 import { INSTANT_JOB_MIN_DURATION_HOURS, SHIFT_MAX_HOURS } from "../validation/constants";
 import { validatePayloadShiftDurations } from "../validation/shift-duration";
+import { validateJobStartDateTime } from "@/utils/datetime";
 import { getMetadataLabel } from "@/utils/constant/metadata";
 import {
   calculateTotalCandidatesRequired,
+  getShiftStartFromState,
   getTeamForTemplateDay,
+  sortShiftsInDayOrder,
 } from "../normal/scheduling-utils";
 import { cn } from "@/lib/utils";
 import { isIncompleteProfileError } from "@/features/profile/completion";
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  const parsed = error as {
+    message?: string;
+    response?: { data?: { message?: string } };
+  };
+  return parsed.response?.data?.message || parsed.message || fallback;
+}
+
+function earliestPayloadCheckInTime(payload: JobCreatePayload): string | undefined {
+  const selectedShifts = sortShiftsInDayOrder(
+    (payload.selected_shift_types as ShiftType[] | undefined) ?? [],
+  );
+
+  let earliest: string | undefined;
+  for (const shift of selectedShifts) {
+    const start = getShiftStartFromState(shift, payload)?.trim();
+    if (!start) continue;
+    if (!earliest || start < earliest) earliest = start;
+  }
+
+  return earliest || payload.check_in_time?.trim() || undefined;
+}
+
+function getLeadTimeError(payload: JobCreatePayload): string | null {
+  return (
+    validateJobStartDateTime({
+      province: payload.province,
+      startDate: payload.start_date,
+      startTime: earliestPayloadCheckInTime(payload),
+      urgency: payload.job_urgency,
+    })?.message ?? null
+  );
+}
 
 interface JobReviewProps {
   mode: "normal" | "urgent";
@@ -443,12 +480,22 @@ export function JobReview({
     setFeeRefreshNonce((nonce) => nonce + 1);
   }, [feePreviewRequestKey]);
 
+  const leadTimeError = useMemo(() => getLeadTimeError(payload), [payload]);
+
   useEffect(() => {
     if (!feePreviewRequestKey) return;
+
+    if (leadTimeError) {
+      setFeeLoading(false);
+      setFeePreview(null);
+      setFeeError(leadTimeError);
+      return;
+    }
 
     let cancelled = false;
     setFeeLoading(true);
     setFeeError(null);
+    setFeePreview(null);
 
     const requestBody:
       | NormalJobFeePreviewPayload
@@ -469,9 +516,11 @@ export function JobReview({
       .then((data) => {
         if (!cancelled) setFeePreview(data);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!cancelled) {
-          setFeeError("Could not load cost estimate.");
+          setFeeError(
+            getApiErrorMessage(error, "Could not load cost estimate."),
+          );
         }
       })
       .finally(() => {
@@ -481,7 +530,7 @@ export function JobReview({
     return () => {
       cancelled = true;
     };
-  }, [feePreviewRequestKey, feeRefreshNonce]);
+  }, [feePreviewRequestKey, feeRefreshNonce, leadTimeError]);
 
   const requiredCandidates = useMemo(
     () => resolveRequiredHires(payload, feePreview?.no_of_hires),

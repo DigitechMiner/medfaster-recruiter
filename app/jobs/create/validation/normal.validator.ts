@@ -5,6 +5,7 @@ import type {
   ShiftType,
   StaffingType,
 } from "@/types";
+import { validateJobStartDateTime } from "@/utils/datetime";
 import { isEmpty, isPastDate, isStringArrayBetween, parseClockTimeToMinutes, parseLocalDate } from "./helpers";
 import type { PushError } from "./types";
 import {
@@ -35,8 +36,49 @@ export function validateNormalJob(payload: JobCreatePayload, push: PushError) {
   validateNormalQuestions(payload, push);
   validateSelectedShiftCount(payload, push);
   validateScheduleWeeklyHours(payload, push);
+  validateNormalLeadTime(payload, push);
 }
 // END SECTION: Normal Job Validator
+
+function earliestShiftStartTime(
+  source: Pick<
+    JobFormSnapshot,
+    | "selected_shift_types"
+    | "check_in_time"
+    | "morning_shift_start"
+    | "evening_shift_start"
+    | "night_shift_start"
+  > &
+    Partial<ShiftTimesState>,
+): string | undefined {
+  const selectedShifts = sortShiftsInDayOrder(
+    (source.selected_shift_types as ShiftType[] | undefined) ?? [],
+  );
+
+  let earliest: string | undefined;
+  for (const shift of selectedShifts) {
+    const start = getShiftStartFromState(shift, source)?.trim();
+    if (!start) continue;
+    if (!earliest || start < earliest) earliest = start;
+  }
+
+  return (
+    earliest ||
+    source.check_in_time?.trim() ||
+    source.morning_shift_start?.trim() ||
+    undefined
+  );
+}
+
+function validateNormalLeadTime(payload: JobCreatePayload, push: PushError) {
+  const issue = validateJobStartDateTime({
+    province: payload.province,
+    startDate: payload.start_date,
+    startTime: earliestShiftStartTime(payload),
+    urgency: payload.job_urgency ?? "NORMAL",
+  });
+  if (issue) push(issue.field, issue.message);
+}
 
 // START SECTION: Experience Validation
 function validateExperience(payload: JobCreatePayload, push: PushError) {
@@ -295,8 +337,16 @@ export function formatSchedulingStepTemplateErrors(
 export function formatSchedulingStepErrors(
   snapshot: JobFormSnapshot,
 ): string | null {
+  const leadTimeError = validateJobStartDateTime({
+    province: snapshot.province,
+    startDate: snapshot.start_date,
+    startTime: earliestShiftStartTime(snapshot),
+    urgency: snapshot.job_urgency ?? "NORMAL",
+  });
+
   const messages = [
     formatSchedulingStepDateErrors(snapshot),
+    leadTimeError?.message ?? null,
     formatSchedulingStepShiftTimingErrors(snapshot),
     formatSchedulingStepTemplateErrors(snapshot),
   ].filter((message): message is string => message !== null);

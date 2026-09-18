@@ -1,4 +1,5 @@
 import type { JobCreatePayload } from "@/types";
+import { validateJobStartDateTime } from "@/utils/datetime";
 import { getInstantBreakDurationBounds } from "../instant/build-instant-payload";
 import { INSTANT_JOB_MIN_DURATION_HOURS } from "./constants";
 import { getShiftDurationHours, isEmpty } from "./helpers";
@@ -14,8 +15,19 @@ export function validateInstantJob(
   validateNeighborhood(payload, push);
   validateDirectNumber(payload, push);
   validateInstantQuestions(payload, push);
+  validateInstantLeadTime(payload, push);
 }
 // END SECTION: Instant Job Validator
+
+function validateInstantLeadTime(payload: JobCreatePayload, push: PushError) {
+  const issue = validateJobStartDateTime({
+    province: payload.province,
+    startDate: payload.start_date,
+    startTime: payload.check_in_time,
+    urgency: "INSTANT",
+  });
+  if (issue) push(issue.field, issue.message);
+}
 
 // START SECTION: Instant Duration Validation
 function validateInstantDuration(payload: JobCreatePayload, push: PushError) {
