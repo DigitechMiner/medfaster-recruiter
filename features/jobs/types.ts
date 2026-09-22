@@ -743,25 +743,33 @@ export interface JobsSummaryResponse {
   data: JobsSummaryData;
 }
 
-export interface CalendarJob {
+/** Slim chip row returned when `view=grid` (week/month). */
+export interface CalendarGridShift {
   assignment_id: string;
-  job_id: string;
-  shift_id: string;
   shift_date: string;
   shift_status: "ACTIVE" | "UPCOMING" | "COMPLETED" | "CANCELLED";
   candidate_id: string;
   candidate_name: string;
-  check_in: string | null;
-  check_out: string | null;
-  check_out_source: string | null;
+  profile_image_url?: string | null;
+  job_title: string;
   planned_check_in: string | null;
+}
+
+/** Rich timeline row returned when `view=day`. */
+export interface CalendarDayShift extends CalendarGridShift {
+  job_type: string;
   planned_check_out: string | null;
   planned_check_in_at?: string | null;
   planned_check_out_at?: string | null;
-  province?: string | null;
-  job_title: string;
-  job_type: string;
+  check_in: string | null;
+  check_out: string | null;
 }
+
+/**
+ * Union used by calendar UI. Day view expects the richer fields;
+ * grid view only guarantees CalendarGridShift fields.
+ */
+export type CalendarJob = CalendarGridShift & Partial<Omit<CalendarDayShift, keyof CalendarGridShift>>;
 
 export type CalendarSummary = {
   active_shift: number;
@@ -772,11 +780,31 @@ export type CalendarSummary = {
   no_show_missed: number;
 };
 
+/** Inclusive max span for custom `start_date`/`end_date` windows (one calendar month). */
+export const MAX_CUSTOM_CALENDAR_DAYS = 31;
+
+export type JobsCalendarPreset = "today" | "week" | "month";
+export type JobsCalendarView = "grid" | "day";
+
+export type JobsCalendarParams = {
+  /** grid = slim chips; day = rich timeline. Default: grid. */
+  view?: JobsCalendarView;
+  /** Preset window: today, week (Mon–today), or month (1st–today). Ignored when dates set. */
+  range?: JobsCalendarPreset;
+  /** Alias for `range`. */
+  period?: JobsCalendarPreset;
+  /** Inclusive lower bound (YYYY-MM-DD). Must be sent with `end_date`. */
+  start_date?: string;
+  /** Inclusive upper bound (YYYY-MM-DD). Max 31 days. For view=day must equal start_date. */
+  end_date?: string;
+};
+
 export type JobsCalendarResponse = {
   success: boolean;
   message: string;
   data: {
     range: string;
+    view: JobsCalendarView | string;
     date_from: string;
     date_to: string;
     summary: CalendarSummary;

@@ -3,6 +3,7 @@ import { ENDPOINTS } from '@/stores/api/api-endpoints';
 import { extractData, extractRoot } from '@/stores/api/response-helpers';
 import type {
   JobsSummaryResponse,
+  JobsCalendarParams,
   JobsCalendarResponse,
 } from "@/features/jobs/types";
 
@@ -73,8 +74,36 @@ export const getJobsSummary =
   (): Promise<JobsSummaryResponse> =>
     getJson<JobsSummaryResponse>(ENDPOINTS.JOBS_SUMMARY);
 
-export const getJobsCalendar = (range: 'today' | 'week' | 'month' = 'week'): Promise<JobsCalendarResponse> =>
-  getJson<JobsCalendarResponse>(`${ENDPOINTS.JOBS_CALENDAR}?range=${range}`);
+/**
+ * GET /recruiter/jobs/calendar
+ * - view: grid (default, week/month chips) | day (single-day timeline)
+ * - custom: start_date + end_date (YYYY-MM-DD, inclusive, max 31 days; day view requires same day)
+ * - presets: range / period = today | week | month
+ */
+export function getJobsCalendar(
+  params: JobsCalendarParams | "today" | "week" | "month" = { view: "grid", range: "week" },
+): Promise<JobsCalendarResponse> {
+  const query: Record<string, string> = {};
+
+  if (typeof params === "string") {
+    query.view = "grid";
+    query.range = params;
+  } else {
+    query.view = params.view ?? "grid";
+    if (params.start_date && params.end_date) {
+      query.start_date = params.start_date;
+      query.end_date = params.end_date;
+    } else if (params.range) {
+      query.range = params.range;
+    } else if (params.period) {
+      query.period = params.period;
+    } else {
+      query.range = "week";
+    }
+  }
+
+  return getJson<JobsCalendarResponse>(ENDPOINTS.JOBS_CALENDAR, query);
+}
 
 export const getCandidatesList = (
   params?: CandidatesListParams
