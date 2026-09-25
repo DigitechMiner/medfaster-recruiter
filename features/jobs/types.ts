@@ -222,6 +222,12 @@ export interface JobDetailSummaryData {
   total_visibility_stages: number | null;
   location: string;
   created_at?: string | null;
+  /** Instant jobs only. */
+  neighborhood_name?: string | null;
+  /** Instant jobs only. */
+  neighborhood_type?: string | null;
+  /** Instant jobs only — contact number. */
+  direct_number?: string | null;
   /** Normal jobs only — STANDARD or ROTATIONAL. */
   shift_mode?: string | null;
   /** Normal jobs only. */

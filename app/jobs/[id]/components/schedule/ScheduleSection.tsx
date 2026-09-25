@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, Clock, Layers, Users } from "lucide-react";
+import { Building2, CalendarCheck, CalendarDays, Clock, Home, Layers, Phone, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,6 @@ import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { WorkScheduleVisual } from "./WorkScheduleVisual";
 import {
   formatDate,
-  formatDateRange,
   formatLabel,
   formatTime,
 } from "../shared/job-detail-helpers";
@@ -86,49 +85,90 @@ export function ScheduleSection({
     <div className="flex flex-col gap-4">
       
       {isInstant ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
-              <CalendarDays size={16} />
-            </span>
-            <div>
-              <p className="text-xs font-medium text-gray-500">Date range</p>
-              <p className="mt-0.5 text-sm font-semibold text-gray-900">
-                {formatDateRange(summary.start_date, summary.end_date)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                {summary.total_shifts} shift
-                {summary.total_shifts === 1 ? "" : "s"}
-              </p>
-            </div>
-          </div>
-
-          {nextShift && (
-            <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-4">
-              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-[#F4781B] shadow-sm">
-                <Clock size={16} />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <section className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4">
+            <h3 className="text-sm font-semibold text-gray-900">Neighborhood</h3>
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+                <Building2 size={16} />
               </span>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  Next shift
-                </p>
-                <p className="mt-0.5 text-sm font-semibold text-gray-900">
-                  {formatShiftTypeLabel(nextShift.shift_type)}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {formatDate(nextShift.shift_date)} ·{" "}
-                  {formatTime(nextShift.start_time)} –{" "}
-                  {formatTime(nextShift.end_time)}
-                </p>
-                <p className="mt-1.5 text-xs">
-                  <ShiftCountdown
-                    plannedCheckInAt={nextShift.planned_check_in_at}
-                    plannedCheckOutAt={nextShift.planned_check_out_at}
-                  />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">Name</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900 break-words">
+                  {summary.neighborhood_name || "—"}
                 </p>
               </div>
             </div>
-          )}
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+                <Home size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">Type</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900 break-words">
+                  {summary.neighborhood_type || "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+                <Phone size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">Contact</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900 break-words">
+                  {summary.direct_number ? (
+                    <a
+                      href={`tel:${summary.direct_number}`}
+                      className="hover:text-[#F4781B]"
+                    >
+                      {summary.direct_number}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4">
+            <h3 className="text-sm font-semibold text-gray-900">Date</h3>
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+                <CalendarDays size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">Start date</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900">
+                  {summary.start_date ? formatDate(summary.start_date) : "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+                <CalendarCheck size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">End date</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900">
+                  {summary.end_date ? formatDate(summary.end_date) : "—"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[#F4781B]">
+                <Layers size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">Shifts</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900">
+                  {summary.total_shifts} shift
+                  {summary.total_shifts === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
       ) : (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -186,7 +226,7 @@ export function ScheduleSection({
         </div>
       )}
 
-      {!isInstant && nextShift && (
+      {nextShift && (
         <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-4">
           <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white text-[#F4781B] shadow-sm">
             <Clock size={16} />
