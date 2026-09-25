@@ -1,3 +1,4 @@
+import type { AiInterviewResultPayload } from "@/features/candidates/types";
 import type { PaginationData } from "@/types";
 
 // ============================================================================
@@ -1346,6 +1347,10 @@ export interface JobApplicationItem {
   response_source?: string | null;
   source?: string | null;
   broadcast_status?: string | null;
+  /** Present only when status is INTERVIEWED. */
+  interview_id?: string | null;
+  /** AI evaluation for the job interview; present only when status is INTERVIEWED. */
+  interview_result?: AiInterviewResultPayload | null;
   job: {
     id: string;
     job_title: string;
@@ -1368,6 +1373,7 @@ export interface JobApplicationItem {
     experience_months?: number;
     work_eligibility?: string | null;
     best_ai_interview_score?: number | null;
+    /** Overall score for this job's interview; present when INTERVIEWED. */
     job_interview_score?: number | null;
   };
 }
@@ -1415,6 +1421,10 @@ export interface JobApplicationListResponse {
     response_source?: string | null;
     source?: string | null;
     broadcast_status?: string | null;
+    /** Present only when status is INTERVIEWED. */
+    interview_id?: string | null;
+    /** AI evaluation for the job interview; present only when status is INTERVIEWED. */
+    interview_result?: AiInterviewResultPayload | null;
     job: {
       id: string;
       job_title: string;
@@ -1441,6 +1451,7 @@ export interface JobApplicationListResponse {
       experience_months?: number | null;
       work_eligibility?: string | null;
       best_ai_interview_score?: number | null;
+      /** Overall score for this job's interview; present when INTERVIEWED. */
       job_interview_score?: number | null;
       completion_percentage: number | null;
     } | null;
@@ -1549,12 +1560,17 @@ export interface JobShiftsResponse extends JobDetailRecord {
   };
 }
 
-export type JobShiftStatus =
-  | "UPCOMING"
-  | "ACTIVE"
-  | "COMPLETED"
-  | "CANCELLED"
-  | "MISSED";
+/** Shift record statuses from the jobs shifts API. CANCELLED covers leave; MISSED is no check-in. */
+export const JOB_SHIFT_RECORD_STATUSES = [
+  "UPCOMING",
+  "ACTIVE",
+  "MISSED",
+  "COMPLETED",
+  "CANCELLED",
+] as const;
+
+export type JobShiftStatus = (typeof JOB_SHIFT_RECORD_STATUSES)[number];
+export type JobShiftRecordStatus = JobShiftStatus;
 
 export interface JobShiftsParams {
   /** Single status, comma-separated list (`ACTIVE,UPCOMING`), or omit for every shift. */
@@ -1732,9 +1748,14 @@ export interface InterviewPagination {
   total: number;
 }
 
-export type InterviewSessionStatus = "PENDING" | "IN_PROGRESS" | "ENDED" | "FAILED";
+export type InterviewSessionStatus =
+  | "PENDING"
+  | "IN_PROGRESS"
+  | "ENDED"
+  | "FAILED"
+  | "TERMINATED";
 export type InterviewKind = "JOB" | "PRACTICE" | "MOCK";
-export type TranscriptRole = "assistant" | "user" | "system";
+export type TranscriptRole = "assistant" | "user" | "system" | "ai" | "candidate";
 
 export interface InterviewContext {
   interview_type: InterviewKind;
@@ -1747,12 +1768,24 @@ export interface InterviewContext {
   created_at: string;
 }
 
+/** Legacy role/text transcript shape. */
 export interface InterviewTranscript {
-  role: TranscriptRole;
-  text: string;
-  sequence: number;
-  created_at: string;
+  role: TranscriptRole | string;
+  text?: string;
+  content?: string;
+  message?: string;
+  sequence?: number;
+  created_at?: string;
 }
+
+/**
+ * Recruiter interview details transcript turns.
+ * Each item has either `ai` or `candidate` (not both).
+ */
+export type InterviewTranscriptTurn =
+  | { ai: string; candidate?: never }
+  | { candidate: string; ai?: never }
+  | InterviewTranscript;
 
 export interface InterviewEvaluation {
   id: string;
@@ -1768,16 +1801,58 @@ export interface InterviewEvaluation {
   created_at: string;
 }
 
+export interface InterviewDetailsCandidate {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name?: string | null;
+  profile_image_url?: string | null;
+  city?: string | null;
+  state?: string | null;
+  job_title?: string | null;
+  department?: string | null;
+  work_eligibility?: string | null;
+}
+
+export interface InterviewDetailsJob {
+  id: string;
+  job_title?: string | null;
+  department?: string | null;
+  job_type?: string | null;
+  status?: string | null;
+  job_application_id?: string | null;
+  application_status?: string | null;
+}
+
+export interface InterviewDetailsSession {
+  id: string;
+  status?: InterviewSessionStatus | string;
+  interview_type?: InterviewKind | string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  duration_sec?: number | null;
+  termination_reason?: string | null;
+  termination_metadata?: Record<string, unknown> | null;
+  booking_id?: string | null;
+}
+
+/**
+ * GET /api/v1/recruiter/interviews/:interview_id
+ * 404 if not this recruiter's interview; 400 if still pending/in progress.
+ */
 export interface InterviewDetailsResponse {
-  interview: {
-    id: string;
-    booking_id: string;
-    started_at: string | null;
-    ended_at: string | null;
-    status: InterviewSessionStatus;
-  };
-  transcripts: InterviewTranscript[];
-  evaluation: InterviewEvaluation | null;
+  interview: InterviewDetailsSession;
+  candidate?: InterviewDetailsCandidate | null;
+  job?: InterviewDetailsJob | null;
+  evaluation_id?: string | null;
+  transcript?: InterviewTranscriptTurn[];
+  /** @deprecated Prefer `transcript`. */
+  transcripts?: InterviewTranscriptTurn[];
+  overall_score?: number | null;
+  result?: AiInterviewResultPayload | null;
+  /** @deprecated Prefer `result`. */
+  interview_result?: AiInterviewResultPayload | null;
+  evaluation?: InterviewEvaluation | null;
 }
 
 export interface InterviewListItem {

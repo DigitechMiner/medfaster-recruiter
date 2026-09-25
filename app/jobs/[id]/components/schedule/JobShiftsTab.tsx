@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Image from "next/image";
 import { CalendarDays, Clock, MapPin, Timer, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
@@ -13,7 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createRecruiterShiftDispute } from "@/features/jobs";
+import {
+  createRecruiterShiftDispute,
+  JOB_SHIFT_RECORD_STATUSES,
+  type JobShiftRecordStatus,
+} from "@/features/jobs";
 import { useJobShifts } from "@/hooks/useJobData";
 import { useNow } from "@/hooks/useNow";
 import type { JobShiftAssignment, JobShiftItem, JobShiftStaffingGap } from "@/types";
@@ -24,63 +27,43 @@ import {
 import { formatDate, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
 import { ShiftCountdown } from "@/components/ShiftCountdown";
 
-type ShiftStatus = "UPCOMING" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "MISSED";
-type ShiftStatusFilter = ShiftStatus | "BOTH" | "ALL";
+type ShiftStatus = JobShiftRecordStatus;
 
 const SHIFT_LIMIT = 10;
 
-const SHIFT_STATUSES: ShiftStatus[] = [
-  "UPCOMING",
-  "ACTIVE",
-  "COMPLETED",
-  "CANCELLED",
-  "MISSED",
-];
+const SHIFT_STATUSES: ShiftStatus[] = [...JOB_SHIFT_RECORD_STATUSES];
 
-const SHIFT_STATUS_FILTERS: { value: ShiftStatusFilter; label: string }[] = [
+/** Five event tabs: CANCELLED = leave; MISSED = candidate did not check in. */
+const SHIFT_STATUS_FILTERS: { value: ShiftStatus; label: string }[] = [
   { value: "UPCOMING", label: "Upcoming" },
   { value: "ACTIVE", label: "Active" },
-  { value: "BOTH", label: "Both" },
+  { value: "MISSED", label: "Missed" },
   { value: "COMPLETED", label: "Completed" },
   { value: "CANCELLED", label: "Cancelled" },
-  { value: "MISSED", label: "Missed" },
-  { value: "ALL", label: "All" },
 ];
 
-const SHIFT_STATUS_QUERY: Record<ShiftStatusFilter, string | undefined> = {
-  UPCOMING: "UPCOMING",
-  ACTIVE: "ACTIVE",
-  BOTH: "ACTIVE,UPCOMING",
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-  MISSED: "MISSED",
-  ALL: undefined,
-};
-
-const SHIFT_FILTER_EMPTY_TITLE: Record<ShiftStatusFilter, string> = {
+const SHIFT_FILTER_EMPTY_TITLE: Record<ShiftStatus, string> = {
   UPCOMING: "No upcoming shifts",
   ACTIVE: "No active shifts",
-  BOTH: "No live shifts",
+  MISSED: "No missed shifts",
   COMPLETED: "No completed shifts",
   CANCELLED: "No cancelled shifts",
-  MISSED: "No missed shifts",
-  ALL: "No shifts available",
 };
 
 const SHIFT_STATUS_LABELS: Record<ShiftStatus, string> = {
   UPCOMING: "Upcoming",
   ACTIVE: "Active",
+  MISSED: "Missed",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
-  MISSED: "Missed",
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
   UPCOMING: "border-blue-100 bg-blue-50 text-blue-600",
   ACTIVE: "border-green-100 bg-green-50 text-green-700",
+  MISSED: "border-yellow-100 bg-yellow-50 text-yellow-700",
   COMPLETED: "border-gray-200 bg-gray-100 text-gray-700",
   CANCELLED: "border-red-100 bg-red-50 text-red-600",
-  MISSED: "border-yellow-100 bg-yellow-50 text-yellow-700",
 };
 
 type ShiftStaffing = {
@@ -152,7 +135,7 @@ export function JobShiftsTab({
   checkInTime,
   checkOutTime,
 }: JobShiftsTabProps) {
-  const [status, setStatus] = useState<ShiftStatusFilter>("BOTH");
+  const [status, setStatus] = useState<ShiftStatus>("UPCOMING");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
@@ -163,26 +146,27 @@ export function JobShiftsTab({
   const [isCreatingDispute, setIsCreatingDispute] = useState(false);
   const jobStartDate = toDateInputValue(jobStartDateProp);
   const jobEndDate = toDateInputValue(jobEndDateProp);
-  const statusQuery = SHIFT_STATUS_QUERY[status];
-  const requestedStatuses = useMemo(
-    () => getRequestedShiftStatuses(status),
-    [status],
-  );
   const { shifts, isLoading, error } = useJobShifts(
     enabled ? jobId : null,
     {
-      status: statusQuery,
+      status,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
       page,
       limit: perPage,
     },
   );
-  const apiShifts = useMemo(() => shifts?.shifts ?? [], [shifts?.shifts]);
+  const apiShifts = useMemo(() => {
+    const list = Array.isArray(shifts?.shifts) ? shifts.shifts : [];
+    return [...list].sort(compareJobShifts);
+  }, [shifts?.shifts]);
   const pagination = shifts?.pagination;
   const hasServerPagination = pagination?.total != null;
   const shiftCards = useMemo(
-    () => apiShifts.map((shift, index) => mapJobShift(shift, index)),
+    () =>
+      apiShifts
+        .map((shift, index) => mapJobShift(shift, index))
+        .filter((shift): shift is ShiftCard => shift != null),
     [apiShifts],
   );
   const hasLiveCountdown = useMemo(
@@ -194,12 +178,9 @@ export function JobShiftsTab({
   );
   const nowMs = useNow(enabled && hasLiveCountdown);
   const matchingShifts = useMemo(() => {
-    if (hasServerPagination || requestedStatuses == null) return shiftCards;
-    return shiftCards.filter((shift) => {
-      const shiftStatus = getShiftStatus(shift.status);
-      return shiftStatus != null && requestedStatuses.includes(shiftStatus);
-    });
-  }, [hasServerPagination, requestedStatuses, shiftCards]);
+    if (hasServerPagination) return shiftCards;
+    return shiftCards.filter((shift) => getShiftStatus(shift.status) === status);
+  }, [hasServerPagination, shiftCards, status]);
   const visibleShifts = useMemo(() => {
     if (hasServerPagination) return matchingShifts;
     const startIndex = (page - 1) * perPage;
@@ -340,14 +321,10 @@ export function JobShiftsTab({
               <LoadingRows />
             ) : error ? (
               <EmptyState title="Unable to load shifts" description={error} />
-            ) : totalShifts === 0 ? (
+            ) : totalShifts === 0 || visibleShifts.length === 0 ? (
               <EmptyState
                 title={SHIFT_FILTER_EMPTY_TITLE[status]}
-                description={
-                  status === "ALL"
-                    ? "Shift records will appear here once available."
-                    : "Try another status or date range."
-                }
+                description="Try another status or date range."
               />
             ) : (
               <div className="flex flex-col gap-5">
@@ -361,7 +338,8 @@ export function JobShiftsTab({
                         {group.shifts.length === 1 ? "shift" : "shifts"}
                       </span>
                     </h4>
-                    {group.shifts.map((shift) => (
+                    <div className="flex flex-col gap-3">
+                      {group.shifts.map((shift) => (
                       <article
                         key={shift.id}
                         className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
@@ -445,7 +423,8 @@ export function JobShiftsTab({
                           </p>
                         )}
                       </article>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -554,21 +533,7 @@ function ShiftCandidateRow({
   return (
     <div className="rounded-xl border border-gray-100 bg-white px-3 py-3">
       <div className="flex min-w-0 flex-wrap items-start gap-3">
-        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-orange-100 text-[#F4781B] ring-1 ring-orange-50">
-          {candidate.image ? (
-            <Image
-              src={candidate.image}
-              alt={candidate.name}
-              width={40}
-              height={40}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center text-[11px] font-bold">
-              {getInitials(candidate.name)}
-            </span>
-          )}
-        </div>
+        <CandidateAvatar name={candidate.name} image={candidate.image} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -632,6 +597,34 @@ function ShiftCandidateRow({
   );
 }
 
+function CandidateAvatar({
+  name,
+  image,
+}: {
+  name: string;
+  image?: string | null;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(image) && !failed;
+
+  return (
+    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-orange-100 text-[#F4781B] ring-1 ring-orange-50">
+      <span className="flex h-full w-full items-center justify-center text-[11px] font-bold">
+        {getInitials(name)}
+      </span>
+      {showImage && (
+        // eslint-disable-next-line @next/next/no-img-element -- candidate CDNs vary; avoid next/image host restrictions
+        <img
+          src={image as string}
+          alt={name}
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </div>
+  );
+}
+
 function OpenShiftSlot() {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-dashed border-orange-200 bg-orange-50/40 px-3 py-3">
@@ -687,7 +680,8 @@ function getCandidateMetrics(
     candidate.payment?.platformFeeCents ?? candidate.platformFeeCents;
   const hasAttendance = Boolean(candidate.attendance);
   const hasPayment = Boolean(candidate.payment);
-  const isLive = shiftStatus === "UPCOMING" || shiftStatus === "CANCELLED";
+  const isLive =
+    shiftStatus === "UPCOMING" || shiftStatus === "CANCELLED";
 
   const metrics: { label: string; value: string }[] = [];
 
@@ -759,30 +753,46 @@ function formatAttendanceSummary(
 
   if (shiftStatus === "UPCOMING") return "Awaiting check-in";
   if (shiftStatus === "ACTIVE") return "Not checked in yet";
-  if (shiftStatus === "CANCELLED") return "Shift cancelled";
-  if (shiftStatus === "MISSED") return "No attendance recorded";
+  if (shiftStatus === "CANCELLED") return "On leave / shift cancelled";
+  if (shiftStatus === "MISSED") return "Candidate did not check in";
   return "No attendance recorded";
 }
 
-function mapJobShift(shift: JobShiftItem, index: number): ShiftCard {
-  const assignments = shift.assignments ?? [];
+function mapJobShift(shift: JobShiftItem, index: number): ShiftCard | null {
+  if (!shift || typeof shift !== "object") return null;
+
+  const rawAssignments = Array.isArray(shift.assignments) ? shift.assignments : [];
+  const assignments = rawAssignments.filter(
+    (assignment): assignment is JobShiftAssignment =>
+      Boolean(assignment) && typeof assignment === "object",
+  );
   const duration = shift.planned_minutes ?? null;
   const candidates = assignments.map((assignment, assignmentIndex) =>
     mapShiftCandidate(assignment, assignmentIndex, duration),
   );
-  const staffing = resolveShiftStaffing(shift, assignments.length);
+  const staffing = resolveShiftStaffing(shift, candidates.length);
+  const startTime =
+    shift.planned_check_in ??
+    shift.check_in ??
+    timeFromIso(shift.planned_check_in_at) ??
+    null;
+  const endTime =
+    shift.planned_check_out ??
+    shift.check_out ??
+    timeFromIso(shift.planned_check_out_at) ??
+    null;
 
   return {
     id: getShiftId(shift, index),
-    date: shift.shift_date ?? shift.start_date ?? null,
-    startTime: shift.planned_check_in ?? shift.check_in ?? null,
-    endTime: shift.planned_check_out ?? shift.check_out ?? null,
+    date: shift.shift_date ?? shift.start_date ?? dateFromIso(shift.planned_check_in_at),
+    startTime,
+    endTime,
     plannedCheckInAt: shift.planned_check_in_at ?? null,
     plannedCheckOutAt: shift.planned_check_out_at ?? null,
     duration,
-    status: shift.status ?? shift.shift_status ?? null,
+    status: normalizeShiftStatusValue(shift.status ?? shift.shift_status),
     province: shift.province ?? null,
-    assignmentsCount: assignments.length,
+    assignmentsCount: candidates.length,
     staffing,
     staffingGap: shift.staffing_gap ?? null,
     candidates,
@@ -794,14 +804,19 @@ function mapShiftCandidate(
   index: number,
   plannedMinutes?: number | string | null,
 ): ShiftCandidate {
-  const candidate = assignment.candidate;
+  const candidate = assignment.candidate ?? null;
   const attendance = assignment.shift_attendance ?? assignment.latest_attendance;
   const payment = assignment.shift_payment;
   const fullName = [candidate?.first_name, candidate?.last_name]
     .filter(Boolean)
     .join(" ");
   const name =
-    candidate?.full_name?.trim() || fullName || `Candidate ${index + 1}`;
+    candidate?.full_name?.trim() ||
+    fullName ||
+    (typeof (assignment as { candidate_name?: unknown }).candidate_name === "string"
+      ? (assignment as { candidate_name: string }).candidate_name.trim()
+      : "") ||
+    `Candidate ${index + 1}`;
   const hourlyRateCents = assignment.hourly_rate_cents ?? null;
   const platformFeeCents =
     payment?.platform_fee_cents ?? assignment.platform_fee_cents ?? null;
@@ -887,7 +902,7 @@ function toFiniteNumber(value?: number | string | null) {
 }
 
 function getFilterSubtitle(
-  status: ShiftStatusFilter,
+  status: ShiftStatus,
   totalShifts: number,
   isLoading: boolean,
 ) {
@@ -896,8 +911,6 @@ function getFilterSubtitle(
   const countLabel =
     totalShifts === 1 ? "1 shift" : `${totalShifts} shifts`;
 
-  if (status === "BOTH") return `${countLabel} · upcoming and active`;
-  if (status === "ALL") return `${countLabel} · all statuses`;
   return `${countLabel} · ${SHIFT_STATUS_LABELS[status].toLowerCase()}`;
 }
 
@@ -905,10 +918,43 @@ function getShiftId(shift: JobShiftItem, index: number) {
   return shift.shift_id ?? shift.id ?? shift.assignment_id ?? `shift-${index}`;
 }
 
-function getRequestedShiftStatuses(filter: ShiftStatusFilter): ShiftStatus[] | null {
-  if (filter === "ALL") return null;
-  if (filter === "BOTH") return ["ACTIVE", "UPCOMING"];
-  return [filter];
+function compareJobShifts(a: JobShiftItem, b: JobShiftItem) {
+  const dateA = toDateInputValue(a.shift_date ?? a.start_date ?? a.planned_check_in_at);
+  const dateB = toDateInputValue(b.shift_date ?? b.start_date ?? b.planned_check_in_at);
+  if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+  const timeA =
+    a.planned_check_in ??
+    timeFromIso(a.planned_check_in_at) ??
+    a.planned_check_in_at ??
+    "";
+  const timeB =
+    b.planned_check_in ??
+    timeFromIso(b.planned_check_in_at) ??
+    b.planned_check_in_at ??
+    "";
+  return String(timeA).localeCompare(String(timeB));
+}
+
+function normalizeShiftStatusValue(value?: string | null) {
+  if (value == null || value === "") return null;
+  const status = String(value).trim().toUpperCase();
+  return status || null;
+}
+
+function timeFromIso(value?: string | null) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const hours = parsed.getHours();
+  const minutes = parsed.getMinutes();
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+}
+
+function dateFromIso(value?: string | null) {
+  if (!value) return null;
+  return toDateInputValue(value) || null;
 }
 
 function getShiftStatus(value?: string | null): ShiftStatus | null {

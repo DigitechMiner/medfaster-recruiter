@@ -1,6 +1,7 @@
 import { apiRequest, axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import { extractData, extractRoot } from "@/stores/api/response-helpers";
+import { JOB_SHIFT_RECORD_STATUSES } from "./types";
 
 import type {
   CreateRecruiterShiftDisputePayload,
@@ -765,14 +766,6 @@ export async function getJobApplications(params: {
   return Array.isArray(data) ? { applications: data, pagination: { total: data.length, count: data.length, page: 1, limit: data.length } } : data;
 }
 
-const JOB_SHIFT_STATUSES: JobShiftStatus[] = [
-  "UPCOMING",
-  "ACTIVE",
-  "COMPLETED",
-  "CANCELLED",
-  "MISSED",
-];
-
 function serializeShiftStatusParam(
   status: JobShiftsParams["status"],
 ): string | undefined {
@@ -793,7 +786,7 @@ function normalizeAppliedShiftStatuses(value: unknown): JobShiftStatus[] | null 
   const statuses = raw
     .map((item) => String(item).trim().toUpperCase())
     .filter((item): item is JobShiftStatus =>
-      JOB_SHIFT_STATUSES.includes(item as JobShiftStatus),
+      (JOB_SHIFT_RECORD_STATUSES as readonly string[]).includes(item),
     );
 
   return statuses.length > 0 ? statuses : null;

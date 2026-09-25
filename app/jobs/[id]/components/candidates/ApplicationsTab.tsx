@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, List, MoreVertical, RefreshCw } from "lucide-react";
+import { ClipboardList, LayoutGrid, List, MoreVertical, RefreshCw } from "lucide-react";
+import ScoreCard from "@/components/card/scorecard";
 import { DataTable } from "@/components/table/DataTable";
 import { PaginationFooter } from "@/components/table/PaginationFooter";
 import { useJobApplications } from "@/hooks/useJobData";
+import type { AiInterviewResultPayload } from "@/features/candidates/types";
 import type {
   ApplicationStatus,
   ApplicationTeamPreference,
@@ -19,6 +21,7 @@ import {
   ApplicationStatusActionModal,
   type ApplicationActionCandidatePreview,
 } from "./ApplicationStatusActionModal";
+import { InterviewResultDetailsModal } from "./InterviewResultDetailsModal";
 import {
   EMPTY_DISPLAY,
   SHIFT_LEGEND_ITEMS,
@@ -45,13 +48,13 @@ const APPLICATION_LIMIT = 10;
 const REFRESH_COOLDOWN_MS = 1000;
 
 const TABLE_COLUMN_CLASS_NAMES = [
-  "min-w-[200px] w-[26%] !text-left !text-xs !font-medium !text-gray-500",
-  "w-[9%] !text-center !text-xs !font-medium !text-gray-500",
+  "min-w-[200px] w-[25%] !text-left !text-xs !font-medium !text-gray-500",
   "w-[8%] !text-center !text-xs !font-medium !text-gray-500",
-  "min-w-[260px] w-[34%] !text-left !text-xs !font-medium !text-gray-500 !whitespace-normal",
+  "w-[12%] !text-center !text-xs !font-medium !text-gray-500",
+  "min-w-[220px] w-[28%] !text-left !text-xs !font-medium !text-gray-500 !whitespace-normal",
   "w-[11%] !text-center !text-xs !font-medium !text-gray-500",
   "w-[9%] !text-center !text-xs !font-medium !text-gray-500",
-  "w-[3%] !text-right !text-xs !font-medium !text-gray-500",
+  "w-[7%] !text-right !text-xs !font-medium !text-gray-500",
 ];
 
 const INSTANT_TABLE_COLUMN_CLASS_NAMES = [
@@ -291,41 +294,72 @@ function TeamShiftPreferencesCell({
   );
 }
 
-function ApplicationActionsCell({
+function getApplicationInterviewScore(
+  status: ApplicationStatus,
+  candidate?: {
+    job_interview_score?: number | null;
+    best_ai_interview_score?: number | null;
+  } | null,
+  interviewResult?: AiInterviewResultPayload | null,
+): number | null | undefined {
+  if (status === "INTERVIEWED") {
+    return (
+      candidate?.job_interview_score ??
+      interviewResult?.overall_score ??
+      candidate?.best_ai_interview_score
+    );
+  }
+  return candidate?.job_interview_score ?? candidate?.best_ai_interview_score;
+}
+
+function ApplicationScoreCell({
+  score,
   status,
-  aiInterviewEnabled,
-  transitionOptions,
-  isUpdating,
+  compact = false,
+}: {
+  score: number | null | undefined;
+  status: ApplicationStatus;
+  compact?: boolean;
+}) {
+  if (score == null) {
+    return (
+      <span className="text-sm text-gray-500">
+        {formatScoreDisplay(score, status)}
+      </span>
+    );
+  }
+
+  return (
+    <div className={`inline-flex ${compact ? "" : "justify-center"}`}>
+      <ScoreCard
+        score={score}
+        maxScore={100}
+        category="Score"
+        className={compact ? "scale-95" : "mx-auto scale-90 sm:scale-100"}
+      />
+    </div>
+  );
+}
+
+function ViewInterviewResultButton({
   onOpen,
   variant = "table",
 }: {
-  status: ApplicationStatus;
-  aiInterviewEnabled: boolean;
-  transitionOptions?: ApplicationStatusTransitionOptions;
-  isUpdating?: boolean;
   onOpen: () => void;
   variant?: "table" | "card";
 }) {
-  const hasActions =
-    getApplicationStatusTransitions(status, aiInterviewEnabled, transitionOptions)
-      .length > 0;
-  if (!hasActions) {
-    if (variant === "card") return null;
-    return <span className="text-sm text-gray-300">{EMPTY_DISPLAY}</span>;
-  }
-
   if (variant === "card") {
     return (
       <button
         type="button"
-        disabled={isUpdating}
         onClick={(event) => {
           event.stopPropagation();
           onOpen();
         }}
-        className="w-full rounded-lg bg-[#F4781B] py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e56f18] disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 py-2 text-sm font-semibold text-sky-800 transition-colors hover:border-sky-300 hover:bg-sky-100"
       >
-        Actions
+        <ClipboardList size={15} />
+        View interview result
       </button>
     );
   }
@@ -333,16 +367,98 @@ function ApplicationActionsCell({
   return (
     <button
       type="button"
-      disabled={isUpdating}
       onClick={(event) => {
         event.stopPropagation();
         onOpen();
       }}
-      aria-label="Application actions"
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:border-[#F4781B] hover:bg-[#F4781B] hover:text-white disabled:opacity-50"
+      aria-label="View interview result"
+      title="View interview result"
+      className="inline-flex h-8 items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2 text-xs font-semibold text-sky-800 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100"
     >
-      <MoreVertical size={16} />
+      <ClipboardList size={14} />
+      Result
     </button>
+  );
+}
+
+function ApplicationActionsCell({
+  status,
+  aiInterviewEnabled,
+  transitionOptions,
+  isUpdating,
+  interviewId,
+  onOpen,
+  onViewInterviewResult,
+  variant = "table",
+}: {
+  status: ApplicationStatus;
+  aiInterviewEnabled: boolean;
+  transitionOptions?: ApplicationStatusTransitionOptions;
+  isUpdating?: boolean;
+  interviewId?: string | null;
+  onOpen: () => void;
+  onViewInterviewResult?: () => void;
+  variant?: "table" | "card";
+}) {
+  const hasActions =
+    getApplicationStatusTransitions(status, aiInterviewEnabled, transitionOptions)
+      .length > 0;
+  const canViewInterviewResult =
+    status === "INTERVIEWED" &&
+    Boolean(interviewId) &&
+    Boolean(onViewInterviewResult);
+
+  if (variant === "card") {
+    if (!hasActions && !canViewInterviewResult) return null;
+    return (
+      <div className="flex flex-col gap-2">
+        {canViewInterviewResult ? (
+          <ViewInterviewResultButton
+            variant="card"
+            onOpen={onViewInterviewResult!}
+          />
+        ) : null}
+        {hasActions ? (
+          <button
+            type="button"
+            disabled={isUpdating}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen();
+            }}
+            className="w-full rounded-lg bg-[#F4781B] py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e56f18] disabled:opacity-50"
+          >
+            Actions
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (!hasActions && !canViewInterviewResult) {
+    return <span className="text-sm text-gray-300">{EMPTY_DISPLAY}</span>;
+  }
+
+  return (
+    <div className="inline-flex items-center justify-end gap-1.5">
+      {canViewInterviewResult ? (
+        <ViewInterviewResultButton onOpen={onViewInterviewResult!} />
+      ) : null}
+      {hasActions ? (
+        <button
+          type="button"
+          disabled={isUpdating}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpen();
+          }}
+          aria-label="Application actions"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:border-[#F4781B] hover:bg-[#F4781B] hover:text-white disabled:opacity-50"
+        >
+          <MoreVertical size={16} />
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -378,6 +494,8 @@ type ApplicationGridCardData = {
   source?: string | null;
   broadcast_status?: string | null;
   team_preferences?: ApplicationTeamPreference[];
+  interview_id?: string | null;
+  interview_result?: AiInterviewResultPayload | null;
   candidate: {
     profile_image_url?: string | null;
     city?: string | null;
@@ -400,6 +518,7 @@ function ApplicationGridCard({
   isInstant,
   isUpdating,
   onOpenActions,
+  onViewInterviewResult,
   onNavigate,
 }: {
   application: ApplicationGridCardData;
@@ -408,6 +527,7 @@ function ApplicationGridCard({
   isInstant: boolean;
   isUpdating: boolean;
   onOpenActions: () => void;
+  onViewInterviewResult?: () => void;
   onNavigate?: () => void;
 }) {
   const candidate = application.candidate;
@@ -419,8 +539,11 @@ function ApplicationGridCard({
     candidate?.experience,
     candidate?.experience_months,
   );
-  const score =
-    candidate?.job_interview_score ?? candidate?.best_ai_interview_score;
+  const score = getApplicationInterviewScore(
+    application.status,
+    candidate,
+    application.interview_result,
+  );
   const appliedDate = formatAppliedDate(
     isInstant
       ? application.accepted_at ?? application.created_at
@@ -437,6 +560,8 @@ function ApplicationGridCard({
       aiInterviewEnabled,
       transitionOptions,
     ).length > 0;
+  const canViewInterviewResult =
+    application.status === "INTERVIEWED" && Boolean(application.interview_id);
   const hasPreferences = Boolean(application.team_preferences?.length);
 
   return (
@@ -507,6 +632,12 @@ function ApplicationGridCard({
             <span className="text-orange-500/80">Source</span>
             <span className="font-semibold text-orange-800">{sourceLabel}</span>
           </div>
+        ) : score != null ? (
+          <ApplicationScoreCell
+            score={score}
+            status={application.status}
+            compact
+          />
         ) : (
           <div className="flex items-center gap-1.5 rounded-md bg-orange-50 px-2 py-1">
             <span className="text-orange-500/80">Score</span>
@@ -543,14 +674,16 @@ function ApplicationGridCard({
         </div>
       ) : null}
 
-      {!isInstant && hasActions ? (
+      {!isInstant && (hasActions || canViewInterviewResult) ? (
         <ApplicationActionsCell
           variant="card"
           status={application.status}
           aiInterviewEnabled={aiInterviewEnabled}
           transitionOptions={transitionOptions}
           isUpdating={isUpdating}
+          interviewId={application.interview_id}
           onOpen={onOpenActions}
+          onViewInterviewResult={onViewInterviewResult}
         />
       ) : null}
     </div>
@@ -575,6 +708,14 @@ export function ApplicationsTab({
     appliedAt?: string | null;
     currentStatus: ApplicationStatus;
     teamPreferences?: ApplicationTeamPreference[];
+  } | null>(null);
+  const [interviewDetailsTarget, setInterviewDetailsTarget] = useState<{
+    interviewId: string;
+    candidateName: string;
+    candidateProfileImageUrl?: string | null;
+    jobTitle?: string | null;
+    overallScore?: number | null;
+    interviewResult?: AiInterviewResultPayload | null;
   } | null>(null);
   const [updatingApplicationId, setUpdatingApplicationId] = useState<string | null>(
     null,
@@ -627,6 +768,11 @@ export function ApplicationsTab({
   const openActionsModal = (application: (typeof applicationItems)[number]) => {
     const candidate = application.candidate;
     const candidateName = getCandidateName(candidate);
+    const score = getApplicationInterviewScore(
+      application.status,
+      candidate,
+      application.interview_result,
+    );
 
     setPendingApplication({
       applicationId: application.id,
@@ -641,8 +787,7 @@ export function ApplicationsTab({
         workEligibility: candidate?.work_eligibility,
         jobTitle: candidate?.job_title,
         department: candidate?.department,
-        score:
-          candidate?.job_interview_score ?? candidate?.best_ai_interview_score,
+        score,
       },
       jobTitle: application.job?.job_title,
       appliedAt: application.created_at,
@@ -650,6 +795,25 @@ export function ApplicationsTab({
       teamPreferences: application.team_preferences,
     });
     setUpdatingApplicationId(application.id);
+  };
+
+  const openInterviewResultModal = (
+    application: (typeof applicationItems)[number],
+  ) => {
+    if (!application.interview_id) return;
+    const candidate = application.candidate;
+    setInterviewDetailsTarget({
+      interviewId: application.interview_id,
+      candidateName: getCandidateName(candidate),
+      candidateProfileImageUrl: candidate?.profile_image_url,
+      jobTitle: application.job?.job_title,
+      overallScore: getApplicationInterviewScore(
+        application.status,
+        candidate,
+        application.interview_result,
+      ),
+      interviewResult: application.interview_result ?? null,
+    });
   };
 
   useEffect(() => {
@@ -789,6 +953,9 @@ export function ApplicationsTab({
                 isInstant={isInstant}
                 isUpdating={updatingApplicationId === application.id}
                 onOpenActions={() => openActionsModal(application)}
+                onViewInterviewResult={() =>
+                  openInterviewResultModal(application)
+                }
                 onNavigate={() =>
                   navigateToCandidate(
                     application.candidate?.id ?? application.candidate_id,
@@ -815,8 +982,11 @@ export function ApplicationsTab({
               const candidateId = candidate?.id ?? application.candidate_id;
               const candidateName = getCandidateName(candidate);
               const initials = getCandidateInitials(candidateName);
-              const score =
-                candidate?.job_interview_score ?? candidate?.best_ai_interview_score;
+              const score = getApplicationInterviewScore(
+                application.status,
+                candidate,
+                application.interview_result,
+              );
               const appliedDate = formatAppliedDate(
                 isInstant
                   ? application.accepted_at ?? application.created_at
@@ -862,8 +1032,11 @@ export function ApplicationsTab({
                     </td>
                   ) : (
                     <>
-                      <td className="px-4 py-3 align-middle text-center text-sm text-gray-600 tabular-nums whitespace-nowrap">
-                        {formatScoreDisplay(score, application.status)}
+                      <td className="px-4 py-3 align-middle text-center whitespace-nowrap">
+                        <ApplicationScoreCell
+                          score={score}
+                          status={application.status}
+                        />
                       </td>
                       <td className="px-4 py-3 align-middle min-w-[260px] w-[34%]">
                         <TeamShiftPreferencesCell
@@ -892,7 +1065,11 @@ export function ApplicationsTab({
                         aiInterviewEnabled={aiInterviewEnabled}
                         transitionOptions={transitionOptions}
                         isUpdating={updatingApplicationId === application.id}
+                        interviewId={application.interview_id}
                         onOpen={() => openActionsModal(application)}
+                        onViewInterviewResult={() =>
+                          openInterviewResultModal(application)
+                        }
                       />
                     </td>
                   )}
@@ -905,28 +1082,42 @@ export function ApplicationsTab({
       )}
 
       {isInstant ? null : (
-        <ApplicationStatusActionModal
-          jobId={jobId}
-          applicationId={pendingApplication?.applicationId ?? ""}
-          candidate={
-            pendingApplication?.candidate ?? {
-              name: "",
+        <>
+          <ApplicationStatusActionModal
+            jobId={jobId}
+            applicationId={pendingApplication?.applicationId ?? ""}
+            candidate={
+              pendingApplication?.candidate ?? {
+                name: "",
+              }
             }
-          }
-          jobTitle={pendingApplication?.jobTitle}
-          appliedAt={pendingApplication?.appliedAt}
-          currentStatus={pendingApplication?.currentStatus ?? "APPLIED"}
-          aiInterviewEnabled={aiInterviewEnabled}
-          jobStatus={jobStatus}
-          jobUrgency={jobUrgency}
-          open={pendingApplication != null}
-          teamPreferences={pendingApplication?.teamPreferences}
-          onClose={() => {
-            setPendingApplication(null);
-            setUpdatingApplicationId(null);
-          }}
-          onSuccess={handleActionSuccess}
-        />
+            jobTitle={pendingApplication?.jobTitle}
+            appliedAt={pendingApplication?.appliedAt}
+            currentStatus={pendingApplication?.currentStatus ?? "APPLIED"}
+            aiInterviewEnabled={aiInterviewEnabled}
+            jobStatus={jobStatus}
+            jobUrgency={jobUrgency}
+            open={pendingApplication != null}
+            teamPreferences={pendingApplication?.teamPreferences}
+            onClose={() => {
+              setPendingApplication(null);
+              setUpdatingApplicationId(null);
+            }}
+            onSuccess={handleActionSuccess}
+          />
+          <InterviewResultDetailsModal
+            open={interviewDetailsTarget != null}
+            interviewId={interviewDetailsTarget?.interviewId ?? null}
+            initialResult={interviewDetailsTarget?.interviewResult}
+            candidateName={interviewDetailsTarget?.candidateName}
+            candidateProfileImageUrl={
+              interviewDetailsTarget?.candidateProfileImageUrl
+            }
+            jobTitle={interviewDetailsTarget?.jobTitle}
+            overallScore={interviewDetailsTarget?.overallScore}
+            onClose={() => setInterviewDetailsTarget(null)}
+          />
+        </>
       )}
     </div>
   );
