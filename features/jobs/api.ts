@@ -33,6 +33,11 @@ import type {
   JobDetailActivityEvent,
   JobDetailDescriptionData,
   JobDetailPaymentsData,
+  JobInterviewFundCandidate,
+  JobInterviewFundItem,
+  JobInterviewFundsData,
+  JobInterviewFundsPagination,
+  JobInterviewFundsParams,
   JobDetailPaymentCycle,
   JobPaymentInvoice,
   JobPaymentLedgerSummary,
@@ -531,6 +536,139 @@ export async function getRecruiterJobPayments(
 ): Promise<JobDetailPaymentsData> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_PAYMENTS(id));
   return normalizeJobPayments(extractData(res.data));
+}
+
+function asCount(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function asScore(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeInterviewFundCandidate(
+  value: unknown,
+): JobInterviewFundCandidate | null {
+  if (!isRecord(value)) return null;
+  return {
+    id: asOptionalString(value.id) ?? null,
+    first_name: asOptionalString(value.first_name) ?? null,
+    last_name: asOptionalString(value.last_name) ?? null,
+    profile_image_url: asOptionalString(value.profile_image_url) ?? null,
+  };
+}
+
+function normalizeInterviewFundItem(value: unknown): JobInterviewFundItem | null {
+  if (!isRecord(value)) return null;
+  return {
+    interview_request_id: asOptionalString(value.interview_request_id) ?? null,
+    interview_request_status:
+      asOptionalString(value.interview_request_status) ?? null,
+    candidate: normalizeInterviewFundCandidate(value.candidate),
+    fee_status: asOptionalString(value.fee_status) ?? null,
+    interview_fee_cents: asCents(value.interview_fee_cents) ?? 0,
+    hold_amount_cents: asCents(value.hold_amount_cents) ?? 0,
+    spent_amount_cents: asCents(value.spent_amount_cents) ?? 0,
+    refunded_amount_cents: asCents(value.refunded_amount_cents) ?? 0,
+    interview_id: asOptionalString(value.interview_id) ?? null,
+    interview_status: asOptionalString(value.interview_status) ?? null,
+    termination_reason: asOptionalString(value.termination_reason) ?? null,
+    interview_score: asScore(value.interview_score),
+  };
+}
+
+function normalizeInterviewFundsPagination(
+  value: unknown,
+  fallbackCount: number,
+  params?: JobInterviewFundsParams,
+): JobInterviewFundsPagination {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? fallbackCount;
+  if (!isRecord(value)) {
+    return {
+      total: fallbackCount,
+      count: fallbackCount,
+      page,
+      limit,
+      offset: params?.offset ?? 0,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: page > 1,
+    };
+  }
+
+  return {
+    total: asCount(value.total) ?? fallbackCount,
+    count: asCount(value.count) ?? fallbackCount,
+    page: asCount(value.page) ?? page,
+    limit: asCount(value.limit) ?? limit,
+    offset: asCount(value.offset) ?? params?.offset ?? 0,
+    totalPages: asCount(value.totalPages) ?? 1,
+    hasNextPage: value.hasNextPage === true,
+    hasPreviousPage: value.hasPreviousPage === true,
+  };
+}
+
+function normalizeJobInterviewFunds(
+  data: unknown,
+  params?: JobInterviewFundsParams,
+): JobInterviewFundsData {
+  if (!isRecord(data)) {
+    return {
+      summary: {
+        held_amount_cents: 0,
+        spent_amount_cents: 0,
+        refunded_amount_cents: 0,
+      },
+      interviews: [],
+      pagination: normalizeInterviewFundsPagination(null, 0, params),
+    };
+  }
+
+  const summary = isRecord(data.summary) ? data.summary : {};
+  const interviews = Array.isArray(data.interviews)
+    ? data.interviews
+        .map(normalizeInterviewFundItem)
+        .filter((item): item is JobInterviewFundItem => item != null)
+    : [];
+
+  return {
+    job_id: asOptionalString(data.job_id),
+    summary: {
+      held_amount_cents: asCents(summary.held_amount_cents) ?? 0,
+      spent_amount_cents: asCents(summary.spent_amount_cents) ?? 0,
+      refunded_amount_cents: asCents(summary.refunded_amount_cents) ?? 0,
+    },
+    interviews,
+    pagination: normalizeInterviewFundsPagination(
+      data.pagination,
+      interviews.length,
+      params,
+    ),
+  };
+}
+
+export async function getRecruiterJobInterviewFunds(
+  id: string,
+  params?: JobInterviewFundsParams,
+): Promise<JobInterviewFundsData> {
+  const query: Record<string, number> = {};
+  if (params?.page != null) query.page = params.page;
+  if (params?.limit != null) query.limit = params.limit;
+  if (params?.offset != null) query.offset = params.offset;
+
+  const res = await axiosInstance.get(
+    ENDPOINTS.JOBS_DETAIL_INTERVIEW_FUNDS(id),
+    { params: query },
+  );
+  return normalizeJobInterviewFunds(extractData(res.data), params);
 }
 
 function normalizeJobSchedule(data: unknown): JobScheduleData {

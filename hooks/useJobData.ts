@@ -10,6 +10,8 @@ import type {
   JobDetailActivityData,
   JobDetailDescriptionData,
   JobDetailPaymentsData,
+  JobInterviewFundsData,
+  JobInterviewFundsParams,
   JobDetailSummaryData,
   JobScheduleData,
   JobWorkersResponse,
@@ -33,6 +35,7 @@ import {
   getRecruiterJobDescription,
   getRecruiterJobQuestions,
   getRecruiterJobPayments,
+  getRecruiterJobInterviewFunds,
   getRecruiterJobSchedule,
   getRecruiterJobShiftDetails,
   getRecruiterJobShiftPayments,
@@ -372,6 +375,52 @@ export function useJobPayments(jobId?: string | null, enabled = true) {
   }, [jobId, enabled]);
 
   return { payments, isLoading, error };
+}
+
+export function useJobInterviewFunds(
+  jobId?: string | null,
+  params?: JobInterviewFundsParams,
+  enabled = true,
+) {
+  const page = params?.page;
+  const limit = params?.limit;
+  const offset = params?.offset;
+  const [funds, setFunds] = useState<JobInterviewFundsData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getRecruiterJobInterviewFunds(jobId, { page, limit, offset })
+      .then((data) => {
+        if (!cancelled) setFunds(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load interview funds",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, page, limit, offset, enabled]);
+
+  return { funds, isLoading, error };
 }
 
 // ─── useJobSchedule (rotation plan + templates) ──────────────────────────────

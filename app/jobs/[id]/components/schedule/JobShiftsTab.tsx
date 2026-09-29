@@ -172,7 +172,9 @@ export function JobShiftsTab({
   const hasLiveCountdown = useMemo(
     () =>
       shiftCards.some(
-        (shift) => shift.plannedCheckInAt || shift.plannedCheckOutAt,
+        (shift) =>
+          shiftAcceptsAssignments(shift.status) &&
+          (shift.plannedCheckInAt || shift.plannedCheckOutAt),
       ),
     [shiftCards],
   );
@@ -244,6 +246,9 @@ export function JobShiftsTab({
           <div className="flex flex-col gap-4 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Dated shifts for this job — upcoming, active, missed, completed, or cancelled.
+              </p>
               <p className="mt-0.5 text-xs text-gray-400">
                 {getFilterSubtitle(status, totalShifts, isLoading)}
               </p>
@@ -339,7 +344,15 @@ export function JobShiftsTab({
                       </span>
                     </h4>
                     <div className="flex flex-col gap-3">
-                      {group.shifts.map((shift) => (
+                      {group.shifts.map((shift) => {
+                        const cancelled = isCancelledShift(shift.status);
+                        const showOpenSlots = shiftAcceptsAssignments(shift.status);
+                        const showCandidates =
+                          !cancelled && shift.candidates.length > 0;
+                        const showSlots =
+                          showOpenSlots && shift.staffing.open > 0;
+
+                        return (
                       <article
                         key={shift.id}
                         className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
@@ -357,37 +370,45 @@ export function JobShiftsTab({
                                 </h5>
                                 <ShiftStatusPill value={shift.status} />
                               </div>
-                              <ShiftCountdown
-                                plannedCheckInAt={shift.plannedCheckInAt}
-                                plannedCheckOutAt={shift.plannedCheckOutAt}
-                                nowMs={nowMs}
-                                className="mt-0.5 block text-[11px]"
-                              />
+                              {showOpenSlots && (
+                                <ShiftCountdown
+                                  plannedCheckInAt={shift.plannedCheckInAt}
+                                  plannedCheckOutAt={shift.plannedCheckOutAt}
+                                  nowMs={nowMs}
+                                  className="mt-0.5 block text-[11px]"
+                                />
+                              )}
                             </div>
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {shift.duration != null && shift.duration !== "" && (
+                            {!cancelled &&
+                              shift.duration != null &&
+                              shift.duration !== "" && (
                               <ShiftMetaChip
                                 icon={<Timer size={12} />}
                                 label={`${formatDuration(shift.duration)} planned`}
                               />
                             )}
-                            <ShiftMetaChip
-                              icon={<Users size={12} />}
-                              label={`${shift.staffing.assigned}/${shift.staffing.required} assigned`}
-                            />
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                shift.staffing.open > 0
-                                  ? "bg-orange-50 text-[#F4781B]"
-                                  : "bg-green-50 text-green-700"
-                              }`}
-                            >
-                              {shift.staffing.open > 0
-                                ? `${shift.staffing.open} open`
-                                : "Filled"}
-                            </span>
+                            {!cancelled && (
+                              <ShiftMetaChip
+                                icon={<Users size={12} />}
+                                label={`${shift.staffing.assigned}/${shift.staffing.required} assigned`}
+                              />
+                            )}
+                            {showOpenSlots && (
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                  shift.staffing.open > 0
+                                    ? "bg-orange-50 text-[#F4781B]"
+                                    : "bg-green-50 text-green-700"
+                                }`}
+                              >
+                                {shift.staffing.open > 0
+                                  ? `${shift.staffing.open} open`
+                                  : "Filled"}
+                              </span>
+                            )}
                             {shift.province && (
                               <ShiftMetaChip
                                 icon={<MapPin size={12} />}
@@ -397,7 +418,13 @@ export function JobShiftsTab({
                           </div>
                         </div>
 
-                        {shift.candidates.length > 0 || shift.staffing.open > 0 ? (
+                        {cancelled ? (
+                          <p className="px-3 py-3 text-xs font-medium text-gray-600">
+                            {shift.date
+                              ? `This shift on ${formatDate(shift.date)} was cancelled. No assignment is required.`
+                              : "This shift was cancelled. No assignment is required."}
+                          </p>
+                        ) : showCandidates || showSlots ? (
                           <div className="flex flex-col gap-2 p-2.5">
                             {shift.candidates.map((candidate) => (
                               <ShiftCandidateRow
@@ -409,13 +436,14 @@ export function JobShiftsTab({
                                 }
                               />
                             ))}
-                            {Array.from({ length: shift.staffing.open }).map(
-                              (_, openIndex) => (
-                                <OpenShiftSlot
-                                  key={`${shift.id}-open-${openIndex}`}
-                                />
-                              ),
-                            )}
+                            {showSlots &&
+                              Array.from({ length: shift.staffing.open }).map(
+                                (_, openIndex) => (
+                                  <OpenShiftSlot
+                                    key={`${shift.id}-open-${openIndex}`}
+                                  />
+                                ),
+                              )}
                           </div>
                         ) : (
                           <p className="px-3 py-3 text-center text-xs font-medium text-gray-400">
@@ -423,7 +451,8 @@ export function JobShiftsTab({
                           </p>
                         )}
                       </article>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -960,6 +989,16 @@ function dateFromIso(value?: string | null) {
 function getShiftStatus(value?: string | null): ShiftStatus | null {
   const status = String(value ?? "").toUpperCase();
   return SHIFT_STATUSES.includes(status as ShiftStatus) ? (status as ShiftStatus) : null;
+}
+
+function isCancelledShift(value?: string | null) {
+  return getShiftStatus(value) === "CANCELLED";
+}
+
+/** Upcoming and active shifts can still be filled. Closed shifts cannot. */
+function shiftAcceptsAssignments(value?: string | null) {
+  const status = getShiftStatus(value);
+  return status === "UPCOMING" || status === "ACTIVE" || status == null;
 }
 
 function formatShiftStatus(value?: string | null) {

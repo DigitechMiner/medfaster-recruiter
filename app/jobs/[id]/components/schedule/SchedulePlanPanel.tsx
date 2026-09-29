@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Layers, Moon, Sun, Sunset, Users } from "lucide-react";
 import type {
   JobListShiftTemplate,
@@ -451,6 +452,89 @@ function CandidateRotationsSection({
   );
 }
 
+function PlanSection({
+  title,
+  description,
+  meta,
+  children,
+  bodyClassName = "p-3 sm:p-4",
+}: {
+  title: string;
+  description: string;
+  meta?: ReactNode;
+  children: ReactNode;
+  bodyClassName?: string;
+}) {
+  return (
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+        </div>
+        {meta}
+      </div>
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  );
+}
+
+function ScheduleMetaPills({
+  isInstant,
+  shiftMode,
+  isStandard,
+  rotationCycleDays,
+  cycleStartDay,
+  teamCount,
+}: {
+  isInstant: boolean;
+  shiftMode?: string | null;
+  isStandard: boolean;
+  rotationCycleDays?: number | null;
+  cycleStartDay?: string | null;
+  teamCount: number;
+}) {
+  if (
+    !isInstant &&
+    !shiftMode &&
+    rotationCycleDays == null &&
+    !cycleStartDay &&
+    teamCount === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {isInstant && (
+        <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+          Instant
+        </span>
+      )}
+      {shiftMode && (
+        <span className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+          {isStandard ? "Standard Shifts" : formatLabel(shiftMode)}
+        </span>
+      )}
+      {rotationCycleDays != null && (
+        <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+          {rotationCycleDays}-day cycle
+        </span>
+      )}
+      {cycleStartDay && (
+        <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+          Cycle starts {formatLabel(cycleStartDay)}
+        </span>
+      )}
+      {teamCount > 0 && (
+        <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+          {teamCount} team{teamCount === 1 ? "" : "s"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function SchedulePlanPanel({
   schedule,
   isLoading,
@@ -482,108 +566,101 @@ export function SchedulePlanPanel({
   const isRotational = schedule.shift_mode?.toUpperCase() === "ROTATIONAL";
   const isInstant = schedule.job_urgency === "INSTANT";
   const isStandard = schedule.shift_mode?.toUpperCase() === "STANDARD";
+  const showAssignedRotations =
+    showCandidateRotations && rotations.length > 0;
+  const hasRotationCalendar =
+    (isRotational && teams.length > 0) || (isStandard && teams.length > 0);
+  const showEmptyRotational =
+    isRotational && teams.length === 0 && !isInstant;
+  const showRotationSection =
+    hasRotationCalendar || showEmptyRotational || showAssignedRotations;
+  const meta = (
+    <ScheduleMetaPills
+      isInstant={isInstant}
+      shiftMode={schedule.shift_mode}
+      isStandard={isStandard}
+      rotationCycleDays={schedule.rotation_cycle_days}
+      cycleStartDay={schedule.cycle_start_day}
+      teamCount={teams.length}
+    />
+  );
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      {!isRotational &&
-        (isInstant ||
-          schedule.shift_mode ||
-          schedule.rotation_cycle_days != null ||
-          schedule.cycle_start_day) && (
-          <div className="flex flex-wrap gap-2">
-            {isInstant && (
-              <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                Instant
-              </span>
-            )}
-            {schedule.shift_mode && (
-              <span className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
-                {isStandard
-                  ? "Standard Shifts"
-                  : formatLabel(schedule.shift_mode)}
-              </span>
-            )}
-            {schedule.rotation_cycle_days != null && (
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                {schedule.rotation_cycle_days}-day cycle
-              </span>
-            )}
-            {schedule.cycle_start_day && (
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                Cycle starts {formatLabel(schedule.cycle_start_day)}
-              </span>
-            )}
-            {teams.length > 0 && (
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                {teams.length} team{teams.length === 1 ? "" : "s"}
-              </span>
-            )}
+      {templates.length > 0 && (
+        <PlanSection
+          title="Shift templates"
+          description="The repeating pattern for this job — times, payable hours, and breaks."
+          meta={!showRotationSection ? meta : undefined}
+        >
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {templates.map((template, index) => (
+              <ShiftTemplateCard
+                key={template.id ?? `${template.shift_type}-${index}`}
+                template={template}
+              />
+            ))}
           </div>
-        )}
+        </PlanSection>
+      )}
 
-      {isRotational && teams.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-          <div className="p-5">
-            <WorkScheduleVisual
-              schedule={schedule}
-              teams={teams}
-              framed={false}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white p-3 sm:p-4">
-          {templates.length > 0 && (
-            <section>
-              <h3 className="mb-2 text-sm font-semibold text-gray-900">
-                Shift Templates
-              </h3>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {templates.map((template, index) => (
-                  <ShiftTemplateCard
-                    key={template.id ?? `${template.shift_type}-${index}`}
-                    template={template}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {isStandard && teams.length > 0 && (
-            <section className={templates.length > 0 ? "mt-4" : undefined}>
-              <div className="mb-2 flex items-baseline justify-between gap-3">
-                <h3 className="text-sm font-semibold text-gray-900">
-                  Team Schedule
-                </h3>
-                <p className="text-[11px] text-gray-400">
-                  {getCycleLength(schedule, teams)}-day cycle
-                  {schedule.cycle_start_day
-                    ? ` · starts ${formatLabel(schedule.cycle_start_day)}`
-                    : ""}
-                </p>
-              </div>
+      {showRotationSection && (
+        <div className="flex min-w-0 flex-col gap-4">
+          {isRotational && teams.length > 0 ? (
+            <PlanSection
+              title="Rotation"
+              description="Who works which days in the cycle."
+              meta={meta}
+              bodyClassName="p-5"
+            >
+              <WorkScheduleVisual
+                schedule={schedule}
+                teams={teams}
+                framed={false}
+              />
+            </PlanSection>
+          ) : isStandard && teams.length > 0 ? (
+            <PlanSection
+              title="Rotation"
+              description="Who works which days in the cycle."
+              meta={
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  {meta}
+                  <p className="text-[11px] text-gray-400">
+                    {getCycleLength(schedule, teams)}-day cycle
+                    {schedule.cycle_start_day
+                      ? ` · starts ${formatLabel(schedule.cycle_start_day)}`
+                      : ""}
+                  </p>
+                </div>
+              }
+            >
               <TeamCycleCalendar schedule={schedule} teams={teams} />
-            </section>
-          )}
+            </PlanSection>
+          ) : isRotational && teams.length === 0 ? (
+            <PlanSection
+              title="Rotation"
+              description="Who works which days in the cycle."
+              meta={meta}
+            >
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Layers size={14} />
+                Rotational mode is enabled but no teams are configured yet.
+              </div>
+            </PlanSection>
+          ) : null}
 
-          {templates.length === 0 && !(isStandard && teams.length > 0) && (
-            <EmptyState
-              title="No schedule plan configured"
-              description="Shift templates will appear here once the job schedule is set up."
-            />
+          {showAssignedRotations && (
+            <CandidateRotationsSection rotations={rotations} teams={teams} />
           )}
         </div>
       )}
 
-      {showCandidateRotations && rotations.length > 0 && (
-        <CandidateRotationsSection rotations={rotations} teams={teams} />
-      )}
-
-      {isRotational && teams.length === 0 && (
-        <div className="flex items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-3 text-xs text-gray-500">
-          <Layers size={14} />
-          Rotational mode is enabled but no teams are configured yet.
-        </div>
+      {templates.length === 0 && !showRotationSection && (
+        <EmptyState
+          title="No schedule plan configured"
+          description="Shift templates will appear here once the job schedule is set up."
+        />
       )}
     </div>
   );

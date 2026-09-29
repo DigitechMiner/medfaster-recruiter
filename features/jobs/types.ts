@@ -406,6 +406,59 @@ export interface JobDetailPaymentsData {
   transactions?: JobWalletTransactionItem[];
 }
 
+/** Interview-request holds, captures, and refunds for one job. */
+export interface JobInterviewFundSummary {
+  held_amount_cents?: string | number | null;
+  spent_amount_cents?: string | number | null;
+  refunded_amount_cents?: string | number | null;
+}
+
+export interface JobInterviewFundCandidate {
+  id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  profile_image_url?: string | null;
+}
+
+export interface JobInterviewFundItem {
+  interview_request_id?: string | null;
+  interview_request_status?: string | null;
+  candidate?: JobInterviewFundCandidate | null;
+  fee_status?: string | null;
+  interview_fee_cents?: string | number | null;
+  hold_amount_cents?: string | number | null;
+  spent_amount_cents?: string | number | null;
+  refunded_amount_cents?: string | number | null;
+  interview_id?: string | null;
+  interview_status?: string | null;
+  termination_reason?: string | null;
+  interview_score?: number | null;
+}
+
+export interface JobInterviewFundsPagination {
+  total?: number;
+  count?: number;
+  page?: number;
+  limit?: number;
+  offset?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+}
+
+export interface JobInterviewFundsData {
+  job_id?: string;
+  summary: JobInterviewFundSummary;
+  interviews: JobInterviewFundItem[];
+  pagination?: JobInterviewFundsPagination | null;
+}
+
+export interface JobInterviewFundsParams {
+  page?: number;
+  limit?: number;
+  offset?: number;
+}
+
 export interface JobInfoShiftTemplate {
   id: string;
   shift_type: string;

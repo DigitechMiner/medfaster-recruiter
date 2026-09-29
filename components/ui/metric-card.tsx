@@ -33,18 +33,20 @@ export function MetricCard({
         <span className="text-orange-400">{icon}</span>
       </div>
       {loading ? (
-        <div
-          className="h-8 w-20 max-w-full rounded-md bg-gray-200 animate-pulse"
-          aria-hidden
-        />
+        <div className="flex flex-col gap-2" aria-hidden>
+          <div className="h-8 w-24 max-w-full rounded-md bg-gray-200 animate-pulse" />
+          <div className="h-3 w-16 max-w-full rounded bg-gray-100 animate-pulse" />
+        </div>
       ) : (
-        <p
-          className={cn('text-2xl font-bold text-gray-900', valueClassName)}
-        >
-          {value}
-        </p>
+        <>
+          <p
+            className={cn('text-2xl font-bold text-gray-900', valueClassName)}
+          >
+            {value}
+          </p>
+          {subLabel && <p className="text-xs text-gray-400">{subLabel}</p>}
+        </>
       )}
-      {subLabel && <p className="text-xs text-gray-400">{subLabel}</p>}
     </div>
   );
 }

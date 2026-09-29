@@ -180,15 +180,17 @@ export function JobDetailTabs({ summary, jobId, onHiringChange }: JobDetailTabsP
                 jobId={jobId}
                 enabled={activeTab === "schedule"}
               />
-              <JobShiftsTab
-                jobId={jobId}
-                enabled={activeTab === "schedule"}
-                title={isInstant ? "Broadcast shifts" : "Live shifts"}
-                startDate={summary.start_date}
-                endDate={summary.end_date}
-                checkInTime={summary.next_shift?.start_time}
-                checkOutTime={summary.next_shift?.end_time}
-              />
+              <section aria-label={isInstant ? "Broadcast shifts" : "Live shifts"}>
+                <JobShiftsTab
+                  jobId={jobId}
+                  enabled={activeTab === "schedule"}
+                  title={isInstant ? "Broadcast shifts" : "Live shifts"}
+                  startDate={summary.start_date}
+                  endDate={summary.end_date}
+                  checkInTime={summary.next_shift?.start_time}
+                  checkOutTime={summary.next_shift?.end_time}
+                />
+              </section>
             </div>
           </TabsContent>
 
