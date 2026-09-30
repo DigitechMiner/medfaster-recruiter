@@ -1959,69 +1959,48 @@ export interface ShiftScheduleDetail {
 }
 
 // ============================================================================
-// TYPES — job fees summary (platform + recruiter overrides)
+// TYPES — recruiter fee rates shown on the fees page
 // ============================================================================
 
 export type FeesSummaryScope = "all" | "default" | "instant";
 
 export interface FeeExperienceLevel {
   id: number;
-  code: string;
   name: string;
-  min_years: number;
-  max_years: number | null;
-}
-
-export interface FeeStructureInfo {
-  id: string;
-  is_default: boolean;
-  uses_platform_default?: boolean;
-  is_custom?: boolean;
 }
 
 export interface ExperienceTierRate {
   experience_level_id: number;
-  experience_level: FeeExperienceLevel;
-  platform_recruiter_pay_per_hour: number;
-  platform_candidate_percentage: number;
-  recruiter_pay_per_hour: number;
-  candidate_percentage: number;
-  has_recruiter_discount: boolean;
+  pay_per_hour: number;
   discount_per_hour: number;
 }
 
 export interface ExperienceJobTitleFee {
-  job_title_id: number;
-  job_title_value: string;
-  job_title_label: string;
-  has_recruiter_specific_rates: boolean;
+  id: number;
+  short_label: string;
+  label: string;
+  has_custom_rates: boolean;
   rates: ExperienceTierRate[];
 }
 
 export interface InstantJobTitleFee {
-  job_title_id: number;
-  job_title_value: string;
-  job_title_label?: string;
+  id: number;
+  short_label: string;
+  label: string;
   configured: boolean;
-  recruiter_pay_per_hour: number;
-  candidate_percentage: number;
+  pay_per_hour: number;
 }
 
-export interface FeesDefaultSection {
-  fee_structure: FeeStructureInfo;
-  recruiter_fee_structure: FeeStructureInfo | null;
-  has_recruiter_specific_fees: boolean;
+export interface StandardFeesSummary {
+  scope: "default";
+  experience_levels: FeeExperienceLevel[];
   job_titles: ExperienceJobTitleFee[];
+  has_custom_rates: boolean;
 }
 
-export interface FeesInstantSection {
-  fee_structure: FeeStructureInfo;
+export interface InstantFeesSummary {
+  scope: "instant";
   job_titles: InstantJobTitleFee[];
 }
 
-export interface FeesSummaryData {
-  scope: FeesSummaryScope;
-  experience_levels?: FeeExperienceLevel[];
-  default?: FeesDefaultSection;
-  instant?: FeesInstantSection;
-}
+export type FeesSummaryData = StandardFeesSummary | InstantFeesSummary;

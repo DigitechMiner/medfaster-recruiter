@@ -1,15 +1,105 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
-import { AlertCircle, BadgeDollarSign, Search } from "lucide-react";
+import { AlertCircle, BadgeDollarSign, Info, Search } from "lucide-react";
 
-export function CustomRateBadge() {
+export function JobTitleInfoButton({
+  label,
+  hasCustomRates = false,
+}: {
+  label: string;
+  hasCustomRates?: boolean;
+}) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverId = useId();
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  function updatePosition() {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = 240;
+    const estimatedHeight = hasCustomRates ? 96 : 72;
+    const left = Math.min(
+      Math.max(12, rect.left + rect.width / 2 - width / 2),
+      window.innerWidth - width - 12,
+    );
+    const below = rect.bottom + 8;
+    const top =
+      below + estimatedHeight > window.innerHeight
+        ? Math.max(12, rect.top - estimatedHeight - 8)
+        : below;
+    setPosition({ top, left });
+  }
+
+  function toggle() {
+    updatePosition();
+    setOpen((current) => !current);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    function onReposition() {
+      updatePosition();
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [open, hasCustomRates]);
+
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">
-      <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-      Custom rates
-    </span>
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={`Full job title: ${label}`}
+        aria-expanded={open}
+        aria-controls={popoverId}
+        onClick={toggle}
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-orange-50 hover:text-[#F4781B]"
+      >
+        <Info className="size-3.5" aria-hidden />
+      </button>
+      {open &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              aria-label="Close job title details"
+              className="fixed inset-0 z-[80] cursor-default"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              id={popoverId}
+              role="dialog"
+              style={{ top: position.top, left: position.left, width: 240 }}
+              className="fixed z-[81] rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left shadow-lg"
+            >
+              <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                Job title
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">{label}</p>
+              {hasCustomRates && (
+                <p className="mt-1.5 text-xs font-medium text-emerald-700">Custom rates</p>
+              )}
+            </div>
+          </>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -31,97 +121,31 @@ export function ConfiguredBadge({ configured }: { configured: boolean }) {
   );
 }
 
-export function CandidateShareBar({ percentage }: { percentage: number }) {
+export function FeesLoadingState() {
   return (
-    <div className="flex min-w-[88px] flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-gray-500">Candidate</span>
-        <span className="text-xs font-semibold text-gray-800">{percentage}%</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-        <div
-          className="h-full rounded-full bg-[#F4781B] transition-all"
-          style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-export function ExperienceRateTier({
-  tierLabel,
-  tierRange,
-  rate,
-  formatHourlyRate,
-}: {
-  tierLabel: string;
-  tierRange: string;
-  rate: {
-    recruiter_pay_per_hour: number;
-    candidate_percentage: number;
-    has_recruiter_discount: boolean;
-    platform_recruiter_pay_per_hour: number;
-    discount_per_hour: number;
-  };
-  formatHourlyRate: (amount: number) => string;
-}) {
-  return (
-    <div
-      className={
-        rate.has_recruiter_discount
-          ? "flex flex-col gap-3 rounded-xl border border-emerald-100 bg-emerald-50/30 p-4"
-          : "flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4"
-      }
-    >
-      <div className="space-y-0.5">
-        <p className="text-sm font-semibold text-gray-900">{tierLabel}</p>
-        <p className="text-xs text-gray-400">{tierRange}</p>
-      </div>
-
-      <div className="rounded-lg bg-white p-3 ring-1 ring-gray-100">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-          Your rate
-        </p>
-        <p className="mt-1 text-xl font-bold text-gray-900">
-          {formatHourlyRate(rate.recruiter_pay_per_hour)}
-          <span className="ml-1 text-sm font-medium text-gray-400">/hr</span>
-        </p>
-        {rate.has_recruiter_discount && (
-          <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-            <p className="text-xs text-gray-400 line-through">
-              Platform {formatHourlyRate(rate.platform_recruiter_pay_per_hour)}
-            </p>
-            <p className="text-xs font-semibold text-emerald-700">
-              Save {formatHourlyRate(rate.discount_per_hour)}/hr
-            </p>
+    <div className="p-4 sm:p-5">
+      <div className="overflow-hidden rounded-xl border border-gray-200">
+        <div className="flex border-b border-gray-100 bg-gray-50">
+          <div className="h-12 w-36 shrink-0" />
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex h-12 min-w-24 flex-1 items-center justify-center">
+              <div className="h-4 w-10 animate-pulse rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+        {Array.from({ length: 6 }).map((_, row) => (
+          <div key={row} className="flex border-b border-gray-50 last:border-0">
+            <div className="flex h-12 w-36 shrink-0 items-center px-4">
+              <div className="h-4 w-20 animate-pulse rounded bg-gray-100" />
+            </div>
+            {Array.from({ length: 4 }).map((_, column) => (
+              <div key={column} className="flex h-12 min-w-24 flex-1 items-center justify-center">
+                <div className="h-4 w-12 animate-pulse rounded bg-gray-100" />
+              </div>
+            ))}
           </div>
-        )}
+        ))}
       </div>
-
-      <CandidateShareBar percentage={rate.candidate_percentage} />
-    </div>
-  );
-}
-
-export function FeesCardSkeleton() {
-  return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <div className="h-5 w-40 animate-pulse rounded-lg bg-gray-200" />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="h-28 animate-pulse rounded-xl bg-gray-100" />
-        <div className="h-28 animate-pulse rounded-xl bg-gray-100" />
-      </div>
-    </div>
-  );
-}
-
-
-export function FeesLoadingState({ columns = 2 }: { columns?: number }) {
-  return (
-    <div className="grid gap-4 p-5 sm:grid-cols-2">
-      {Array.from({ length: columns }).map((_, index) => (
-        <FeesCardSkeleton key={index} />
-      ))}
     </div>
   );
 }

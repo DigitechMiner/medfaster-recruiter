@@ -49,7 +49,7 @@ const TABLE_COLUMN_CLASS_NAMES = [
 
 const STATUS_OPTIONS: { label: string; value: "" | JobTeamMemberStatus }[] = [
   { label: "All statuses", value: "" },
-  { label: "Future", value: "FUTURE" },
+  { label: "Joining", value: "FUTURE" },
   { label: "Active", value: "ACTIVE" },
   { label: "Leave", value: "LEAVE" },
   { label: "Termination pending", value: "TERMINATION_PENDING" },
@@ -103,6 +103,12 @@ function getInitials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function getStatusLabel(status?: string | null) {
+  const normalized = (status ?? "").toUpperCase();
+  if (normalized === "FUTURE") return "Joining";
+  return formatLabel(status);
 }
 
 function getStatusBadgeClass(status?: string | null) {
@@ -518,7 +524,7 @@ export function TeamTab({
                           getStatusBadgeClass(member.status),
                         )}
                       >
-                        {formatLabel(member.status)}
+                        {getStatusLabel(member.status)}
                       </span>
                     ) : isInstant ? (
                       <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">

@@ -1,6 +1,7 @@
 import { apiRequest, axiosInstance } from "@/stores/api/api-client";
 import { ENDPOINTS } from "@/stores/api/api-endpoints";
 import { extractData, extractRoot } from "@/stores/api/response-helpers";
+import { normalizeFeesSummary } from "./fees-summary";
 import { JOB_SHIFT_RECORD_STATUSES } from "./types";
 
 import type {
@@ -790,7 +791,7 @@ export async function getJobFeesSummary(
   const res = await axiosInstance.get(ENDPOINTS.JOBS_FEES_SUMMARY, {
     params: { scope },
   });
-  return extractData<FeesSummaryData>(res.data);
+  return normalizeFeesSummary(extractData<unknown>(res.data), scope);
 }
 
 export async function getProvinceTaxes(

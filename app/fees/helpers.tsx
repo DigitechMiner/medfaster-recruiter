@@ -1,11 +1,7 @@
 import type {
   ExperienceJobTitleFee,
   ExperienceTierRate,
-  FeeExperienceLevel,
-  FeesDefaultSection,
-  FeesInstantSection,
   FeesSummaryData,
-  InstantJobTitleFee,
 } from "@/features/jobs";
 import type { LucideIcon } from "lucide-react";
 import { Layers, Zap } from "lucide-react";
@@ -21,14 +17,13 @@ export const FEES_TABS: {
   {
     key: "default",
     label: "Standard Jobs",
-    description:
-      "Experience-tiered rates showing platform pricing and your effective rate, including any recruiter discounts",
+    description: "Hourly rate by experience. Use the info icon for the full job title.",
     icon: Layers,
   },
   {
     key: "instant",
     label: "Instant Jobs",
-    description: "Flat platform rates for instant jobs (no experience tiers)",
+    description: "Flat hourly rate for each instant job",
     icon: Zap,
   },
 ];
@@ -42,29 +37,16 @@ export function formatHourlyRate(amount: number): string {
   }).format(amount);
 }
 
-export function formatExperienceRange(level: FeeExperienceLevel): string {
-  if (level.max_years == null) {
-    return `${level.min_years}+ yrs`;
-  }
-  if (level.min_years === level.max_years) {
-    return `${level.min_years} yrs`;
-  }
-  return `${level.min_years}–${level.max_years} yrs`;
+export function isStandardFees(
+  data: FeesSummaryData | null,
+): data is Extract<FeesSummaryData, { scope: "default" }> {
+  return data?.scope === "default";
 }
 
-export function getDefaultSection(data: FeesSummaryData | null): FeesDefaultSection | null {
-  return data?.default ?? null;
-}
-
-export function getInstantSection(data: FeesSummaryData | null): FeesInstantSection | null {
-  return data?.instant ?? null;
-}
-
-export function sortExperienceLevels(
-  levels: FeeExperienceLevel[] | undefined,
-): FeeExperienceLevel[] {
-  if (!levels?.length) return [];
-  return [...levels].sort((a, b) => a.min_years - b.min_years || a.id - b.id);
+export function isInstantFees(
+  data: FeesSummaryData | null,
+): data is Extract<FeesSummaryData, { scope: "instant" }> {
+  return data?.scope === "instant";
 }
 
 export function getRateForLevel(
@@ -74,17 +56,23 @@ export function getRateForLevel(
   return jobTitle.rates.find((item) => item.experience_level_id === levelId) ?? null;
 }
 
-export function getInstantJobLabel(job: InstantJobTitleFee): string {
-  return job.job_title_label ?? job.job_title_value.replace(/_/g, " ");
-}
-
-export function getExperienceJobLabel(job: ExperienceJobTitleFee): string {
-  return job.job_title_label ?? job.job_title_value.replace(/_/g, " ");
-}
-
 export function countDiscountedTiers(jobs: ExperienceJobTitleFee[]): number {
   return jobs.reduce(
-    (total, job) => total + job.rates.filter((rate) => rate.has_recruiter_discount).length,
+    (total, job) => total + job.rates.filter((rate) => rate.discount_per_hour > 0).length,
     0,
   );
+}
+
+export function filterFeeJobs<T extends { short_label: string; label: string }>(
+  jobs: T[],
+  query: string,
+): T[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return jobs;
+  return jobs.filter((job) => {
+    return (
+      job.short_label.toLowerCase().includes(normalized) ||
+      job.label.toLowerCase().includes(normalized)
+    );
+  });
 }

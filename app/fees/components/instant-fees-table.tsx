@@ -1,8 +1,8 @@
 "use client";
 
 import type { InstantJobTitleFee } from "@/features/jobs";
-import { formatHourlyRate, getInstantJobLabel } from "../helpers";
-import { CandidateShareBar, ConfiguredBadge, FeesEmptyState } from "./fees-ui";
+import { formatHourlyRate } from "../helpers";
+import { ConfiguredBadge, FeesEmptyState, JobTitleInfoButton } from "./fees-ui";
 
 type InstantFeesTableProps = {
   jobTitles: InstantJobTitleFee[];
@@ -18,33 +18,42 @@ export function InstantFeesTable({
   }
 
   return (
-    <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
-      {jobTitles.map((job) => (
-        <article
-          key={job.job_title_id}
-          className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <p className="truncate font-semibold text-gray-900">{getInstantJobLabel(job)}</p>
-              <p className="text-xs text-gray-400">Flat instant rate</p>
-            </div>
-            <ConfiguredBadge configured={job.configured} />
-          </div>
-
-          <div className="rounded-xl bg-gradient-to-br from-orange-50 to-white p-4 ring-1 ring-orange-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-              Recruiter pay
-            </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {formatHourlyRate(job.recruiter_pay_per_hour)}
-              <span className="ml-1 text-sm font-medium text-gray-400">/hr</span>
-            </p>
-          </div>
-
-          <CandidateShareBar percentage={job.candidate_percentage} />
-        </article>
-      ))}
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[32rem] text-sm">
+        <thead>
+          <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+            <th className="px-4 py-3 font-medium sm:px-5">Job title</th>
+            <th className="px-4 py-3 text-right font-medium sm:px-5">Your rate</th>
+            <th className="hidden px-4 py-3 text-right font-medium sm:table-cell sm:px-5">
+              Status
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {jobTitles.map((job) => (
+            <tr key={job.id} className="border-b border-gray-50 last:border-0">
+              <td className="px-4 py-3 sm:px-5">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold uppercase tracking-wide text-gray-900">
+                    {job.short_label}
+                  </span>
+                  <JobTitleInfoButton label={job.label} />
+                </div>
+                <div className="mt-1 sm:hidden">
+                  <ConfiguredBadge configured={job.configured} />
+                </div>
+              </td>
+              <td className="px-4 py-3 text-right font-semibold text-gray-900 sm:px-5">
+                {formatHourlyRate(job.pay_per_hour)}
+                <span className="ml-1 text-xs font-medium text-gray-400">/hr</span>
+              </td>
+              <td className="hidden px-4 py-3 text-right sm:table-cell sm:px-5">
+                <ConfiguredBadge configured={job.configured} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

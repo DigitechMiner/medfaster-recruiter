@@ -7,9 +7,9 @@ import { AppLayout } from "@/components/global/app-layout";
 import { TableTabs } from "@/components/table/TableTabs";
 import { MetricCard } from "@/components/ui/metric-card";
 import { getJobFeesSummary } from "@/features/jobs";
-import type { ExperienceJobTitleFee, FeesSummaryData, InstantJobTitleFee } from "@/features/jobs";
+import type { FeesSummaryData } from "@/features/jobs";
 import { useAuthStore } from "@/stores/authStore";
-import { ExperienceFeesCards } from "./components/experience-fees-table";
+import { ExperienceFeesTable } from "./components/experience-fees-table";
 import { InstantFeesTable } from "./components/instant-fees-table";
 import {
   FeesErrorState,
@@ -21,33 +21,10 @@ import {
   countDiscountedTiers,
   FEES_TABS,
   FeesTabKey,
-  getDefaultSection,
-  getExperienceJobLabel,
-  getInstantJobLabel,
-  getInstantSection,
-  sortExperienceLevels,
+  filterFeeJobs,
+  isInstantFees,
+  isStandardFees,
 } from "./helpers";
-
-function filterExperienceJobs(
-  jobs: ExperienceJobTitleFee[],
-  query: string,
-): ExperienceJobTitleFee[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return jobs;
-  return jobs.filter((job) => {
-    const label = getExperienceJobLabel(job).toLowerCase();
-    return label.includes(normalized) || job.job_title_value.toLowerCase().includes(normalized);
-  });
-}
-
-function filterInstantJobs(jobs: InstantJobTitleFee[], query: string): InstantJobTitleFee[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return jobs;
-  return jobs.filter((job) => {
-    const label = getInstantJobLabel(job).toLowerCase();
-    return label.includes(normalized) || job.job_title_value.toLowerCase().includes(normalized);
-  });
-}
 
 export default function FeesPage() {
   const router = useRouter();
@@ -106,44 +83,27 @@ export default function FeesPage() {
   const currentError = errorByTab[activeTab];
   const isLoading = loadingTab === activeTab;
 
-  const defaultSection = getDefaultSection(currentData);
-  const instantSection = getInstantSection(currentData);
-  const defaultJobTitles = useMemo(
-    () => defaultSection?.job_titles ?? [],
-    [defaultSection?.job_titles],
-  );
+  const standardFees = isStandardFees(currentData) ? currentData : null;
+  const instantFees = isInstantFees(currentData) ? currentData : null;
+  const standardJobTitles = standardFees?.job_titles ?? [];
+  const instantJobTitles = instantFees?.job_titles ?? [];
+  const experienceLevels = standardFees?.experience_levels ?? [];
 
-  const experienceLevels = useMemo(() => {
-    const fromResponse = sortExperienceLevels(currentData?.experience_levels);
-    if (fromResponse.length > 0) return fromResponse;
-
-    const levelMap = new Map<number, (typeof defaultJobTitles)[number]["rates"][number]["experience_level"]>();
-    for (const job of defaultJobTitles) {
-      for (const rate of job.rates) {
-        levelMap.set(rate.experience_level.id, rate.experience_level);
-      }
-    }
-
-    return sortExperienceLevels(Array.from(levelMap.values()));
-  }, [currentData?.experience_levels, defaultJobTitles]);
-
-  const tabJobTitles = activeTab === "instant"
-    ? instantSection?.job_titles ?? []
-    : defaultJobTitles;
+  const tabJobTitles = activeTab === "instant" ? instantJobTitles : standardJobTitles;
 
   const filteredExperienceJobs = useMemo(
-    () => filterExperienceJobs(defaultJobTitles, searchQuery),
-    [defaultJobTitles, searchQuery],
+    () => filterFeeJobs(standardJobTitles, searchQuery),
+    [standardJobTitles, searchQuery],
   );
 
   const filteredInstantJobs = useMemo(
-    () => filterInstantJobs(instantSection?.job_titles ?? [], searchQuery),
-    [instantSection?.job_titles, searchQuery],
+    () => filterFeeJobs(instantJobTitles, searchQuery),
+    [instantJobTitles, searchQuery],
   );
 
-  const customJobCount = defaultJobTitles.filter((job) => job.has_recruiter_specific_rates).length;
-  const discountedTierCount = countDiscountedTiers(defaultJobTitles);
-  const overrideStatus = defaultSection?.has_recruiter_specific_fees
+  const customJobCount = standardJobTitles.filter((job) => job.has_custom_rates).length;
+  const discountedTierCount = countDiscountedTiers(standardJobTitles);
+  const overrideStatus = standardFees?.has_custom_rates
     ? "Custom rates active"
     : "Platform rates only";
 
@@ -163,7 +123,7 @@ export default function FeesPage() {
               <h1 className="text-2xl font-bold leading-8 text-gray-900">Fee Rates</h1>
             </div>
             <p className="max-w-2xl text-sm text-gray-500">
-              Review platform rates and your effective pricing, including any recruiter discounts on standard jobs.
+              Compare your hourly rate by experience. Job titles are shortened in the table.
             </p>
           </div>
         </div>
@@ -234,11 +194,11 @@ export default function FeesPage() {
           />
 
           {isLoading ? (
-            <FeesLoadingState columns={4} />
+            <FeesLoadingState />
           ) : currentError ? (
             <FeesErrorState message={currentError} />
           ) : activeTab === "default" ? (
-            <ExperienceFeesCards
+            <ExperienceFeesTable
               jobTitles={filteredExperienceJobs}
               experienceLevels={experienceLevels}
               emptyMessage={
