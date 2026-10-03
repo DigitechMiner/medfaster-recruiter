@@ -16,7 +16,6 @@ import type {
   JobUrgency,
 } from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
-import { formatLabel } from "../shared/job-detail-helpers";
 import {
   ApplicationStatusActionModal,
   type ApplicationActionCandidatePreview,
@@ -40,6 +39,8 @@ import {
 import {
   type ApplicationStatusTransitionOptions,
   getApplicationFilterStatuses,
+  getApplicationStatusDisplayLabel,
+  getApplicationStatusTagline,
   getApplicationStatusTransitions,
   isInstantJobUrgency,
 } from "./application-status-transitions";
@@ -125,18 +126,24 @@ function ApplicationStatusBadge({
     : status;
   const isAccepted =
     isInstant && ["ACCEPTED", "HIRE"].includes(status.toUpperCase());
+  const tagline = isInstant ? null : getApplicationStatusTagline(status);
 
   return (
     <span className="inline-flex flex-col items-center gap-0.5">
       <span
         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${getApplicationStatusBadgeClass(badgeStatus)}`}
       >
-        {isInstant ? getInstantApplicationStatusLabel(status) : formatLabel(status)}
+        {isInstant
+          ? getInstantApplicationStatusLabel(status)
+          : getApplicationStatusDisplayLabel(status)}
       </span>
       {isAccepted ? (
         <span className="text-[10px] font-medium text-emerald-700">
           Assigned to all shifts
         </span>
+      ) : null}
+      {tagline ? (
+        <span className="text-[10px] font-medium text-violet-700">{tagline}</span>
       ) : null}
     </span>
   );
@@ -894,7 +901,7 @@ export function ApplicationsTab({
               <option key={applicationStatus} value={applicationStatus}>
               {isInstant
                 ? getInstantApplicationStatusLabel(applicationStatus)
-                : formatLabel(applicationStatus)}
+                : getApplicationStatusDisplayLabel(applicationStatus)}
               </option>
             ))}
           </select>

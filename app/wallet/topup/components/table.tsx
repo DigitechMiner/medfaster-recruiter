@@ -9,6 +9,7 @@ const TOPUP_HEADERS = [
   "Stripe Fees",
   "Received in Wallet",
   "Currency",
+  "Payment Method",
   "Status",
   "Created At",
 ];
@@ -56,6 +57,12 @@ const formatTopupDate = (value?: string) => {
   return date.toLocaleString("en-CA");
 };
 
+const formatPaymentMethod = (method?: WalletTopup["payment_method"]) => {
+  if (method === "card") return "Card";
+  if (method === "bank_debit") return "Bank debit";
+  return "—";
+};
+
 export function TopupTable({
   topups,
   totalTopups,
@@ -86,15 +93,15 @@ export function TopupTable({
         </div>
       ) : (
         <>
-          <DataTable headers={TOPUP_HEADERS} minWidthClassName="min-w-[980px]">
+          <DataTable headers={TOPUP_HEADERS} minWidthClassName="min-w-[1120px]">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, index) => (
-                <SkeletonRow key={index} cols={7} />
+                <SkeletonRow key={index} cols={8} />
               ))
             ) : topups.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-4 py-16 text-center text-gray-400 text-sm"
                 >
                   No top-ups found
@@ -122,6 +129,9 @@ export function TopupTable({
                   </td>
                   <td className="px-4 py-4 text-[13px] text-gray-700 uppercase whitespace-nowrap">
                     {topup.currency ?? "CAD"}
+                  </td>
+                  <td className="px-4 py-4 text-[13px] text-gray-700 whitespace-nowrap">
+                    {formatPaymentMethod(topup.payment_method)}
                   </td>
                   <td className="px-4 py-4">
                     <StatusBadge status={topup.status} />

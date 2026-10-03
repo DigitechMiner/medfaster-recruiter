@@ -145,9 +145,8 @@ function DayEventCard({
   nowMs: number;
   compact?: boolean;
 }) {
-  const isUrgent =
-    job.job_type?.toLowerCase().includes("urgent") ||
-    job.job_type?.toLowerCase() === "instant";
+  const jobType = job.job_type?.toUpperCase() ?? "";
+  const isInstant = jobType === "INSTANT" || jobType.includes("URGENT");
   const statusPill = getStatusPill(job, nowMs);
   const shiftBadge = shiftStatusBadgeType(job.shift_status);
   const shiftStyle = STATUS_CHIP[shiftBadge];
@@ -216,12 +215,12 @@ function DayEventCard({
             <span
               className={cn(
                 "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                isUrgent
+                isInstant
                   ? "bg-orange-100 text-[#F4781B]"
                   : "bg-slate-100 text-slate-600",
               )}
             >
-              {isUrgent ? "Urgent" : "Regular"}
+              {isInstant ? "Instant" : "Normal"}
             </span>
           </div>
         </div>
@@ -243,7 +242,11 @@ function DayEventCard({
               statusPill.className,
             )}
           >
-            <Timer className="size-3 opacity-80" />
+            {statusPill.icon === "⚠" ? (
+              <TriangleAlert className="size-3 opacity-80" />
+            ) : (
+              <Timer className="size-3 opacity-80" />
+            )}
             {statusPill.text}
           </div>
         </div>
@@ -261,7 +264,7 @@ export function OverviewPanel({ jobs, summary, view, currentDate }: {
   const active = summary?.active_shift ?? jobs.filter(j => j.shift_status === "ACTIVE").length;
   const upcoming = summary?.upcoming_shift ?? jobs.filter(j => j.shift_status === "UPCOMING").length;
   const completed = summary?.complete_shift ?? jobs.filter(j => j.shift_status === "COMPLETED").length;
-  const noshow = summary?.no_show_missed ?? jobs.filter(j => j.shift_status === "CANCELLED").length;
+  const noshow = summary?.no_show_missed ?? jobs.filter(j => j.shift_status === "CANCELLED" || j.shift_status === "MISSED").length;
   const pending = summary?.pending_checkin ?? jobs.filter(j => !j.check_in).length;
   const early = summary?.early_checkout ?? 0;
 
@@ -314,7 +317,12 @@ const DAY_LABEL_PAD_PX = 12;
 
 export function CalendarDayView({ currentDate, jobs }: { currentDate: Date; jobs: CalendarJob[] }) {
   const hasLiveCountdown = useMemo(
-    () => jobs.some((job) => job.planned_check_in_at || job.planned_check_out_at),
+    () => jobs.some((job) => {
+      if (job.shift_status === "MISSED" || job.shift_status === "COMPLETED" || job.shift_status === "CANCELLED") {
+        return false;
+      }
+      return Boolean(job.planned_check_in_at || job.planned_check_out_at);
+    }),
     [jobs],
   );
   const nowMs = useNow(hasLiveCountdown);

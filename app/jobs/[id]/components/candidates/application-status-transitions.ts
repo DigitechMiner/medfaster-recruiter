@@ -166,12 +166,32 @@ export function getApplicationStatusTransitions(
   return filtered as ApplicationStatusAction[];
 }
 
+/** User-facing name for an application status, including after it is updated. */
+export function getApplicationStatusDisplayLabel(status: string): string {
+  switch (status.trim().toUpperCase()) {
+    case "INTERVIEWING":
+      return "Take Interview";
+    default:
+      return formatLabel(status);
+  }
+}
+
+/** Short line shown under the status when the application has been updated. */
+export function getApplicationStatusTagline(status: string): string | null {
+  switch (status.trim().toUpperCase()) {
+    case "INTERVIEWING":
+      return "To be conducted";
+    default:
+      return null;
+  }
+}
+
 export function getApplicationStatusActionLabel(status: ApplicationStatusAction): string {
   switch (status) {
     case "SHORTLISTED":
       return "Shortlist";
     case "INTERVIEWING":
-      return "Interviewing";
+      return getApplicationStatusDisplayLabel(status);
     case "INTERVIEWED":
       return "Interviewed";
     case "REJECTED":
@@ -191,7 +211,7 @@ export function getApplicationStatusActionDescription(
     case "SHORTLISTED":
       return `Move ${candidateName} to the shortlisted stage for this job.`;
     case "INTERVIEWING":
-      return `Mark ${candidateName} as currently interviewing for this job.`;
+      return `Move ${candidateName} to Take Interview. To be conducted.`;
     case "INTERVIEWED":
       return `Mark ${candidateName} as interviewed for this job.`;
     case "REJECTED":
@@ -208,7 +228,7 @@ export function getApplicationStatusActionHint(status: ApplicationStatusAction):
     case "SHORTLISTED":
       return "Add to shortlist";
     case "INTERVIEWING":
-      return "Interview in progress";
+      return getApplicationStatusTagline(status) ?? "";
     case "INTERVIEWED":
       return "Interview complete";
     case "REJECTED":

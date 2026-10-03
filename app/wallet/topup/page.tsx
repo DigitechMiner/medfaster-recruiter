@@ -54,6 +54,7 @@ function TopupPageContent() {
   const [topupsReloadKey, setTopupsReloadKey] = useState(0);
   const [showTopupSuccess, setShowTopupSuccess] = useState(false);
   const [isRefreshingWallet, setIsRefreshingWallet] = useState(false);
+  const [balanceUpdated, setBalanceUpdated] = useState(false);
 
   const topupSuccess = params.get("topup_success") === "true";
   const redirectStatus = params.get("redirect_status");
@@ -66,6 +67,7 @@ function TopupPageContent() {
   useEffect(() => {
     if (!topupSuccess) {
       setShowTopupSuccess(false);
+      setBalanceUpdated(false);
       return;
     }
 
@@ -130,7 +132,15 @@ function TopupPageContent() {
 
       const currentBalance = useWalletStore.getState().wallet?.available_balance;
 
-      if (currentBalance !== previousBalance || attempts >= 8) {
+      if (currentBalance !== previousBalance) {
+        setBalanceUpdated(true);
+        setIsRefreshingWallet(false);
+        setTopupsReloadKey((key) => key + 1);
+        return;
+      }
+
+      if (attempts >= 8) {
+        setBalanceUpdated(false);
         setIsRefreshingWallet(false);
         setTopupsReloadKey((key) => key + 1);
         return;
@@ -222,6 +232,7 @@ function TopupPageContent() {
         open={showTopupSuccess}
         amount={successAmount}
         isRefreshing={isRefreshingWallet}
+        balanceUpdated={balanceUpdated}
         newBalance={newBalance}
         onClose={handleSuccessClose}
         onViewWallet={handleViewWallet}

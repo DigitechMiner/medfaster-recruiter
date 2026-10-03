@@ -147,14 +147,19 @@ export function getStatusPill(
   job: CalendarJob,
   nowMs: number = Date.now(),
 ): { text: string; icon: string; className: string } {
-  if (job.check_out) {
-    return { text: "Successful end", icon: "✓", className: "bg-green-50  text-green-700  border-green-200" };
-  }
-  if (job.check_in) {
-    return { text: "Check-In Complete!", icon: "✓", className: "bg-green-50  text-green-700  border-green-200" };
+  // Terminal API statuses win over the live countdown. MISSED used to fall
+  // through to the upcoming copy ("Starts in few min.").
+  if (job.shift_status === "MISSED") {
+    return { text: "Did not check in", icon: "⚠", className: "bg-red-50 text-red-600 border-red-200" };
   }
   if (job.shift_status === "CANCELLED") {
-    return { text: "No show yet!", icon: "⚠", className: "bg-red-50    text-red-600    border-red-200" };
+    return { text: "No show yet!", icon: "⚠", className: "bg-red-50 text-red-600 border-red-200" };
+  }
+  if (job.shift_status === "COMPLETED" || job.check_out) {
+    return { text: "Successful end", icon: "✓", className: "bg-green-50 text-green-700 border-green-200" };
+  }
+  if (job.check_in) {
+    return { text: "Check-In Complete!", icon: "✓", className: "bg-green-50 text-green-700 border-green-200" };
   }
 
   const countdown = resolveShiftCountdown(
@@ -180,7 +185,10 @@ export function getStatusPill(
   }
 
   if (job.shift_status === "ACTIVE") {
-    return { text: "Successful start", icon: "✓", className: "bg-green-50  text-green-700  border-green-200" };
+    return { text: "Successful start", icon: "✓", className: "bg-green-50 text-green-700 border-green-200" };
+  }
+  if (countdown.phase === "ended") {
+    return { text: "Ended", icon: "⏱", className: "bg-slate-50 text-slate-500 border-slate-200" };
   }
   if (job.shift_status === "UPCOMING") {
     return { text: "Starts in few min.", icon: "⏱", className: "bg-orange-50 text-orange-500 border-orange-200" };
@@ -266,8 +274,14 @@ export type DayHourScale = {
 function shiftBounds(job: CalendarJob): { startMin: number; endMin: number } | null {
   const start = parseClockToMinutes(job.planned_check_in);
   if (start == null) return null;
-  let end = parseClockToMinutes(job.planned_check_out ?? null);
-  if (end == null || end <= start) end = Math.min(start + DEFAULT_SHIFT_DURATION_MIN, 24 * 60);
+  const end = parseClockToMinutes(job.planned_check_out ?? null);
+  if (end == null || end === start) {
+    return { startMin: start, endMin: Math.min(start + DEFAULT_SHIFT_DURATION_MIN, 24 * 60) };
+  }
+  // Overnight window (22:00–02:00) stays on shift_date and runs through midnight.
+  if (end < start) {
+    return { startMin: start, endMin: 24 * 60 };
+  }
   return { startMin: start, endMin: end };
 }
 
@@ -382,6 +396,7 @@ export function shiftStatusBadgeType(status: ShiftStatus): BadgeType {
     case "ACTIVE":
       return "active";
     case "CANCELLED":
+    case "MISSED":
       return "noshow";
     case "COMPLETED":
       return "completed";

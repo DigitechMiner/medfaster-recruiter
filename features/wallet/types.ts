@@ -42,6 +42,8 @@ export interface WalletTopup {
   status?: "COMPLETED" | "PENDING" | "FAILED" | "SUCCESS" | string;
   stripe_payment_intent_id?: string | null;
   stripe_checkout_session_id?: string | null;
+  /** Null while checkout is still open and no method has been chosen. */
+  payment_method?: "card" | "bank_debit" | null;
   idempotency_key?: string | null;
   created_at?: string;
   updated_at?: string;

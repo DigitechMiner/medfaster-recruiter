@@ -105,7 +105,8 @@ function buildNormalWorkflow(
     { key: "shortlisted", label: "Shortlisted", count: progress.shortlisted },
     {
       key: "interviewing",
-      label: "Interviewing",
+      label: "Take Interview",
+      sublabel: "To be conducted",
       count: progress.interviewing + progress.interviewed,
     },
     { key: "hired", label: "Hired", count: progress.hired },
@@ -252,6 +253,11 @@ function StageNode({
       >
         {stage.label}
       </p>
+      {stage.sublabel ? (
+        <p className="mt-0.5 px-0.5 text-[10px] leading-tight text-gray-400">
+          {stage.sublabel}
+        </p>
+      ) : null}
       {stage.time ? (
         <p
           className={cn(

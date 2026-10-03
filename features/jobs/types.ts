@@ -807,7 +807,7 @@ export interface JobsSummaryResponse {
 export interface CalendarGridShift {
   assignment_id: string;
   shift_date: string;
-  shift_status: "ACTIVE" | "UPCOMING" | "COMPLETED" | "CANCELLED";
+  shift_status: "ACTIVE" | "UPCOMING" | "COMPLETED" | "CANCELLED" | "MISSED";
   candidate_id: string;
   candidate_name: string;
   profile_image_url?: string | null;

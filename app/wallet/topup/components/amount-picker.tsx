@@ -122,6 +122,13 @@ export function AmountPicker({
         {error && (
           <p className="text-[13px] text-red-500">{error}</p>
         )}
+
+        <p className="text-[13px] leading-5 text-gray-500">
+          On the next page you can pay by card, or by Canadian bank debit for
+          larger amounts. Card payments update your wallet shortly. Bank debit
+          can take several business days to clear, and the wallet is credited
+          the net amount after Stripe’s fee.
+        </p>
       </div>
     </form>
   );

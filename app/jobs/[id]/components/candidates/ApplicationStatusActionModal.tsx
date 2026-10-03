@@ -33,7 +33,6 @@ import type {
   JobUrgency,
 } from "@/types";
 import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
-import { formatLabel } from "../shared/job-detail-helpers";
 import {
   EMPTY_DISPLAY,
   formatAppliedDate,
@@ -51,11 +50,34 @@ import {
   getApplicationStatusActionLabel,
   getApplicationStatusActionGridClass,
   getApplicationStatusChooserDescription,
+  getApplicationStatusDisplayLabel,
+  getApplicationStatusTagline,
   getApplicationStatusTransitions,
   getHirePlacementTeamsFromSchedule,
   getHireShiftBandOptions,
   sortApplicationStatusActions,
 } from "./application-status-transitions";
+
+const CANDIDATE_SCHEDULE_OVERLAP_MESSAGE =
+  "This candidate has been selected for other assignments and is no longer available for this position. Kindly consider another suitable candidate";
+
+function isCandidateScheduleOverlapMessage(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("overlapping") ||
+    normalized.includes("conflict with your schedule") ||
+    normalized.includes("schedule overlap")
+  );
+}
+
+function resolveApplicationActionError(error: unknown): string {
+  const err = error as { response?: { data?: { message?: string } }; message?: string };
+  const apiMessage = err?.response?.data?.message ?? err?.message;
+  if (apiMessage && isCandidateScheduleOverlapMessage(apiMessage)) {
+    return CANDIDATE_SCHEDULE_OVERLAP_MESSAGE;
+  }
+  return apiMessage ?? "Action failed. Please try again.";
+}
 
 export type ApplicationActionCandidatePreview = {
   id?: string;
@@ -207,6 +229,7 @@ function CandidatePreviewCard({
   const applied = formatAppliedDate(appliedAt);
   const role = candidate.jobTitle || jobTitle;
   const score = formatScoreDisplay(candidate.score, currentStatus);
+  const statusTagline = getApplicationStatusTagline(currentStatus);
 
   return (
     <div className="rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50/90 to-white p-4">
@@ -232,10 +255,17 @@ function CandidatePreviewCard({
             <p className="truncate text-base font-bold text-gray-900">
               {candidate.name}
             </p>
-            <span
-              className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${getApplicationStatusBadgeClass(currentStatus)}`}
-            >
-              {formatLabel(currentStatus)}
+            <span className="inline-flex shrink-0 flex-col items-end gap-0.5">
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${getApplicationStatusBadgeClass(currentStatus)}`}
+              >
+                {getApplicationStatusDisplayLabel(currentStatus)}
+              </span>
+              {statusTagline ? (
+                <span className="text-[10px] font-medium text-violet-700">
+                  {statusTagline}
+                </span>
+              ) : null}
             </span>
           </div>
           {role ? (
@@ -392,10 +422,7 @@ export function ApplicationStatusActionModal({
       onSuccess();
       onClose();
     } catch (error) {
-      const err = error as { response?: { data?: { message?: string } }; message?: string };
-      setSubmitError(
-        err?.response?.data?.message ?? err?.message ?? "Action failed. Please try again.",
-      );
+      setSubmitError(resolveApplicationActionError(error));
     } finally {
       setIsSubmitting(false);
     }
