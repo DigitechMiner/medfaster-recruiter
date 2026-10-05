@@ -16,6 +16,7 @@ import type {
   JobWalletTransactionItem,
 } from "@/types";
 import { InterviewResultDetailsModal } from "../candidates/InterviewResultDetailsModal";
+import { InvoiceDetailsDialog } from "./InvoiceDetailsDialog";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
 import { formatRelativeTimestamp } from "@/utils/datetime";
 import { formatDate, formatDateTime, formatLabel, formatPay } from "../shared/job-detail-helpers";
@@ -40,6 +41,7 @@ export function TransitionTab({
   const [interviewPerPage, setInterviewPerPage] = useState(10);
   const [ledgerView, setLedgerView] = useState<LedgerView>("all");
   const [fundingPanel, setFundingPanel] = useState<FundingPanel>("job");
+  const [openInvoiceId, setOpenInvoiceId] = useState<string | null>(null);
   const interviewFundingEnabled = summary.ai_interview === true;
   const activePanel: FundingPanel = interviewFundingEnabled
     ? fundingPanel
@@ -200,8 +202,8 @@ export function TransitionTab({
             </p>
           </div>
           <DataTable
-            headers={["Cycle", "Period", "Invoice", "Amount", "Status"]}
-            minWidthClassName="min-w-[720px]"
+            headers={["Cycle", "Period", "Invoice", "Amount", "Status", ""]}
+            minWidthClassName="min-w-[840px]"
             headerRowClassName="border-b border-gray-100 bg-gray-50/80"
             wrapperClassName="overflow-x-auto"
           >
@@ -268,10 +270,23 @@ export function TransitionTab({
                         </p>
                       )}
                   </td>
-                  <td className="px-4 py-2.5 sm:pr-5">
+                  <td className="px-4 py-2.5">
                     <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
                       {formatLabel(cycle.status)}
                     </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right sm:pr-5">
+                    {invoice?.id ? (
+                      <button
+                        type="button"
+                        onClick={() => setOpenInvoiceId(invoice.id!)}
+                        className="inline-flex whitespace-nowrap rounded-lg border border-[#492408] bg-[#FEF1E8] px-2.5 py-1 text-[11px] font-semibold text-[#492408] transition-colors hover:bg-[#FEE8D6]"
+                      >
+                        View preview
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -279,6 +294,13 @@ export function TransitionTab({
           </DataTable>
         </section>
       )}
+
+      <InvoiceDetailsDialog
+        jobId={jobId}
+        invoiceId={openInvoiceId}
+        open={openInvoiceId != null}
+        onClose={() => setOpenInvoiceId(null)}
+      />
 
       {!isLoading && visibleLedger.length > 0 && ledgerView === "timeline" && (
         <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">

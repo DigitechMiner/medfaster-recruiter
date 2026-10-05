@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/global/app-layout";
+import { formatJobDisplayId } from "@/app/jobs/components/helper";
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 import { useJobSummary, useJobId } from "@/hooks/useJobData";
 import { JobDetailTabs } from "./components/Tabs";
@@ -81,7 +82,12 @@ export default function JobDetailPageRoute() {
             <BreadcrumbNav
               breadcrumbs={[
                 { label: "Jobs", path: "/jobs" },
-                { label: summary.title, path: `/jobs/${jobId}` },
+                {
+                  label: formatJobDisplayId(jobId) ?? jobId ?? "Job",
+                  title: jobId ?? undefined,
+                  full: true,
+                  path: `/jobs/${jobId}`,
+                },
               ]}
             />
           </div>

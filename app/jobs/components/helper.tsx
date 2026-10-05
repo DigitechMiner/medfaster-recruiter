@@ -90,6 +90,12 @@ export const jobBadgeDisplayMap: Record<string, string> = {
   COMPLETED: "Completed",
 };
 
+/** Full job id, shown as stored so the value stays readable. */
+export function formatJobDisplayId(id?: string | null): string | null {
+  const trimmed = id?.trim();
+  return trimmed || null;
+}
+
 export function abbreviateJobTitle(title: string): string {
   return title
     .trim()

@@ -13,6 +13,7 @@ import type {
   JobTeamMember,
   JobTeamMemberStatus,
   JobTeamRosterTeam,
+  JobTeamSlot,
   JobUrgency,
 } from "@/types";
 import { EmptyState, LoadingRows } from "../shared/JobDetailDataView";
@@ -128,6 +129,115 @@ function getStatusBadgeClass(status?: string | null) {
   }
 }
 
+function isOpenSlot(status?: string | null) {
+  return (status ?? "").toUpperCase() === "OPEN";
+}
+
+function slotStatusLabel(status?: string | null) {
+  const normalized = (status ?? "").toUpperCase();
+  if (normalized === "OPEN") return "Open";
+  if (normalized === "FILLED") return "Filled";
+  return formatLabel(status);
+}
+
+function groupSlotsByShift(slots: JobTeamSlot[]) {
+  const order: string[] = [];
+  const groups = new Map<string, JobTeamSlot[]>();
+  const sorted = [...slots].sort(
+    (left, right) => (left.slot_index ?? 0) - (right.slot_index ?? 0),
+  );
+
+  for (const slot of sorted) {
+    const shiftType = (slot.shift_type ?? "").toUpperCase() || "SHIFT";
+    if (!groups.has(shiftType)) {
+      groups.set(shiftType, []);
+      order.push(shiftType);
+    }
+    groups.get(shiftType)?.push(slot);
+  }
+
+  return order.map((shiftType) => {
+    const shiftSlots = groups.get(shiftType) ?? [];
+    const required =
+      shiftSlots.find((slot) => slot.required_workers != null)?.required_workers ??
+      shiftSlots.length;
+    const filled = shiftSlots.filter((slot) => !isOpenSlot(slot.status)).length;
+    return { shiftType, required, filled, slots: shiftSlots };
+  });
+}
+
+function TeamSeatsPanel({
+  teams,
+  selectedTeamId,
+}: {
+  teams: JobTeamRosterTeam[];
+  selectedTeamId: string;
+}) {
+  const sorted = [...teams].sort(
+    (left, right) => (left.display_order ?? 0) - (right.display_order ?? 0),
+  );
+  const visible = sorted
+    .filter((team) => (team.slots?.length ?? 0) > 0)
+    .filter((team) => !selectedTeamId || team.id === selectedTeamId);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+      <p className="text-xs font-semibold text-gray-800">
+        Seats
+        <span className="ml-1.5 font-medium text-gray-400">
+          Open seats can still be hired
+        </span>
+      </p>
+      {visible.map((team) => {
+        const accent =
+          TEAM_ACCENTS[
+            Math.max(sorted.findIndex((item) => item.id === team.id), 0) %
+              TEAM_ACCENTS.length
+          ];
+        const groups = groupSlotsByShift(team.slots ?? []);
+
+        return (
+          <div key={team.id} className="flex flex-col gap-2">
+            <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-700">
+              <span className={cn("h-1.5 w-1.5 rounded-full", accent.dot)} />
+              {team.team_name}
+            </p>
+            {groups.map((group) => (
+              <div key={`${team.id}-${group.shiftType}`} className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium text-gray-500">
+                  {getShiftMeta(group.shiftType).label}
+                  <span className="text-gray-400">
+                    {" "}
+                    · {group.filled}/{group.required}
+                  </span>
+                </span>
+                {group.slots.map((slot) => (
+                  <span
+                    key={slot.slot_code}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                      isOpenSlot(slot.status)
+                        ? "border-dashed border-gray-300 bg-white text-gray-700"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-800",
+                    )}
+                  >
+                    <span className="font-mono">{slot.slot_code}</span>
+                    <span className="font-medium opacity-70">
+                      {slotStatusLabel(slot.status)}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TeamFilterBar({
   teams,
   selectedTeamId,
@@ -215,7 +325,7 @@ function MemberTeamsCell({
 
         return (
           <span
-            key={`${team.team_id}-${team.rotation_id ?? team.rotation_order ?? "team"}`}
+            key={`${team.team_id}-${team.slot_code ?? team.rotation_id ?? team.rotation_order ?? "team"}`}
             className={cn(
               "inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
               accent.chip,
@@ -223,6 +333,9 @@ function MemberTeamsCell({
           >
             <span className={cn("h-1.5 w-1.5 rounded-full", accent.dot)} />
             {team.team_name}
+            {team.slot_code ? (
+              <span className="font-mono font-bold">{team.slot_code}</span>
+            ) : null}
           </span>
         );
       })}
@@ -232,7 +345,12 @@ function MemberTeamsCell({
 
 function MemberShiftsCell({ member }: { member: JobTeamMember }) {
   const shiftTypes = Array.from(
-    new Set(member.teams.flatMap((team) => team.shift_types ?? [])),
+    new Set(
+      member.teams.flatMap((team) => [
+        ...(team.shift_types ?? []),
+        ...(team.slot_shift_type ? [team.slot_shift_type] : []),
+      ]),
+    ),
   );
 
   if (shiftTypes.length === 0) {
@@ -275,6 +393,11 @@ function NextShiftCell({
     <div className="min-w-0">
       <p className="truncate text-xs font-medium text-gray-800">
         {getShiftMeta(nextShift.shift_type).label}
+        {nextShift.slot_code ? (
+          <span className="ml-1 font-mono text-[11px] font-semibold text-gray-500">
+            {nextShift.slot_code}
+          </span>
+        ) : null}
       </p>
       <p className="truncate text-[11px] text-gray-400">
         {formatDate(nextShift.shift_date)}
@@ -375,7 +498,7 @@ export function TeamTab({
           <p className="mt-0.5 text-xs text-gray-500">
             {isInstant
               ? "People who accept are assigned to every shift immediately. They show here from shift assignments, not a hire record."
-              : "Hired members and coverage workers by rotational team"}
+              : "Hired seats and coverage workers by rotational team"}
             {isInstant
               ? acceptedCount != null
                 ? ` · ${acceptedCount}/${requiredCount ?? "—"} accepted`
@@ -413,6 +536,8 @@ export function TeamTab({
         selectedTeamId={teamId}
         onSelect={setTeamId}
       />
+
+      <TeamSeatsPanel teams={teams} selectedTeamId={teamId} />
 
       {isLoading ? (
         <LoadingRows count={3} />

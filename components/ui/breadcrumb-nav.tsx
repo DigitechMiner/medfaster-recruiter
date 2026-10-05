@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 export type BreadcrumbItem = {
   label: string;
   path: string;
+  title?: string;
+  /** Show the whole label instead of clipping it. */
+  full?: boolean;
 };
 
 type BreadcrumbNavProps = {
@@ -33,12 +36,23 @@ export function BreadcrumbNav({ breadcrumbs, className }: BreadcrumbNavProps) {
     <span
       key={`${crumb.path}-${index}`}
       className={`inline-flex items-center gap-1.5 min-w-0 ${
-        index === breadcrumbs.length - 1 ? "text-[#242833] truncate" : "shrink-0"
+        index === breadcrumbs.length - 1
+          ? crumb.full
+            ? "text-[#242833]"
+            : "text-[#242833] truncate"
+          : "shrink-0"
       }`}
     >
       {index > 0 && <span className="text-gray-400 shrink-0">/</span>}
       {index === breadcrumbs.length - 1 ? (
-        <span className="truncate block max-w-[100px] sm:max-w-[200px]">
+        <span
+          className={
+            crumb.full
+              ? "font-mono break-all"
+              : "truncate block max-w-[100px] sm:max-w-[200px]"
+          }
+          title={crumb.title ?? crumb.label}
+        >
           {crumb.label}
         </span>
       ) : (

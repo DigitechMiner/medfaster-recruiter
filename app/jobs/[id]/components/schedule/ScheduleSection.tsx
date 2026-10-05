@@ -20,7 +20,7 @@ import {
   formatLabel,
   formatTime,
 } from "../shared/job-detail-helpers";
-import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
+import { formatJobDisplayId, formatShiftTypeLabel } from "@/app/jobs/components/helper";
 import { ShiftCountdown } from "@/components/ShiftCountdown";
 
 type ScheduleSectionProps = {
@@ -233,6 +233,14 @@ export function ScheduleSection({
           </span>
           <div>
             <p className="text-xs font-medium text-gray-500">Next shift</p>
+            {formatJobDisplayId(jobId) ? (
+              <p
+                className="mt-0.5 break-all font-mono text-[11px] font-semibold tracking-wide text-[#F4781B]"
+                title={jobId}
+              >
+                {formatJobDisplayId(jobId)}
+              </p>
+            ) : null}
             <p className="mt-0.5 text-sm font-semibold text-gray-900">
               {formatShiftTypeLabel(nextShift.shift_type)}
             </p>

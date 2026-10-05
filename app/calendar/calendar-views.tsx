@@ -9,6 +9,7 @@ import {
   LogOut,
   TriangleAlert,
 } from "lucide-react";
+import { formatJobDisplayId } from "@/app/jobs/components/helper";
 import type { CalendarJob, CalendarSummary } from "@/types";
 import {
   buildDayHourScale,
@@ -107,6 +108,12 @@ function CellShiftChip({ job }: { job: CalendarJob }) {
           {job.candidate_name || "Candidate"}
         </div>
         <div className="truncate text-[9px] text-gray-500">
+          {formatJobDisplayId(job.job_id) ? (
+            <span className="font-mono font-semibold text-[#F4781B]" title={job.job_id ?? undefined}>
+              {formatJobDisplayId(job.job_id)}
+              {" · "}
+            </span>
+          ) : null}
           {job.job_title || "Shift"}
           {checkIn ? ` · ${checkIn}` : ""}
         </div>
@@ -198,6 +205,12 @@ function DayEventCard({
                 {job.candidate_name || "Candidate"}
               </div>
               <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                {formatJobDisplayId(job.job_id) ? (
+                  <span className="font-mono font-semibold text-[#F4781B]" title={job.job_id ?? undefined}>
+                    {formatJobDisplayId(job.job_id)}
+                    {" · "}
+                  </span>
+                ) : null}
                 {job.job_title || "Shift"}
               </div>
             </div>

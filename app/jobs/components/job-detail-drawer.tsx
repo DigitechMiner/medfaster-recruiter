@@ -13,6 +13,7 @@ import { formatRelativeTimestamp } from "@/utils/datetime";
 import {
   formatBudget,
   formatDate,
+  formatJobDisplayId,
   formatJobTitleDisplay,
   formatJobTypeLabel,
   formatListingStatus,
@@ -245,6 +246,14 @@ export function JobDetailDrawer({ job, onClose }: JobDetailDrawerProps) {
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
           <div className="min-w-0">
             <p className="text-xs font-medium text-gray-400">Job Preview</p>
+            {formatJobDisplayId(job.id) ? (
+              <p
+                className="mt-1 break-all font-mono text-[11px] font-semibold tracking-wide text-[#F4781B]"
+                title={job.id}
+              >
+                {formatJobDisplayId(job.id)}
+              </p>
+            ) : null}
             <h2 className="text-lg font-bold text-gray-900 mt-0.5 leading-snug">{jobTitle}</h2>
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <Badge

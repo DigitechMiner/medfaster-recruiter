@@ -15,6 +15,7 @@ import {
   JobsErrorView,
   JobsTableBodySkeleton,
   formatDateRangeShort,
+  formatJobDisplayId,
   formatJobTitleDisplay,
   formatListingStatus,
   formatLocationCityProvince,
@@ -39,28 +40,47 @@ function JobPrimaryCell({
   job: JobListItem;
   location: string;
 }) {
-  const shiftLabels = getJobShiftTypeLabels(job);
+  const jobDisplayId = formatJobDisplayId(job.id);
 
   return (
     <div className="min-w-0">
+      {jobDisplayId ? (
+        <p
+          className="break-all font-mono text-[11px] font-semibold tracking-wide text-[#F4781B]"
+          title={job.id}
+        >
+          {jobDisplayId}
+        </p>
+      ) : null}
       <p className="font-semibold text-gray-900 text-sm leading-snug">
         {formatJobTitleDisplay(job.job_title)}
       </p>
       {location !== "—" ? (
         <p className="mt-1 text-xs text-gray-500">{location}</p>
       ) : null}
-      {shiftLabels.length > 0 ? (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {shiftLabels.map((label) => (
-            <span
-              key={`${job.id}-${label}`}
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${getShiftTypeBadgeClass(label)}`}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-      ) : null}
+    </div>
+  );
+}
+
+function ShiftTypeBadges({
+  jobId,
+  labels,
+}: {
+  jobId: string;
+  labels: string[];
+}) {
+  if (labels.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {labels.map((label) => (
+        <span
+          key={`${jobId}-${label}`}
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${getShiftTypeBadgeClass(label)}`}
+        >
+          {label}
+        </span>
+      ))}
     </div>
   );
 }
@@ -164,6 +184,7 @@ export function TableView({
           const hiresRequired = getRequiredPositions(job);
           const hiresFilled = getFilledPositions(job);
           const schedule = formatDateRangeShort(job);
+          const shiftLabels = getJobShiftTypeLabels(job);
 
           return (
             <tr
@@ -175,8 +196,13 @@ export function TableView({
                 <JobPrimaryCell job={job} location={location} />
               </td>
 
-              <td className="px-4 py-2.5 align-middle text-sm text-gray-600 whitespace-nowrap tabular-nums">
-                {schedule ?? "—"}
+              <td className="px-4 py-2.5 align-middle text-sm text-gray-600">
+                <div className="flex flex-col items-start gap-1.5">
+                  <span className="whitespace-nowrap tabular-nums">
+                    {schedule ?? "—"}
+                  </span>
+                  <ShiftTypeBadges jobId={job.id} labels={shiftLabels} />
+                </div>
               </td>
 
               <td className="px-4 py-2.5 align-middle">

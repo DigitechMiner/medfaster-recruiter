@@ -5,6 +5,9 @@ import type {
   JobScheduleData,
   JobScheduleRotationalTeam,
   JobStatus,
+  JobTeamMember,
+  JobTeamRosterTeam,
+  JobTeamSlot,
   JobUrgency,
 } from "@/types";
 import { formatLabel } from "../shared/job-detail-helpers";
@@ -275,6 +278,81 @@ export function getApplicationStatusChooserDescription(
 
   const last = labels[labels.length - 1];
   return `Review this candidate, then choose ${labels.slice(0, -1).join(", ")}, or ${last}.`;
+}
+
+export type AssignedHireSeat = {
+  slotCode: string;
+  teamName: string;
+  shiftType: string | null;
+};
+
+function memberMatchesHire(
+  member: JobTeamMember,
+  applicationId: string,
+  candidateId?: string | null,
+) {
+  if (member.application_id && member.application_id === applicationId) return true;
+  if (!candidateId) return false;
+  return (
+    member.candidate_id === candidateId ||
+    member.candidate?.id === candidateId ||
+    member.candidate?.user_id === candidateId
+  );
+}
+
+/** Seat comes from the team roster. The hire response does not include it. */
+export function findAssignedHireSeat(
+  members: JobTeamMember[] | null | undefined,
+  input: {
+    applicationId: string;
+    candidateId?: string | null;
+    teamId?: string | null;
+    shiftType?: string | null;
+  },
+): AssignedHireSeat | null {
+  const member = (members ?? []).find((item) =>
+    memberMatchesHire(item, input.applicationId, input.candidateId),
+  );
+  const seated = (member?.teams ?? []).filter((team) => Boolean(team.slot_code));
+  if (seated.length === 0) return null;
+
+  const teamId = input.teamId ?? "";
+  const shiftType = (input.shiftType ?? "").toUpperCase();
+  const match = [...seated].sort((left, right) => {
+    const score = (team: (typeof seated)[number]) => {
+      let value = 0;
+      if (teamId && team.team_id === teamId) value += 2;
+      if (shiftType && (team.slot_shift_type ?? "").toUpperCase() === shiftType) value += 1;
+      return value;
+    };
+    return score(right) - score(left);
+  })[0];
+
+  if (!match?.slot_code) return null;
+  return {
+    slotCode: match.slot_code,
+    teamName: match.team_name,
+    shiftType: match.slot_shift_type ?? null,
+  };
+}
+
+export function getOpenTeamSlots(
+  teams: JobTeamRosterTeam[] | null | undefined,
+  teamId: string,
+  shiftType: string,
+): JobTeamSlot[] {
+  if (!teamId || !shiftType) return [];
+  const team = teams?.find((item) => item.id === teamId);
+  if (!Array.isArray(team?.slots)) return [];
+
+  const band = shiftType.toUpperCase();
+  return team.slots
+    .filter(
+      (slot) =>
+        (slot.shift_type ?? "").toUpperCase() === band &&
+        (slot.status ?? "").toUpperCase() === "OPEN",
+    )
+    .sort((left, right) => (left.slot_index ?? 0) - (right.slot_index ?? 0));
 }
 
 export function getApplicationStatusActionGridClass(

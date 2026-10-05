@@ -24,6 +24,7 @@ import {
   EmptyState,
   LoadingRows,
 } from "../shared/JobDetailDataView";
+import { formatJobDisplayId } from "@/app/jobs/components/helper";
 import { formatDate, formatLabel, formatPay, formatTime } from "../shared/job-detail-helpers";
 import { ShiftCountdown } from "@/components/ShiftCountdown";
 
@@ -363,6 +364,14 @@ export function JobShiftsTab({
                               <Clock size={15} />
                             </span>
                             <div className="min-w-0">
+                              {formatJobDisplayId(jobId) ? (
+                                <p
+                                  className="break-all font-mono text-[11px] font-semibold tracking-wide text-[#F4781B]"
+                                  title={jobId}
+                                >
+                                  {formatJobDisplayId(jobId)}
+                                </p>
+                              ) : null}
                               <div className="flex flex-wrap items-center gap-2">
                                 <h5 className="text-sm font-bold text-gray-900">
                                   {formatTime(shift.startTime ?? checkInTime)} –{" "}

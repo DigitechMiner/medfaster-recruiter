@@ -314,6 +314,34 @@ export interface JobPaymentInvoice {
   status?: string | null;
 }
 
+export interface JobInvoiceBillingCycle {
+  id?: string | null;
+  label?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  status?: string | null;
+}
+
+/** GET /recruiter/jobs/:id/invoices/:invoiceId — invoice id, not the INV- number. */
+export interface JobInvoiceDetail {
+  id: string;
+  invoice_number?: string | null;
+  status?: string | null;
+  due_date?: string | null;
+  paid_at?: string | null;
+  subtotal_cents?: string | number | null;
+  tax_name?: string | null;
+  tax_percentage?: number | null;
+  tax_amount_cents?: string | number | null;
+  total_amount_cents?: string | number | null;
+  recruiter_pay_per_hour_cents?: string | number | null;
+  candidate_receive_per_hour_cents?: string | number | null;
+  platform_fee_per_hour_cents?: string | number | null;
+  billing_cycle?: JobInvoiceBillingCycle | null;
+  ledger?: JobPaymentLedgerSummary | null;
+  wallet_payment?: JobWalletTransactionItem | null;
+}
+
 export interface JobPaymentLedgerSummary {
   total_payment_received_cents?: string | number | null;
   total_candidate_payout_cents?: string | number | null;
@@ -621,6 +649,20 @@ export interface JobTeamRosterJob {
   hired_count?: number | null;
 }
 
+export type JobTeamSlotStatus = "OPEN" | "FILLED";
+
+/** One hire seat on a team shift. OPEN can still be hired. */
+export interface JobTeamSlot {
+  slot_code: string;
+  slot_index: number;
+  shift_type: string;
+  required_workers: number;
+  status: JobTeamSlotStatus | string;
+  rotation_id?: string | null;
+  candidate_user_id?: string | null;
+  worker_id?: string | null;
+}
+
 export interface JobTeamRosterTeam {
   id: string;
   team_name: string;
@@ -630,6 +672,7 @@ export interface JobTeamRosterTeam {
   end_date?: string | null;
   member_count: number;
   open_vacancy_count: number;
+  slots?: JobTeamSlot[];
 }
 
 export interface JobTeamMemberCandidate {
@@ -650,6 +693,10 @@ export interface JobTeamMemberTeam {
   is_active?: boolean;
   joined_at?: string | null;
   removed_at?: string | null;
+  /** Null for coverage-only members, who have no hire seat. */
+  slot_code?: string | null;
+  slot_index?: number | null;
+  slot_shift_type?: string | null;
 }
 
 export interface JobTeamShiftSummary {
@@ -676,6 +723,8 @@ export interface JobTeamMemberShift {
   province?: string | null;
   team_id?: string | null;
   team_name?: string | null;
+  /** Null when the shift is coverage and the member has no hire seat. */
+  slot_code?: string | null;
   attendance?: unknown;
 }
 
@@ -812,6 +861,7 @@ export interface CalendarGridShift {
   candidate_name: string;
   profile_image_url?: string | null;
   job_title: string;
+  job_id?: string | null;
   planned_check_in: string | null;
 }
 

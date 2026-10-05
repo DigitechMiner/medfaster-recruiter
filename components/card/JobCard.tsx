@@ -6,6 +6,7 @@ import { resolveCanadianProvinceLabel, resolveCanadianCityLabel, useMetadataStor
 import type { JobListItem } from '@/types';
 import {
   formatDateRangeShort,
+  formatJobDisplayId,
   formatJobTitleDisplay,
   formatListingStatus,
   formatLocationCityProvince,
@@ -62,11 +63,20 @@ export const JobCard: React.FC<{
   const hiresFilled = getFilledPositions(job);
   const shiftLabels = getJobShiftTypeLabels(job);
   const dateRange = formatDateRangeShort(job);
+  const jobDisplayId = formatJobDisplayId(job.id);
 
   return (
     <div
       className="bg-white rounded-2xl p-4 flex flex-col gap-3 border border-gray-200"
     >
+      {jobDisplayId ? (
+        <p
+          className="break-all font-mono text-[11px] font-semibold tracking-wide text-[#F4781B]"
+          title={job.id}
+        >
+          {jobDisplayId}
+        </p>
+      ) : null}
       <h3 className="font-bold text-gray-900 text-[15px] leading-snug">
         {formatJobTitleDisplay(job.job_title)}
       </h3>
@@ -93,27 +103,20 @@ export const JobCard: React.FC<{
           <span className="text-gray-400">/</span>
           <span className="text-gray-600">{hiresRequired}</span>
         </div>
-        <div className="col-span-2">
-          <span className="text-gray-500">Shift: </span>
-          {shiftLabels.length > 0 ? (
-            <span className="inline-flex flex-wrap gap-1 mt-1">
-              {shiftLabels.map((label) => (
-                <span
-                  key={`${job.id}-${label}`}
-                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getShiftTypeBadgeClass(label)}`}
-                >
-                  {label}
-                </span>
-              ))}
-            </span>
-          ) : (
-            <span className="font-medium text-gray-800">—</span>
-          )}
-        </div>
       </div>
 
-      {dateRange && (
-        <p className="text-sm text-gray-600">{dateRange}</p>
+      {(dateRange || shiftLabels.length > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {dateRange ? <p className="text-sm text-gray-600">{dateRange}</p> : null}
+          {shiftLabels.map((label) => (
+            <span
+              key={`${job.id}-schedule-${label}`}
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${getShiftTypeBadgeClass(label)}`}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       )}
 
       <div className="flex gap-2 mt-1">

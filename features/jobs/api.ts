@@ -40,6 +40,7 @@ import type {
   JobInterviewFundsPagination,
   JobInterviewFundsParams,
   JobDetailPaymentCycle,
+  JobInvoiceDetail,
   JobPaymentInvoice,
   JobPaymentLedgerSummary,
   JobFeeBreakdown,
@@ -300,7 +301,7 @@ function asOptionalString(value: unknown): string | undefined {
 function normalizePaymentInvoice(value: unknown): JobPaymentInvoice | null {
   if (!isRecord(value)) return null;
   return {
-    id: asOptionalString(value.id),
+    id: asOptionalString(value.id) ?? asOptionalString(value.invoice_id),
     invoice_number: asOptionalString(value.invoice_number) ?? null,
     due_date: asOptionalString(value.due_date) ?? null,
     total_amount_cents: asCents(value.total_amount_cents) ?? null,
@@ -315,10 +316,16 @@ function normalizePaymentLedgerSummary(
   if (!isRecord(value)) return null;
   return {
     total_payment_received_cents: asCents(value.total_payment_received_cents),
-    total_candidate_payout_cents: asCents(value.total_candidate_payout_cents),
+    total_candidate_payout_cents:
+      asCents(value.total_candidate_payout_cents) ??
+      asCents(value.total_candidate_release_cents) ??
+      asCents(value.candidate_release_cents),
     total_platform_fee_cents: asCents(value.total_platform_fee_cents),
     total_tax_collected_cents: asCents(value.total_tax_collected_cents),
-    total_refund_cents: asCents(value.total_refund_cents),
+    total_refund_cents:
+      asCents(value.total_refund_cents) ??
+      asCents(value.total_refunds_cents) ??
+      asCents(value.refunds_cents),
     total_tax_refund_cents: asCents(value.total_tax_refund_cents),
     total_adjustment_cents: asCents(value.total_adjustment_cents),
     held_amount_cents: asCents(value.held_amount_cents),
@@ -537,6 +544,159 @@ export async function getRecruiterJobPayments(
 ): Promise<JobDetailPaymentsData> {
   const res = await axiosInstance.get(ENDPOINTS.JOBS_DETAIL_PAYMENTS(id));
   return normalizeJobPayments(extractData(res.data));
+}
+
+function asPercentage(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function firstRecord(...values: unknown[]): JobDetailRecord | null {
+  return values.find(isRecord) ?? null;
+}
+
+function normalizeInvoiceWalletPayment(
+  value: unknown,
+): JobWalletTransactionItem | null {
+  if (!isRecord(value)) return null;
+  const amount =
+    asCents(value.amount_cents) ??
+    asCents(value.amount) ??
+    asCents(value.total_amount_cents);
+  const hasPaymentShape =
+    amount != null ||
+    asOptionalString(value.status) != null ||
+    asOptionalString(value.type) != null ||
+    asOptionalString(value.transaction_id) != null ||
+    asOptionalString(value.id) != null;
+  if (!hasPaymentShape) return null;
+
+  return {
+    id: asOptionalString(value.id),
+    transaction_id: asOptionalString(value.transaction_id),
+    type: asOptionalString(value.type) ?? null,
+    direction: asOptionalString(value.direction) ?? null,
+    category: asOptionalString(value.category) ?? null,
+    amount_cents: amount ?? null,
+    amount: asCents(value.amount) ?? null,
+    total_amount_cents: asCents(value.total_amount_cents) ?? null,
+    status: asOptionalString(value.status) ?? null,
+    description: asOptionalString(value.description) ?? null,
+    created_at:
+      asOptionalString(value.created_at) ??
+      asOptionalString(value.paid_at) ??
+      null,
+    updated_at: asOptionalString(value.updated_at) ?? null,
+  };
+}
+
+function normalizeJobInvoiceDetail(value: unknown): JobInvoiceDetail {
+  const data = isRecord(value) ? value : {};
+  const tax = firstRecord(data.tax, data.taxes);
+  const taxComponent = Array.isArray(tax?.components)
+    ? tax.components.find(isRecord)
+    : null;
+  const hourly = firstRecord(
+    data.per_hour,
+    data.hourly,
+    isRecord(data.fee_breakdown) ? data.fee_breakdown.per_hour : null,
+  );
+  const cycle = firstRecord(data.billing_cycle, data.cycle);
+  const ledger = normalizePaymentLedgerSummary(
+    firstRecord(data.ledger, data.cycle_ledger),
+  );
+
+  return {
+    id:
+      asOptionalString(data.id) ??
+      asOptionalString(data.invoice_id) ??
+      "",
+    invoice_number: asOptionalString(data.invoice_number) ?? null,
+    status: asOptionalString(data.status) ?? null,
+    due_date: asOptionalString(data.due_date) ?? null,
+    paid_at: asOptionalString(data.paid_at) ?? null,
+    subtotal_cents:
+      asCents(data.subtotal_cents) ??
+      asCents(data.subtotal_amount_cents) ??
+      null,
+    tax_name:
+      asOptionalString(data.tax_name) ??
+      asOptionalString(tax?.tax_name) ??
+      asOptionalString(tax?.name) ??
+      asOptionalString(taxComponent?.tax_name) ??
+      null,
+    tax_percentage:
+      asPercentage(data.tax_percentage) ??
+      asPercentage(tax?.tax_percentage) ??
+      asPercentage(tax?.percentage) ??
+      asPercentage(tax?.total_tax_percentage) ??
+      asPercentage(taxComponent?.tax_percentage),
+    tax_amount_cents:
+      asCents(data.tax_amount_cents) ??
+      asCents(tax?.tax_amount_cents) ??
+      asCents(tax?.amount_cents) ??
+      asCents(tax?.total_tax_cents) ??
+      asCents(taxComponent?.tax_amount_cents) ??
+      null,
+    total_amount_cents:
+      asCents(data.total_amount_cents) ?? asCents(data.total_cents) ?? null,
+    recruiter_pay_per_hour_cents:
+      asCents(data.recruiter_pay_per_hour_cents) ??
+      asCents(hourly?.recruiter_pay_per_hour_cents) ??
+      null,
+    candidate_receive_per_hour_cents:
+      asCents(data.candidate_receive_per_hour_cents) ??
+      asCents(hourly?.candidate_receive_per_hour_cents) ??
+      null,
+    platform_fee_per_hour_cents:
+      asCents(data.platform_fee_per_hour_cents) ??
+      asCents(hourly?.platform_fee_per_hour_cents) ??
+      null,
+    billing_cycle: cycle
+      ? {
+          id: asOptionalString(cycle.id) ?? null,
+          label: asOptionalString(cycle.label) ?? null,
+          period_start:
+            asOptionalString(cycle.period_start) ??
+            asOptionalString(cycle.period_start_date) ??
+            null,
+          period_end:
+            asOptionalString(cycle.period_end) ??
+            asOptionalString(cycle.period_end_date) ??
+            null,
+          status: asOptionalString(cycle.status) ?? null,
+        }
+      : null,
+    ledger,
+    wallet_payment: normalizeInvoiceWalletPayment(
+      firstRecord(
+        data.wallet_payment,
+        data.wallet_transaction,
+        data.payment,
+      ),
+    ),
+  };
+}
+
+export async function getRecruiterJobInvoice(
+  jobId: string,
+  invoiceId: string,
+): Promise<JobInvoiceDetail> {
+  const res = await axiosInstance.get(
+    ENDPOINTS.JOBS_DETAIL_INVOICE(jobId, invoiceId),
+  );
+  const payload = extractData<unknown>(res.data);
+  const invoice =
+    isRecord(payload) &&
+    isRecord(payload.invoice) &&
+    !asOptionalString(payload.invoice_number)
+      ? payload.invoice
+      : payload;
+  return normalizeJobInvoiceDetail(invoice);
 }
 
 function asCount(value: unknown): number | undefined {

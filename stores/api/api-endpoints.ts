@@ -36,6 +36,8 @@ export const ENDPOINTS = {
   JOBS_DETAIL_QUESTIONS: (id: string) => `/recruiter/jobs/${id}/questions`,
   JOBS_DETAIL_ACTIVITY: (id: string) => `/recruiter/jobs/${id}/activity`,
   JOBS_DETAIL_PAYMENTS: (id: string) => `/recruiter/jobs/${id}/payments`,
+  JOBS_DETAIL_INVOICE: (jobId: string, invoiceId: string) =>
+    `/recruiter/jobs/${jobId}/invoices/${invoiceId}`,
   JOBS_DETAIL_INTERVIEW_FUNDS: (id: string) =>
     `/recruiter/jobs/${id}/interview-funds`,
   JOBS_DETAIL_SCHEDULE: (id: string) => `/recruiter/jobs/${id}/schedule`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -23,13 +23,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { updateApplicationStatus } from "@/features/jobs";
-import { useJobSchedule } from "@/hooks/useJobData";
+import { getRecruiterJobTeam, updateApplicationStatus } from "@/features/jobs";
+import { useJobSchedule, useJobTeam } from "@/hooks/useJobData";
 import type {
   ApplicationStatus,
   ApplicationTeamPreference,
   HireShiftBand,
   JobStatus,
+  JobTeamRosterTeam,
   JobUrgency,
 } from "@/types";
 import { formatShiftTypeLabel } from "@/app/jobs/components/helper";
@@ -53,10 +54,39 @@ import {
   getApplicationStatusDisplayLabel,
   getApplicationStatusTagline,
   getApplicationStatusTransitions,
+  findAssignedHireSeat,
   getHirePlacementTeamsFromSchedule,
   getHireShiftBandOptions,
+  getOpenTeamSlots,
   sortApplicationStatusActions,
+  type AssignedHireSeat,
 } from "./application-status-transitions";
+
+async function loadAssignedHireSeat(
+  jobId: string,
+  placement: {
+    applicationId: string;
+    candidateId?: string;
+    teamId: string;
+    shiftType: string;
+  },
+): Promise<AssignedHireSeat | null> {
+  const scoped = await getRecruiterJobTeam(jobId, {
+    team_id: placement.teamId,
+    include_shifts: false,
+    limit: 100,
+    page: 1,
+  }).catch(() => null);
+  const scopedSeat = findAssignedHireSeat(scoped?.members, placement);
+  if (scopedSeat) return scopedSeat;
+
+  const roster = await getRecruiterJobTeam(jobId, {
+    include_shifts: false,
+    limit: 100,
+    page: 1,
+  }).catch(() => null);
+  return findAssignedHireSeat(roster?.members, placement);
+}
 
 const CANDIDATE_SCHEDULE_OVERLAP_MESSAGE =
   "This candidate has been selected for other assignments and is no longer available for this position. Kindly consider another suitable candidate";
@@ -139,12 +169,16 @@ function getInitials(name: string) {
 
 function HirePlacementForm({
   teamPreferences,
+  rosterTeams,
+  rosterLoading,
   selectedTeamId,
   selectedShiftBand,
   onTeamChange,
   onShiftChange,
 }: {
   teamPreferences: ApplicationTeamPreference[];
+  rosterTeams: JobTeamRosterTeam[];
+  rosterLoading: boolean;
   selectedTeamId: string;
   selectedShiftBand: string;
   onTeamChange: (teamId: string) => void;
@@ -152,6 +186,7 @@ function HirePlacementForm({
 }) {
   const selectedTeam = teamPreferences.find((team) => team.team_id === selectedTeamId);
   const shiftBandOptions = getHireShiftBandOptions(selectedTeam?.shift_types);
+  const openSeats = getOpenTeamSlots(rosterTeams, selectedTeamId, selectedShiftBand);
 
   return (
     <div className="space-y-4">
@@ -202,6 +237,16 @@ function HirePlacementForm({
           ) : (
             <p className="text-xs text-amber-700">No shift bands available for this team.</p>
           )}
+          {rosterLoading && rosterTeams.length === 0 ? (
+            <p className="text-xs text-gray-500">Checking open seats…</p>
+          ) : openSeats.length > 0 ? (
+            <p className="text-xs text-gray-500">
+              Open seats:{" "}
+              <span className="font-mono font-semibold text-gray-800">
+                {openSeats.map((slot) => slot.slot_code).join(", ")}
+              </span>
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -340,6 +385,9 @@ export function ApplicationStatusActionModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedShiftBand, setSelectedShiftBand] = useState("");
+  const [hiredSeat, setHiredSeat] = useState<AssignedHireSeat | null>(null);
+  const [hireConfirmed, setHireConfirmed] = useState(false);
+  const hireRefreshStarted = useRef(false);
 
   const candidateName = candidate.name || "this candidate";
   const transitionOptions = useMemo(
@@ -355,11 +403,17 @@ export function ApplicationStatusActionModal({
   );
   const hasTeamPreferences = teamPreferences.length > 0;
   const needsJobTeams = open && selectedAction === "HIRE" && !hasTeamPreferences;
+  const needsRoster = open && selectedAction === "HIRE" && !hireConfirmed;
   const {
     schedule,
     isLoading: isScheduleLoading,
     error: scheduleError,
   } = useJobSchedule(jobId, needsJobTeams);
+  const { team: roster, isLoading: isRosterLoading } = useJobTeam(
+    jobId,
+    { include_shifts: false, limit: 100, page: 1 },
+    needsRoster,
+  );
 
   const placementTeams = useMemo(() => {
     if (hasTeamPreferences) return teamPreferences;
@@ -372,6 +426,9 @@ export function ApplicationStatusActionModal({
       setSubmitError(null);
       setSelectedTeamId("");
       setSelectedShiftBand("");
+      setHiredSeat(null);
+      setHireConfirmed(false);
+      hireRefreshStarted.current = false;
       return;
     }
 
@@ -379,6 +436,9 @@ export function ApplicationStatusActionModal({
     setSubmitError(null);
     setSelectedTeamId("");
     setSelectedShiftBand("");
+    setHiredSeat(null);
+    setHireConfirmed(false);
+    hireRefreshStarted.current = false;
   }, [open, applicationId]);
 
   useEffect(() => {
@@ -415,6 +475,16 @@ export function ApplicationStatusActionModal({
             shift_type: shiftType,
           },
         });
+        setHiredSeat(
+          await loadAssignedHireSeat(jobId, {
+            applicationId,
+            candidateId: candidate.id,
+            teamId: selectedTeamId,
+            shiftType,
+          }),
+        );
+        setHireConfirmed(true);
+        return;
       } else {
         await updateApplicationStatus(jobId, applicationId, { status: selectedAction });
       }
@@ -440,6 +510,13 @@ export function ApplicationStatusActionModal({
     !(needsJobTeams && (isScheduleLoading || Boolean(scheduleError)));
   const canSubmitHire = selectedAction !== "HIRE" || hireReady;
 
+  const finishConfirmedHire = () => {
+    if (hireRefreshStarted.current) return;
+    hireRefreshStarted.current = true;
+    onSuccess();
+    onClose();
+  };
+
   const hireDescription = hasTeamPreferences
     ? `Select a team and shift from ${candidateName}'s preferences.`
     : `Select a job team and shift band to place ${candidateName}.`;
@@ -448,24 +525,35 @@ export function ApplicationStatusActionModal({
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && !isSubmitting) onClose();
+        if (nextOpen || isSubmitting) return;
+        if (hireConfirmed) {
+          finishConfirmedHire();
+          return;
+        }
+        onClose();
       }}
     >
       <DialogContent className="gap-4 overflow-y-auto sm:max-w-lg">
         <DialogHeader className="space-y-1 pr-8 text-left">
           <DialogTitle>
-            {selectedAction
-              ? selectedAction === "HIRE"
-                ? `Hire ${candidateName}`
-                : `${actionLabel} ${candidateName}`
-              : "Application actions"}
+            {hireConfirmed
+              ? `Hired ${candidateName}`
+              : selectedAction
+                ? selectedAction === "HIRE"
+                  ? `Hire ${candidateName}`
+                  : `${actionLabel} ${candidateName}`
+                : "Application actions"}
           </DialogTitle>
           <DialogDescription>
-            {selectedAction
-              ? selectedAction === "HIRE"
-                ? hireDescription
-                : getApplicationStatusActionDescription(selectedAction, candidateName)
-              : getApplicationStatusChooserDescription(availableActions)}
+            {hireConfirmed
+              ? hiredSeat
+                ? `Assigned seat ${hiredSeat.slotCode}.`
+                : "Their seat is on the team roster."
+              : selectedAction
+                ? selectedAction === "HIRE"
+                  ? hireDescription
+                  : getApplicationStatusActionDescription(selectedAction, candidateName)
+                : getApplicationStatusChooserDescription(availableActions)}
           </DialogDescription>
         </DialogHeader>
 
@@ -476,7 +564,23 @@ export function ApplicationStatusActionModal({
           currentStatus={currentStatus}
         />
 
-        {!selectedAction ? (
+        {hireConfirmed ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">
+            <p className="font-semibold">{candidateName} is hired.</p>
+            {hiredSeat ? (
+              <p className="mt-1">
+                Seat{" "}
+                <span className="font-mono font-semibold">{hiredSeat.slotCode}</span>
+                {hiredSeat.teamName ? ` · ${hiredSeat.teamName}` : ""}
+                {hiredSeat.shiftType
+                  ? ` · ${formatShiftTypeLabel(hiredSeat.shiftType)}`
+                  : ""}
+              </p>
+            ) : (
+              <p className="mt-1">Open the team tab to see the assigned seat.</p>
+            )}
+          </div>
+        ) : !selectedAction ? (
           <div className={getApplicationStatusActionGridClass(availableActions.length)}>
             {availableActions.map((action) => {
               const Icon = getActionIcon(action);
@@ -530,6 +634,8 @@ export function ApplicationStatusActionModal({
           ) : placementTeams.length > 0 ? (
             <HirePlacementForm
               teamPreferences={placementTeams}
+              rosterTeams={roster?.teams ?? []}
+              rosterLoading={isRosterLoading}
               selectedTeamId={selectedTeamId}
               selectedShiftBand={selectedShiftBand}
               onTeamChange={handleTeamChange}
@@ -543,9 +649,26 @@ export function ApplicationStatusActionModal({
           )
         ) : null}
 
-        {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+        {submitError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium leading-snug text-red-700"
+          >
+            {submitError}
+          </p>
+        ) : null}
 
-        {selectedAction ? (
+        {hireConfirmed ? (
+          <DialogFooter className="gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={finishConfirmedHire}
+              className="inline-flex items-center justify-center rounded-lg bg-[#F4781B] px-3 py-2 text-sm font-semibold text-white hover:bg-[#e06a10]"
+            >
+              Done
+            </button>
+          </DialogFooter>
+        ) : selectedAction ? (
           <DialogFooter className="gap-2 sm:justify-end">
             <button
               type="button"

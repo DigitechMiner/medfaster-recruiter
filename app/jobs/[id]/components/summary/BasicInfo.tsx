@@ -25,6 +25,7 @@ import { DescriptionTab } from "../details/DescriptionTab";
 import { InterviewQuestionsDialog } from "./InterviewQuestionsDialog";
 import { JobWorkflow } from "./JobWorkflow";
 import { ScheduleSection } from "../schedule/ScheduleSection";
+import { formatJobDisplayId } from "@/app/jobs/components/helper";
 import {
   formatDateRange,
   formatLabel,
@@ -111,6 +112,7 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
   const isRotational = summary.shift_mode?.toUpperCase() === "ROTATIONAL";
   const specializations = summary.specializations ?? [];
   const postedAt = formatRelativeTimestamp(summary.created_at);
+  const jobDisplayId = formatJobDisplayId(jobId);
 
   return (
     <div className="flex flex-col gap-4">
@@ -120,6 +122,14 @@ export function JobDetailSummary({ summary, jobId }: JobDetailSummaryProps) {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
             <div className="min-w-0 flex-1 space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
+                {jobDisplayId ? (
+                  <p
+                    className="w-full break-all font-mono text-[11px] font-semibold tracking-wide text-[#F4781B]"
+                    title={jobId}
+                  >
+                    {jobDisplayId}
+                  </p>
+                ) : null}
                 <h1 className="text-xl font-extrabold leading-tight text-gray-900 sm:text-2xl">
                   {summary.title}
                 </h1>

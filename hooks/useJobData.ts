@@ -10,6 +10,7 @@ import type {
   JobDetailActivityData,
   JobDetailDescriptionData,
   JobDetailPaymentsData,
+  JobInvoiceDetail,
   JobInterviewFundsData,
   JobInterviewFundsParams,
   JobDetailSummaryData,
@@ -34,6 +35,7 @@ import {
   getRecruiterJobChildren,
   getRecruiterJobDescription,
   getRecruiterJobQuestions,
+  getRecruiterJobInvoice,
   getRecruiterJobPayments,
   getRecruiterJobInterviewFunds,
   getRecruiterJobSchedule,
@@ -375,6 +377,50 @@ export function useJobPayments(jobId?: string | null, enabled = true) {
   }, [jobId, enabled]);
 
   return { payments, isLoading, error };
+}
+
+export function useJobInvoice(
+  jobId?: string | null,
+  invoiceId?: string | null,
+  enabled = true,
+) {
+  const [invoice, setInvoice] = useState<JobInvoiceDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !invoiceId || !enabled) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    setInvoice(null);
+
+    getRecruiterJobInvoice(jobId, invoiceId)
+      .then((data) => {
+        if (!cancelled) setInvoice(data);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load invoice",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, invoiceId, enabled]);
+
+  return { invoice, isLoading, error };
 }
 
 export function useJobInterviewFunds(
