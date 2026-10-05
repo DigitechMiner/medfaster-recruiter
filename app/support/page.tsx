@@ -109,7 +109,7 @@ export default function SupportPage() {
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Wrong prescription listed..."
+                  placeholder="Title of the issue"
                   className="border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#F4781B] transition-colors placeholder:text-gray-300"
                 />
               </div>
